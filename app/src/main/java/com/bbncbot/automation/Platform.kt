@@ -43,9 +43,9 @@ enum class Platform {
             for (p in listOf(UC, ALIPAY, TAOBAO)) {
                 if (pkg in p.config.packageNames) return p
             }
-            // 其次匹配内部包名前缀
+            // 其次匹配内部包名前缀（严格 startsWith，避免 contains 误匹配无关包）
             for (p in listOf(UC, ALIPAY, TAOBAO)) {
-                if (p.config.internalPackagePrefixes.any { pkg.startsWith(it) || pkg.contains(it) }) return p
+                if (p.config.internalPackagePrefixes.any { pkg.startsWith(it) }) return p
             }
             return UNKNOWN
         }
@@ -141,7 +141,9 @@ object AlipayPlatformConfig : PlatformConfig {
     override val packageNames = listOf("com.eg.android.AlipayGphone")
     override val internalPackagePrefixes = listOf("com.eg.android.AlipayGphone", "com.alipay.mobile")
     override val farmPageActivityKeywords = listOf(
-        "alipaylogin", "fragmenttabactivity", "mainactivity", "h5appactivity", "h5webviewactivity"
+        "alipaylogin", "fragmenttabactivity", "mainactivity", "h5appactivity", "h5webviewactivity",
+        // 支付宝新版 H5 容器（nebulax xriver），用于芭芭农场等小程序页面
+        "xriveractivity", "xrivertransactivity"
     )
     override val collectFertilizerTexts = listOf(
         "集肥料", "领取肥料", "获取肥料", "收集肥料", "肥料",
