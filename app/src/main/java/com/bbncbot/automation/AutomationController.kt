@@ -304,6 +304,8 @@ object AutomationController {
         Log.i(TAG, "automation stopping")
         moveTo(AutomationState.STOPPING)
         handler.removeCallbacksAndMessages(null)
+        // 取消进行中的导航回调，避免 stop 后导航继续干扰用户操作
+        getService()?.cancelNavigation()
         getService()?.setAdMode(false)
         moveTo(AutomationState.IDLE)
     }

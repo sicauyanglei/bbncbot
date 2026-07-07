@@ -95,6 +95,9 @@ class FarmAccessibilityService : AccessibilityService() {
     fun setPendingApp(label: String?, userType: String) {
         pendingAppLabel = label
         pendingUserType = userType
+        // 新启动 App：清除 HwChooser 处理标志和冷却，允许重新检测
+        hwChooserHandled = false
+        hwChooserCooldownUntil = 0L
         Log.i(TAG, "setPendingApp: label=$label, userType=$userType")
         debugLog("setPendingApp: label=$label, userType=$userType")
         // 根据 label 预设平台（用于分身情况：u0 服务收不到 u128 的事件，平台不会被自动检测）
@@ -156,6 +159,10 @@ class FarmAccessibilityService : AccessibilityService() {
     @Volatile
     private var hwChooserHandled: Boolean = false
 
+    /** HwChooserActivity 处理冷却时间戳（毫秒），避免无候选时空跑 */
+    @Volatile
+    private var hwChooserCooldownUntil: Long = 0L
+
     /**
      * 当前检测到的平台（自动更新）
      * - 通过 [getCurrentWindowPackage] 在需要时刷新
@@ -214,6 +221,11 @@ class FarmAccessibilityService : AccessibilityService() {
 
         // 处理华为 HwChooserActivity（应用选择器）
         if (pkg == "com.hihonor.android.internal.app") {
+            // 无 pending label 时直接静默返回（避免系统其他对话框误触发刷屏）
+            if (pendingAppLabel == null) return
+            // 冷却期内跳过（避免无候选时反复扫描节点树）
+            val now = System.currentTimeMillis()
+            if (now < hwChooserCooldownUntil) return
             debugLog("HwChooser detected, calling handleHwChooserActivity")
             handleHwChooserActivity()
             return
@@ -272,6 +284,8 @@ class FarmAccessibilityService : AccessibilityService() {
         val root = rootInActiveWindowSafe()
         if (root == null) {
             debugLog("HwChooser: root is null, skip")
+            // root 还没准备好，短冷却后重试
+            hwChooserCooldownUntil = System.currentTimeMillis() + 500L
             return
         }
         debugLog("HwChooser detected, looking for label='$label', userType=$pendingUserType")
@@ -298,10 +312,15 @@ class FarmAccessibilityService : AccessibilityService() {
 
         if (target == null) {
             debugLog("HwChooser: no matching option for label='$label', abort")
+            // 无候选：进入冷却（2 秒），避免每个事件都重新扫描节点树
+            // 同时清除 pendingLabel，防止持续触发（应用未安装分身等情况）
+            hwChooserCooldownUntil = System.currentTimeMillis() + 2000L
             return
         }
         debugLog("HwChooser: clicking option text='${target.text}' desc='${target.desc}' (userType=$pendingUserType)")
         hwChooserHandled = true
+        // 处理成功，清除冷却
+        hwChooserCooldownUntil = 0L
         performClickSafe(target.node)
         // 清除 pending label，避免重复处理
         pendingAppLabel = null
@@ -457,24 +476,40 @@ class FarmAccessibilityService : AccessibilityService() {
     /**
      * 查找当前农场 App 窗口的根节点
      * - 遍历所有窗口找到当前平台 App 的窗口
+     * - 多个窗口匹配时优先选内容最丰富的（避免拿到仅有 1 个子节点的 splash/popup 窗口）
      * @return 当前平台 App 窗口的根节点，找不到时返回 null
      */
     fun getRootInFarmApp(): AccessibilityNodeInfo? {
         return try {
             val windows = windows
             val cfg = currentPlatformConfig()
+            var bestRoot: AccessibilityNodeInfo? = null
+            var bestPkg = ""
+            var bestDescendants = -1
             for (w in windows) {
-                val pkg = w.root?.packageName?.toString().orEmpty()
-                if (pkg in cfg.packageNames || cfg.internalPackagePrefixes.any { pkg.startsWith(it) || pkg.contains(it) }) {
-                    val root = w.root
-                    if (root != null) {
-                        Log.d(TAG, "getRootInFarmApp: found ${currentPlatform} window, pkg=$pkg childCount=${root.childCount}")
-                        return root
-                    }
+                val root = w.root ?: continue
+                val pkg = root.packageName?.toString().orEmpty()
+                if (pkg.isEmpty()) continue
+                // 必须是当前平台主包名或内部包前缀（严格匹配，避免 UC 平台拿到 com.oray.sunlogin 等无关包）
+                val isMainPkg = pkg in cfg.packageNames
+                val isInternalPkg = cfg.internalPackagePrefixes.any { pkg.startsWith(it) }
+                if (!isMainPkg && !isInternalPkg) continue
+                // 估算窗口内容量（递归节点数有性能开销，用 childCount + 二级 childCount 近似）
+                val descendantEstimate = root.childCount + (0 until root.childCount).sumOf {
+                    (root.getChild(it)?.childCount ?: 0)
+                }
+                if (descendantEstimate > bestDescendants) {
+                    bestDescendants = descendantEstimate
+                    bestRoot = root
+                    bestPkg = pkg
                 }
             }
-            Log.w(TAG, "getRootInFarmApp: ${currentPlatform} window not found")
-            null
+            if (bestRoot != null) {
+                Log.d(TAG, "getRootInFarmApp: found ${currentPlatform} window, pkg=$bestPkg childCount=${bestRoot.childCount} descendants~$bestDescendants")
+            } else {
+                Log.w(TAG, "getRootInFarmApp: ${currentPlatform} window not found")
+            }
+            bestRoot
         } catch (e: Exception) {
             Log.w(TAG, "getRootInFarmApp failed: ${e.message}")
             null
@@ -488,7 +523,7 @@ class FarmAccessibilityService : AccessibilityService() {
             val cfg = currentPlatformConfig()
             for (w in windows) {
                 val pkg = w.root?.packageName?.toString().orEmpty()
-                if (pkg in cfg.packageNames || cfg.internalPackagePrefixes.any { pkg.startsWith(it) || pkg.contains(it) }) {
+                if (pkg in cfg.packageNames || cfg.internalPackagePrefixes.any { pkg.startsWith(it) }) {
                     return true
                 }
             }
@@ -555,7 +590,7 @@ class FarmAccessibilityService : AccessibilityService() {
                 val pkg = w.root?.packageName?.toString().orEmpty()
                 if (pkg.isNotEmpty() &&
                     pkg !in cfg.packageNames &&
-                    cfg.internalPackagePrefixes.none { pkg.startsWith(it) || pkg.contains(it) } &&
+                    cfg.internalPackagePrefixes.none { pkg.startsWith(it) } &&
                     pkg != "com.bbncbot" &&
                     pkg != "android") {
                     return pkg
@@ -564,7 +599,7 @@ class FarmAccessibilityService : AccessibilityService() {
             // 如果只有当前平台 App，返回其包名
             for (w in windows) {
                 val pkg = w.root?.packageName?.toString().orEmpty()
-                if (pkg in cfg.packageNames || cfg.internalPackagePrefixes.any { pkg.startsWith(it) || pkg.contains(it) }) {
+                if (pkg in cfg.packageNames || cfg.internalPackagePrefixes.any { pkg.startsWith(it) }) {
                     return pkg
                 }
             }
@@ -2420,7 +2455,7 @@ class FarmAccessibilityService : AccessibilityService() {
             return
         }
 
-        val root = rootInActiveWindowSafe()
+        val root = getRootInFarmApp() ?: rootInActiveWindowSafe()
         if (root == null) {
             debugLog("navigateAlipay: root is null, retry=$retry")
             navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 2000L)
@@ -2432,13 +2467,18 @@ class FarmAccessibilityService : AccessibilityService() {
         if (farmEntry != null) {
             val rect = android.graphics.Rect()
             farmEntry.getBoundsInScreen(rect)
-            // 排除超大容器
-            if (rect.height() < 600 && rect.width() < 1000) {
+            // 排除超大容器，且必须 bounds 合法（left<right, top<bottom，且在屏幕范围内）
+            // 否则可能拿到 WebView 内的离屏节点（如 bounds=[4476,822][1200,1139]），点击无效
+            val boundsValid = rect.width() > 0 && rect.height() > 0 &&
+                rect.left < rect.right && rect.top < rect.bottom &&
+                rect.left >= 0 && rect.top >= 0
+            if (boundsValid && rect.height() < 600 && rect.width() < 1000) {
                 debugLog("navigateAlipay: found 芭芭农场 entry at ${rect.toShortString()}, clicking")
                 performClickSafe(farmEntry)
                 navHandler.postDelayed({ clearNavigatingFlag() }, 8000L)
                 return
             }
+            debugLog("navigateAlipay: 芭芭农场 entry bounds invalid or too large: ${rect.toShortString()}")
         }
 
         // 策略2：点击首页搜索框，搜索"芭芭农场"
@@ -2446,9 +2486,9 @@ class FarmAccessibilityService : AccessibilityService() {
         if (searchBtn != null) {
             debugLog("navigateAlipay: clicking search button")
             performClickSafe(searchBtn)
-            // 等搜索框打开后输入"芭芭农场"
+            // 等搜索框打开后输入"芭芭农场"（3 秒等待，搜索页加载较慢）
             navHandler.postDelayed(searchStep@{
-                val searchRoot = rootInActiveWindowSafe()
+                val searchRoot = getRootInFarmApp() ?: rootInActiveWindowSafe()
                 if (searchRoot != null) {
                     val editNode = findFirstEditText(searchRoot)
                     if (editNode != null) {
@@ -2458,14 +2498,22 @@ class FarmAccessibilityService : AccessibilityService() {
                         debugLog("navigateAlipay: entered search text '芭芭农场'")
                         // 等搜索结果出现后点击"芭芭农场"
                         navHandler.postDelayed(resultStep@{
-                            val resultRoot = rootInActiveWindowSafe()
+                            val resultRoot = getRootInFarmApp() ?: rootInActiveWindowSafe()
                             if (resultRoot != null) {
                                 val result = findNodeByText(resultRoot, "芭芭农场")
                                 if (result != null) {
-                                    debugLog("navigateAlipay: clicking search result '芭芭农场'")
-                                    performClickSafe(result)
-                                    navHandler.postDelayed({ clearNavigatingFlag() }, 8000L)
-                                    return@resultStep
+                                    val rRect = android.graphics.Rect()
+                                    result.getBoundsInScreen(rRect)
+                                    val rValid = rRect.width() > 0 && rRect.height() > 0 &&
+                                        rRect.left < rRect.right && rRect.top < rRect.bottom &&
+                                        rRect.left >= 0 && rRect.top >= 0
+                                    if (rValid) {
+                                        debugLog("navigateAlipay: clicking search result '芭芭农场' at ${rRect.toShortString()}")
+                                        performClickSafe(result)
+                                        navHandler.postDelayed({ clearNavigatingFlag() }, 8000L)
+                                        return@resultStep
+                                    }
+                                    debugLog("navigateAlipay: search result bounds invalid: ${rRect.toShortString()}")
                                 }
                             }
                             debugLog("navigateAlipay: search result not found, retry")
@@ -2478,7 +2526,7 @@ class FarmAccessibilityService : AccessibilityService() {
                 debugLog("navigateAlipay: search edit not found, retry")
                 pressBack()
                 navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 3000L)
-            }, 2000L)
+            }, 3000L)
             return
         }
 
