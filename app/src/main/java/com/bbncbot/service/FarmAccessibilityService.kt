@@ -1956,7 +1956,9 @@ class FarmAccessibilityService : AccessibilityService() {
      */
     fun findClaimRewardButtonExact(): AccessibilityNodeInfo? {
         val root = rootInActiveWindowSafe() ?: return null
-        val keywords = listOf("领取奖励", "领取", "确定", "知道了")
+        // "立即领取"放最前：弹窗里的确认按钮文字通常是"立即领取"，优先精确匹配
+        // （"领取"为子串匹配，会命中"立即领取"，但放前面更明确，避免先命中无关的"领取"文案）
+        val keywords = listOf("立即领取", "领取奖励", "领取", "确定", "知道了")
         for (kw in keywords) {
             val node = findNodeByText(root, kw)
             if (node != null) {

@@ -606,6 +606,18 @@ object AutomationController {
             return
         }
 
+        // 优先检查：页面上是否有直接可领取的肥料按钮（如"领取肥料礼包"、"立即领取肥料"）
+        // 用户需求：点击这类按钮会弹出窗口，需在窗口里点"立即领取"才能领到肥料，应走 directCollect 流程
+        // 而非当成"集肥料"入口去找任务列表
+        val directButtons = service.findDirectCollectButtons()
+        if (directButtons.isNotEmpty()) {
+            Log.i(TAG, "openTaskList: found ${directButtons.size} direct collect buttons, switching to COLLECTING_DIRECT")
+            debugLog("openTaskList: ${directButtons.size} direct collect buttons found, switching to COLLECTING_DIRECT (attempt=$attempt)")
+            moveTo(AutomationState.COLLECTING_DIRECT)
+            handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
         // 优先查找"集肥料"按钮节点
         val button = service.findCollectFertilizerButton()
         debugLog("openTaskList: findCollectFertilizerButton=${button != null}, attempt=$attempt")
