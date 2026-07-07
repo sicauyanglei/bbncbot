@@ -813,6 +813,19 @@ object AutomationController {
             return
         }
 
+        // 1b. 跳过名单：特定任务直接跳过，不进入游戏流程
+        // 用户要求：这两个游戏任务不做（AI 玩不动 / 耗时过长），直接跳过
+        val skipTaskTexts = listOf("继续玩浪漫餐厅", "继续玩农场分色瓶")
+        if (skipTaskTexts.any { buttonText.contains(it) }) {
+            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} in skip list, skipping (text='$buttonText')")
+            debugLog("processTask: skip list task #${currentTaskIndex + 1}, text='$buttonText'")
+            currentTaskIndex++
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
+            }, 500L)
+            return
+        }
+
         // 2. 游戏类任务：作为游戏达人进入游戏完成升级获取肥料
         if (service.isGameTask(button)) {
             Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is game task, entering GAME_PLAYING (text='$buttonText')")
