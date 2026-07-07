@@ -146,9 +146,12 @@ object AlipayPlatformConfig : PlatformConfig {
         "xriveractivity", "xrivertransactivity"
     )
     override val collectFertilizerTexts = listOf(
-        "集肥料", "领取肥料", "获取肥料", "收集肥料", "肥料",
-        "打开任务列表", "任务列表", "施肥", "今日可领", "去领取", "领肥料",
-        "限时挑战", "挑战", "领肥", "赚肥料", "得肥料"
+        "集肥料", "领取肥料", "获取肥料", "收集肥料",
+        "打开任务列表", "任务列表",
+        "今日可领", "去领取",
+        "限时挑战", "挑战", "赚肥料"
+        // 注意：不要加单独的"肥料"、"领肥料"、"领肥"、"得肥料"、"施肥"
+        // 这些词太宽泛，会误匹配到"还差3次领肥料"、"再施肥99.76%就快拿到啦"等进度提示文字
     )
     override val goCompleteTexts = listOf("去完成", "去逛逛", "去观看", "立即完成", "去领取", "去赚", "去签到", "去答题", "去挑战", "开始挑战")
     override val directCollectTexts = listOf("可领取", "挖肥料")
