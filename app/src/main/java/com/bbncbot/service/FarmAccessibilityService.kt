@@ -1514,6 +1514,36 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 查找直接领取弹窗内的"逛一逛/再赚"浏览入口按钮
+     * - 用户场景：点"立即领取"领到肥料后，弹窗不关闭，
+     *   原按钮文字变为"点此逛一逛再赚1000肥料"等浏览任务入口
+     * - 需要继续点击这个按钮进入浏览流程
+     * - 不走 findGoCompleteButtons：因为弹窗里这些文字是按钮自身的 text，
+     *   不属于平台 goCompleteTexts 配置，且需要更宽松匹配（含"再赚"/"赚N肥料"）
+     * @return 浏览入口按钮节点，null 表示未找到
+     */
+    fun findBrowseEntryInPopup(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        val keywords = listOf("点此逛一逛", "逛一逛", "再赚", "赚1000", "逛农货", "去逛逛")
+        for (kw in keywords) {
+            val node = findNodeByText(root, kw)
+            if (node != null) {
+                val text = node.text?.toString().orEmpty()
+                val desc = node.contentDescription?.toString().orEmpty()
+                val combined = text + desc
+                // 必须包含"逛"或"赚"，确保是浏览入口而非其他按钮
+                if (combined.contains("逛") || combined.contains("赚")) {
+                    debugLog("findBrowseEntryInPopup: found by text='$kw', full='$combined'")
+                    Log.d(TAG, "findBrowseEntryInPopup: found by text='$kw'")
+                    return node
+                }
+            }
+        }
+        debugLog("findBrowseEntryInPopup: not found")
+        return null
+    }
+
+    /**
      * 在商品列表页面随便点击一个商品（模拟用户浏览行为）
      * - 查找屏幕中下部区域的可点击节点（通常是商品卡片）
      * - 排除"去完成"、"下单"等按钮，排除顶部导航栏
@@ -1956,7 +1986,9 @@ class FarmAccessibilityService : AccessibilityService() {
      */
     fun findClaimRewardButtonExact(): AccessibilityNodeInfo? {
         val root = rootInActiveWindowSafe() ?: return null
-        val keywords = listOf("领取奖励", "领取", "确定", "知道了")
+        // "立即领取"放最前：弹窗里的确认按钮文字通常是"立即领取"，优先精确匹配
+        // （"领取"为子串匹配，会命中"立即领取"，但放前面更明确，避免先命中无关的"领取"文案）
+        val keywords = listOf("立即领取", "领取奖励", "领取", "确定", "知道了")
         for (kw in keywords) {
             val node = findNodeByText(root, kw)
             if (node != null) {
