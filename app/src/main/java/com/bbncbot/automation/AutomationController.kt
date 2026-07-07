@@ -963,7 +963,7 @@ object AutomationController {
     /**
      * 滑动浏览任务：模拟上下滑动浏览页面获取肥料
      * - 不点击进入商品页面，只在当前页面上下滑动
-     * - 每次从屏幕中部向上滑动（模拟浏览商品列表）
+     * - 在屏幕中部轻微上下交替滑动（避免一直向下滑动超出页面）
      * - 滑动足够次数后关闭并返回任务列表
      */
     private fun runBrowsingTask(swipeCount: Int) {
@@ -1047,11 +1047,18 @@ object AutomationController {
             return
         }
 
-        // 执行滑动：从屏幕中部偏上位置向上滑动（模拟向下浏览）
+        // 执行滑动：在屏幕中部轻微上下交替滑动（不需要一直向下滑，小幅上下滑动即可模拟浏览）
         val centerX = 600f
-        val startY = 1600f  // 屏幕中部偏上
-        val endY = 800f     // 向上滑
-        debugLog("browseTask: swipe #$swipeCount up ($startY -> $endY)")
+        val baseY = 1200f      // 屏幕中部基准点
+        val swipeRange = 250f  // 轻微滑动距离
+        val (startY, endY, dirText) = if (swipeCount % 2 == 1) {
+            // 奇数次：向上滑（页面向下滚动）
+            Triple(baseY + swipeRange, baseY - swipeRange, "up")
+        } else {
+            // 偶数次：向下滑（页面向上滚动）
+            Triple(baseY - swipeRange, baseY + swipeRange, "down")
+        }
+        debugLog("browseTask: swipe #$swipeCount $dirText ($startY -> $endY)")
         service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
 
         handler.postDelayed({
