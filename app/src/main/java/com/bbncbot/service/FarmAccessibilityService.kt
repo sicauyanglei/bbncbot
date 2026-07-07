@@ -2048,7 +2048,9 @@ class FarmAccessibilityService : AccessibilityService() {
             // 排除已领取/生产中的按钮
             !combined.contains("生产中") &&
             !combined.contains("明日") &&
-            !combined.contains("已领取")
+            !combined.contains("已领取") &&
+            // 排除"还差X次领肥"等锁定状态进度提示（达到阈值后会变成"立即领肥"）
+            !combined.contains("还差")
         }
         Log.d(TAG, "findDirectCollectButtons: found ${result.size} raw, ${filtered.size} after filter")
         return filtered

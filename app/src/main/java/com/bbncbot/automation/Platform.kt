@@ -154,7 +154,12 @@ object AlipayPlatformConfig : PlatformConfig {
         // 这些词太宽泛，会误匹配到"还差3次领肥料"、"再施肥99.76%就快拿到啦"等进度提示文字
     )
     override val goCompleteTexts = listOf("去完成", "去逛逛", "去观看", "立即完成", "去领取", "去赚", "去签到", "去答题", "去挑战", "开始挑战")
-    override val directCollectTexts = listOf("可领取", "挖肥料")
+    override val directCollectTexts = listOf(
+        "可领取", "挖肥料",
+        // 支付宝芭芭农场：按钮锁定时显示"还差3次领肥[料]"，达到阈值后变成"立即领肥[料]"可点击领取
+        // 用"立即领肥"精确匹配可领取状态，不会误匹配"还差3次领肥"
+        "立即领肥"
+    )
     override val collectFertilizerCoords = listOf(
         Pair(0.888f, 0.771f),  // 右侧浮动"肥料"按钮（OCR+颜色分析确认，1200x2664 屏幕）
         Pair(0.908f, 0.787f),  // "肥料"文字位置备用（OCR 确认）
