@@ -2013,7 +2013,8 @@ class FarmAccessibilityService : AccessibilityService() {
 
     /**
      * 判断是否显示"任务完成"页面（得到肥料后的完成页）
-     * - 检测页面是否包含"任务完成"、"已完成"等关键词
+     * - 检测页面是否包含"任务完成"、"已完成"、"全部完成"等关键词
+     * - 滑动浏览任务中，出现这些标志表示可以退出浏览页返回主界面
      * @return true 表示是任务完成页面
      */
     fun isTaskCompletePage(): Boolean {
@@ -2021,6 +2022,7 @@ class FarmAccessibilityService : AccessibilityService() {
         val allText = collectAllText(root)
         val isComplete = allText.any { text ->
             text.contains("任务完成") || text.contains("已完成") ||
+                text.contains("全部完成") || text.contains("已完成浏览") ||
                 text.contains("恭喜获得") || text.contains("获得肥料")
         }
         if (isComplete) {

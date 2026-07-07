@@ -1047,6 +1047,15 @@ object AutomationController {
             return
         }
 
+        // 滑动前检测：是否已出现"全部完成"/"已完成"等完成标志 → 直接退出，无需继续滑动
+        if (service.isTaskCompletePage()) {
+            debugLog("browseTask: task complete markers detected before swipe, exiting")
+            currentTaskIndex++
+            collectedCount++
+            exitBrowsePage(service)
+            return
+        }
+
         // 执行滑动：在屏幕中部轻微上下交替滑动（不需要一直向下滑，小幅上下滑动即可模拟浏览）
         val centerX = 600f
         val baseY = 1200f      // 屏幕中部基准点
