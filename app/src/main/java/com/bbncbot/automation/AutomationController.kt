@@ -52,11 +52,11 @@ object AutomationController {
     /** 广告时长解析缓冲（毫秒）：在页面提示的规定时间基础上额外等待，确保肥料奖励到账 */
     private const val AD_DURATION_BUFFER_MS = 2000L
     /**
-     * 广告深链跳转进入其他 App 的最大停留时间（毫秒）
-     * - 用户要求：广告时间进入其它app最多21秒，21秒后强杀拉起来的app
-     * - 超时后调用 [FarmAccessibilityService.forceKillApp] 强杀被拉起的 App，再重新启动农场 App 回到前台
+     * 广告深链跳转进入其他 App（如快手）后的等待时间（毫秒）
+     * - 用户要求：打开快手等其它app任务，等其它app打开后等2秒，把主界面激活到前台，同时kill掉打开的app
+     * - 检测到深链 App 后等待此时间，然后激活农场 App 到前台并强杀被拉起的 App
      */
-    private const val DEEP_LINK_MAX_DURATION_MS = 21000L
+    private const val DEEP_LINK_MAX_DURATION_MS = 2000L
     /** 返回农场页最大尝试次数 */
     private const val MAX_RETURN_ATTEMPTS = 5
     /** 连续无进展轮次上限（超过则重新导航） */
@@ -1855,6 +1855,8 @@ object AutomationController {
         if (elapsedMs >= 5000L && service.isOnFarmPage()) {
             Log.i(TAG, "watchAd: returned to farm app (${elapsedMs}ms), task complete")
             debugLog("watchAd: returned to farm, deep-link task complete")
+            // 取消可能已调度的深链 kill（若曾进入其他 App 又自然返回）
+            deepLinkAppPkg = null
             service.setAdMode(false)
             collectedCount++
             advanceTaskIndex()  // 多次任务重玩同一任务，否则前进到下一个
@@ -1886,48 +1888,49 @@ object AutomationController {
             return
         }
 
-        // 深链跳转任务：广告任务跳转到其他 App（非农场/非广告Activity/非异常页），最多停留 21 秒
-        // 用户要求：广告时间进入其它app最多21秒，21秒后强杀拉起来的app
-        // 注意：此检查在"最短等待时间"检查之前，确保深链任务用 21s 超时（而非默认 30s 广告等待）
+        // 深链跳转任务：广告任务跳转到其他 App（如快手，非农场/非广告Activity/非异常页）
+        // 用户要求：等其它app打开后等2秒，把主界面激活到前台，同时kill掉打开的app
+        // 注意：此检查在"最短等待时间"检查之前，确保深链任务用 2s 超时（而非默认 30s 广告等待）
         if (elapsedMs >= 5000L && !service.isOnFarmPage() && !service.isAdActivity() &&
             !service.isAdPlaying() && !service.isOnAbnormalPage()) {
             val currentPkg = service.getCurrentWindowPackage()
             if (currentPkg != null) {
-                // 首次检测到深链跳转，记录包名和进入时间
+                // 首次检测到深链跳转：记录包名，调度 2 秒后"激活主界面 + kill 被拉起的 App"
                 if (deepLinkAppPkg == null) {
                     deepLinkAppPkg = currentPkg
                     deepLinkEnterTimeMs = elapsedMs
-                    debugLog("watchAd: entered deep-linked app '$currentPkg' at ${elapsedMs}ms, will force kill after ${DEEP_LINK_MAX_DURATION_MS}ms")
-                }
-                val deepLinkElapsed = elapsedMs - deepLinkEnterTimeMs
-                if (deepLinkElapsed >= DEEP_LINK_MAX_DURATION_MS) {
-                    // 超过 21 秒，强杀被拉起的 App
-                    Log.w(TAG, "watchAd: deep-linked app '$deepLinkAppPkg' exceeded ${DEEP_LINK_MAX_DURATION_MS}ms, force killing")
-                    debugLog("watchAd: force killing deep-linked app '$deepLinkAppPkg' after ${deepLinkElapsed}ms (limit=${DEEP_LINK_MAX_DURATION_MS}ms)")
-                    val killedPkg = deepLinkAppPkg!!
-                    deepLinkAppPkg = null
-                    service.setAdMode(false)
-                    service.forceKillApp(killedPkg)
-                    currentTaskIndex++
-                    // 强杀后重新启动农场 App 回到前台，继续下一个任务
+                    Log.i(TAG, "watchAd: entered deep-linked app '$currentPkg', will activate farm + kill in ${DEEP_LINK_MAX_DURATION_MS}ms")
+                    debugLog("watchAd: deep-linked app '$currentPkg' detected, scheduling activate+kill in ${DEEP_LINK_MAX_DURATION_MS}ms")
+                    val killedPkg = currentPkg
                     handler.postDelayed({
-                        if (state == AutomationState.WATCHING_AD) {
-                            if (watchingAdPlatform != Platform.UNKNOWN) {
-                                debugLog("watchAd: relaunching farm platform $watchingAdPlatform after force kill")
-                                service.launchPlatformApp(watchingAdPlatform)
-                            }
-                            handler.postDelayed({
-                                if (state == AutomationState.WATCHING_AD) {
-                                    moveTo(AutomationState.OPENING_TASK_LIST)
-                                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
-                                }
-                            }, INTERVAL_PAGE_LOAD_MS)
+                        if (state != AutomationState.WATCHING_AD) return@postDelayed
+                        // 若已自然回到农场页（任务完成），取消 kill
+                        if (deepLinkAppPkg == null) {
+                            debugLog("watchAd: deep-link app already returned, cancel scheduled kill")
+                            return@postDelayed
                         }
-                    }, INTERVAL_CLICK_MS)
-                    return
+                        Log.w(TAG, "watchAd: ${DEEP_LINK_MAX_DURATION_MS}ms elapsed, activating farm to foreground and killing '$killedPkg'")
+                        debugLog("watchAd: activating farm to foreground + killing '$killedPkg' simultaneously")
+                        service.setAdMode(false)
+                        // 1. 激活农场 App 到前台（同时把被拉起的 App 推到后台）
+                        if (watchingAdPlatform != Platform.UNKNOWN) {
+                            debugLog("watchAd: launching farm platform $watchingAdPlatform to foreground")
+                            service.launchPlatformApp(watchingAdPlatform)
+                        }
+                        // 2. 同时 kill 掉被拉起的 App（跳过返回键，避免误伤已激活的农场 App）
+                        service.forceKillApp(killedPkg, pressBackFirst = false)
+                        deepLinkAppPkg = null
+                        currentTaskIndex++
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) {
+                                moveTo(AutomationState.OPENING_TASK_LIST)
+                                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                            }
+                        }, INTERVAL_PAGE_LOAD_MS)
+                    }, DEEP_LINK_MAX_DURATION_MS)
                 }
-                // 还没到 21 秒，继续等待（深链任务可能在此之前完成并返回农场）
-                debugLog("watchAd: in deep-linked app '$currentPkg' (${deepLinkElapsed}ms/${DEEP_LINK_MAX_DURATION_MS}ms), waiting for task complete or timeout")
+                // 已调度 kill，继续轮询兜底（若任务自然完成返回农场，上方"returned to farm"分支会取消 kill）
+                debugLog("watchAd: in deep-linked app '$currentPkg', kill scheduled in ${DEEP_LINK_MAX_DURATION_MS}ms, polling as fallback")
                 handler.postDelayed({
                     if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
                 }, AD_END_CHECK_INTERVAL_MS)
@@ -1990,21 +1993,17 @@ object AutomationController {
             }
 
             // 广告结束后优先检测领取奖励按钮（节点查找，免费精确）
+            // 用户要求：非滑动广告页出现肥料图标后，也需等"已完成"等标志再退出
+            // 因此点击领取按钮后不立即退出，继续轮询等待 isTaskCompletePage() 检测到"已完成"标志
             val claimBtn = service.findClaimRewardButton()
             if (claimBtn != null) {
-                Log.i(TAG, "watchAd: claim button found after ad finished, clicking")
-                debugLog("watchAd: clicking claim reward button after ad finished")
+                Log.i(TAG, "watchAd: claim button found after ad finished, clicking and waiting for '已完成' marker")
+                debugLog("watchAd: clicking claim reward button, will wait for '已完成' marker before exiting")
                 service.performClickSafe(claimBtn)
-                service.setAdMode(false)
-                collectedCount++
-                currentTaskIndex++
+                // 不立即退出：继续轮询，由 isTaskCompletePage() 检测到"全部完成/已完成"后退出
                 handler.postDelayed({
-                    if (!service.isOnFarmPage()) service.pressBack()
-                    handler.postDelayed({
-                        moveTo(AutomationState.OPENING_TASK_LIST)
-                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
-                    }, INTERVAL_CLICK_MS)
-                }, INTERVAL_PAGE_LOAD_MS)
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
+                }, AD_END_CHECK_INTERVAL_MS)
                 return
             }
 
@@ -2038,12 +2037,15 @@ object AutomationController {
             return
         }
 
-        // 检测是否有领取奖励按钮
+        // 检测是否有领取奖励按钮（广告仍在播放时出现）
+        // 用户要求：出现肥料图标后也需等"已完成"等标志再退出，因此不立即关闭，继续等待
         val claimButton = service.findClaimRewardButton()
         if (claimButton != null) {
-            Log.i(TAG, "watchAd: claim button found, ad finished")
-            moveTo(AutomationState.CLOSING_AD)
-            handler.postDelayed({ runClosingAd(strategy = 0) }, INTERVAL_CLICK_MS)
+            Log.i(TAG, "watchAd: claim button found while ad playing, waiting for '已完成' marker")
+            debugLog("watchAd: claim button found but waiting for '已完成' marker before exiting")
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
+            }, AD_END_CHECK_INTERVAL_MS)
             return
         }
 

@@ -2345,21 +2345,25 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * 强杀指定 App（广告深链跳转 21 秒超时后调用）
+     * 强杀指定 App（广告深链跳转超时后调用）
      *
      * - 使用 [android.app.ActivityManager.killBackgroundProcesses] 结束目标 App 后台进程
-     * - 先按返回键尝试退出目标 App（使其退到后台），再 kill，效果更好
+     * - 默认先按返回键尝试退出目标 App（使其退到后台），再 kill，效果更好
+     * - 若调用方已通过 [launchPlatformApp] 将农场 App 激活到前台（被拉起的 App 已被推到后台），
+     *   应传入 pressBackFirst = false 跳过返回键，避免误伤已激活的农场 App
      * - 普通 App 无 FORCE_STOP_PACKAGES 权限，killBackgroundProcesses 是可用的最强手段
-     * - kill 后由调用方重新启动农场 App 回到前台
      *
      * @param pkg 目标 App 包名
+     * @param pressBackFirst 是否先按返回键把目标 App 退到后台（默认 true）
      * @return true 已调用 kill，false 失败
      */
-    fun forceKillApp(pkg: String): Boolean {
+    fun forceKillApp(pkg: String, pressBackFirst: Boolean = true): Boolean {
         return try {
-            debugLog("forceKillApp: killing $pkg")
-            // 先按返回键尝试把目标 App 退到后台
-            performGlobalAction(GLOBAL_ACTION_BACK)
+            debugLog("forceKillApp: killing $pkg (pressBackFirst=$pressBackFirst)")
+            // 先按返回键尝试把目标 App 退到后台（若调用方已激活主界面则跳过）
+            if (pressBackFirst) {
+                performGlobalAction(GLOBAL_ACTION_BACK)
+            }
             // 调用 killBackgroundProcesses 结束后台进程
             val am = getSystemService(android.content.Context.ACTIVITY_SERVICE)
                 as android.app.ActivityManager
