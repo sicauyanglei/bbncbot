@@ -24,6 +24,8 @@ enum class AutomationState {
     BROWSING_TASK,
     /** 玩游戏任务中：AI 游戏达人分析画面并操作完成游戏升级 */
     GAME_PLAYING,
+    /** 蚂蚁森林领落叶肥料任务中：关弹窗→领奖励→逛农场得落叶肥料 */
+    FOREST_COLLECTING,
     /** 看广告中：等待广告播放完成 */
     WATCHING_AD,
     /** 关闭广告中：尝试关闭广告并领取奖励 */

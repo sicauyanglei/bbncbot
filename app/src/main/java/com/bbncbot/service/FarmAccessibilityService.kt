@@ -690,12 +690,16 @@ class FarmAccessibilityService : AccessibilityService() {
         val nonAdKeywords = listOf(
             "邀请好友", "邀请", "助力", "帮忙助", "帮帮好友",   // 邀请类
             "关注店铺", "关注公众号", "关注得", "关注领",      // 关注类
-            "分享给", "分享得", "分享好友", "分享有奖",         // 分享类
+            "分享给", "分享得", "分享好友", "分享有奖", "分享",   // 分享类
+            "合种", "合种树",                                     // 合种类
             "开通会员", "连续包月", "立即订阅", "立即开通",     // 会员类
             "完善资料", "填写问卷", "完善信息",                 // 资料类
             "去授权", "授权获取",                                // 授权类
             "加入购物车", "立即购买", "去结算",                  // 购物类（非浏览）
-            "提交订单", "确认订单", "立即支付", "去支付", "确认支付"  // 交易确认页（不产生交易，跳过）
+            "提交订单", "确认订单", "立即支付", "去支付", "确认支付",  // 交易确认页（不产生交易，跳过）
+            "充值", "话费充值", "流量充值", "充值得", "立即充值",   // 充值类任务（不产生交易，跳过）
+            "投资", "理财", "保险", "开户",                        // 金融类任务（不产生交易，跳过）
+            "到店支付", "线下支付", "扫码支付"                     // 到店支付类任务（不产生交易，跳过）
         )
         val matched = allText.any { text ->
             nonAdKeywords.any { kw -> text.contains(kw) }
@@ -1615,7 +1619,9 @@ class FarmAccessibilityService : AccessibilityService() {
             "开通会员", "立即开通", "订阅", "续费",       // 会员/订阅类
             "投资", "理财", "保证金", "押金",             // 金融类
             "下单购买", "立即购买",                       // 明确购买（注意："下单得"不含"购买"，浏览任务不受影响）
-            "去支付", "立即支付", "确认支付"              // 支付类
+            "去支付", "立即支付", "确认支付",             // 支付类
+            "到店支付", "线下支付",                        // 到店支付类
+            "合种"                                        // 合种类（需邀请好友，非广告任务）
         )
         val contextText = collectTaskContextText(button)
         val isPaid = paidKeywords.any { contextText.contains(it) }
@@ -1635,7 +1641,9 @@ class FarmAccessibilityService : AccessibilityService() {
         val gameKeywords = listOf(
             "玩游戏", "游戏", "挑战", "闯关", "消消乐", "斗地主",
             "赢肥料", "玩一玩", "小游戏", "通关", "得分",
-            "大转盘", "抽奖", "摇一摇"
+            "大转盘", "抽奖", "摇一摇",
+            "浪漫餐厅", "农场分色瓶", "继续玩",
+            "对战", "完成1局", "完成一局", "局对战", "打一局"
         )
         val contextText = collectTaskContextText(button)
         val isGame = gameKeywords.any { contextText.contains(it) }
@@ -2115,7 +2123,7 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /** 递归查找包含指定文本的节点（返回可点击的自身或父节点） */
-    private fun findNodeByText(root: AccessibilityNodeInfo, keyword: String): AccessibilityNodeInfo? {
+    fun findNodeByText(root: AccessibilityNodeInfo, keyword: String): AccessibilityNodeInfo? {
         return findNodeByTextInternal(root, keyword)
     }
 

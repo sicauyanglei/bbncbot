@@ -845,6 +845,17 @@ object AutomationController {
             return
         }
 
+        // 2b. 蚂蚁森林领落叶肥料任务：关弹窗→领奖励→逛农场得落叶肥料
+        if (buttonText.contains("森林") || buttonText.contains("落叶")) {
+            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is forest task, entering FOREST_COLLECTING (text='$buttonText')")
+            debugLog("processTask: forest task #${currentTaskIndex + 1}, text='$buttonText', will close popups → claim reward → 逛农场得落叶肥料")
+            service.performClickSafe(button)
+            aiCallsForTask = 0
+            moveTo(AutomationState.FOREST_COLLECTING)
+            handler.postDelayed({ runForestCollecting(step = 0, retryCount = 0) }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
         // 3. 跨平台切换任务：在支付宝/淘宝/UC 之间切换获取肥料
         val crossTarget = detectCrossPlatformTarget(buttonText)
         if (crossTarget != null && crossTarget != service.currentPlatform) {
@@ -1519,6 +1530,196 @@ object AutomationController {
                 handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
             }
         }, INTERVAL_PAGE_LOAD_MS)
+    }
+
+    // ============== 阶段3c: 蚂蚁森林领落叶肥料 ==============
+
+    /**
+     * 蚂蚁森林领落叶肥料任务
+     * - 用户要求：关闭弹出页面上的其它弹窗 → 点击"领奖励" → 找到"逛农场得落叶肥料"
+     *
+     * 步骤：
+     * - step 0: 关闭弹窗（查找 × / 关闭 / 知道了 / 我知道了 等按钮并点击）
+     * - step 1: 查找并点击"领奖励"按钮
+     * - step 2: 查找并点击"逛农场得落叶肥料"入口
+     * - step 3: 等待回到农场页，任务完成
+     *
+     * 每步最多重试 [MAX_FOREST_RETRIES] 次，失败则用 AI 视觉辅助
+     */
+    private fun runForestCollecting(step: Int, retryCount: Int) {
+        if (state != AutomationState.FOREST_COLLECTING) return
+        val service = getService() ?: run { stop(); return }
+
+        debugLog("forestCollect: step=$step, retry=$retryCount")
+
+        // 回到农场页 → 任务完成
+        if (service.isOnFarmPage()) {
+            Log.i(TAG, "forestCollect: back on farm page, task complete")
+            debugLog("forestCollect: back on farm, done")
+            currentTaskIndex++
+            moveTo(AutomationState.OPENING_TASK_LIST)
+            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        when (step) {
+            0 -> {
+                // 关闭弹窗：查找 × / 关闭 / 知道了 / 我知道了 / 知道啦 等按钮
+                val popupKeywords = listOf("知道了", "我知道了", "知道啦", "关闭", "×", "确定", "好的")
+                val root = service.rootInActiveWindowSafe()
+                var closedPopup = false
+                if (root != null) {
+                    for (kw in popupKeywords) {
+                        val node = service.findNodeByText(root, kw)
+                        if (node != null) {
+                            debugLog("forestCollect: closing popup '$kw'")
+                            service.performClickSafe(node)
+                            closedPopup = true
+                            break
+                        }
+                    }
+                }
+                if (closedPopup) {
+                    // 弹窗关闭后，继续检查是否还有弹窗
+                    handler.postDelayed({
+                        if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 0, retryCount = 0)
+                    }, INTERVAL_CLICK_MS)
+                } else {
+                    // 没有弹窗了，进入下一步（领奖励）
+                    debugLog("forestCollect: no more popups, moving to claim reward")
+                    handler.postDelayed({
+                        if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 1, retryCount = 0)
+                    }, INTERVAL_CLICK_MS)
+                }
+            }
+            1 -> {
+                // 查找并点击"领奖励"按钮
+                val root = service.rootInActiveWindowSafe()
+                var claimed = false
+                if (root != null) {
+                    val claimKeywords = listOf("领奖励", "领取奖励", "立即领取", "领取", "收下", "好的领")
+                    for (kw in claimKeywords) {
+                        val node = service.findNodeByText(root, kw)
+                        if (node != null) {
+                            debugLog("forestCollect: clicking claim button '$kw'")
+                            service.performClickSafe(node)
+                            claimed = true
+                            break
+                        }
+                    }
+                }
+                if (claimed) {
+                    // 领奖励后，进入下一步（逛农场得落叶肥料）
+                    handler.postDelayed({
+                        if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 2, retryCount = 0)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                } else if (retryCount < 3) {
+                    // 重试查找领奖励按钮
+                    debugLog("forestCollect: claim button not found, retry $retryCount")
+                    handler.postDelayed({
+                        if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 1, retryCount = retryCount + 1)
+                    }, INTERVAL_CLICK_MS)
+                } else {
+                    // 多次重试失败，用 AI 视觉辅助
+                    debugLog("forestCollect: claim button not found after retries, trying AI vision")
+                    if (aiCallsForTask < MAX_AI_CALLS_PER_TASK) {
+                        aiCallsForTask++
+                        val aiClicked = service.clickByAiVision("领奖励按钮（可能是橙色或绿色按钮，文字可能是'领奖励'/'领取奖励'/'立即领取'）")
+                        if (aiClicked) {
+                            debugLog("forestCollect: AI clicked claim button, moving to next step")
+                            handler.postDelayed({
+                                if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 2, retryCount = 0)
+                            }, INTERVAL_PAGE_LOAD_MS)
+                        } else {
+                            // AI 也失败，跳过此步直接找"逛农场得落叶肥料"
+                            debugLog("forestCollect: AI failed, skipping to step 2")
+                            runForestCollecting(step = 2, retryCount = 0)
+                        }
+                    } else {
+                        debugLog("forestCollect: AI calls exhausted, skipping to step 2")
+                        runForestCollecting(step = 2, retryCount = 0)
+                    }
+                }
+            }
+            2 -> {
+                // 查找并点击"逛农场得落叶肥料"入口
+                val root = service.rootInActiveWindowSafe()
+                var found = false
+                if (root != null) {
+                    val farmKeywords = listOf("逛农场得落叶肥料", "逛农场", "落叶肥料", "得落叶肥料", "回农场", "回芭芭农场")
+                    for (kw in farmKeywords) {
+                        val node = service.findNodeByText(root, kw)
+                        if (node != null) {
+                            debugLog("forestCollect: clicking farm entry '$kw'")
+                            service.performClickSafe(node)
+                            found = true
+                            break
+                        }
+                    }
+                }
+                if (found) {
+                    // 点击后等待回到农场页
+                    handler.postDelayed({
+                        if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 3, retryCount = 0)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                } else if (retryCount < 3) {
+                    debugLog("forestCollect: farm entry not found, retry $retryCount")
+                    handler.postDelayed({
+                        if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 2, retryCount = retryCount + 1)
+                    }, INTERVAL_CLICK_MS)
+                } else {
+                    // AI 视觉辅助
+                    debugLog("forestCollect: farm entry not found, trying AI vision")
+                    if (aiCallsForTask < MAX_AI_CALLS_PER_TASK) {
+                        aiCallsForTask++
+                        val aiClicked = service.clickByAiVision("逛农场得落叶肥料入口（可能是卡片或按钮，文字含'逛农场'或'落叶肥料'）")
+                        if (aiClicked) {
+                            debugLog("forestCollect: AI clicked farm entry, waiting for farm page")
+                            handler.postDelayed({
+                                if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 3, retryCount = 0)
+                            }, INTERVAL_PAGE_LOAD_MS)
+                        } else {
+                            // AI 失败，按返回回到农场
+                            debugLog("forestCollect: AI failed, pressing back to return to farm")
+                            service.pressBack()
+                            handler.postDelayed({
+                                if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 3, retryCount = 0)
+                            }, INTERVAL_PAGE_LOAD_MS)
+                        }
+                    } else {
+                        debugLog("forestCollect: AI exhausted, pressing back to return")
+                        service.pressBack()
+                        handler.postDelayed({
+                            if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 3, retryCount = 0)
+                        }, INTERVAL_PAGE_LOAD_MS)
+                    }
+                }
+            }
+            else -> {
+                // step 3+: 等待回到农场页
+                if (service.isOnFarmPage()) {
+                    Log.i(TAG, "forestCollect: back on farm page, task complete")
+                    debugLog("forestCollect: back on farm, done")
+                    currentTaskIndex++
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                } else if (retryCount < 5) {
+                    // 还没回到农场，按返回重试
+                    debugLog("forestCollect: not on farm yet, pressing back (retry $retryCount)")
+                    service.pressBack()
+                    handler.postDelayed({
+                        if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 3, retryCount = retryCount + 1)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                } else {
+                    // 超过重试次数，放弃此任务
+                    Log.w(TAG, "forestCollect: failed to return to farm after retries, skipping task")
+                    debugLog("forestCollect: failed to return, skipping task")
+                    currentTaskIndex++
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                }
+            }
+        }
     }
 
     // ============== 阶段4: 看广告 ==============
