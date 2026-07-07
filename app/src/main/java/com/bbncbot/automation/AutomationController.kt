@@ -302,6 +302,7 @@ object AutomationController {
         currentTaskIndex = 0
         noProgressRounds = 0
         taskButtons = emptyList()
+        browseFromDirectPopup = false  // 复位 direct 弹窗标记，避免上一轮残留
         // 重置当前平台的广告完成标记（新一轮运行可重新标记完成）
         resetCurrentPlatformComplete(service)
         moveTo(AutomationState.NAVIGATING)
@@ -749,6 +750,16 @@ object AutomationController {
         if (state != AutomationState.PROCESSING_TASK) return
         val service = getService() ?: run { stop(); return }
 
+        // 兜底：从 direct 弹窗进入浏览后若节点失效被踢回 PROCESSING_TASK，
+        // 不应继续处理仅含浏览节点的 taskButtons，应回 COLLECTING_DIRECT 重新找 direct 按钮
+        if (browseFromDirectPopup) {
+            debugLog("processTask: entered with browseFromDirectPopup=true, returning to COLLECTING_DIRECT")
+            browseFromDirectPopup = false
+            moveTo(AutomationState.COLLECTING_DIRECT)
+            handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
         if (attempt == 0) {
             logPageSnapshot(service, "processTask-start")
         }
@@ -870,8 +881,17 @@ object AutomationController {
             val button = taskButtons.getOrNull(currentTaskIndex)
             if (button == null) {
                 debugLog("browseTask: button gone, back to processing")
-                moveTo(AutomationState.PROCESSING_TASK)
-                handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
+                // 从 direct 弹窗进入的浏览：节点失效回 COLLECTING_DIRECT
+                val fromDirect = browseFromDirectPopup
+                browseFromDirectPopup = false
+                if (fromDirect) {
+                    debugLog("browseTask: was from direct popup, returning to COLLECTING_DIRECT")
+                    moveTo(AutomationState.COLLECTING_DIRECT)
+                    handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
+                } else {
+                    moveTo(AutomationState.PROCESSING_TASK)
+                    handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
+                }
                 return
             }
             debugLog("browseTask: clicking 'go browse' button, then will swipe")
