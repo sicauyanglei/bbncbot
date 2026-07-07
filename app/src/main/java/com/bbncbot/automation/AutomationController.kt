@@ -542,8 +542,22 @@ object AutomationController {
                     Log.i(TAG, "collectDirect: found exact claim button, clicking")
                     service.performClickSafe(claimBtn)
                 }
-                // 继续检查下一个
+                // 领取后等待弹窗按钮文字更新（"立即领取"→"点此逛一逛再赚1000肥料"）
                 handler.postDelayed({
+                    if (state != AutomationState.COLLECTING_DIRECT) return@postDelayed
+                    // 检查弹窗内是否出现浏览入口（"点此逛一逛"/"再赚"等）
+                    val browseEntry = service.findBrowseEntryInPopup()
+                    if (browseEntry != null) {
+                        Log.i(TAG, "collectDirect: found browse entry in popup after claim, entering BROWSING_TASK")
+                        debugLog("collectDirect: browse entry found, switching to BROWSING_TASK")
+                        taskButtons = listOf(browseEntry)
+                        currentTaskIndex = 0
+                        taskListCheckAttempt = 0
+                        moveTo(AutomationState.BROWSING_TASK)
+                        handler.postDelayed({ runBrowsingTask(swipeCount = 0) }, INTERVAL_CLICK_MS)
+                        return@postDelayed
+                    }
+                    // 没有浏览入口，继续检查下一个 direct 按钮
                     if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
                 }, INTERVAL_CLICK_MS)
             }
