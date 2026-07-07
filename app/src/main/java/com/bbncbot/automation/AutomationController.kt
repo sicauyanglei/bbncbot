@@ -817,7 +817,8 @@ object AutomationController {
         // 用户要求：这两个游戏任务不做（AI 玩不动 / 耗时过长），直接跳过
         // 用户要求：带"充值"的任务也直接跳过（isPaidTask 依赖上下文文本，按钮文字本身含"充值"时这里兜底）
         // 用户要求：带"完成1局对战"的任务跳过（PvP 对战类游戏任务，AI 无法完成）
-        val skipTaskTexts = listOf("继续玩浪漫餐厅", "继续玩农场分色瓶", "充值", "完成1局对战")
+        // 用户要求：带"砸蛋5次"的任务跳过（互动游戏任务，AI 无法稳定完成）
+        val skipTaskTexts = listOf("继续玩浪漫餐厅", "继续玩农场分色瓶", "充值", "完成1局对战", "砸蛋5次")
         if (skipTaskTexts.any { buttonText.contains(it) }) {
             Log.i(TAG, "processTask: task #${currentTaskIndex + 1} in skip list, skipping (text='$buttonText')")
             debugLog("processTask: skip list task #${currentTaskIndex + 1}, text='$buttonText'")
