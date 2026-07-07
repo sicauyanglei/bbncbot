@@ -158,6 +158,16 @@ object AutomationController {
     private var noProgressRounds: Int = 0
 
     /**
+     * 当前任务剩余重玩次数（多次点击任务）
+     * - 用户要求：有些任务按钮上有次数（如 1/3），表示可以多次点击
+     * - 点击任务按钮时从按钮文本/上下文解析剩余次数，存入此字段
+     * - 任务完成后：若 > 0，不递增 currentTaskIndex，重新打开任务列表点击同一任务
+     * - 任务跳过/失败时：不重玩，直接递增 currentTaskIndex
+     */
+    @Volatile
+    private var taskReplayRemaining: Int = 0
+
+    /**
      * 当前任务已调用 AI 视觉决策的次数
      * - 用户要求：任务执行过程中页面可能变化，借助 AI 得出任务完成路径直到获取肥料
      * - 每个任务最多调用 [MAX_AI_CALLS_PER_TASK] 次 AI，让 AI 逐步规划路径适应页面连续变化
@@ -273,6 +283,54 @@ object AutomationController {
     /** 当前平台配置的集肥料按钮坐标候选 */
     private fun collectFertilizerCandidates(service: FarmAccessibilityService) =
         service.currentPlatformConfig().collectFertilizerCoords
+
+    /**
+     * 从任务按钮文本和上下文中解析任务剩余次数
+     * - 匹配 "x/y" 格式（如 "1/3" → 剩余 2 次）
+     * - 匹配 "剩余x次" 格式
+     * - 无次数标记返回 0（单次任务）
+     */
+    private fun parseTaskRemainingCount(buttonText: String, contextText: String): Int {
+        // 匹配 "x/y" 格式，如 "1/3", "2/3", "(1/3)"
+        val countPattern = Regex("""(\d+)\s*/\s*(\d+)""")
+        // 优先从上下文中解析（任务标题旁通常有次数标记）
+        val match = countPattern.find(contextText) ?: countPattern.find(buttonText)
+        if (match != null) {
+            val completed = match.groupValues[1].toIntOrNull() ?: 0
+            val total = match.groupValues[2].toIntOrNull() ?: 0
+            if (total > 0 && completed < total) {
+                val remaining = total - completed
+                debugLog("parseTaskCount: completed=$completed, total=$total, remaining=$remaining")
+                return remaining
+            }
+        }
+        // 匹配 "剩余x次" 格式
+        val remainingPattern = Regex("""剩余\s*(\d+)\s*次""")
+        val remainingMatch = remainingPattern.find(contextText)
+        if (remainingMatch != null) {
+            val remaining = remainingMatch.groupValues[1].toIntOrNull() ?: 0
+            debugLog("parseTaskCount: 剩余${remaining}次")
+            return remaining
+        }
+        return 0
+    }
+
+    /**
+     * 任务完成后决定是否重玩同一任务或前进到下一个任务
+     * - [taskReplayRemaining] > 0：递减，不递增 currentTaskIndex（重玩同一任务）
+     * - [taskReplayRemaining] <= 0：递增 currentTaskIndex（前进到下一个任务）
+     * @return true=已前进到下一个任务，false=将重玩同一任务
+     */
+    private fun advanceTaskIndex(): Boolean {
+        if (taskReplayRemaining > 0) {
+            taskReplayRemaining--
+            debugLog("advanceTask: replaying same task, remainingReplays=$taskReplayRemaining")
+            return false
+        }
+        currentTaskIndex++
+        taskReplayRemaining = 0
+        return true
+    }
 
     /** 当前平台配置的广告关闭按钮坐标候选 */
     private fun adCloseCandidates(service: FarmAccessibilityService) =
@@ -813,19 +871,18 @@ object AutomationController {
             return
         }
 
-        // 1b. 跳过名单：特定任务直接跳过，不进入游戏流程
-        // 用户要求：这两个游戏任务不做（AI 玩不动 / 耗时过长），直接跳过
-        // 用户要求：带"充值"的任务也直接跳过（isPaidTask 依赖上下文文本，按钮文字本身含"充值"时这里兜底）
-        // 用户要求：带"完成1局对战"的任务跳过（PvP 对战类游戏任务，AI 无法完成）
-        // 用户要求：带"砸蛋5次"的任务跳过（互动游戏任务，AI 无法稳定完成）
-        // 用户要求：带"分享"/"合种"/"到店支付"的任务跳过（需社交/线下操作，自动化无法完成）
+        // 1b. 跳过名单：特定任务直接跳过，不点击
+        // 用户要求：过滤=不点击直接跳过
+        // 同时检查按钮文本和任务上下文文本（任务标题在上下文中，不在按钮文本里）
         val skipTaskTexts = listOf(
             "继续玩浪漫餐厅", "继续玩农场分色瓶", "充值", "完成1局对战", "砸蛋5次",
             "分享", "合种", "到店支付"
         )
-        if (skipTaskTexts.any { buttonText.contains(it) }) {
-            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} in skip list, skipping (text='$buttonText')")
-            debugLog("processTask: skip list task #${currentTaskIndex + 1}, text='$buttonText'")
+        val taskContextText = service.collectTaskContextText(button)
+        val shouldSkip = skipTaskTexts.any { buttonText.contains(it) || taskContextText.contains(it) }
+        if (shouldSkip) {
+            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} in skip list, skipping (text='$buttonText', context='$taskContextText')")
+            debugLog("processTask: skip list task #${currentTaskIndex + 1}, text='$buttonText', context='$taskContextText'")
             currentTaskIndex++
             handler.postDelayed({
                 if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
@@ -886,6 +943,13 @@ object AutomationController {
         Log.i(TAG, "processTask: clicking task #${currentTaskIndex + 1}/${taskButtons.size} (attempt ${attempt + 1})")
         aiCallsForTask = 0       // 新任务/新一轮尝试，重置 AI 路径规划计数
         currentTaskFailCount = 0 // 新任务开始，重置失败计数
+        // 解析任务剩余次数（如 "1/3" → 还可重玩 2 次），仅首次点击时解析
+        if (attempt == 0 && taskReplayRemaining == 0) {
+            taskReplayRemaining = parseTaskRemainingCount(buttonText, taskContextText)
+            if (taskReplayRemaining > 0) {
+                debugLog("processTask: multi-click task detected, remainingReplays=$taskReplayRemaining")
+            }
+        }
         service.performClickSafe(button)
 
         // 等待检测是否进入广告
@@ -1245,8 +1309,7 @@ object AutomationController {
                 else -> { debugLog("processTask: pressing back"); service.pressBack() }
             }
             collectedCount++
-            currentTaskIndex++
-            // 等待返回，然后检查是否回到农场页
+            advanceTaskIndex()  // 多次任务重玩同一任务，否则前进到下一个
             handler.postDelayed({
                 if (service.isOnFarmPage()) {
                     moveTo(AutomationState.OPENING_TASK_LIST)
@@ -1778,7 +1841,7 @@ object AutomationController {
             debugLog("watchAd: returned to farm, deep-link task complete")
             service.setAdMode(false)
             collectedCount++
-            currentTaskIndex++
+            advanceTaskIndex()  // 多次任务重玩同一任务，否则前进到下一个
             handler.postDelayed({
                 if (state == AutomationState.WATCHING_AD) {
                     moveTo(AutomationState.OPENING_TASK_LIST)
@@ -1881,7 +1944,7 @@ object AutomationController {
             }
             service.setAdMode(false)
             collectedCount++
-            currentTaskIndex++
+            advanceTaskIndex()  // 多次任务重玩同一任务，否则前进到下一个
             handler.postDelayed({
                 if (!service.isOnFarmPage()) service.pressBack()
                 handler.postDelayed({
@@ -2122,7 +2185,7 @@ object AutomationController {
             if (buttons.isNotEmpty()) {
                 Log.i(TAG, "return: back on task list with ${buttons.size} tasks, next task")
                 taskButtons = buttons
-                currentTaskIndex++  // 下一个任务
+                advanceTaskIndex()  // 多次任务重玩同一任务，否则前进到下一个
                 noProgressRounds = 0
                 moveTo(AutomationState.PROCESSING_TASK)
                 handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
