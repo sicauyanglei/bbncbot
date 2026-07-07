@@ -81,6 +81,16 @@ object AutomationController {
     private var browseTaskTargetSwipes: Int = MAX_BROWSE_SWIPES
 
     /**
+     * 标记当前浏览任务是否从"直接领取弹窗"进入
+     * - true：浏览完成后回到 COLLECTING_DIRECT 继续找其他 direct 按钮
+     * - false（默认）：浏览完成后回到 OPENING_TASK_LIST 任务列表流程
+     * - 场景：点"立即领取"后弹窗不关闭，按钮变"点此逛一逛再赚1000肥料"，
+     *   点该按钮进入浏览，完成后应回 direct 流程而非任务列表
+     */
+    @Volatile
+    private var browseFromDirectPopup: Boolean = false
+
+    /**
      * 当前广告的最短观看时长（毫秒）
      * - 进入 WATCHING_AD 时解析广告页面提示动态设置（页面提示的秒数 + 缓冲）
      * - 无提示时使用默认值 [AD_MIN_DURATION_MS]
@@ -553,6 +563,7 @@ object AutomationController {
                         taskButtons = listOf(browseEntry)
                         currentTaskIndex = 0
                         taskListCheckAttempt = 0
+                        browseFromDirectPopup = true  // 标记：浏览完成后回 COLLECTING_DIRECT
                         moveTo(AutomationState.BROWSING_TASK)
                         handler.postDelayed({ runBrowsingTask(swipeCount = 0) }, INTERVAL_CLICK_MS)
                         return@postDelayed
@@ -963,8 +974,17 @@ object AutomationController {
                 handler.postDelayed({
                     if (!service.isOnFarmPage()) service.pressBack()
                     handler.postDelayed({
-                        moveTo(AutomationState.OPENING_TASK_LIST)
-                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        // 从 direct 弹窗进入的浏览：完成后回 COLLECTING_DIRECT
+                        val fromDirect = browseFromDirectPopup
+                        browseFromDirectPopup = false  // 复位
+                        if (fromDirect) {
+                            debugLog("browseTask: was from direct popup, returning to COLLECTING_DIRECT")
+                            moveTo(AutomationState.COLLECTING_DIRECT)
+                            handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
+                        } else {
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        }
                     }, INTERVAL_CLICK_MS)
                 }, INTERVAL_PAGE_LOAD_MS)
                 return@postDelayed
@@ -986,6 +1006,15 @@ object AutomationController {
         }
         // 等待页面返回，然后检查是否回到农场页
         handler.postDelayed({
+            // 从 direct 弹窗进入的浏览：完成后回 COLLECTING_DIRECT 继续找其他 direct 按钮
+            val fromDirect = browseFromDirectPopup
+            browseFromDirectPopup = false  // 复位
+            if (fromDirect) {
+                debugLog("exitBrowsePage: browse was from direct popup, returning to COLLECTING_DIRECT")
+                moveTo(AutomationState.COLLECTING_DIRECT)
+                handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
+                return@postDelayed
+            }
             if (service.isOnFarmPage()) {
                 // 已回到农场页，重新打开任务列表
                 moveTo(AutomationState.OPENING_TASK_LIST)
