@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ========== 主账号（user 0） ========== -->
+
+    <!-- UC 极速版芭芭农场（主账号）：用 UC 浏览器打开芭芭农场 URL -->
+    <shortcut
+        android:shortcutId="uc_farm"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_uc_short"
+        android:shortcutLongLabel="@string/shortcut_uc_long"
+        android:shortcutDisabledMessage="@string/shortcut_disabled">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.bbncbot"
+            android:targetClass="com.bbncbot.MainActivity">
+            <extra android:name="extra_platform" android:value="uc" />
+            <extra android:name="extra_user" android:value="main" />
+        </intent>
+    </shortcut>
+
+    <!-- 支付宝芭芭农场（主账号）：启动支付宝并自动导航到芭芭农场 -->
+    <shortcut
+        android:shortcutId="alipay_farm"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_alipay_short"
+        android:shortcutLongLabel="@string/shortcut_alipay_long"
+        android:shortcutDisabledMessage="@string/shortcut_disabled">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.bbncbot"
+            android:targetClass="com.bbncbot.MainActivity">
+            <extra android:name="extra_platform" android:value="alipay" />
+            <extra android:name="extra_user" android:value="main" />
+        </intent>
+    </shortcut>
+
+    <!-- 淘宝芭芭农场（主账号）：启动淘宝并自动导航到芭芭农场 -->
+    <shortcut
+        android:shortcutId="taobao_farm"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_taobao_short"
+        android:shortcutLongLabel="@string/shortcut_taobao_long"
+        android:shortcutDisabledMessage="@string/shortcut_disabled">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.bbncbot"
+            android:targetClass="com.bbncbot.MainActivity">
+            <extra android:name="extra_platform" android:value="taobao" />
+            <extra android:name="extra_user" android:value="main" />
+        </intent>
+    </shortcut>
+
+    <!-- ========== 分身账号（work profile / user 128） ========== -->
+
+    <!-- UC 极速版芭芭农场（分身）：启动分身 UC 浏览器并打开芭芭农场 URL -->
+    <shortcut
+        android:shortcutId="uc_farm_clone"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_uc_clone_short"
+        android:shortcutLongLabel="@string/shortcut_uc_clone_long"
+        android:shortcutDisabledMessage="@string/shortcut_disabled">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.bbncbot"
+            android:targetClass="com.bbncbot.MainActivity">
+            <extra android:name="extra_platform" android:value="uc" />
+            <extra android:name="extra_user" android:value="clone" />
+        </intent>
+    </shortcut>
+
+    <!-- 支付宝芭芭农场（分身）：启动分身支付宝并自动导航到芭芭农场 -->
+    <shortcut
+        android:shortcutId="alipay_farm_clone"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_alipay_clone_short"
+        android:shortcutLongLabel="@string/shortcut_alipay_clone_long"
+        android:shortcutDisabledMessage="@string/shortcut_disabled">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.bbncbot"
+            android:targetClass="com.bbncbot.MainActivity">
+            <extra android:name="extra_platform" android:value="alipay" />
+            <extra android:name="extra_user" android:value="clone" />
+        </intent>
+    </shortcut>
+
+    <!-- 淘宝芭芭农场（分身）：启动分身淘宝并自动导航到芭芭农场 -->
+    <shortcut
+        android:shortcutId="taobao_farm_clone"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_taobao_clone_short"
+        android:shortcutLongLabel="@string/shortcut_taobao_clone_long"
+        android:shortcutDisabledMessage="@string/shortcut_disabled">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.bbncbot"
+            android:targetClass="com.bbncbot.MainActivity">
+            <extra android:name="extra_platform" android:value="taobao" />
+            <extra android:name="extra_user" android:value="clone" />
+        </intent>
+    </shortcut>
+
+</shortcuts>

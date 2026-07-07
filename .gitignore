@@ -1,0 +1,51 @@
+# Gradle
+.gradle/
+build/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Sign files
+*.keystore
+*.jks
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.trae/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# APK & build outputs
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Native build
+.cxx/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Screenshots & debug dumps
+*.png
+*.jpg
+*.jpeg
+*.txt
+
+# Debug scripts
+*.py
+dump*
+acs*
+act*
+activity*
+top*
+cur*

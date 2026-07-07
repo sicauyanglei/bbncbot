@@ -1,0 +1,220 @@
+package com.bbncbot.automation
+
+/**
+ * 农场平台
+ *
+ * - 通过无障碍服务自动检测当前前台 App，匹配对应平台
+ * - 每个平台对应一份 [PlatformConfig]，包含包名、文案、坐标等
+ *
+ * 注：坐标比例基于 v11 PC 端 ADB 方案经验（屏幕 896x1980），其他屏幕由调用方按 metrics 缩放。
+ * 支付宝/淘宝的坐标比例为合理默认值，需在实际设备上调试微调。
+ */
+enum class Platform {
+    UC,       // UC 极速版（com.ucmobile.lite）的 UC 芭芭农场
+    ALIPAY,   // 支付宝（com.eg.android.AlipayGphone）的芭芭农场
+    TAOBAO,   // 淘宝（com.taobao.taobao）的芭芭农场
+    UNKNOWN;
+
+    val config: PlatformConfig
+        get() = when (this) {
+            UC -> UcPlatformConfig
+            ALIPAY -> AlipayPlatformConfig
+            TAOBAO -> TaobaoPlatformConfig
+            UNKNOWN -> UcPlatformConfig // 默认沿用 UC 配置（兜底）
+        }
+
+    /** 获取该平台的肥料收集器 */
+    val collector: FertilizerCollector
+        get() = when (this) {
+            UC -> com.bbncbot.automation.uc.UcFertilizerCollector
+            ALIPAY -> com.bbncbot.automation.alipay.AlipayFertilizerCollector
+            TAOBAO -> com.bbncbot.automation.taobao.TaobaoFertilizerCollector
+            UNKNOWN -> com.bbncbot.automation.uc.UcFertilizerCollector // 兜底
+        }
+
+    companion object {
+        /**
+         * 根据前台包名匹配平台
+         * - 优先匹配主包名；其次匹配平台内部包名前缀（如 UC 的 com.UCMobile）
+         */
+        fun fromPackage(pkg: String?): Platform {
+            if (pkg.isNullOrEmpty()) return UNKNOWN
+            // 优先精确匹配主包名
+            for (p in listOf(UC, ALIPAY, TAOBAO)) {
+                if (pkg in p.config.packageNames) return p
+            }
+            // 其次匹配内部包名前缀
+            for (p in listOf(UC, ALIPAY, TAOBAO)) {
+                if (p.config.internalPackagePrefixes.any { pkg.startsWith(it) || pkg.contains(it) }) return p
+            }
+            return UNKNOWN
+        }
+    }
+}
+
+/**
+ * 平台配置接口 - 每个平台的 UI 元素和包名识别
+ */
+interface PlatformConfig {
+    /** 平台枚举 */
+    val platform: Platform
+
+    /** 平台 App 主包名列表 */
+    val packageNames: List<String>
+
+    /** 平台 App 内部包名前缀（如 UC 的 com.UCMobile） */
+    val internalPackagePrefixes: List<String>
+
+    /**
+     * 农场页主 Activity 类名（小写关键字匹配，任一命中即视为在农场页）
+     * - 空列表表示不通过 Activity 类名判断，仅通过窗口包名判断
+     */
+    val farmPageActivityKeywords: List<String>
+
+    /** 集肥料按钮文本候选 */
+    val collectFertilizerTexts: List<String>
+
+    /** 去完成按钮文本候选 */
+    val goCompleteTexts: List<String>
+
+    /** 农场主页上直接可领取肥料的按钮文本候选（如"兔兔挖肥料，50肥料，可领取"） */
+    val directCollectTexts: List<String>
+
+    /** 集肥料按钮坐标比例候选 (xRatio, yRatio) */
+    val collectFertilizerCoords: List<Pair<Float, Float>>
+
+    /** 广告关闭按钮坐标比例候选 */
+    val adCloseCoords: List<Pair<Float, Float>>
+
+    /** 退回按钮坐标比例候选 */
+    val backButtonCoords: List<Pair<Float, Float>>
+}
+
+/** UC 极速版（com.ucmobile.lite）配置 - 沿用现有 v2 实现 */
+object UcPlatformConfig : PlatformConfig {
+    override val platform = Platform.UC
+    override val packageNames = listOf("com.ucmobile.lite")
+    override val internalPackagePrefixes = listOf("com.UCMobile")
+    override val farmPageActivityKeywords = listOf("innerucmobile", "mainactivity")
+    override val collectFertilizerTexts = listOf(
+        "集肥料", "领取肥料", "获取肥料", "收集肥料", "开始施肥", "看视频", "看广告领奖"
+    )
+    override val goCompleteTexts = listOf("去完成", "立即完成", "去观看", "去领取", "立即观看", "去赚钱", "去签到", "去答题", "去逛逛")
+    override val directCollectTexts = listOf("可领取", "挖肥料")
+    override val collectFertilizerCoords = listOf(
+        Pair(0.867f, 0.815f),  // 集肥料按钮（OCR 确认，右下角，1200x2664 屏幕）
+        Pair(0.867f, 0.838f),  // 集肥料文字位置备用
+        Pair(0.185f, 0.104f),  // 开始施肥/停止施肥按钮（顶部）
+        Pair(0.883f, 0.483f),  // 看视频任务"去完成"按钮（OCR 确认，1200x2664 屏幕）
+        Pair(0.871f, 0.561f),  // 浏览广告任务"去完成"按钮（OCR 确认，1200x2664 屏幕）
+        Pair(0.855f, 0.515f),  // 旧看视频按钮坐标兜底
+        Pair(0.5f, 0.184f),    // 旧配置兜底
+        Pair(0.5f, 0.900f)     // 旧配置兜底
+    )
+    override val adCloseCoords = listOf(
+        Pair(0.95f, 0.025f),
+        Pair(0.96f, 0.025f),
+        Pair(0.94f, 0.015f),
+        Pair(0.97f, 0.015f),
+        Pair(0.96f, 0.035f),
+        Pair(0.93f, 0.010f),
+        Pair(0.50f, 0.050f),
+        Pair(0.95f, 0.960f)
+    )
+    override val backButtonCoords = listOf(
+        Pair(0.112f, 0.874f),  // 左下角退回按钮
+        Pair(0.050f, 0.050f),  // 左上角
+        Pair(0.950f, 0.050f),  // 右上角关闭
+        Pair(0.500f, 0.950f)   // 底部中央
+    )
+}
+
+/**
+ * 支付宝（com.eg.android.AlipayGphone）配置
+ *
+ * - 芭芭农场入口：支付宝首页搜索"芭芭农场"，或首页应用中心入口
+ * - 农场页通常内嵌 H5（Activity 可能为 H5AppActivity 或 AlipayLogin 主容器）
+ * - 坐标比例为合理默认值，需在实际设备上调试微调
+ */
+object AlipayPlatformConfig : PlatformConfig {
+    override val platform = Platform.ALIPAY
+    override val packageNames = listOf("com.eg.android.AlipayGphone")
+    override val internalPackagePrefixes = listOf("com.eg.android.AlipayGphone", "com.alipay.mobile")
+    override val farmPageActivityKeywords = listOf(
+        "alipaylogin", "fragmenttabactivity", "mainactivity", "h5appactivity", "h5webviewactivity"
+    )
+    override val collectFertilizerTexts = listOf(
+        "集肥料", "领取肥料", "获取肥料", "收集肥料", "肥料",
+        "打开任务列表", "任务列表", "施肥", "今日可领", "去领取", "领肥料",
+        "限时挑战", "挑战", "领肥", "赚肥料", "得肥料"
+    )
+    override val goCompleteTexts = listOf("去完成", "去逛逛", "去观看", "立即完成", "去领取", "去赚", "去签到", "去答题", "去挑战", "开始挑战")
+    override val directCollectTexts = listOf("可领取", "挖肥料")
+    override val collectFertilizerCoords = listOf(
+        Pair(0.888f, 0.771f),  // 右侧浮动"肥料"按钮（OCR+颜色分析确认，1200x2664 屏幕）
+        Pair(0.908f, 0.787f),  // "肥料"文字位置备用（OCR 确认）
+        Pair(0.667f, 0.375f),  // 上中橙色按钮（颜色分析，可能是限时挑战入口）
+        Pair(0.5f, 0.556f),    // 中部橙色按钮（颜色分析 ratio74%，可能是任务入口）
+        Pair(0.3f, 0.616f),    // 中下橙色按钮（颜色分析）
+        Pair(0.1f, 0.526f),    // 左中橙色按钮（颜色分析）
+        Pair(0.417f, 0.974f),  // 底部橙色按钮
+        Pair(0.501f, 0.761f),  // 施肥按钮（OCR 确认，1200x2664 屏幕）
+        Pair(0.917f, 0.657f),  // 今日可领（右侧领取入口）
+        Pair(0.5f, 0.184f),
+        Pair(0.5f, 0.900f)
+    )
+    override val adCloseCoords = listOf(
+        Pair(0.95f, 0.025f),
+        Pair(0.96f, 0.035f),
+        Pair(0.93f, 0.010f),
+        Pair(0.50f, 0.050f),
+        Pair(0.95f, 0.960f)
+    )
+    override val backButtonCoords = listOf(
+        Pair(0.050f, 0.050f),
+        Pair(0.950f, 0.050f),
+        Pair(0.500f, 0.950f),
+        Pair(0.112f, 0.874f)
+    )
+}
+
+/**
+ * 淘宝（com.taobao.taobao）配置
+ *
+ * - 芭芭农场入口：淘宝首页搜索"芭芭农场"，点击搜索结果中的小程序入口
+ * - 农场页 Activity：com.taobao.themis.container.app.TMSActivity（淘宝小程序容器）
+ * - 坐标比例为合理默认值，需在实际设备上调试微调
+ */
+object TaobaoPlatformConfig : PlatformConfig {
+    override val platform = Platform.TAOBAO
+    override val packageNames = listOf("com.taobao.taobao")
+    override val internalPackagePrefixes = listOf("com.taobao.taobao", "com.taobao")
+    override val farmPageActivityKeywords = listOf(
+        "tmsactivity", "mainactivity", "taobaomain", "fragmenttabactivity",
+        "h5webviewactivity", "webviewactivity", "multipagecontaineractivity"
+    )
+    override val collectFertilizerTexts = listOf(
+        "集肥料", "领取肥料", "获取肥料", "收集肥料", "打开任务列表", "任务列表"
+    )
+    override val goCompleteTexts = listOf("去完成", "去逛逛", "去观看", "立即完成", "去领取", "去赚", "去签到", "去答题")
+    override val directCollectTexts = listOf("可领取", "挖肥料")
+    override val collectFertilizerCoords = listOf(
+        Pair(0.227f, 0.107f),  // 打开任务列表按钮（OCR 确认，1200x2664 屏幕）
+        Pair(0.25f, 0.11f),    // 打开任务列表备用
+        Pair(0.5f, 0.184f),
+        Pair(0.5f, 0.900f)
+    )
+    override val adCloseCoords = listOf(
+        Pair(0.95f, 0.025f),
+        Pair(0.96f, 0.035f),
+        Pair(0.93f, 0.010f),
+        Pair(0.50f, 0.050f),
+        Pair(0.95f, 0.960f)
+    )
+    override val backButtonCoords = listOf(
+        Pair(0.050f, 0.050f),
+        Pair(0.950f, 0.050f),
+        Pair(0.500f, 0.950f),
+        Pair(0.112f, 0.874f)
+    )
+}

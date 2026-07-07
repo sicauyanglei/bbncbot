@@ -1,0 +1,2169 @@
+package com.bbncbot.automation
+
+import android.graphics.Rect
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import android.view.accessibility.AccessibilityNodeInfo
+import com.bbncbot.service.FarmAccessibilityService
+import java.lang.ref.WeakReference
+
+/**
+ * 自动化控制器 v2（单例）
+ *
+ * v2 重构 - 基于用户要求和v11 PC端ADB方案经验：
+ *
+ * 用户要求的导航路径：
+ * 主页右下角任务进入 → 右上角芭芭农场 → 农场主页 → 点击集肥料按钮 → 点击各个去完成按钮获取肥料
+ *
+ * 用户要求的行为：
+ * - 智能的点击判断，取完肥料就退回来继续获取下一个肥料任务
+ * - 没有点对有返回按钮，返回到主界面重新开始进入广告获取肥料
+ * - 机器人智能地适应退回按钮位置，不要只硬编码一个位置
+ * - 只点击广告，邀请推广网页直接返回，任务不做
+ * - 安装软件的广告也不做，不安装，直接退出
+ * - 邀请好友的肥料不赚
+ *
+ * 状态机循环：NAVIGATING → OPENING_TASK_LIST → PROCESSING_TASK → WATCHING_AD → CLOSING_AD → RETURNING → PROCESSING_TASK (下一个) → ...
+ */
+object AutomationController {
+
+    private const val TAG = "AutomationController"
+
+    // ---------- 时间间隔（毫秒） ----------
+    /** 通用点击间隔 */
+    private const val INTERVAL_CLICK_MS = 2000L
+    /** 等待页面加载 */
+    private const val INTERVAL_PAGE_LOAD_MS = 5000L
+    /** 一轮结束后等待时间 */
+    private const val INTERVAL_WAIT_MS = 5000L
+    /** 任务列表最大尝试次数（需大于平台坐标候选数，支付宝有11个候选） */
+    private const val MAX_TASK_LIST_ATTEMPTS = 8
+    /** AI 视觉查找集肥料入口的最大尝试次数（每轮打开任务列表，限制 API 配额消耗） */
+    private const val MAX_AI_OPEN_LIST_ATTEMPTS = 2
+    /** 单个任务最大尝试次数 */
+    private const val MAX_TASK_ATTEMPTS = 3
+    /** 广告播放最短等待时间（默认值，单位毫秒） */
+    private const val AD_MIN_DURATION_MS = 30000L
+    /** 广告播放最大等待时间（秒），超时强制关闭 */
+    private const val AD_MAX_DURATION_MS = 90000L
+    /** 广告结束检测轮询间隔 */
+    private const val AD_END_CHECK_INTERVAL_MS = 5000L
+    /** 广告时长解析缓冲（毫秒）：在页面提示的规定时间基础上额外等待，确保肥料奖励到账 */
+    private const val AD_DURATION_BUFFER_MS = 2000L
+    /**
+     * 广告深链跳转进入其他 App 的最大停留时间（毫秒）
+     * - 用户要求：广告时间进入其它app最多21秒，21秒后强杀拉起来的app
+     * - 超时后调用 [FarmAccessibilityService.forceKillApp] 强杀被拉起的 App，再重新启动农场 App 回到前台
+     */
+    private const val DEEP_LINK_MAX_DURATION_MS = 21000L
+    /** 返回农场页最大尝试次数 */
+    private const val MAX_RETURN_ATTEMPTS = 5
+    /** 连续无进展轮次上限（超过则重新导航） */
+    private const val MAX_NO_PROGRESS_ROUNDS = 3
+    /** 施肥按钮最大点击次数（防止无限点击） */
+    private const val MAX_FERTILIZE_CLICKS = 30
+    /** 滑动浏览任务最大滑动次数 */
+    private const val MAX_BROWSE_SWIPES = 6
+    /** 每次滑动间隔（毫秒） */
+    private const val BROWSE_SWIPE_INTERVAL_MS = 2000L
+    /** 游戏任务最大时长（3 分钟），超时放弃 */
+    private const val GAME_MAX_DURATION_MS = 180000L
+    /** 游戏 AI 操作间隔（每 4 秒分析一次画面并操作） */
+    private const val GAME_ACTION_INTERVAL_MS = 4000L
+    /** 游戏加载等待时间 */
+    private const val GAME_LOAD_MS = 5000L
+    /** 游戏 AI 最大操作次数（防止无限消耗 API 配额） */
+    private const val GAME_MAX_ACTIONS = 40
+
+    /** 当前浏览任务的目标滑动次数（根据页面提示动态计算，无提示时用 MAX_BROWSE_SWIPES） */
+    @Volatile
+    private var browseTaskTargetSwipes: Int = MAX_BROWSE_SWIPES
+
+    /**
+     * 当前广告的最短观看时长（毫秒）
+     * - 进入 WATCHING_AD 时解析广告页面提示动态设置（页面提示的秒数 + 缓冲）
+     * - 无提示时使用默认值 [AD_MIN_DURATION_MS]
+     * - 用户要求：太快退出可能获取不到肥料，需保持到规定时间+缓冲后再检测退出
+     */
+    @Volatile
+    private var adMinDurationMs: Long = AD_MIN_DURATION_MS
+
+    /**
+     * 当前广告的最大等待时长（毫秒）
+     * - 动态计算：max(AD_MAX_DURATION_MS, adMinDurationMs + 30s)
+     * - 确保页面提示的长广告（如120秒）不会被提前强制关闭
+     * - 在最短等待时间基础上留 30 秒余量让广告结束并发放奖励
+     */
+    @Volatile
+    private var adMaxDurationMs: Long = AD_MAX_DURATION_MS
+
+    /**
+     * 深链跳转跟踪：广告任务跳转到其他 App 时记录的包名（null=未在深链状态）
+     * - 进入 WATCHING_AD 时重置为 null
+     * - 检测到不在农场 App 且不在广告 Activity 时，记录当前包名和时间戳
+     * - 停留超过 [DEEP_LINK_MAX_DURATION_MS] 后强杀
+     */
+    @Volatile
+    private var deepLinkAppPkg: String? = null
+
+    /** 深链跳转进入其他 App 的时间戳（elapsedMs），配合 [deepLinkAppPkg] 使用 */
+    @Volatile
+    private var deepLinkEnterTimeMs: Long = 0L
+
+    /** 本次广告观看的农场平台（强杀深链 App 后重新启动此平台回到农场） */
+    @Volatile
+    private var watchingAdPlatform: Platform = Platform.UNKNOWN
+
+    // ---------- 坐标比例候选 ----------
+    // 注：坐标比例由当前平台 PlatformConfig 动态提供（UC/支付宝/淘宝各自不同），
+    // 见 [PlatformConfig.collectFertilizerCoords] / [adCloseCoords] / [backButtonCoords]
+    // 以下常量仅为兜底默认值（UC 配置），实际运行时优先使用 service.currentPlatformConfig()
+
+    private val handler = Handler(Looper.getMainLooper())
+
+    @Volatile
+    private var state: AutomationState = AutomationState.IDLE
+
+    @Volatile
+    private var serviceRef: WeakReference<FarmAccessibilityService>? = null
+
+    /** 状态变化回调（用于通知悬浮窗更新 UI） */
+    var onStateChanged: ((AutomationState) -> Unit)? = null
+
+    /** 已收集的肥料数量 */
+    @Volatile
+    private var collectedCount: Int = 0
+
+    /** 当前任务列表中的按钮索引 */
+    @Volatile
+    private var currentTaskIndex: Int = 0
+
+    /** 当前任务按钮列表（缓存） */
+    @Volatile
+    private var taskButtons: List<AccessibilityNodeInfo> = emptyList()
+
+    /** 连续无进展轮次 */
+    @Volatile
+    private var noProgressRounds: Int = 0
+
+    /**
+     * 当前任务已调用 AI 视觉决策的次数
+     * - 用户要求：任务执行过程中页面可能变化，借助 AI 得出任务完成路径直到获取肥料
+     * - 每个任务最多调用 [MAX_AI_CALLS_PER_TASK] 次 AI，让 AI 逐步规划路径适应页面连续变化
+     * - 反应式规划：每次 AI 返回一个动作→执行→页面变化→AI 重新分析→下一步动作，逐步逼近肥料
+     * - 点击任务按钮时重置为 0（新一轮尝试）
+     */
+    @Volatile
+    private var aiCallsForTask: Int = 0
+
+    /** 当前任务连续失败次数（未知页面/卡住等）。达到 MAX_TASK_FAILS 跳过任务 */
+    @Volatile
+    private var currentTaskFailCount: Int = 0
+
+    /** 单个任务最大失败次数，超过则跳过该任务 */
+    private const val MAX_TASK_FAILS = 2
+
+    /** 单个任务 AI 路径规划最大调用次数（适应页面变化的多步规划，限制免费 API 配额） */
+    private const val MAX_AI_CALLS_PER_TASK = 3
+
+    /**
+     * 本次广告观看是否已调用 AI 规划领取路径
+     * - 广告结束后页面可能变化（领取弹窗/确认对话框/关闭页），AI 介入理解页面找领取/关闭按钮
+     * - 每次进入 WATCHING_AD 时重置为 false，确保每次广告观看最多调用 1 次 AI（避免 API 消耗）
+     */
+    @Volatile
+    private var aiCalledForAdClose: Boolean = false
+
+    /**
+     * 本轮打开任务列表时 AI 视觉已尝试次数
+     * - 每次 [runOpeningTaskList] 以 attempt=0 开始时重置为 0，重新获得 [MAX_AI_OPEN_LIST_ATTEMPTS] 次配额
+     * - AI 视觉升级为"首选方法"（优先于硬编码坐标），用于查找集肥料/限时挑战/得1000肥等多入口
+     * - 限制次数避免无限消耗免费 API 配额
+     */
+    @Volatile
+    private var aiOpenListAttempts: Int = 0
+
+    // ---------- 跨平台切换 ----------
+    /** 跨平台切换：原平台（切换完成后回到此平台） */
+    @Volatile
+    private var switchOriginalPlatform: Platform = Platform.UNKNOWN
+    /** 跨平台切换：目标平台 */
+    @Volatile
+    private var switchTargetPlatform: Platform = Platform.UNKNOWN
+    /** 跨平台切换阶段：LAUNCH_TARGET=启动目标平台, FERTILIZE_TARGET=目标平台施肥, RETURN_ORIGINAL=返回原平台, RESUME=恢复原平台导航 */
+    @Volatile
+    private var switchStage: String = ""
+    /** 跨平台切换重试计数 */
+    @Volatile
+    private var switchRetryCount: Int = 0
+    /** 跨平台切换最大重试次数 */
+    private const val MAX_SWITCH_RETRIES = 8
+
+    val currentState: AutomationState get() = state
+    val isRunning: Boolean
+        get() = state != AutomationState.IDLE && state != AutomationState.STOPPING
+
+    /** 绑定 FarmAccessibilityService */
+    fun bindService(service: FarmAccessibilityService) {
+        serviceRef = WeakReference(service)
+        Log.i(TAG, "FarmAccessibilityService bound")
+    }
+
+    /** 解绑 */
+    fun unbindService() {
+        serviceRef = null
+        if (isRunning) {
+            stop()
+        }
+    }
+
+    private fun getService(): FarmAccessibilityService? = serviceRef?.get()
+
+    /** 调试日志写到外部存储文件（华为 logcat 加密，用文件替代） */
+    private fun debugLog(msg: String) {
+        Log.i(TAG, msg)
+        try {
+            val timestamp = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
+                .format(java.util.Date())
+            val line = "$timestamp $msg\n"
+            val file = java.io.File(
+                android.os.Environment.getExternalStorageDirectory(),
+                "Android/data/com.bbncbot/files/debug.log"
+            )
+            file.parentFile?.mkdirs()
+            file.appendText(line)
+        } catch (_: Exception) { /* ignore */ }
+    }
+
+    /**
+     * 页面状态快照日志：输出当前所有关键页面判断结果，用于诊断"卡在哪个页面"问题
+     * 调用时机：状态转换、关键决策点
+     */
+    private fun logPageSnapshot(service: FarmAccessibilityService, tag: String) {
+        try {
+            val pkg = service.getCurrentWindowPackage() ?: "null"
+            val activity = service.getCurrentActivityName() ?: "null"
+            // 注意：这些检测方法部分有缓存或副作用，按从轻到重排序
+            val onFarm = service.isOnFarmPage()
+            val adActivity = service.isAdActivity()
+            val adPlaying = service.isAdPlaying()
+            val adContent = service.isAdContentShown()
+            val abnormal = service.isOnAbnormalPage()
+            val nonAdTask = service.isNonAdTaskPage()
+            val nonAdPkg = service.isNonAdPage()
+            val taskComplete = service.isTaskCompletePage()
+            val searchRec = service.isSearchRecommendPage()
+            debugLog("[$tag] snapshot: pkg=$pkg, act=$activity, onFarm=$onFarm, adActivity=$adActivity, adPlaying=$adPlaying, adContent=$adContent, abnormal=$abnormal, nonAdTask=$nonAdTask, nonAdPkg=$nonAdPkg, taskComplete=$taskComplete, searchRec=$searchRec")
+        } catch (e: Exception) {
+            debugLog("[$tag] snapshot error: ${e.message}")
+        }
+    }
+
+    /** 当前平台配置的集肥料按钮坐标候选 */
+    private fun collectFertilizerCandidates(service: FarmAccessibilityService) =
+        service.currentPlatformConfig().collectFertilizerCoords
+
+    /** 当前平台配置的广告关闭按钮坐标候选 */
+    private fun adCloseCandidates(service: FarmAccessibilityService) =
+        service.currentPlatformConfig().adCloseCoords
+
+    /** 当前平台配置的退回按钮坐标候选 */
+    private fun backButtonCandidates(service: FarmAccessibilityService) =
+        service.currentPlatformConfig().backButtonCoords
+
+    /** 启动自动化 */
+    fun start() {
+        val service = getService()
+        if (service == null) {
+            Log.w(TAG, "start: FarmAccessibilityService not bound")
+            debugLog("start: FarmAccessibilityService not bound")
+            return
+        }
+        if (isRunning) {
+            Log.d(TAG, "start: already running, ignore")
+            return
+        }
+        Log.i(TAG, "=== Automation v2 Started ===")
+        debugLog("=== Automation v2 Started === platform=${service.currentPlatform}")
+        // 取消所有导航回调，避免 stepClickFarmTab 在后台干扰自动化
+        service.cancelNavigation()
+        collectedCount = 0
+        currentTaskIndex = 0
+        noProgressRounds = 0
+        taskButtons = emptyList()
+        // 重置当前平台的广告完成标记（新一轮运行可重新标记完成）
+        resetCurrentPlatformComplete(service)
+        moveTo(AutomationState.NAVIGATING)
+        handler.post { runNavigating(attempt = 0) }
+    }
+
+    /** 停止自动化 */
+    fun stop() {
+        if (state == AutomationState.IDLE) return
+        Log.i(TAG, "automation stopping")
+        moveTo(AutomationState.STOPPING)
+        handler.removeCallbacksAndMessages(null)
+        getService()?.setAdMode(false)
+        moveTo(AutomationState.IDLE)
+    }
+
+    // ============== 三平台广告完成跟踪 ==============
+    private const val PREFS_NAME = "platform_ads_status"
+    private const val KEY_UC = "uc_complete"
+    private const val KEY_ALIPAY = "alipay_complete"
+    private const val KEY_TAOBAO = "taobao_complete"
+    /** 三平台广告全部完成的通知 channel id */
+    private const val NOTIF_CHANNEL_ID = "all_ads_complete"
+
+    /**
+     * 重置当前平台的广告完成标记
+     * 在 [start] 时调用，使新一轮运行可重新标记完成
+     */
+    private fun resetCurrentPlatformComplete(service: com.bbncbot.service.FarmAccessibilityService) {
+        val prefs = service.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
+        val key = platformPrefsKey(service.currentPlatform) ?: return
+        prefs.edit().putBoolean(key, false).apply()
+        debugLog("reset platform complete: ${service.currentPlatform}")
+    }
+
+    /**
+     * 标记当前平台的广告已获取完，并检查三平台是否全部完成
+     * 若三平台都完成 → 发送通知 + Toast 提示用户
+     */
+    private fun markPlatformAdsComplete(service: com.bbncbot.service.FarmAccessibilityService) {
+        val prefs = service.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
+        val key = platformPrefsKey(service.currentPlatform) ?: return
+        prefs.edit().putBoolean(key, true).apply()
+        debugLog("marked platform complete: ${service.currentPlatform}")
+
+        val ucDone = prefs.getBoolean(KEY_UC, false)
+        val alipayDone = prefs.getBoolean(KEY_ALIPAY, false)
+        val taobaoDone = prefs.getBoolean(KEY_TAOBAO, false)
+        debugLog("platform status: UC=$ucDone, ALIPAY=$alipayDone, TAOBAO=$taobaoDone")
+
+        if (ucDone && alipayDone && taobaoDone) {
+            Log.i(TAG, "=== All 3 platforms' ads complete! Notifying user ===")
+            debugLog("=== All 3 platforms (UC/Alipay/Taobao) ads complete! ===")
+            notifyAllPlatformsComplete(service)
+            // 通知后重置所有平台标记，以便次日可重新触发
+            prefs.edit().clear().apply()
+        }
+    }
+
+    /** 获取当前平台对应的 SharedPreferences key */
+    private fun platformPrefsKey(platform: Platform): String? = when (platform) {
+        Platform.UC -> KEY_UC
+        Platform.ALIPAY -> KEY_ALIPAY
+        Platform.TAOBAO -> KEY_TAOBAO
+        Platform.UNKNOWN -> null
+    }
+
+    /** 三平台全部完成时发送通知 + Toast */
+    private fun notifyAllPlatformsComplete(service: com.bbncbot.service.FarmAccessibilityService) {
+        // Toast 提示（在主线程）
+        handler.post {
+            android.widget.Toast.makeText(
+                service,
+                "🎉 淘宝、支付宝、UC极速版的广告肥料已全部获取完成！",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
+
+        // 系统通知
+        try {
+            val nm = service.getSystemService(android.content.Context.NOTIFICATION_SERVICE)
+                as android.app.NotificationManager
+            // Android 8+ 需要 NotificationChannel
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                val channel = android.app.NotificationChannel(
+                    NOTIF_CHANNEL_ID,
+                    "广告肥料完成通知",
+                    android.app.NotificationManager.IMPORTANCE_HIGH
+                )
+                nm.createNotificationChannel(channel)
+            }
+            val notification = androidx.core.app.NotificationCompat.Builder(service, NOTIF_CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle("三平台广告肥料已全部完成")
+                .setContentText("淘宝、支付宝、UC极速版的广告肥料已全部获取完成！")
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .build()
+            nm.notify(1001, notification)
+        } catch (e: Exception) {
+            Log.e(TAG, "notifyAllPlatformsComplete failed: ${e.message}", e)
+        }
+    }
+
+    private fun moveTo(newState: AutomationState) {
+        if (state == newState) return
+        Log.d(TAG, "state: $state -> $newState")
+        debugLog("state: $state -> $newState")
+        state = newState
+        onStateChanged?.invoke(newState)
+    }
+
+    // ============== 阶段1: 导航到农场页 ==============
+
+    /**
+     * 导航阶段：确保在农场页
+     * - 如果已在农场页，直接进入打开任务列表阶段
+     * - 如果不在农场页，等待用户手动打开或尝试返回
+     */
+    private fun runNavigating(attempt: Int) {
+        if (state != AutomationState.NAVIGATING) return
+        val service = getService() ?: run { stop(); return }
+
+        // 主动检测当前前台 App 平台（无障碍服务刚连接时可能还没检测到）
+        service.refreshPlatform()
+
+        if (attempt == 0) {
+            logPageSnapshot(service, "navigate-start")
+        }
+
+        if (service.isOnFarmPage()) {
+            Log.i(TAG, "navigate: on farm page, collecting direct fertilizer first")
+            debugLog("navigate: on farm page, platform=${service.currentPlatform}")
+            collectedCount = 0
+            currentTaskIndex = 0
+            noProgressRounds = 0
+            // H5 页面可能仍在加载中（WebView Activity 已显示但内容未渲染），
+            // 检查页面是否有可交互内容，没有则等待重试（最多等5次，每次5秒）
+            val root = service.getRootInFarmApp()
+            val hasContent = root != null && service.hasFarmContentLoaded(root)
+            debugLog("navigate: hasFarmContentLoaded=$hasContent, attempt=$attempt")
+            if (!hasContent && attempt < 10) {
+                Log.i(TAG, "navigate: farm H5 page still loading, waiting...")
+                handler.postDelayed({
+                    if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            moveTo(AutomationState.COLLECTING_DIRECT)
+            handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        if (attempt >= 10) {
+            Log.w(TAG, "navigate: failed after $attempt attempts, waiting and retrying")
+            handler.postDelayed({
+                if (state == AutomationState.NAVIGATING) runNavigating(0)
+            }, INTERVAL_WAIT_MS)
+            return
+        }
+
+        // 不在农场页，尝试导航
+        if (service.isNavigatingToFarm) {
+            // 正在自动导航到农场页，跳过 controller 的自动操作避免干扰
+            Log.d(TAG, "navigate: navigating to farm in progress, skip")
+            handler.postDelayed({
+                if (state == AutomationState.NAVIGATING) runNavigating(attempt)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+        if (service.isAdPlaying() || service.isAdActivity()) {
+            Log.w(TAG, "navigate: in ad, trying to close")
+            service.pressBack()
+        } else if (service.isSearchRecommendPage()) {
+            // 搜索推荐页 — 芭芭农场H5页没有加载出来
+            // 关闭搜索页，下次导航改用"我的淘宝"路径（更可靠）
+            Log.i(TAG, "navigate: search recommend page, closing (farm H5 didn't load)")
+            debugLog("navigate: closing search page, will try 我的淘宝 path next")
+            service.pressBack()
+        } else if (service.isOnAbnormalPage()) {
+            // 异常页面（支付宝收银台、商品详情页等），按返回退出
+            Log.w(TAG, "navigate: on abnormal page, pressing back to exit")
+            debugLog("navigate: abnormal page detected, pressing back")
+            service.pressBack()
+        } else if (!service.isFarmAppInForeground()) {
+            Log.w(TAG, "navigate: farm app not in foreground (platform=${service.currentPlatform}), waiting")
+        } else {
+            // 在农场 App 内但不在农场页（如淘宝主页），主动导航到芭芭农场
+            Log.i(TAG, "navigate: in farm app but not farm page (platform=${service.currentPlatform}), calling navigateToFarm")
+            debugLog("navigate: calling navigateToFarm, platform=${service.currentPlatform}")
+            service.navigateToFarm()
+        }
+
+        handler.postDelayed({
+            if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
+        }, INTERVAL_PAGE_LOAD_MS)
+    }
+
+    // ============== 阶段2: 收集直接可领取的肥料 ==============
+
+    /**
+     * 直接收集阶段：在农场主页上点击可直接领取的肥料
+     * - 如"兔兔挖肥料，50肥料，可领取"、"4100，肥料，明日7点可领"
+     * - 点击后等待弹窗，尝试关闭，然后检查是否还有更多可领取项
+     * - 完成后进入打开任务列表阶段
+     */
+    private fun runCollectingDirect(attempt: Int) {
+        if (state != AutomationState.COLLECTING_DIRECT) return
+        val service = getService() ?: run { stop(); return }
+
+        if (attempt == 0) {
+            logPageSnapshot(service, "collectDirect-start")
+        }
+
+        if (attempt >= 5) {
+            Log.i(TAG, "collectDirect: done after $attempt attempts, opening task list")
+            moveTo(AutomationState.OPENING_TASK_LIST)
+            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 查找所有直接可领取的肥料按钮
+        val buttons = service.findDirectCollectButtons()
+        debugLog("collectDirect: found ${buttons.size} direct buttons, attempt=$attempt")
+        if (buttons.isEmpty()) {
+            Log.i(TAG, "collectDirect: no direct collect buttons found, opening task list")
+            moveTo(AutomationState.OPENING_TASK_LIST)
+            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 点击第一个可领取的按钮
+        val button = buttons[0]
+        val btnText = button.text?.toString().orEmpty()
+        val btnDesc = button.contentDescription?.toString().orEmpty()
+        debugLog("collectDirect: clicking text='$btnText' desc='$btnDesc' (attempt ${attempt + 1})")
+        Log.i(TAG, "collectDirect: clicking '$btnText' (attempt ${attempt + 1})")
+        service.performClickSafe(button)
+
+        // 等待弹窗或页面变化
+        handler.postDelayed({
+            if (state == AutomationState.COLLECTING_DIRECT) {
+                // 尝试点击确认领取按钮（精确匹配，不包含"关闭"）
+                val claimBtn = service.findClaimRewardButtonExact()
+                if (claimBtn != null) {
+                    Log.i(TAG, "collectDirect: found exact claim button, clicking")
+                    service.performClickSafe(claimBtn)
+                }
+                // 继续检查下一个
+                handler.postDelayed({
+                    if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
+                }, INTERVAL_CLICK_MS)
+            }
+        }, INTERVAL_PAGE_LOAD_MS)
+    }
+
+    // ============== 阶段3: 打开任务列表 ==============
+
+    /**
+     * 打开任务列表阶段：点击"集肥料"按钮
+     * - 优先使用节点树查找"集肥料"按钮
+     * - 失败时尝试坐标候选位置
+     * - 成功后进入处理任务阶段
+     */
+    private fun runOpeningTaskList(attempt: Int) {
+        if (state != AutomationState.OPENING_TASK_LIST) return
+        val service = getService() ?: run { stop(); return }
+
+        if (attempt == 0) {
+            logPageSnapshot(service, "openTaskList-start")
+            // 重置 AI 视觉尝试计数：新一轮打开任务列表，重新获得 MAX_AI_OPEN_LIST_ATTEMPTS 次配额
+            aiOpenListAttempts = 0
+        }
+
+        if (attempt >= MAX_TASK_LIST_ATTEMPTS) {
+            Log.w(TAG, "openTaskList: failed after $attempt attempts, re-navigating")
+            noProgressRounds++
+            if (noProgressRounds >= MAX_NO_PROGRESS_ROUNDS) {
+                Log.w(TAG, "openTaskList: too many no-progress rounds, navigating")
+                moveTo(AutomationState.NAVIGATING)
+                handler.postDelayed({ runNavigating(0) }, INTERVAL_WAIT_MS)
+            } else {
+                moveTo(AutomationState.NAVIGATING)
+                handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
+            }
+            return
+        }
+
+        // 优先检查：页面上是否已有"去完成"按钮（UC 等平台任务入口直接在主页上，无需点击"集肥料"打开任务列表）
+        // 用户需求：UC 主页上有多个任务入口（看视频、浏览广告等），选择一个打开，没获取到肥料就选另一个
+        val existingButtons = service.findGoCompleteButtons()
+        if (existingButtons.isNotEmpty()) {
+            Log.i(TAG, "openTaskList: found ${existingButtons.size} goComplete buttons directly on page (no need to click 集肥料), platform=${service.currentPlatform}")
+            debugLog("openTaskList: ${existingButtons.size} goComplete buttons already visible, processing directly (attempt=$attempt)")
+            existingButtons.forEachIndexed { idx, btn ->
+                val rect = Rect()
+                btn.getBoundsInScreen(rect)
+                val txt = btn.text?.toString().orEmpty()
+                val desc = btn.contentDescription?.toString().orEmpty()
+                debugLog("taskButton[$idx]: text='$txt', desc='$desc', bounds=${rect.toShortString()}, clickable=${btn.isClickable}")
+            }
+            if (taskButtons.isEmpty() || currentTaskIndex >= existingButtons.size) {
+                debugLog("openTaskList: resetting currentTaskIndex to 0 (was $currentTaskIndex)")
+                currentTaskIndex = 0
+            }
+            taskButtons = existingButtons
+            taskListCheckAttempt = 0
+            moveTo(AutomationState.PROCESSING_TASK)
+            handler.postDelayed({ runProcessingTask(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 优先查找"集肥料"按钮节点
+        val button = service.findCollectFertilizerButton()
+        debugLog("openTaskList: findCollectFertilizerButton=${button != null}, attempt=$attempt")
+        if (button != null) {
+            Log.i(TAG, "openTaskList: found 集肥料 button by text, clicking (attempt ${attempt + 1})")
+            service.performClickSafe(button)
+            handler.postDelayed({
+                if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // AI 视觉识别（首选方法，优先于硬编码坐标）
+        // 用户要求：运行时优先用 AI 视觉找按钮，支持多入口（集肥料/限时挑战/得1000肥/领肥料/今日可领等）
+        // 每轮打开任务列表最多调用 MAX_AI_OPEN_LIST_ATTEMPTS 次，避免无限消耗免费 API 配额；
+        // 当 AI 不可用（无 API Key / API < 30 / 调用失败）或配额耗尽时，自动降级到硬编码坐标兜底
+        if (aiOpenListAttempts < MAX_AI_OPEN_LIST_ATTEMPTS) {
+            aiOpenListAttempts++
+            debugLog("openTaskList: trying AI vision to find fertilizer entry (aiAttempt=$aiOpenListAttempts/$MAX_AI_OPEN_LIST_ATTEMPTS, attempt=$attempt)")
+            val clicked = service.clickByAiVision(
+                "获取肥料的入口按钮（可能是集肥料、限时挑战、得1000肥、领肥料、今日可领、打开任务列表、任务列表等任意一个可点击的入口）"
+            )
+            if (clicked) {
+                debugLog("openTaskList: AI vision clicked fertilizer entry, waiting for task list")
+                handler.postDelayed({
+                    if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            debugLog("openTaskList: AI vision did not find fertilizer entry (attempt=$attempt)")
+        }
+
+        // 失败时尝试坐标候选位置
+        val candidates = collectFertilizerCandidates(service)
+        val coordIndex = attempt % candidates.size
+        val (xRatio, yRatio) = candidates[coordIndex]
+        Log.i(TAG, "openTaskList: clicking 集肥料 by coordinate #$coordIndex (attempt ${attempt + 1}) platform=${service.currentPlatform}")
+        clickAtRatio(service, xRatio, yRatio, "集肥料")
+        handler.postDelayed({
+            if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
+        }, INTERVAL_PAGE_LOAD_MS)
+    }
+
+    /** 检查任务列表是否已打开（带等待重试） */
+    private var taskListCheckAttempt: Int = 0
+
+    private fun checkTaskListOpened(service: FarmAccessibilityService, openingAttempt: Int) {
+        if (state != AutomationState.OPENING_TASK_LIST) return
+
+        // 查找"去完成"按钮
+        val buttons = service.findGoCompleteButtons()
+        debugLog("checkTaskListOpened: found ${buttons.size} goComplete buttons, checkAttempt=$taskListCheckAttempt, currentIndex=$currentTaskIndex")
+        if (buttons.isNotEmpty()) {
+            Log.i(TAG, "openTaskList: task list opened with ${buttons.size} tasks")
+            // 输出每个任务按钮的详细信息（text/desc/bounds），用于诊断"点击位置是否正确"
+            buttons.forEachIndexed { idx, btn ->
+                val rect = Rect()
+                btn.getBoundsInScreen(rect)
+                val txt = btn.text?.toString().orEmpty()
+                val desc = btn.contentDescription?.toString().orEmpty()
+                debugLog("taskButton[$idx]: text='$txt', desc='$desc', bounds=${rect.toShortString()}, clickable=${btn.isClickable}")
+            }
+            // 只在首次打开（currentTaskIndex 超出范围或 taskButtons 为空）时重置索引
+            // 保留 currentTaskIndex 的值，避免重新打开任务列表后重复点击已跳过的任务
+            if (taskButtons.isEmpty() || currentTaskIndex >= buttons.size) {
+                debugLog("checkTaskListOpened: resetting currentTaskIndex to 0 (was $currentTaskIndex, taskButtons was empty=${taskButtons.isEmpty()})")
+                currentTaskIndex = 0
+            }
+            taskButtons = buttons
+            taskListCheckAttempt = 0
+            moveTo(AutomationState.PROCESSING_TASK)
+            handler.postDelayed({ runProcessingTask(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 任务列表可能还在加载中，等待重试（最多5次，每次2秒）
+        taskListCheckAttempt++
+        if (taskListCheckAttempt < 5) {
+            Log.i(TAG, "openTaskList: task list not opened yet, waiting (check $taskListCheckAttempt)")
+            handler.postDelayed({
+                if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, openingAttempt)
+            }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 等待超时，重新点击"集肥料"
+        taskListCheckAttempt = 0
+        Log.w(TAG, "openTaskList: task list not opened after 5 checks, retrying click")
+        handler.postDelayed({
+            if (state == AutomationState.OPENING_TASK_LIST) runOpeningTaskList(openingAttempt + 1)
+        }, INTERVAL_CLICK_MS)
+    }
+
+    // ============== 阶段3: 处理任务（点击去完成按钮） ==============
+
+    /**
+     * 处理任务阶段：点击"去完成"按钮
+     * - 用户要求：只点击广告，邀请推广网页直接返回
+     * - 用户要求：安装软件的广告也不做，不安装，直接退出
+     * - 点击后检测是否进入广告，如果是广告则进入看广告阶段
+     * - 如果是非广告页面，直接返回继续下一个任务
+     */
+    private fun runProcessingTask(attempt: Int) {
+        if (state != AutomationState.PROCESSING_TASK) return
+        val service = getService() ?: run { stop(); return }
+
+        if (attempt == 0) {
+            logPageSnapshot(service, "processTask-start")
+        }
+
+        // 如果任务列表为空或已处理完，进入施肥阶段
+        if (taskButtons.isEmpty() || currentTaskIndex >= taskButtons.size) {
+            Log.i(TAG, "processTask: all tasks processed (collected=$collectedCount), starting fertilizing")
+            debugLog("processTask: all ads/tasks done on ${service.currentPlatform}, collected=$collectedCount")
+            // 标记当前平台广告已获取完，并检查三平台是否全部完成
+            markPlatformAdsComplete(service)
+            moveTo(AutomationState.FERTILIZING)
+            handler.postDelayed({ runFertilizing(clickCount = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        if (attempt >= MAX_TASK_ATTEMPTS) {
+            Log.w(TAG, "processTask: task #$currentTaskIndex failed after $attempt attempts, skipping")
+            currentTaskIndex++
+            noProgressRounds++
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
+            }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 确保在农场页
+        if (!service.isOnFarmPage()) {
+            Log.w(TAG, "processTask: not on farm page, returning")
+            service.pressBack()
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) runProcessingTask(attempt + 1)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 判断当前任务类型
+        val button = taskButtons[currentTaskIndex]
+        val buttonText = button.text?.toString().orEmpty()
+        val btnRect = Rect()
+        button.getBoundsInScreen(btnRect)
+        debugLog("processTask: current task #${currentTaskIndex + 1}/${taskButtons.size}, text='$buttonText', bounds=${btnRect.toShortString()}, attempt=$attempt")
+
+        // 1. 花钱任务：跳过不处理
+        if (service.isPaidTask(button)) {
+            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is paid task, skipping (text='$buttonText')")
+            debugLog("processTask: skip paid task #$${currentTaskIndex + 1}, text='$buttonText'")
+            currentTaskIndex++
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
+            }, 500L)
+            return
+        }
+
+        // 2. 游戏类任务：作为游戏达人进入游戏完成升级获取肥料
+        if (service.isGameTask(button)) {
+            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is game task, entering GAME_PLAYING (text='$buttonText')")
+            debugLog("processTask: game task #${currentTaskIndex + 1}, text='$buttonText', AI will play to complete")
+            // 点击"去完成"进入游戏
+            service.performClickSafe(button)
+            aiCallsForTask = 0
+            moveTo(AutomationState.GAME_PLAYING)
+            handler.postDelayed({ runGamePlaying(elapsedMs = 0L, actionCount = 0) }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 3. 跨平台切换任务：在支付宝/淘宝/UC 之间切换获取肥料
+        val crossTarget = detectCrossPlatformTarget(buttonText)
+        if (crossTarget != null && crossTarget != service.currentPlatform) {
+            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is cross-platform task, switching to $crossTarget (text='$buttonText')")
+            debugLog("processTask: cross-platform task #${currentTaskIndex + 1}, text='$buttonText', from=${service.currentPlatform}, to=$crossTarget")
+            switchOriginalPlatform = service.currentPlatform
+            switchTargetPlatform = crossTarget
+            switchStage = "LAUNCH_TARGET"
+            switchRetryCount = 0
+            // 先点击"去完成"按钮（部分任务点击后会自动跳转到目标平台）
+            service.performClickSafe(button)
+            aiCallsForTask = 0
+            moveTo(AutomationState.SWITCHING_PLATFORM)
+            handler.postDelayed({ runSwitchingPlatform() }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 4. 滑动浏览任务：模拟滑动而非点击进入
+        if (service.isBrowseTask(button)) {
+            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is browse task, swiping (text='$buttonText')")
+            debugLog("processTask: browse task #${currentTaskIndex + 1}, text='$buttonText', entering BROWSING_TASK")
+            moveTo(AutomationState.BROWSING_TASK)
+            handler.postDelayed({ runBrowsingTask(swipeCount = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 3. 普通任务（看广告、答题、签到等）：点击按钮
+        Log.i(TAG, "processTask: clicking task #${currentTaskIndex + 1}/${taskButtons.size} (attempt ${attempt + 1})")
+        aiCallsForTask = 0       // 新任务/新一轮尝试，重置 AI 路径规划计数
+        currentTaskFailCount = 0 // 新任务开始，重置失败计数
+        service.performClickSafe(button)
+
+        // 等待检测是否进入广告
+        handler.postDelayed({
+            if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt)
+        }, INTERVAL_PAGE_LOAD_MS)
+    }
+
+    // ============== 阶段3b: 滑动浏览任务 ==============
+
+    /**
+     * 滑动浏览任务：模拟上下滑动浏览页面获取肥料
+     * - 不点击进入商品页面，只在当前页面上下滑动
+     * - 每次从屏幕中部向上滑动（模拟浏览商品列表）
+     * - 滑动足够次数后关闭并返回任务列表
+     */
+    private fun runBrowsingTask(swipeCount: Int) {
+        if (state != AutomationState.BROWSING_TASK) return
+        val service = getService() ?: run { stop(); return }
+
+        if (swipeCount == 0) {
+            logPageSnapshot(service, "browseTask-start")
+            // 第一步：点击"去完成"按钮进入浏览页面
+            val button = taskButtons.getOrNull(currentTaskIndex)
+            if (button == null) {
+                debugLog("browseTask: button gone, back to processing")
+                moveTo(AutomationState.PROCESSING_TASK)
+                handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
+                return
+            }
+            debugLog("browseTask: clicking 'go browse' button, then will swipe")
+            service.performClickSafe(button)
+            // 等待页面加载后，先点击一个商品再开始滑动
+            handler.postDelayed({
+                if (state == AutomationState.BROWSING_TASK) {
+                    // 检测页面是否有"滑动获取肥料"提示，解析需要滑动的时间
+                    val hintSeconds = service.findSwipeForFertilizerHint()
+                    if (hintSeconds > 0) {
+                        debugLog("browseTask: found swipe hint, need $hintSeconds seconds")
+                        // 根据提示时间计算滑动次数：每次滑动间隔2秒，额外加2次余量
+                        val requiredSwipes = (hintSeconds / (BROWSE_SWIPE_INTERVAL_MS / 1000)).toInt() + 2
+                        browseTaskTargetSwipes = requiredSwipes.coerceAtLeast(3).coerceAtMost(30)
+                        debugLog("browseTask: target swipes = $browseTaskTargetSwipes (hint=$hintSeconds seconds)")
+                    } else {
+                        browseTaskTargetSwipes = MAX_BROWSE_SWIPES
+                        debugLog("browseTask: no swipe hint, using default $browseTaskTargetSwipes swipes")
+                    }
+                    // 在商品列表页面随便点一个商品（模拟用户浏览行为）
+                    // 注意：点击后可能进入商品详情页，滑动在详情页进行即可
+                    val clicked = service.clickFirstProductInList()
+                    debugLog("browseTask: clicked product in list = $clicked")
+                    // 等待商品详情加载后开始滑动
+                    handler.postDelayed({
+                        if (state == AutomationState.BROWSING_TASK) runBrowsingTask(1)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 已完成所有滑动，退出浏览页面
+        if (swipeCount > browseTaskTargetSwipes) {
+            debugLog("browseTask: done ($swipeCount/$browseTaskTargetSwipes swipes), exiting browse page")
+            currentTaskIndex++
+            collectedCount++
+            exitBrowsePage(service)
+            return
+        }
+
+        // 滑动前检测：是否在搜索推荐页（"当前页下单得肥料"等）→ 直接退出，不需要滑动
+        if (service.isSearchRecommendPage()) {
+            debugLog("browseTask: search recommend page detected, exiting without swiping")
+            currentTaskIndex++
+            collectedCount++
+            exitBrowsePage(service)
+            return
+        }
+
+        // 滑动前检测：是否在异常页面（交易页面、收银台等需要花钱的页面）→ 立即退出
+        // 注意：商品详情页（ttdetailactivity）不是异常页面，可以滑动浏览
+        if (service.isOnAbnormalPage()) {
+            debugLog("browseTask: abnormal/trading page detected, exiting immediately")
+            currentTaskIndex++
+            collectedCount++
+            exitBrowsePage(service)
+            return
+        }
+
+        // 执行滑动：从屏幕中部偏上位置向上滑动（模拟向下浏览）
+        val centerX = 600f
+        val startY = 1600f  // 屏幕中部偏上
+        val endY = 800f     // 向上滑
+        debugLog("browseTask: swipe #$swipeCount up ($startY -> $endY)")
+        service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
+
+        handler.postDelayed({
+            if (state != AutomationState.BROWSING_TASK) return@postDelayed
+            // 检测搜索推荐页（"当前页下单得肥料"）→ 直接退出
+            if (service.isSearchRecommendPage()) {
+                debugLog("browseTask: search recommend page during swipe, exiting")
+                currentTaskIndex++
+                collectedCount++
+                exitBrowsePage(service)
+                return@postDelayed
+            }
+            // 检测异常页面（交易页面、收银台等需要花钱的页面）→ 立即退出
+            // 注意：商品详情页可以滑动浏览，不算异常页面
+            if (service.isOnAbnormalPage()) {
+                debugLog("browseTask: abnormal/trading page during swipe, exiting immediately")
+                currentTaskIndex++
+                collectedCount++
+                exitBrowsePage(service)
+                return@postDelayed
+            }
+            // 检测是否已完成任务（得到肥料）
+            if (service.isTaskCompletePage()) {
+                debugLog("browseTask: task complete detected during swipe, exiting")
+                // 优先点右上角关闭或左上角返回图标
+                val closeBtn = service.findAdCloseButton()
+                val backIcon = service.findBackIcon()
+                when {
+                    closeBtn != null -> { debugLog("browseTask: clicking close icon"); service.performClickSafe(closeBtn) }
+                    backIcon != null -> { debugLog("browseTask: clicking back icon"); service.performClickSafe(backIcon) }
+                    else -> { debugLog("browseTask: pressing back"); service.pressBack() }
+                }
+                collectedCount++
+                currentTaskIndex++
+                handler.postDelayed({
+                    if (!service.isOnFarmPage()) service.pressBack()
+                    handler.postDelayed({
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    }, INTERVAL_CLICK_MS)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return@postDelayed
+            }
+            runBrowsingTask(swipeCount + 1)
+        }, BROWSE_SWIPE_INTERVAL_MS)
+    }
+
+    /** 退出浏览页面：优先用左上角返回图标，否则按返回键，然后重新打开任务列表 */
+    private fun exitBrowsePage(service: FarmAccessibilityService) {
+        // 优先点击左上角返回图标退出（"下单得奖励"、"当前页下单得肥料"等搜索推荐页面）
+        val backIcon = service.findBackIcon()
+        if (backIcon != null) {
+            debugLog("exitBrowsePage: clicking back icon to exit")
+            service.performClickSafe(backIcon)
+        } else {
+            debugLog("exitBrowsePage: no back icon found, pressing back")
+            service.pressBack()
+        }
+        // 等待页面返回，然后检查是否回到农场页
+        handler.postDelayed({
+            if (service.isOnFarmPage()) {
+                // 已回到农场页，重新打开任务列表
+                moveTo(AutomationState.OPENING_TASK_LIST)
+                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+            } else {
+                // 不在农场页，可能回到了淘宝主页，需要重新导航到农场
+                debugLog("exitBrowsePage: not on farm page after exit, re-navigating")
+                moveTo(AutomationState.NAVIGATING)
+                handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
+            }
+        }, INTERVAL_PAGE_LOAD_MS)
+    }
+
+    // ============== 阶段3c: 玩游戏任务（AI 游戏达人） ==============
+
+    /**
+     * 玩游戏任务：AI 分析游戏画面并操作完成升级获取肥料
+     *
+     * 策略：
+     * 1. 等待游戏加载
+     * 2. 循环：AI 截图分析 → 决策操作（开始/消除/点击/滑动）→ 执行
+     * 3. 检测游戏完成（"领取"/"恭喜"/"完成"/"升级"等）→ 领取奖励返回
+     * 4. 超时（3 分钟）或操作上限 → 按返回退出，跳过任务
+     *
+     * @param elapsedMs 已用时
+     * @param actionCount AI 已执行的操作次数
+     */
+    private fun runGamePlaying(elapsedMs: Long, actionCount: Int) {
+        if (state != AutomationState.GAME_PLAYING) return
+        val service = getService() ?: run { stop(); return }
+
+        if (elapsedMs == 0L) {
+            logPageSnapshot(service, "gamePlay-start")
+        }
+
+        // 超时放弃
+        if (elapsedMs >= GAME_MAX_DURATION_MS || actionCount >= GAME_MAX_ACTIONS) {
+            Log.w(TAG, "gamePlay: timeout (elapsed=${elapsedMs}ms, actions=$actionCount), exiting")
+            debugLog("gamePlay: timeout, exiting game, skipping task")
+            service.pressBack()
+            handler.postDelayed({
+                if (state == AutomationState.GAME_PLAYING) {
+                    if (!service.isOnFarmPage()) service.pressBack()
+                    handler.postDelayed({
+                        if (state == AutomationState.GAME_PLAYING) {
+                            currentTaskIndex++
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        }
+                    }, INTERVAL_PAGE_LOAD_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 检测游戏完成页面（"领取奖励"/"恭喜"/"完成"/"升级"等）
+        if (service.isGameCompletePage()) {
+            Log.i(TAG, "gamePlay: game complete page detected, claiming reward")
+            debugLog("gamePlay: game complete detected, claiming reward")
+            // 尝试点击"领取"/"确认"/"完成"按钮
+            val claimed = service.clickClaimRewardButton()
+            if (claimed) {
+                debugLog("gamePlay: reward claimed")
+            }
+            handler.postDelayed({
+                if (state != AutomationState.GAME_PLAYING) return@postDelayed
+                // 返回农场
+                if (!service.isOnFarmPage()) service.pressBack()
+                handler.postDelayed({
+                    if (state == AutomationState.GAME_PLAYING) {
+                        if (service.isOnFarmPage()) {
+                            debugLog("gamePlay: returned to farm, game task complete")
+                            collectedCount++
+                        }
+                        currentTaskIndex++
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
+            }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 检测是否已回到农场页（游戏可能自动返回）
+        if (elapsedMs > GAME_LOAD_MS && service.isOnFarmPage()) {
+            Log.i(TAG, "gamePlay: back to farm page, game task likely complete")
+            debugLog("gamePlay: back to farm, assuming complete")
+            collectedCount++
+            currentTaskIndex++
+            moveTo(AutomationState.OPENING_TASK_LIST)
+            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 检测充值/付费页面（游戏内引导充值）→ 优先点击关闭按钮
+        if (service.isRechargePage() || service.isOnAbnormalPage()) {
+            Log.w(TAG, "gamePlay: recharge/payment page detected, clicking close button")
+            debugLog("gamePlay: recharge page detected, trying to click close button")
+            // 优先找关闭按钮点击（暂不充值/取消/×图标等）
+            val closed = service.clickCloseOnRechargePage()
+            if (!closed) {
+                // 找不到关闭按钮，AI 视觉找关闭按钮
+                debugLog("gamePlay: no close button found by text, trying AI vision")
+                val aiClosed = service.clickByAiVision("充值/付费页面的关闭按钮（×图标或暂不充值/取消按钮）")
+                if (!aiClosed) {
+                    // AI 也找不到，按返回退出
+                    debugLog("gamePlay: AI also failed, pressing back")
+                    service.pressBack()
+                }
+            }
+            handler.postDelayed({
+                if (state == AutomationState.GAME_PLAYING) {
+                    // 再次检测是否还在充值页（关闭失败的情况）
+                    if (service.isRechargePage() || service.isOnAbnormalPage()) {
+                        debugLog("gamePlay: still on recharge page after close attempt, pressing back again")
+                        service.pressBack()
+                    }
+                    handler.postDelayed({
+                        if (state == AutomationState.GAME_PLAYING) {
+                            currentTaskIndex++
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        }
+                    }, INTERVAL_CLICK_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 游戏加载等待（前 GAME_LOAD_MS 不操作）
+        if (elapsedMs < GAME_LOAD_MS) {
+            handler.postDelayed({
+                if (state == AutomationState.GAME_PLAYING) runGamePlaying(elapsedMs + GAME_ACTION_INTERVAL_MS, actionCount)
+            }, GAME_ACTION_INTERVAL_MS)
+            return
+        }
+
+        // AI 游戏达人分析画面并操作
+        Log.d(TAG, "gamePlay: AI analyzing game screen (action #${actionCount + 1})")
+        debugLog("gamePlay: AI analyzing (action #${actionCount + 1}, elapsed=${elapsedMs}ms)")
+        val aiAction = service.aiDecideActionForGame("玩游戏升级获取肥料：分析当前游戏画面，决定下一步操作以完成游戏目标")
+        if (aiAction) {
+            debugLog("gamePlay: AI action executed")
+        } else {
+            // AI 未能决策，按返回尝试
+            debugLog("gamePlay: AI no action, pressing back as fallback")
+            service.pressBack()
+        }
+
+        // 继续下一轮 AI 操作
+        handler.postDelayed({
+            if (state == AutomationState.GAME_PLAYING) runGamePlaying(elapsedMs + GAME_ACTION_INTERVAL_MS, actionCount + 1)
+        }, GAME_ACTION_INTERVAL_MS)
+    }
+
+    /**
+     * 检查任务点击结果
+     * - 如果进入广告 → 看广告阶段
+     * - 如果是非广告页面 → 返回继续下一个任务
+     * - 如果无变化 → 重试或跳过
+     */
+    private fun checkTaskResult(service: FarmAccessibilityService, attempt: Int) {
+        if (state != AutomationState.PROCESSING_TASK) return
+
+        logPageSnapshot(service, "checkTaskResult")
+
+        // 优先检测：是否显示"任务完成"页面 → 得到肥料后立即退出
+        if (service.isTaskCompletePage()) {
+            Log.i(TAG, "processTask: task complete page detected, exiting")
+            debugLog("processTask: task complete, exiting via close/back icon")
+            // 优先点右上角关闭或左上角返回图标
+            val closeBtn = service.findAdCloseButton()
+            val backIcon = service.findBackIcon()
+            when {
+                closeBtn != null -> { debugLog("processTask: clicking close icon"); service.performClickSafe(closeBtn) }
+                backIcon != null -> { debugLog("processTask: clicking back icon"); service.performClickSafe(backIcon) }
+                else -> { debugLog("processTask: pressing back"); service.pressBack() }
+            }
+            collectedCount++
+            currentTaskIndex++
+            // 等待返回，然后检查是否回到农场页
+            handler.postDelayed({
+                if (service.isOnFarmPage()) {
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                } else {
+                    // 不在农场页，需要重新导航
+                    debugLog("processTask: not on farm page after task complete, re-navigating")
+                    moveTo(AutomationState.NAVIGATING)
+                    handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 检测：是否在"下单得肥料"搜索推荐页面 → 退出这个页面
+        if (service.isSearchRecommendPage()) {
+            Log.i(TAG, "processTask: search recommend page detected, exiting")
+            debugLog("processTask: search recommend page, exiting via back icon")
+            val backIcon = service.findBackIcon()
+            if (backIcon != null) {
+                debugLog("processTask: clicking back icon to exit search page")
+                service.performClickSafe(backIcon)
+            } else {
+                debugLog("processTask: no back icon, pressing back")
+                service.pressBack()
+            }
+            currentTaskIndex++
+            // 等待返回，然后检查是否回到农场页
+            handler.postDelayed({
+                if (service.isOnFarmPage()) {
+                    // 已回到农场页，重新打开任务列表
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                } else {
+                    // 不在农场页（可能回到淘宝主页），需要重新导航到农场
+                    debugLog("processTask: not on farm page after exiting search page, re-navigating")
+                    service.pressBack()
+                    handler.postDelayed({
+                        moveTo(AutomationState.NAVIGATING)
+                        handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 检测：是否在异常页面（交易页面、商品详情页、收银台等）→ 立即退出
+        if (service.isOnAbnormalPage()) {
+            Log.i(TAG, "processTask: abnormal/trading page detected, exiting immediately")
+            debugLog("processTask: abnormal page, pressing back")
+            service.pressBack()
+            currentTaskIndex++
+            handler.postDelayed({
+                if (service.isOnFarmPage()) {
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                } else {
+                    debugLog("processTask: not on farm page after abnormal exit, re-navigating")
+                    moveTo(AutomationState.NAVIGATING)
+                    handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 检测是否进入广告（Activity/包名识别 + 内容级识别）
+        // 充分理解各种广告设计意图：视频广告/插屏广告/WebView 广告等
+        if (service.isAdActivity() || service.isAdPlaying() || service.isAdContentShown()) {
+            Log.i(TAG, "processTask: ad opened! watching ad (activity=${service.isAdActivity()}, playing=${service.isAdPlaying()}, content=${service.isAdContentShown()})")
+            debugLog("processTask: ad detected, entering WATCHING_AD")
+            service.setAdMode(true)
+            moveTo(AutomationState.WATCHING_AD)
+            handler.postDelayed({ runWatchingAd(elapsedMs = 0L) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 检测非广告任务页面（邀请/关注/分享/下载App/开通会员等）→ 跳过任务
+        // 用户要求：只看广告获取肥料，非广告任务不做
+        if (service.isNonAdTaskPage()) {
+            Log.i(TAG, "processTask: non-ad task page detected (invite/share/download/membership), skipping task")
+            debugLog("processTask: non-ad task page, skipping task #$${currentTaskIndex + 1}")
+            service.pressBack()
+            currentTaskIndex++
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) {
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 检测是否在非广告页面（邀请链接、应用商店安装页面等）→ 跳过任务
+        if (service.isNonAdPage()) {
+            Log.i(TAG, "processTask: non-ad package page detected, skipping task")
+            debugLog("processTask: non-ad package page, skipping task #$${currentTaskIndex + 1}")
+            service.pressBack()
+            currentTaskIndex++
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) {
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 检测广告深链跳转：跳转到其他App（如淘宝/京东/拼多多浏览商品）
+        // 不是应用商店下载、不是非广告任务、不在农场App → 视为广告深链任务进行中
+        // 等待用户/机器人在其他App执行任务后回到农场App
+        if (!service.isOnFarmPage()) {
+            val otherPkg = service.getCurrentWindowPackage()
+            Log.i(TAG, "processTask: deep-linked to another app ($otherPkg), treating as ad task")
+            debugLog("processTask: deep-link ad task, pkg=$otherPkg, entering WATCHING_AD to wait for return to farm")
+            service.setAdMode(true)
+            moveTo(AutomationState.WATCHING_AD)
+            handler.postDelayed({ runWatchingAd(elapsedMs = 0L) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 检测是否还在农场页（点击无效果 / 签到答题弹窗 / 任务完成弹窗）
+        if (service.isOnFarmPage()) {
+            // 尝试点击"返回首页"按钮（任务完成弹窗）
+            val backBtn = service.findBackToHomeButton()
+            if (backBtn != null) {
+                Log.i(TAG, "processTask: found '返回首页' button on farm page, clicking")
+                debugLog("processTask: found 返回首页 button, clicking")
+                service.performClickSafe(backBtn)
+                handler.postDelayed({
+                    if (state == AutomationState.PROCESSING_TASK) {
+                        // 返回首页后重新打开任务列表
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            // 尝试点击签到确认/答题/领取奖励按钮
+            val claimBtn = service.findClaimRewardButton()
+            if (claimBtn != null) {
+                Log.i(TAG, "processTask: found claim/confirm button on farm page, clicking")
+                debugLog("processTask: claim button on farm, clicking")
+                service.performClickSafe(claimBtn)
+                handler.postDelayed({
+                    if (state == AutomationState.PROCESSING_TASK) {
+                        currentTaskIndex++
+                        runProcessingTask(0)
+                    }
+                }, INTERVAL_CLICK_MS)
+                return
+            }
+            // WebView 中 performClickSafe 已经尝试了 ACTION_CLICK + dispatchGesture 修正坐标
+            // 如果仍然在农场页，说明按钮点击确实无效（可能按钮已失效、需要滚动等）
+            if (attempt < MAX_TASK_ATTEMPTS - 1) {
+                Log.i(TAG, "processTask: still on farm page (attempt $attempt), retry clicking task button")
+                debugLog("processTask: still on farm page, retry task click attempt=$attempt")
+                // 重新获取任务按钮并点击（可能列表已刷新）
+                val buttons = service.findGoCompleteButtons()
+                if (buttons.isNotEmpty() && currentTaskIndex < buttons.size) {
+                    taskButtons = buttons
+                    service.performClickSafe(buttons[currentTaskIndex])
+                } else {
+                    // 按钮列表变了，需要重新打开任务列表
+                    Log.w(TAG, "processTask: task buttons changed, reopening task list")
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    return
+                }
+                handler.postDelayed({
+                    if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt + 1)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            Log.w(TAG, "processTask: still on farm page after $MAX_TASK_ATTEMPTS attempts, trying AI path planning before skip")
+            debugLog("processTask: still on farm page after $MAX_TASK_ATTEMPTS attempts, trying AI path planning (aiCalls=$aiCallsForTask/$MAX_AI_CALLS_PER_TASK)")
+            // AI 路径规划：点击无效可能是弹窗遮挡/按钮文案变化/需要滑动等
+            // 用户要求：任务执行中页面可能变化，借助 AI 得出任务完成路径直到获取肥料
+            // 反应式规划：AI 分析当前页→返回动作→执行→页面变化→AI 重新分析，最多 MAX_AI_CALLS_PER_TASK 次
+            if (aiCallsForTask < MAX_AI_CALLS_PER_TASK) {
+                aiCallsForTask++
+                debugLog("processTask: AI path planning on farm page (call #$aiCallsForTask/$MAX_AI_CALLS_PER_TASK)")
+                val aiAction = service.aiDecideAction("在芭芭农场页面，目标是看广告获取肥料。分析当前页面状态，规划获取肥料的下一步动作：如果任务按钮点击无效，可能是弹窗遮挡或需要滑动；找到可点击的领取/签到/去完成/确认按钮点击它；如果页面需要向下滑动才能看到任务就 swipe_up；如果是邀请/关注/分享/下载等非广告任务就 back；如果无法判断就 none")
+                debugLog("processTask: AI result on farm page: actionType='${aiAction?.actionType}', x=${aiAction?.x}, y=${aiAction?.y}, desc='${aiAction?.description}'")
+                if (aiAction != null && aiAction.actionType != "none" && aiAction.actionType != "wait") {
+                    val executed = service.executeAiAction(aiAction)
+                    debugLog("processTask: AI executeAiAction returned executed=$executed")
+                    if (executed) {
+                        debugLog("processTask: AI executed '${aiAction.actionType}' on farm page, re-checking (page may have changed)")
+                        handler.postDelayed({
+                            if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt)
+                        }, INTERVAL_PAGE_LOAD_MS)
+                        return
+                    }
+                    debugLog("processTask: AI action not executed, falling through to skip")
+                } else {
+                    debugLog("processTask: AI no actionable result on farm page, skipping task")
+                }
+            } else {
+                debugLog("processTask: AI path planning budget exhausted ($aiCallsForTask/$MAX_AI_CALLS_PER_TASK), skipping task")
+            }
+            // 跳过当前任务，继续下一个
+            currentTaskIndex++
+            noProgressRounds++
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
+            }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 其他情况：不在农场页，也不是广告（如商品详情页、逛逛页面等），按返回键
+        // 这种情况说明点击了"去逛逛"等按钮进入了非广告页面，需要返回
+        if (service.isOnAbnormalPage()) {
+            debugLog("processTask: abnormal/trading page detected, pressing back and skipping task")
+            service.pressBack()
+            currentTaskIndex++
+            handler.postDelayed({
+                if (!service.isOnFarmPage()) service.pressBack()
+                handler.postDelayed({
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                }, INTERVAL_CLICK_MS)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+        Log.i(TAG, "processTask: unknown page (not farm, not ad), aiCalls=$aiCallsForTask/$MAX_AI_CALLS_PER_TASK, failCount=$currentTaskFailCount/$MAX_TASK_FAILS")
+        debugLog("processTask: unknown page, pkg=${service.getCurrentWindowPackage()}, act=${service.getCurrentActivityName()}, aiCalls=$aiCallsForTask/$MAX_AI_CALLS_PER_TASK, failCount=$currentTaskFailCount/$MAX_TASK_FAILS")
+
+        // AI 路径规划（优先于 failCount）：用户要求任务执行中页面变化时借助 AI 得出完成路径直到获取肥料
+        // 反应式规划：AI 分析当前页→返回动作→执行→页面变化→AI 重新分析，最多 MAX_AI_CALLS_PER_TASK 次
+        // 每次 AI 执行 click/swipe 后重新检查页面（页面可能已变化，AI 会基于新页面继续规划）
+        if (aiCallsForTask < MAX_AI_CALLS_PER_TASK) {
+            aiCallsForTask++
+            debugLog("processTask: AI path planning for unknown page (call #$aiCallsForTask/$MAX_AI_CALLS_PER_TASK)")
+            val aiAction = service.aiDecideAction("只看广告获取肥料，绝不产生交易。分析当前页面状态，规划获取肥料的完成路径并返回下一步动作：如果是广告播放中(有倒计时/跳过/查看详情)就 wait；如果是广告结束领取奖励就 click 领取按钮；如果是邀请好友/关注/分享/下载App/开通会员/立即购买/提交订单/去结算/立即支付等非广告或交易任务就 back 跳过；如果是商品浏览页就 swipe_up 继续浏览；如果是付款/收银台/订单确认页就 back；绝对不点击任何购买/支付/下单/提交订单按钮；如果无法判断就 back")
+            debugLog("processTask: AI result for unknown page: actionType='${aiAction?.actionType}', x=${aiAction?.x}, y=${aiAction?.y}, desc='${aiAction?.description}'")
+            if (aiAction != null && aiAction.actionType != "none" && aiAction.actionType != "wait") {
+                val executed = service.executeAiAction(aiAction)
+                debugLog("processTask: AI executeAiAction returned executed=$executed")
+                if (executed && (aiAction.actionType == "click" || aiAction.actionType == "swipe_up" || aiAction.actionType == "swipe_down")) {
+                    // AI 动作已执行，页面可能已变化 → 重新检查任务结果（AI 会基于新页面继续规划路径）
+                    debugLog("processTask: AI '${aiAction.actionType}' executed, re-checking (page may have changed, AI will re-plan if still stuck)")
+                    handler.postDelayed({
+                        if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                    return
+                }
+                // AI 选择了 back 或执行失败 → 继续下面的失败处理
+                debugLog("processTask: AI chose back or action failed, falling through to fail handling")
+            } else {
+                debugLog("processTask: AI returned no actionable result, falling through to fail handling")
+            }
+        } else {
+            debugLog("processTask: AI path planning budget exhausted ($aiCallsForTask/$MAX_AI_CALLS_PER_TASK)")
+        }
+
+        // AI 不可用/已耗尽/选择了 back → 失败计数
+        currentTaskFailCount++
+
+        // 失败次数已达上限 → 跳过该任务，避免在无法完成的任务上死循环
+        if (currentTaskFailCount >= MAX_TASK_FAILS) {
+            Log.w(TAG, "processTask: task failed $currentTaskFailCount times (AI exhausted), skipping task #${currentTaskIndex + 1}")
+            debugLog("processTask: reached MAX_TASK_FAILS after AI exhausted, skipping task #${currentTaskIndex + 1}")
+            service.pressBack()
+            currentTaskIndex++
+            noProgressRounds++
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) {
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 失败次数未达上限 → 按返回退出当前页面，重新打开任务列表重试
+        debugLog("processTask: pressing back, will reopen task list (failCount=$currentTaskFailCount/$MAX_TASK_FAILS)")
+        service.pressBack()
+        handler.postDelayed({
+            if (state == AutomationState.PROCESSING_TASK) {
+                moveTo(AutomationState.OPENING_TASK_LIST)
+                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+            }
+        }, INTERVAL_PAGE_LOAD_MS)
+    }
+
+    // ============== 阶段4: 看广告 ==============
+
+    /**
+     * 看广告阶段：等待广告播放完成
+     * - 进入时解析广告页面时长提示（如"观看15秒"），动态设置最短等待时间
+     * - 最短等待 adMinDurationMs（默认30秒，或页面提示时长+缓冲）
+     * - 超时 adMaxDurationMs（默认90秒，长广告动态延长）强制关闭
+     * - 动态检测广告是否结束
+     *
+     * 用户要求：太快退出可能获取不到肥料，需保持到规定时间+缓冲后再检测退出
+     */
+    private fun runWatchingAd(elapsedMs: Long) {
+        if (state != AutomationState.WATCHING_AD) return
+        val service = getService() ?: run { stop(); return }
+
+        // 进入广告时（首次调用）解析页面时长提示，动态设置最短等待时间
+        // 用户要求：有些广告需要指定时间才能领取肥料，保持到规定时间+1秒后再检测退出
+        if (elapsedMs == 0L) {
+            aiCalledForAdClose = false  // 重置 AI 领取路径规划标志，本次广告观看可获得 1 次 AI 介入
+            deepLinkAppPkg = null       // 重置深链跳转跟踪，等待检测是否进入其他 App
+            watchingAdPlatform = service.currentPlatform  // 记录农场平台，强杀深链 App 后重新启动此平台
+            val hintSeconds = service.findAdDurationHint()
+            if (hintSeconds > 0) {
+                // 页面提示的秒数 + 缓冲时间（毫秒）
+                adMinDurationMs = hintSeconds * 1000L + AD_DURATION_BUFFER_MS
+                // 最大等待时间随最短时间动态调整：最短+30秒余量，且不小于默认90秒
+                adMaxDurationMs = maxOf(AD_MAX_DURATION_MS, adMinDurationMs + 30000L)
+                debugLog("watchAd: parsed ad duration hint=${hintSeconds}s, min wait=${adMinDurationMs}ms, max wait=${adMaxDurationMs}ms (hint+buffer)")
+            } else {
+                adMinDurationMs = AD_MIN_DURATION_MS
+                adMaxDurationMs = AD_MAX_DURATION_MS
+                debugLog("watchAd: no duration hint, using default min=${adMinDurationMs}ms, max=${adMaxDurationMs}ms")
+            }
+        }
+
+        // 每 15 秒输出一次页面快照（避免日志过多）
+        if (elapsedMs % 15000L < AD_END_CHECK_INTERVAL_MS) {
+            logPageSnapshot(service, "watchAd-${elapsedMs}ms")
+        }
+
+        // 超时强制关闭
+        if (elapsedMs >= adMaxDurationMs) {
+            Log.w(TAG, "watchAd: timeout (${elapsedMs}ms/${adMaxDurationMs}ms), force closing")
+            moveTo(AutomationState.CLOSING_AD)
+            handler.postDelayed({ runClosingAd(strategy = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 深链跳转任务：检测是否已回到芭芭农场App（任务完成返回）
+        // 深链任务跳转到其他App执行后，回到农场App表示任务完成
+        // 要求 elapsedMs >= 5s 避免广告刚打开时短暂显示农场的误判
+        if (elapsedMs >= 5000L && service.isOnFarmPage()) {
+            Log.i(TAG, "watchAd: returned to farm app (${elapsedMs}ms), task complete")
+            debugLog("watchAd: returned to farm, deep-link task complete")
+            service.setAdMode(false)
+            collectedCount++
+            currentTaskIndex++
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) {
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                }
+            }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 深链跳转任务：检测其他App内的异常交易页（付款/收银台），确保不产生交易
+        if (elapsedMs >= 5000L && service.isOnAbnormalPage()) {
+            Log.w(TAG, "watchAd: abnormal/trading page in other app, exiting immediately")
+            debugLog("watchAd: abnormal page in deep-linked app, pressing back to exit")
+            service.pressBack()
+            service.setAdMode(false)
+            currentTaskIndex++
+            handler.postDelayed({
+                if (!service.isOnFarmPage()) service.pressBack()
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) {
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    }
+                }, INTERVAL_CLICK_MS)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 深链跳转任务：广告任务跳转到其他 App（非农场/非广告Activity/非异常页），最多停留 21 秒
+        // 用户要求：广告时间进入其它app最多21秒，21秒后强杀拉起来的app
+        // 注意：此检查在"最短等待时间"检查之前，确保深链任务用 21s 超时（而非默认 30s 广告等待）
+        if (elapsedMs >= 5000L && !service.isOnFarmPage() && !service.isAdActivity() &&
+            !service.isAdPlaying() && !service.isOnAbnormalPage()) {
+            val currentPkg = service.getCurrentWindowPackage()
+            if (currentPkg != null) {
+                // 首次检测到深链跳转，记录包名和进入时间
+                if (deepLinkAppPkg == null) {
+                    deepLinkAppPkg = currentPkg
+                    deepLinkEnterTimeMs = elapsedMs
+                    debugLog("watchAd: entered deep-linked app '$currentPkg' at ${elapsedMs}ms, will force kill after ${DEEP_LINK_MAX_DURATION_MS}ms")
+                }
+                val deepLinkElapsed = elapsedMs - deepLinkEnterTimeMs
+                if (deepLinkElapsed >= DEEP_LINK_MAX_DURATION_MS) {
+                    // 超过 21 秒，强杀被拉起的 App
+                    Log.w(TAG, "watchAd: deep-linked app '$deepLinkAppPkg' exceeded ${DEEP_LINK_MAX_DURATION_MS}ms, force killing")
+                    debugLog("watchAd: force killing deep-linked app '$deepLinkAppPkg' after ${deepLinkElapsed}ms (limit=${DEEP_LINK_MAX_DURATION_MS}ms)")
+                    val killedPkg = deepLinkAppPkg!!
+                    deepLinkAppPkg = null
+                    service.setAdMode(false)
+                    service.forceKillApp(killedPkg)
+                    currentTaskIndex++
+                    // 强杀后重新启动农场 App 回到前台，继续下一个任务
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) {
+                            if (watchingAdPlatform != Platform.UNKNOWN) {
+                                debugLog("watchAd: relaunching farm platform $watchingAdPlatform after force kill")
+                                service.launchPlatformApp(watchingAdPlatform)
+                            }
+                            handler.postDelayed({
+                                if (state == AutomationState.WATCHING_AD) {
+                                    moveTo(AutomationState.OPENING_TASK_LIST)
+                                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                                }
+                            }, INTERVAL_PAGE_LOAD_MS)
+                        }
+                    }, INTERVAL_CLICK_MS)
+                    return
+                }
+                // 还没到 21 秒，继续等待（深链任务可能在此之前完成并返回农场）
+                debugLog("watchAd: in deep-linked app '$currentPkg' (${deepLinkElapsed}ms/${DEEP_LINK_MAX_DURATION_MS}ms), waiting for task complete or timeout")
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
+                }, AD_END_CHECK_INTERVAL_MS)
+                return
+            }
+        }
+
+        // 最短等待时间未到，继续等待
+        // 用户要求：太快退出可能获取不到肥料，必须等够页面提示的规定时间+缓冲
+        if (elapsedMs < adMinDurationMs) {
+            Log.d(TAG, "watchAd: waiting (${elapsedMs}ms/${adMinDurationMs}ms)")
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
+            }, AD_END_CHECK_INTERVAL_MS)
+            return
+        }
+
+        // 最短等待时间已过，检测广告是否结束
+        // 广告结束的标志：不再在广告Activity，或出现领取奖励按钮，或任务完成
+        if (service.isTaskCompletePage()) {
+            Log.i(TAG, "watchAd: task complete page detected, exiting")
+            debugLog("watchAd: task complete, exiting via close/back icon")
+            // 优先点右上角关闭按钮（游戏/广告退出）
+            val closeBtn = service.findAdCloseButton()
+            val backIcon = service.findBackIcon()
+            when {
+                closeBtn != null -> { debugLog("watchAd: clicking close icon"); service.performClickSafe(closeBtn) }
+                backIcon != null -> { debugLog("watchAd: clicking back icon"); service.performClickSafe(backIcon) }
+                else -> { debugLog("watchAd: pressing back"); service.pressBack() }
+            }
+            service.setAdMode(false)
+            collectedCount++
+            currentTaskIndex++
+            handler.postDelayed({
+                if (!service.isOnFarmPage()) service.pressBack()
+                handler.postDelayed({
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                }, INTERVAL_CLICK_MS)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        if (!service.isAdActivity() && !service.isAdPlaying()) {
+            // 广告结束后检查是否进入了交易页面
+            if (service.isOnAbnormalPage()) {
+                Log.i(TAG, "watchAd: abnormal/trading page after ad, exiting immediately")
+                debugLog("watchAd: abnormal page after ad, pressing back")
+                service.pressBack()
+                service.setAdMode(false)
+                currentTaskIndex++
+                handler.postDelayed({
+                    if (!service.isOnFarmPage()) service.pressBack()
+                    handler.postDelayed({
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    }, INTERVAL_CLICK_MS)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+
+            // 广告结束后优先检测领取奖励按钮（节点查找，免费精确）
+            val claimBtn = service.findClaimRewardButton()
+            if (claimBtn != null) {
+                Log.i(TAG, "watchAd: claim button found after ad finished, clicking")
+                debugLog("watchAd: clicking claim reward button after ad finished")
+                service.performClickSafe(claimBtn)
+                service.setAdMode(false)
+                collectedCount++
+                currentTaskIndex++
+                handler.postDelayed({
+                    if (!service.isOnFarmPage()) service.pressBack()
+                    handler.postDelayed({
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    }, INTERVAL_CLICK_MS)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+
+            // AI 路径规划：广告结束后页面可能变化（领取弹窗/确认对话框/关闭页）
+            // 让 AI 理解页面并规划获取肥料的领取路径（每次广告观看最多 1 次，避免 API 消耗）
+            if (!aiCalledForAdClose) {
+                aiCalledForAdClose = true
+                debugLog("watchAd: ad finished, trying AI path planning for claim/close (once per ad)")
+                val aiAction = service.aiDecideAction("广告刚刚播放结束，目标是领取肥料奖励。分析当前页面状态并规划下一步：如果有'领取奖励/立即领取/领取/关闭并领取'按钮就 click 它；如果有'×/关闭/跳过'按钮就 click 关闭广告；如果是'放弃奖励离开'对话框就 click 放弃；如果页面显示'任务完成/奖励已发放'就 back 退出；绝不点击购买/支付/下单/提交订单按钮；如果无法判断就 back")
+                debugLog("watchAd: AI result for ad-close: actionType='${aiAction?.actionType}', x=${aiAction?.x}, y=${aiAction?.y}, desc='${aiAction?.description}'")
+                if (aiAction != null && aiAction.actionType == "click") {
+                    val executed = service.executeAiAction(aiAction)
+                    if (executed) {
+                        debugLog("watchAd: AI clicked '${aiAction.description}', re-checking after page change")
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
+                        }, INTERVAL_PAGE_LOAD_MS)
+                        return
+                    }
+                    debugLog("watchAd: AI click not executed, falling to CLOSING_AD")
+                } else if (aiAction != null && aiAction.actionType == "back") {
+                    debugLog("watchAd: AI chose back, falling to CLOSING_AD")
+                } else {
+                    debugLog("watchAd: AI no actionable result, falling to CLOSING_AD")
+                }
+            }
+
+            Log.i(TAG, "watchAd: ad finished (${elapsedMs}ms), closing")
+            moveTo(AutomationState.CLOSING_AD)
+            handler.postDelayed({ runClosingAd(strategy = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 检测是否有领取奖励按钮
+        val claimButton = service.findClaimRewardButton()
+        if (claimButton != null) {
+            Log.i(TAG, "watchAd: claim button found, ad finished")
+            moveTo(AutomationState.CLOSING_AD)
+            handler.postDelayed({ runClosingAd(strategy = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 继续等待
+        Log.d(TAG, "watchAd: still playing (${elapsedMs}ms/${adMaxDurationMs}ms)")
+        handler.postDelayed({
+            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
+        }, AD_END_CHECK_INTERVAL_MS)
+    }
+
+    // ============== 阶段5: 关闭广告（多策略） ==============
+
+    /**
+     * 关闭广告阶段（多策略，基于v11 PC端ADB方案经验）
+     * - 策略0：查找并点击"×"/"关闭"按钮节点
+     * - 策略1：尝试坐标候选位置（右上角多个位置）
+     * - 策略2：查找并点击"放弃奖励离开"对话框按钮
+     * - 策略3：按返回键
+     * - 策略4：查找并点击"领取奖励"按钮
+     * - 每个策略尝试后检测是否成功关闭
+     */
+    private fun runClosingAd(strategy: Int) {
+        if (state != AutomationState.CLOSING_AD) return
+        val service = getService() ?: run { stop(); return }
+
+        Log.i(TAG, "closeAd: trying strategy #$strategy")
+
+        when (strategy) {
+            0 -> {
+                // 策略0：查找并点击"×"/"关闭"按钮节点
+                val closeBtn = service.findAdCloseButton()
+                if (closeBtn != null) {
+                    Log.i(TAG, "closeAd: found close button, clicking")
+                    service.performClickSafe(closeBtn)
+                } else {
+                    // AI 视觉识别 fallback：用大模型找广告关闭按钮
+                    debugLog("closeAd: node not found, trying AI vision")
+                    val aiClicked = service.clickByAiVision("广告或弹窗右上角的关闭按钮（×图标）")
+                    if (!aiClicked) {
+                        runClosingAd(1)
+                        return
+                    }
+                    debugLog("closeAd: AI vision clicked close button")
+                }
+            }
+            1 -> {
+                // 策略1：尝试坐标候选位置
+                val adCloseList = adCloseCandidates(service)
+                for ((index, candidate) in adCloseList.withIndex()) {
+                    val (xRatio, yRatio) = candidate
+                    Log.d(TAG, "closeAd: trying coordinate #$index ($xRatio, $yRatio)")
+                    clickAtRatio(service, xRatio, yRatio, "ad-close-$index")
+                }
+            }
+            2 -> {
+                // 策略2：查找并点击"放弃奖励离开"对话框按钮
+                val abandonBtn = service.findAbandonRewardButton()
+                if (abandonBtn != null) {
+                    Log.i(TAG, "closeAd: found abandon reward button, clicking")
+                    service.performClickSafe(abandonBtn)
+                } else {
+                    runClosingAd(3)
+                    return
+                }
+            }
+            3 -> {
+                // 策略3：按返回键
+                Log.i(TAG, "closeAd: pressing back")
+                service.pressBack()
+            }
+            4 -> {
+                // 策略4：查找并点击"领取奖励"按钮
+                val claimBtn = service.findClaimRewardButton()
+                if (claimBtn != null) {
+                    Log.i(TAG, "closeAd: found claim button, clicking")
+                    service.performClickSafe(claimBtn)
+                }
+            }
+            else -> {
+                // 所有策略都失败，清除广告标志，进入返回阶段
+                Log.w(TAG, "closeAd: all strategies failed, clearing ad mode")
+                service.setAdMode(false)
+                moveTo(AutomationState.RETURNING)
+                handler.postDelayed({ runReturning(attempt = 0) }, INTERVAL_CLICK_MS)
+                return
+            }
+        }
+
+        // 检测是否成功关闭广告
+        handler.postDelayed({
+            if (state == AutomationState.CLOSING_AD) checkAdClosed(service, strategy)
+        }, INTERVAL_PAGE_LOAD_MS)
+    }
+
+    /** 检查广告是否已关闭 */
+    private fun checkAdClosed(service: FarmAccessibilityService, lastStrategy: Int) {
+        if (state != AutomationState.CLOSING_AD) return
+
+        // 广告已关闭
+        if (!service.isAdActivity() && !service.isAdPlaying()) {
+            Log.i(TAG, "closeAd: ad closed successfully (strategy #$lastStrategy)")
+            service.setAdMode(false)
+            // 肥料收集成功
+            collectedCount++
+            Log.i(TAG, "=== FERTILIZER COLLECTED! (total: $collectedCount) ===")
+            moveTo(AutomationState.RETURNING)
+            handler.postDelayed({ runReturning(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 广告仍在，尝试下一个策略
+        val nextStrategy = lastStrategy + 1
+        if (nextStrategy <= 4) {
+            Log.d(TAG, "closeAd: ad still playing, trying strategy #$nextStrategy")
+            runClosingAd(nextStrategy)
+        } else {
+            // 所有策略都失败，清除广告标志，进入返回阶段
+            Log.w(TAG, "closeAd: all strategies failed, clearing ad mode")
+            service.setAdMode(false)
+            moveTo(AutomationState.RETURNING)
+            handler.postDelayed({ runReturning(attempt = 0) }, INTERVAL_CLICK_MS)
+        }
+    }
+
+    // ============== 阶段6: 从广告返回任务列表 ==============
+
+    /**
+     * 返回阶段：从广告返回任务列表
+     * - 用户要求：智能地适应退回按钮位置，不要只硬编码一个位置
+     * - 交替使用系统返回键和多个候选退回按钮位置
+     * - 回到任务列表后继续下一个任务
+     */
+    private fun runReturning(attempt: Int) {
+        if (state != AutomationState.RETURNING) return
+        val service = getService() ?: run { stop(); return }
+
+        if (attempt == 0) {
+            logPageSnapshot(service, "return-start")
+        }
+
+        // 检测异常页面（交易页面等），按返回退出
+        if (service.isOnAbnormalPage()) {
+            debugLog("return: abnormal/trading page detected, pressing back")
+            service.pressBack()
+            handler.postDelayed({
+                if (state == AutomationState.RETURNING) runReturning(attempt + 1)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 已回到农场页，检查是否在任务列表
+        if (service.isOnFarmPage()) {
+            // 查找任务按钮，确认是否在任务列表
+            val buttons = service.findGoCompleteButtons()
+            if (buttons.isNotEmpty()) {
+                Log.i(TAG, "return: back on task list with ${buttons.size} tasks, next task")
+                taskButtons = buttons
+                currentTaskIndex++  // 下一个任务
+                noProgressRounds = 0
+                moveTo(AutomationState.PROCESSING_TASK)
+                handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
+                return
+            }
+
+            // 在农场页但不在任务列表，需要重新打开任务列表
+            Log.i(TAG, "return: on farm page but not task list, opening task list")
+            moveTo(AutomationState.OPENING_TASK_LIST)
+            handler.postDelayed({ runOpeningTaskList(0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 尝试次数超限
+        if (attempt >= MAX_RETURN_ATTEMPTS) {
+            Log.w(TAG, "return: failed after $attempt attempts, re-navigating")
+            moveTo(AutomationState.NAVIGATING)
+            handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 智能选择退回方式：交替使用系统返回键和候选位置
+        val backList = backButtonCandidates(service)
+        val candidateIndex = attempt % (backList.size + 1)
+        if (candidateIndex == backList.size) {
+            Log.i(TAG, "return: pressing system back (attempt ${attempt + 1})")
+            service.pressBack()
+        } else {
+            val (xRatio, yRatio) = backList[candidateIndex]
+            Log.i(TAG, "return: clicking back button #$candidateIndex (attempt ${attempt + 1})")
+            clickAtRatio(service, xRatio, yRatio, "back-$candidateIndex")
+        }
+
+        handler.postDelayed({
+            if (state == AutomationState.RETURNING) runReturning(attempt + 1)
+        }, INTERVAL_PAGE_LOAD_MS)
+    }
+
+    // ============== 阶段7: 施肥 ==============
+
+    /**
+     * 施肥阶段：所有肥料收集完后，点击施肥按钮
+     *
+     * 流程：
+     * 1. 先关闭任务列表（按返回键或点击关闭，回到农场主页）
+     * 2. 在农场主页找"施肥"按钮并点击
+     * 3. 重复点击施肥，直到没有肥料可施或达到最大次数
+     *
+     * 用户要求："先获取完所有的肥料后，再来施肥"
+     */
+    private fun runFertilizing(clickCount: Int) {
+        if (state != AutomationState.FERTILIZING) return
+        val service = getService() ?: run { stop(); return }
+
+        if (clickCount == 0) {
+            logPageSnapshot(service, "fertilize-start")
+        }
+
+        // 检测异常页面（交易页面等），按返回退出并重新导航
+        if (service.isOnAbnormalPage()) {
+            debugLog("fertilize: abnormal/trading page detected, pressing back and re-navigating")
+            service.pressBack()
+            moveTo(AutomationState.NAVIGATING)
+            handler.postDelayed({ runNavigating(0) }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 防止无限点击
+        if (clickCount >= MAX_FERTILIZE_CLICKS) {
+            Log.i(TAG, "fertilize: reached max clicks ($MAX_FERTILIZE_CLICKS), done")
+            moveTo(AutomationState.WAITING)
+            handler.postDelayed({ startNextRound() }, INTERVAL_WAIT_MS)
+            return
+        }
+
+        // 第一步：关闭任务列表回到农场主页（仅第一次）
+        if (clickCount == 0) {
+            Log.i(TAG, "fertilize: closing task list, returning to farm page")
+            service.pressBack()
+            handler.postDelayed({
+                if (state == AutomationState.FERTILIZING) runFertilizing(clickCount + 1)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 查找并点击"施肥"按钮
+        val fertilizeButton = service.findFertilizeButton()
+        debugLog("fertilize: findFertilizeButton=${fertilizeButton != null}, clickCount=$clickCount")
+        if (fertilizeButton != null) {
+            Log.i(TAG, "fertilize: found 施肥 button, clicking (count=${clickCount + 1})")
+            service.performClickSafe(fertilizeButton)
+            handler.postDelayed({
+                if (state == AutomationState.FERTILIZING) {
+                    // 检查是否还有肥料可施
+                    val stillHasButton = service.findFertilizeButton()
+                    if (stillHasButton != null) {
+                        Log.d(TAG, "fertilize: still has fertilize button, continue")
+                        runFertilizing(clickCount + 1)
+                    } else {
+                        Log.i(TAG, "fertilize: no more fertilizer button, done")
+                        moveTo(AutomationState.WAITING)
+                        handler.postDelayed({ startNextRound() }, INTERVAL_WAIT_MS)
+                    }
+                }
+            }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 没找到施肥按钮，可能需要滚动或已施肥完毕
+        Log.d(TAG, "fertilize: no 施肥 button found (clickCount=$clickCount)")
+        if (clickCount <= 2) {
+            // clickCount==2 时用 AI 视觉找施肥按钮（可能是橙色图标/文案变化/H5节点不暴露文本）
+            // 用户要求：任务执行中页面可能变化，借助 AI 得出完成路径直到获取肥料
+            if (clickCount == 2) {
+                debugLog("fertilize: trying AI vision to find 施肥 button")
+                val aiClicked = service.clickByAiVision("施肥按钮（通常是橙色大按钮，文字可能是'施肥'/'继续施肥'/'停止施肥'/'一键施肥'）")
+                if (aiClicked) {
+                    debugLog("fertilize: AI vision clicked 施肥 button, continuing")
+                    handler.postDelayed({
+                        if (state == AutomationState.FERTILIZING) {
+                            val stillHasButton = service.findFertilizeButton()
+                            if (stillHasButton != null) {
+                                Log.d(TAG, "fertilize: AI clicked, still has button, continue")
+                                runFertilizing(clickCount + 1)
+                            } else {
+                                Log.i(TAG, "fertilize: AI clicked, no more button, done")
+                                moveTo(AutomationState.WAITING)
+                                handler.postDelayed({ startNextRound() }, INTERVAL_WAIT_MS)
+                            }
+                        }
+                    }, INTERVAL_CLICK_MS)
+                    return
+                }
+                debugLog("fertilize: AI vision did not find 施肥 button")
+            }
+            // 刚开始就没找到，可能是页面还没加载好，重试
+            handler.postDelayed({
+                if (state == AutomationState.FERTILIZING) runFertilizing(clickCount + 1)
+            }, INTERVAL_CLICK_MS)
+        } else {
+            // 多次找不到，认为施肥完成
+            Log.i(TAG, "fertilize: done (no button after $clickCount checks)")
+            moveTo(AutomationState.WAITING)
+            handler.postDelayed({ startNextRound() }, INTERVAL_WAIT_MS)
+        }
+    }
+
+    /** 开始下一轮（集肥料→施肥循环） */
+    private fun startNextRound() {
+        if (state != AutomationState.WAITING) return
+        Log.i(TAG, "=== Starting new round ===")
+        collectedCount = 0
+        currentTaskIndex = 0
+        noProgressRounds = 0
+        taskButtons = emptyList()
+        moveTo(AutomationState.NAVIGATING)
+        handler.post { runNavigating(0) }
+    }
+
+    // ============== 跨平台切换 ==============
+
+    /**
+     * 检测跨平台任务的目标平台
+     *
+     * 任务文本包含"去淘宝"/"切换淘宝"→ 淘宝
+     * 任务文本包含"去支付宝"/"切换支付宝"→ 支付宝
+     * 任务文本包含"去UC"/"切换UC"→ UC
+     *
+     * @param text 任务按钮文本
+     * @return 目标平台，null 表示不是跨平台任务
+     */
+    private fun detectCrossPlatformTarget(text: String): Platform? {
+        val lower = text.lowercase()
+        return when {
+            text.contains("淘宝") -> Platform.TAOBAO
+            text.contains("支付宝") || text.contains("蚂蚁庄园") -> Platform.ALIPAY
+            text.contains("UC") || lower.contains("ucmobile") || text.contains("uc极速") -> Platform.UC
+            else -> null
+        }
+    }
+
+    /**
+     * 跨平台切换阶段
+     *
+     * 用户需求：肥料获取可能从支付宝/淘宝芭芭农场之间切换，切换动作也可以获取肥料，
+     * 但切换完了应该回到原来 app。
+     *
+     * 流程：
+     * 1. LAUNCH_TARGET: 启动目标平台 app，等待加载
+     * 2. NAVIGATE_TARGET_FARM: 导航到目标平台芭芭农场，等待加载
+     * 3. FERTILIZE_TARGET: 在目标平台点击施肥/集肥料按钮获取切换奖励
+     * 4. RETURN_ORIGINAL: 返回原平台 app，等待加载
+     * 5. RESUME_ORIGINAL_FARM: 导航回原平台芭芭农场，恢复任务列表
+     */
+    private fun runSwitchingPlatform() {
+        if (state != AutomationState.SWITCHING_PLATFORM) return
+        val service = getService() ?: run { stop(); return }
+
+        logPageSnapshot(service, "switchPlatform-$switchStage")
+        debugLog("switchPlatform: stage=$switchStage, retry=$switchRetryCount, target=$switchTargetPlatform, original=$switchOriginalPlatform")
+
+        when (switchStage) {
+            "LAUNCH_TARGET" -> {
+                // 首次进入时，检查点击"去完成"是否已自动跳转到目标平台
+                service.refreshPlatform()
+                val currentPkg = service.getCurrentWindowPackage() ?: ""
+                val targetPkg = switchTargetPlatform.config.packageNames.firstOrNull() ?: ""
+                if (currentPkg == targetPkg || service.currentPlatform == switchTargetPlatform) {
+                    debugLog("switchPlatform: target ${switchTargetPlatform} already loaded (auto-jump), navigating to farm")
+                    switchStage = "NAVIGATE_TARGET_FARM"
+                    switchRetryCount = 0
+                    service.cancelNavigation()
+                    service.navigateToFarm()
+                    handler.postDelayed({ runSwitchingPlatform() }, INTERVAL_PAGE_LOAD_MS * 2)
+                    return
+                }
+                // 未自动跳转，主动启动目标平台
+                if (switchRetryCount == 0) {
+                    debugLog("switchPlatform: launching target ${switchTargetPlatform} manually")
+                    service.launchPlatformApp(switchTargetPlatform)
+                }
+                switchRetryCount++
+                if (switchRetryCount >= MAX_SWITCH_RETRIES) {
+                    debugLog("switchPlatform: failed to launch target, skipping task")
+                    currentTaskIndex++
+                    moveTo(AutomationState.PROCESSING_TASK)
+                    handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
+                    return
+                }
+                handler.postDelayed({ runSwitchingPlatform() }, 2000L)
+            }
+
+            "NAVIGATE_TARGET_FARM" -> {
+                // 等待目标平台芭芭农场加载
+                if (service.isOnFarmPage()) {
+                    debugLog("switchPlatform: target farm page loaded, fertilizing")
+                    switchStage = "FERTILIZE_TARGET"
+                    switchRetryCount = 0
+                    handler.postDelayed({ runSwitchingPlatform() }, INTERVAL_CLICK_MS)
+                    return
+                }
+                switchRetryCount++
+                if (switchRetryCount >= MAX_SWITCH_RETRIES) {
+                    debugLog("switchPlatform: target farm not loaded, returning to original")
+                    switchStage = "RETURN_ORIGINAL"
+                    switchRetryCount = 0
+                    service.launchPlatformApp(switchOriginalPlatform)
+                    handler.postDelayed({ runSwitchingPlatform() }, INTERVAL_PAGE_LOAD_MS)
+                    return
+                }
+                handler.postDelayed({ runSwitchingPlatform() }, 2000L)
+            }
+
+            "FERTILIZE_TARGET" -> {
+                // 在目标平台点击施肥/集肥料按钮获取切换奖励
+                // 使用目标平台的 collectFertilizerCoords 候选坐标
+                val coords = switchTargetPlatform.config.collectFertilizerCoords
+                debugLog("switchPlatform: fertilizing on ${switchTargetPlatform}, ${coords.size} coord candidates")
+                for ((xRatio, yRatio) in coords) {
+                    clickAtRatio(service, xRatio, yRatio, "switchPlatform-fertilize")
+                }
+                // 等待施肥/领取完成
+                switchStage = "RETURN_ORIGINAL"
+                switchRetryCount = 0
+                handler.postDelayed({ runSwitchingPlatform() }, INTERVAL_PAGE_LOAD_MS)
+            }
+
+            "RETURN_ORIGINAL" -> {
+                // 启动原平台
+                if (switchRetryCount == 0) {
+                    debugLog("switchPlatform: returning to original ${switchOriginalPlatform}")
+                    service.launchPlatformApp(switchOriginalPlatform)
+                }
+                service.refreshPlatform()
+                val currentPkg = service.getCurrentWindowPackage() ?: ""
+                val originalPkg = switchOriginalPlatform.config.packageNames.firstOrNull() ?: ""
+                if (currentPkg == originalPkg || service.currentPlatform == switchOriginalPlatform) {
+                    debugLog("switchPlatform: original platform loaded, resuming farm navigation")
+                    switchStage = "RESUME_ORIGINAL_FARM"
+                    switchRetryCount = 0
+                    service.cancelNavigation()
+                    service.navigateToFarm()
+                    handler.postDelayed({ runSwitchingPlatform() }, INTERVAL_PAGE_LOAD_MS * 2)
+                    return
+                }
+                switchRetryCount++
+                if (switchRetryCount >= MAX_SWITCH_RETRIES) {
+                    debugLog("switchPlatform: failed to return to original, skipping task")
+                    currentTaskIndex++
+                    moveTo(AutomationState.PROCESSING_TASK)
+                    handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
+                    return
+                }
+                handler.postDelayed({ runSwitchingPlatform() }, 2000L)
+            }
+
+            "RESUME_ORIGINAL_FARM" -> {
+                // 等待原平台芭芭农场加载
+                if (service.isOnFarmPage()) {
+                    debugLog("switchPlatform: original farm page loaded, resuming task list")
+                    // 跨平台切换任务完成，继续下一个任务
+                    currentTaskIndex++
+                    moveTo(AutomationState.PROCESSING_TASK)
+                    handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
+                    return
+                }
+                switchRetryCount++
+                if (switchRetryCount >= MAX_SWITCH_RETRIES) {
+                    debugLog("switchPlatform: original farm not loaded, re-navigating from start")
+                    moveTo(AutomationState.NAVIGATING)
+                    handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
+                    return
+                }
+                handler.postDelayed({ runSwitchingPlatform() }, 2000L)
+            }
+
+            else -> {
+                debugLog("switchPlatform: unknown stage $switchStage, skipping task")
+                currentTaskIndex++
+                moveTo(AutomationState.PROCESSING_TASK)
+                handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
+            }
+        }
+    }
+
+    // ============== 通用工具 ==============
+
+    /** 按坐标比例点击屏幕（基于屏幕宽高百分比） */
+    private fun clickAtRatio(
+        service: FarmAccessibilityService,
+        xRatio: Float,
+        yRatio: Float,
+        label: String
+    ) {
+        val metrics = service.resources.displayMetrics
+        val x = metrics.widthPixels * xRatio
+        val y = metrics.heightPixels * yRatio
+        Log.i(TAG, "$label: click at ($x, $y) screen=${metrics.widthPixels}x${metrics.heightPixels}")
+        debugLog("$label: click at ($x, $y), ratio=($xRatio, $yRatio), screen=${metrics.widthPixels}x${metrics.heightPixels}")
+        service.dispatchGestureClick(x, y)
+    }
+}

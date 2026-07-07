@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">芭芭农场机器人</string>
+
+    <!-- 主界面 -->
+    <string name="usage_guide">使用步骤：\n1. 授予悬浮窗权限\n2. 开启无障碍服务\n3. 点击"启动悬浮窗"\n4. 点击下方任一平台按钮打开农场（UC/支付宝/淘宝）\n5. 在农场页面点击悬浮窗"开始施肥"按钮（无障碍服务自动识别平台）</string>
+    <string name="btn_request_overlay">授予悬浮窗权限</string>
+    <string name="btn_open_accessibility">开启无障碍服务</string>
+    <string name="btn_start_floating">启动悬浮窗</string>
+    <string name="btn_open_farm">打开 UC 芭芭农场</string>
+    <string name="btn_open_alipay_farm">打开支付宝芭芭农场</string>
+    <string name="btn_open_taobao_farm">打开淘宝芭芭农场</string>
+
+    <!-- 状态 -->
+    <string name="status_overlay">悬浮窗权限：%1$s</string>
+    <string name="status_accessibility">无障碍服务：%1$s</string>
+
+    <!-- 悬浮按钮 -->
+    <string name="btn_start_fertilize">开始施肥</string>
+    <string name="btn_stop_fertilize">停止施肥</string>
+    <string name="btn_stopping">停止中…</string>
+
+    <!-- 通知 -->
+    <string name="notification_channel_name">芭芭农场机器人</string>
+    <string name="notification_channel_desc">悬浮窗保活通知</string>
+    <string name="notification_title">芭芭农场机器人运行中</string>
+    <string name="notification_text">点击悬浮窗按钮开始/停止施肥</string>
+
+    <!-- 无障碍服务 -->
+    <string name="accessibility_service_label">芭芭农场机器人</string>
+    <string name="accessibility_service_description">自动识别 UC 极速版/支付宝/淘宝中芭芭农场的饲料和施肥按钮并点击，实现自动帮种。自动检测前台 App 平台切换逻辑。</string>
+
+    <!-- Toast -->
+    <string name="toast_overlay_required">请先授予悬浮窗权限</string>
+    <string name="toast_accessibility_not_enabled">请先开启无障碍服务</string>
+    <string name="toast_floating_started">悬浮窗已启动</string>
+
+    <!-- 桌面快捷方式（长按应用图标可见，可拖到桌面） -->
+    <string name="shortcut_uc_short">UC 芭芭农场</string>
+    <string name="shortcut_uc_long">打开 UC 芭芭农场</string>
+    <string name="shortcut_alipay_short">支付宝芭芭农场</string>
+    <string name="shortcut_alipay_long">打开支付宝芭芭农场</string>
+    <string name="shortcut_taobao_short">淘宝芭芭农场</string>
+    <string name="shortcut_taobao_long">打开淘宝芭芭农场</string>
+
+    <!-- 分身快捷方式 -->
+    <string name="shortcut_uc_clone_short">UC 芭芭农场（分身）</string>
+    <string name="shortcut_uc_clone_long">打开 UC 芭芭农场（分身账号）</string>
+    <string name="shortcut_alipay_clone_short">支付宝芭芭农场（分身）</string>
+    <string name="shortcut_alipay_clone_long">打开支付宝芭芭农场（分身账号）</string>
+    <string name="shortcut_taobao_clone_short">淘宝芭芭农场（分身）</string>
+    <string name="shortcut_taobao_clone_long">打开淘宝芭芭农场（分身账号）</string>
+    <string name="shortcut_disabled">快捷方式不可用</string>
+</resources>
