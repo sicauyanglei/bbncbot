@@ -16,8 +16,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
-import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import com.bbncbot.MainActivity
@@ -26,7 +24,6 @@ import com.bbncbot.automation.ActionProposer
 import com.bbncbot.automation.AutomationController
 import com.bbncbot.automation.AutomationState
 import com.bbncbot.automation.RecordingManager
-import com.bbncbot.automation.SceneFeatures
 import com.bbncbot.automation.SceneLibrary
 import com.bbncbot.service.FarmAccessibilityService
 import kotlin.math.abs
@@ -62,26 +59,6 @@ class FloatingWindowService : Service() {
 
     /** 录制控制浮窗（开始/停止录制 + 中断），默认不添加，长按主按钮或广播触发时显示 */
     private var teachView: View? = null
-
-    /** 场景归类确认浮窗（录制时遇到未归类 signature 弹出） */
-    private var categorizeView: View? = null
-    private val categorizeLayoutParams: WindowManager.LayoutParams by lazy {
-        WindowManager.LayoutParams().apply {
-            type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            } else {
-                @Suppress("DEPRECATION")
-                WindowManager.LayoutParams.TYPE_PHONE
-            }
-            format = PixelFormat.RGBA_8888
-            // 不加 FLAG_NOT_FOCUSABLE，让 EditText 可输入
-            flags = WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
-            width = WindowManager.LayoutParams.WRAP_CONTENT
-            height = WindowManager.LayoutParams.WRAP_CONTENT
-            gravity = Gravity.CENTER
-        }
-    }
 
     private val layoutParams: WindowManager.LayoutParams by lazy {
         WindowManager.LayoutParams().apply {
@@ -146,7 +123,7 @@ class FloatingWindowService : Service() {
         setupFloatingWindow()
         setupProposalWindow()
         setupTeachWindow()
-        setupCategorizeWindow()
+        setupSceneAutoCreatedCallback()
         AutomationController.onStateChanged = { state ->
             updateButtonUi(state)
         }
@@ -198,7 +175,7 @@ class FloatingWindowService : Service() {
         AutomationController.onStateChanged = null
         ActionProposer.onProposalChanged = null
         RecordingManager.onRecordingChanged = null
-        RecordingManager.onShowCategorizeDialog = null
+        RecordingManager.onSceneAutoCreated = null
         proposalView?.let {
             try {
                 windowManager.removeView(it)
@@ -211,13 +188,6 @@ class FloatingWindowService : Service() {
                 windowManager.removeView(it)
             } catch (e: Exception) {
                 Log.w(TAG, "removeView teach failed: ${e.message}")
-            }
-        }
-        categorizeView?.let {
-            try {
-                windowManager.removeView(it)
-            } catch (e: Exception) {
-                Log.w(TAG, "removeView categorize failed: ${e.message}")
             }
         }
         floatingView?.let {
@@ -400,103 +370,18 @@ class FloatingWindowService : Service() {
         teachView = view
     }
 
-    /** 初始化场景归类确认浮窗 */
-    private fun setupCategorizeWindow() {
-        // 录制时遇到未归类 signature，回调弹浮窗
-        RecordingManager.onShowCategorizeDialog = { features, actionDesc ->
+    /**
+     * 注册场景自动创建回调
+     *
+     * 录制时遇到全新场景（coreSignature 也未命中），bot 自动按特征命名并创建 category，
+     * 通过此回调在主线程显示 Toast 提示用户"已录制场景：xxx"。
+     */
+    private fun setupSceneAutoCreatedCallback() {
+        RecordingManager.onSceneAutoCreated = { name ->
             android.os.Handler(android.os.Looper.getMainLooper()).post {
-                showCategorize(features, actionDesc)
+                Toast.makeText(this, "已录制场景：$name", Toast.LENGTH_SHORT).show()
             }
         }
-    }
-
-    /** 显示场景归类浮窗 */
-    private fun showCategorize(features: SceneFeatures, actionDesc: String) {
-        val inflater = LayoutInflater.from(this)
-        val view = inflater.inflate(R.layout.view_categorize_dialog, null, false)
-
-        // 显示动作描述
-        view.findViewById<TextView>(R.id.tvCatActionDesc).text = "动作：$actionDesc"
-        // 显示签名
-        view.findViewById<TextView>(R.id.tvCatSignature).text = features.signature()
-        // 显示页面文本
-        view.findViewById<TextView>(R.id.tvCatPageTexts).text = features.pageTexts.take(5).toString()
-
-        // 创建新场景按钮
-        val etName = view.findViewById<EditText>(R.id.etCategoryName)
-        view.findViewById<Button>(R.id.btnCreateCategory).setOnClickListener {
-            val name = etName.text?.toString()?.trim().orEmpty()
-            if (name.isEmpty()) {
-                Toast.makeText(this, "请输入场景名", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            RecordingManager.confirmCategorize(name, null)
-            Toast.makeText(this, "已创建场景：$name", Toast.LENGTH_SHORT).show()
-            hideCategorize()
-        }
-
-        // 已有场景列表
-        val llExisting = view.findViewById<LinearLayout>(R.id.llExistingCategories)
-        val existing = SceneLibrary.listCategories()
-        if (existing.isEmpty()) {
-            val tv = TextView(this).apply {
-                text = "（暂无已有场景）"
-                setTextColor(android.graphics.Color.parseColor("#999999"))
-                textSize = 11f
-            }
-            llExisting.addView(tv)
-        } else {
-            existing.forEach { cat ->
-                val btn = Button(this).apply {
-                    text = "归到：${cat.name}（${cat.action}）"
-                    setTextColor(android.graphics.Color.WHITE)
-                    textSize = 11f
-                    minHeight = 36
-                    setBackgroundResource(R.drawable.bg_floating_button)
-                    setOnClickListener {
-                        RecordingManager.confirmCategorize("", cat.id)
-                        Toast.makeText(this@FloatingWindowService, "已归到场景：${cat.name}", Toast.LENGTH_SHORT).show()
-                        hideCategorize()
-                    }
-                }
-                llExisting.addView(btn)
-            }
-        }
-
-        // 取消按钮
-        view.findViewById<Button>(R.id.btnCatCancel).setOnClickListener {
-            RecordingManager.cancelCategorize()
-            hideCategorize()
-        }
-
-        // 移除旧视图（如果有）
-        categorizeView?.let { oldView ->
-            try { windowManager.removeView(oldView) } catch (e: Exception) {}
-        }
-        categorizeView = view
-        try {
-            windowManager.addView(view, categorizeLayoutParams)
-            // 延迟获取焦点弹键盘
-            etName.postDelayed({
-                etName.requestFocus()
-                val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                imm.showSoftInput(etName, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
-            }, 200L)
-        } catch (e: Exception) {
-            Log.w(TAG, "showCategorize addView failed: ${e.message}")
-        }
-    }
-
-    /** 隐藏场景归类浮窗 */
-    private fun hideCategorize() {
-        categorizeView?.let { view ->
-            try {
-                val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                imm.hideSoftInputFromWindow(view.windowToken, 0)
-            } catch (e: Exception) {}
-            try { windowManager.removeView(view) } catch (e: Exception) {}
-        }
-        categorizeView = null
     }
 
     /** 切换教学浮窗显示/隐藏 */

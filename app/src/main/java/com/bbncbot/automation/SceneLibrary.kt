@@ -235,6 +235,66 @@ object SceneLibrary {
     }
 
     /**
+     * 根据场景特征自动生成场景名
+     *
+     * 命名规则：`平台-页面类型-[弹窗]-动作`
+     * - 平台：UC / 支付宝 / 淘宝 / 未知
+     * - 页面类型：任务完成 / 异常页 / 付费搜索 / 浏览X秒任务 / 搜索浏览任务 / 浏览任务 / 农场主页 / 未知页
+     * - 弹窗（可选）：红包弹窗 / 更快拿奖 / 奖励提升
+     * - 动作：向上滑动 / 向下滑动 / 返回 / 退出任务 / 等待 / 点击XX / 停止 / 未知动作
+     *
+     * 示例：
+     * - "UC-浏览15秒任务-向上滑动"
+     * - "淘宝-农场主页-点击收能量"
+     * - "UC-浏览任务-红包弹窗-点击关闭"
+     *
+     * @param features 场景特征
+     * @param action 执行动作
+     * @param targetButton 点击动作的目标按钮文案
+     * @return 自动生成的场景名
+     */
+    fun autoName(features: SceneFeatures, action: Action, targetButton: String? = null): String {
+        val platform = when (features.platform) {
+            "UC" -> "UC"
+            "ALIPAY" -> "支付宝"
+            "TAOBAO" -> "淘宝"
+            else -> "未知"
+        }
+        val pageType = when {
+            features.isTaskComplete -> "任务完成"
+            features.isAbnormalPage -> "异常页"
+            features.isPaidSearchPage -> "付费搜索"
+            features.isBrowseDurationTask -> "浏览${features.browseDurationSeconds}秒任务"
+            features.isSearchBrowseTaskPage -> "搜索浏览任务"
+            features.isBrowseTaskPage -> "浏览任务"
+            features.onFarmPage -> "农场主页"
+            else -> "未知页"
+        }
+        val popup = when {
+            features.hasRedPacketPopup -> "红包弹窗"
+            features.hasFasterRewardEntry -> "更快拿奖"
+            features.hasRewardUpgradePopup -> "奖励提升"
+            else -> null
+        }
+        val actionDesc = when (action) {
+            Action.SWIPE_UP -> "向上滑动"
+            Action.SWIPE_DOWN -> "向下滑动"
+            Action.BACK -> "返回"
+            Action.EXIT_TASK -> "退出任务"
+            Action.WAIT -> "等待"
+            Action.CLICK_BUTTON -> "点击${targetButton ?: "按钮"}"
+            Action.STOP_AUTOMATION -> "停止"
+            Action.UNKNOWN -> "未知动作"
+        }
+        val parts = mutableListOf<String>()
+        parts.add(platform)
+        parts.add(pageType)
+        if (popup != null) parts.add(popup)
+        parts.add(actionDesc)
+        return parts.joinToString("-")
+    }
+
+    /**
      * 创建新场景分类（用户录制时调用）
      *
      * @param features 场景特征
