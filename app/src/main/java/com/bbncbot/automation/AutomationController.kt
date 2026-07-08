@@ -321,6 +321,140 @@ object AutomationController {
         }
     }
 
+    /**
+     * 场景规则统一接入点 - 把"提取特征→查规则→询问→执行/学习"完整流程封装
+     *
+     * 工作流：
+     * 1. 提取当前场景特征
+     * 2. 查 SceneLibrary 规则库
+     * 3. 命中规则：
+     *    - 关闭交互模式 → 直接执行 [onRuleAction]，并记录 APPROVE 强化规则
+     *    - 开启交互模式 → 弹询问浮窗，用户同意→执行并强化；用户拒绝→弱化规则并执行 [onFallback]
+     * 4. 未命中规则：走 [onFallback]（原关键词/坐标逻辑），不记录学习
+     *
+     * @param decisionPoint 决策点名称（如 "processTask_click_go_complete"），用于日志
+     * @param proposedAction 拟执行的动作（用于规则匹配 + 询问展示）
+     * @param proposedReason 拟执行原因
+     * @param onRuleAction 命中规则时执行（参数：命中的规则）
+     * @param onFallback 未命中规则或用户拒绝时执行原逻辑
+     */
+    private inline fun withSceneRule(
+        decisionPoint: String,
+        proposedAction: String,
+        proposedReason: String,
+        crossinline onRuleAction: (SceneLibrary.Rule) -> Unit,
+        crossinline onFallback: () -> Unit
+    ) {
+        val service = getService() ?: run { onFallback(); return }
+        // 提取场景特征
+        val features = SceneFeatureExtractor.extract(service, state.name)
+        debugLog("$decisionPoint: scene sig=${features.signature()}")
+        // 查规则库
+        val rule = SceneLibrary.match(features)
+        if (rule == null) {
+            // 未命中规则，走原逻辑
+            debugLog("$decisionPoint: no scene rule matched, fallback to original logic")
+            onFallback()
+            return
+        }
+        debugLog("$decisionPoint: scene rule matched, action=${rule.action} target=${rule.targetButton} conf=${rule.confidence} hits=${rule.hitCount}")
+        // 命中规则：构造询问展示
+        val ruleActionText = "[$decisionPoint] 规则建议: ${rule.action}" + (rule.targetButton?.let { " '$it'" } ?: "")
+        val ruleReason = "命中规则(来源=${rule.source}, 置信度=${rule.confidence}, 命中${rule.hitCount}次). $proposedReason"
+        withApproval(
+            action = ruleActionText,
+            reason = ruleReason,
+            pageSummary = features.summary(),
+            onApprove = {
+                // 用户同意，执行规则动作并记录强化
+                SceneLibrary.recordApproval(features, rule.action, ActionProposer.Response.APPROVE)
+                onRuleAction(rule)
+            },
+            onReject = {
+                // 用户拒绝，弱化规则并走原逻辑
+                SceneLibrary.recordApproval(features, rule.action, ActionProposer.Response.REJECT)
+                debugLog("$decisionPoint: scene rule rejected by user, fallback to original logic")
+                onFallback()
+            }
+        )
+    }
+
+    /**
+     * 通用：点击类决策点接入场景规则
+     *
+     * 适用于：点"去完成"按钮、点直接领取按钮、点历史搜索词、点"集肥料"坐标、关广告按钮等
+     *
+     * - 命中规则且规则是 CLICK_BUTTON → 执行 [onClick]（由调用方决定点哪个按钮）
+     * - 命中规则且规则是 BACK/EXIT_TASK/STOP_AUTOMATION → 执行对应动作
+     * - 命中规则且规则是 WAIT → 不动作，由调用方安排下次轮询
+     * - 未命中 → 执行 [onClick]（原逻辑）
+     *
+     * @param decisionPoint 决策点名称
+     * @param actionDesc 动作描述（如 "点击'去完成'按钮"）
+     * @param onClick 实际执行点击的逻辑（命中规则且 action=CLICK_BUTTON 或未命中时调用）
+     */
+    private inline fun withSceneRuleClick(
+        decisionPoint: String,
+        actionDesc: String,
+        crossinline onClick: () -> Unit
+    ) {
+        withSceneRule(
+            decisionPoint = decisionPoint,
+            proposedAction = actionDesc,
+            proposedReason = actionDesc,
+            onRuleAction = { rule ->
+                when (rule.action) {
+                    SceneLibrary.Action.CLICK_BUTTON -> {
+                        // 规则命中点击：优先按 targetButton 找节点点击，找不到则走原 onClick
+                        val target = rule.targetButton
+                        if (target != null) {
+                            val service = getService()
+                            if (service != null) {
+                                val root = service.getRootInFarmApp()
+                                val node = root?.let { service.findNodeByText(it, target) }
+                                if (node != null) {
+                                    debugLog("$decisionPoint: rule click button '$target'")
+                                    service.performClickSafe(node)
+                                    return@withSceneRule
+                                }
+                            }
+                        }
+                        // target 为空或找不到节点，走原 onClick
+                        onClick()
+                    }
+                    SceneLibrary.Action.BACK -> {
+                        debugLog("$decisionPoint: rule back")
+                        getService()?.pressBack()
+                    }
+                    SceneLibrary.Action.EXIT_TASK -> {
+                        debugLog("$decisionPoint: rule exit task")
+                        getService()?.let {
+                            currentTaskIndex++
+                            collectedCount++
+                            exitBrowsePage(it, reason = "scene_rule_${decisionPoint}")
+                        }
+                    }
+                    SceneLibrary.Action.STOP_AUTOMATION -> {
+                        debugLog("$decisionPoint: rule stop automation")
+                        stop()
+                    }
+                    SceneLibrary.Action.WAIT -> {
+                        debugLog("$decisionPoint: rule wait")
+                        // 不动作，由调用方安排下次轮询
+                    }
+                    else -> {
+                        // 其他动作（如滑动）不适合点击类决策点，走原逻辑
+                        onClick()
+                    }
+                }
+            },
+            onFallback = {
+                // 未命中规则，执行原点击逻辑
+                onClick()
+            }
+        )
+    }
+
     /** 采集当前页面文本摘要（用于询问浮窗展示，最多取 8 条避免太长） */
     private fun pageTextSummary(service: FarmAccessibilityService): String {
         val root = service.getRootInFarmApp() ?: return "[]"
@@ -673,38 +807,43 @@ object AutomationController {
         val btnDesc = button.contentDescription?.toString().orEmpty()
         debugLog("collectDirect: clicking text='$btnText' desc='$btnDesc' (attempt ${attempt + 1})")
         Log.i(TAG, "collectDirect: clicking '$btnText' (attempt ${attempt + 1})")
-        service.performClickSafe(button)
+        withSceneRuleClick(
+            decisionPoint = "collectDirect_click_button",
+            actionDesc = "点击直接领取按钮 (text='$btnText')"
+        ) {
+            service.performClickSafe(button)
 
-        // 等待弹窗或页面变化
-        handler.postDelayed({
-            if (state == AutomationState.COLLECTING_DIRECT) {
-                // 尝试点击确认领取按钮（精确匹配，不包含"关闭"）
-                val claimBtn = service.findClaimRewardButtonExact()
-                if (claimBtn != null) {
-                    Log.i(TAG, "collectDirect: found exact claim button, clicking")
-                    service.performClickSafe(claimBtn)
-                }
-                // 领取后等待弹窗按钮文字更新（"立即领取"→"点此逛一逛再赚1000肥料"）
-                handler.postDelayed({
-                    if (state != AutomationState.COLLECTING_DIRECT) return@postDelayed
-                    // 检查弹窗内是否出现浏览入口（"点此逛一逛"/"再赚"等）
-                    val browseEntry = service.findBrowseEntryInPopup()
-                    if (browseEntry != null) {
-                        Log.i(TAG, "collectDirect: found browse entry in popup after claim, entering BROWSING_TASK")
-                        debugLog("collectDirect: browse entry found, switching to BROWSING_TASK")
-                        taskButtons = listOf(browseEntry)
-                        currentTaskIndex = 0
-                        taskListCheckAttempt = 0
-                        browseFromDirectPopup = true  // 标记：浏览完成后回 COLLECTING_DIRECT
-                        moveTo(AutomationState.BROWSING_TASK)
-                        handler.postDelayed({ runBrowsingTask(swipeCount = 0) }, INTERVAL_CLICK_MS)
-                        return@postDelayed
+            // 等待弹窗或页面变化
+            handler.postDelayed({
+                if (state == AutomationState.COLLECTING_DIRECT) {
+                    // 尝试点击确认领取按钮（精确匹配，不包含"关闭"）
+                    val claimBtn = service.findClaimRewardButtonExact()
+                    if (claimBtn != null) {
+                        Log.i(TAG, "collectDirect: found exact claim button, clicking")
+                        service.performClickSafe(claimBtn)
                     }
-                    // 没有浏览入口，继续检查下一个 direct 按钮
-                    if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
-                }, INTERVAL_CLICK_MS)
-            }
-        }, INTERVAL_PAGE_LOAD_MS)
+                    // 领取后等待弹窗按钮文字更新（"立即领取"→"点此逛一逛再赚1000肥料"）
+                    handler.postDelayed({
+                        if (state != AutomationState.COLLECTING_DIRECT) return@postDelayed
+                        // 检查弹窗内是否出现浏览入口（"点此逛一逛"/"再赚"等）
+                        val browseEntry = service.findBrowseEntryInPopup()
+                        if (browseEntry != null) {
+                            Log.i(TAG, "collectDirect: found browse entry in popup after claim, entering BROWSING_TASK")
+                            debugLog("collectDirect: browse entry found, switching to BROWSING_TASK")
+                            taskButtons = listOf(browseEntry)
+                            currentTaskIndex = 0
+                            taskListCheckAttempt = 0
+                            browseFromDirectPopup = true  // 标记：浏览完成后回 COLLECTING_DIRECT
+                            moveTo(AutomationState.BROWSING_TASK)
+                            handler.postDelayed({ runBrowsingTask(swipeCount = 0) }, INTERVAL_CLICK_MS)
+                            return@postDelayed
+                        }
+                        // 没有浏览入口，继续检查下一个 direct 按钮
+                        if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
+                    }, INTERVAL_CLICK_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+        }
     }
 
     // ============== 阶段3: 打开任务列表 ==============
@@ -812,10 +951,15 @@ object AutomationController {
         val coordIndex = attempt % candidates.size
         val (xRatio, yRatio) = candidates[coordIndex]
         Log.i(TAG, "openTaskList: clicking 集肥料 by coordinate #$coordIndex (attempt ${attempt + 1}) platform=${service.currentPlatform}")
-        clickAtRatio(service, xRatio, yRatio, "集肥料")
-        handler.postDelayed({
-            if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
-        }, INTERVAL_PAGE_LOAD_MS)
+        withSceneRuleClick(
+            decisionPoint = "openTaskList_click_fertilizer_coord",
+            actionDesc = "坐标点击'集肥料'入口 (coord=#$coordIndex)"
+        ) {
+            clickAtRatio(service, xRatio, yRatio, "集肥料")
+            handler.postDelayed({
+                if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
+            }, INTERVAL_PAGE_LOAD_MS)
+        }
     }
 
     /** 检查任务列表是否已打开（带等待重试） */
@@ -1023,12 +1167,17 @@ object AutomationController {
                 debugLog("processTask: multi-click task detected, remainingReplays=$taskReplayRemaining")
             }
         }
-        service.performClickSafe(button)
+        withSceneRuleClick(
+            decisionPoint = "processTask_click_go_complete",
+            actionDesc = "点击'去完成'按钮 (text='$buttonText')"
+        ) {
+            service.performClickSafe(button)
 
-        // 等待检测是否进入广告
-        handler.postDelayed({
-            if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt)
-        }, INTERVAL_PAGE_LOAD_MS)
+            // 等待检测是否进入广告
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt)
+            }, INTERVAL_PAGE_LOAD_MS)
+        }
     }
 
     // ============== 阶段3b: 滑动浏览任务 ==============
@@ -1116,11 +1265,50 @@ object AutomationController {
             Log.i(TAG, "browseTask: red packet popup detected, closing it first")
             debugLog("browseTask: closing red packet popup before swiping (swipe #$swipeCount)")
             service.dumpScreenshotWithMeta("browse", "BROWSING_TASK", swipeCount, "red_packet_popup")
-            service.performClickSafe(redPacketBtn)
-            // 等待弹窗关闭后重新进入（保持 swipeCount 不变，不消耗滑动次数）
-            handler.postDelayed({
-                if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount)
-            }, INTERVAL_CLICK_MS)
+            val scheduleReentry = {
+                // 等待弹窗关闭后重新进入（保持 swipeCount 不变，不消耗滑动次数）
+                handler.postDelayed({
+                    if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount)
+                }, INTERVAL_CLICK_MS)
+            }
+            val originalAction = {
+                service.performClickSafe(redPacketBtn)
+                scheduleReentry()
+            }
+            withSceneRule(
+                decisionPoint = "browseTask_close_red_packet",
+                proposedAction = "CLICK_BUTTON",
+                proposedReason = "关闭遮挡弹窗（红包弹窗），target=关闭",
+                onRuleAction = { rule ->
+                    when (rule.action) {
+                        SceneLibrary.Action.CLICK_BUTTON -> {
+                            // 规则命中点击：优先按 targetButton 找节点点击
+                            val target = rule.targetButton
+                            if (target != null) {
+                                val s = getService()
+                                if (s != null) {
+                                    val root = s.getRootInFarmApp()
+                                    val node = root?.let { s.findNodeByText(it, target) }
+                                    if (node != null) {
+                                        debugLog("browseTask_close_red_packet: rule click button '$target'")
+                                        s.performClickSafe(node)
+                                        scheduleReentry()
+                                        return@withSceneRule
+                                    }
+                                }
+                            }
+                            // target 为空或找不到节点，走原逻辑
+                            originalAction()
+                        }
+                        SceneLibrary.Action.WAIT -> {
+                            debugLog("browseTask_close_red_packet: rule wait")
+                            // 不动作，由调用方安排下次轮询
+                        }
+                        else -> originalAction()
+                    }
+                },
+                onFallback = originalAction
+            )
             return
         }
 
@@ -1725,14 +1913,19 @@ object AutomationController {
             if (historyKeyword != null) {
                 Log.i(TAG, "processTask: search browse task page detected, clicking history search keyword")
                 debugLog("processTask: clicking history search keyword to enter browse page")
-                service.performClickSafe(historyKeyword)
-                // 标记来自搜索浏览任务，退出时返回两次
-                browseFromSearchBrowse = true
-                browseFromDirectPopup = false
-                browseTaskTargetSwipes = MAX_BROWSE_SWIPES
-                // 等待进入真正的浏览页面（"滑动浏览得肥料"），然后切换到 BROWSING_TASK
-                moveTo(AutomationState.BROWSING_TASK)
-                handler.postDelayed({ runBrowsingTask(swipeCount = 1) }, INTERVAL_PAGE_LOAD_MS)
+                withSceneRuleClick(
+                    decisionPoint = "checkTaskResult_click_history_keyword",
+                    actionDesc = "点击历史搜索词进入浏览页面"
+                ) {
+                    service.performClickSafe(historyKeyword)
+                    // 标记来自搜索浏览任务，退出时返回两次
+                    browseFromSearchBrowse = true
+                    browseFromDirectPopup = false
+                    browseTaskTargetSwipes = MAX_BROWSE_SWIPES
+                    // 等待进入真正的浏览页面（"滑动浏览得肥料"），然后切换到 BROWSING_TASK
+                    moveTo(AutomationState.BROWSING_TASK)
+                    handler.postDelayed({ runBrowsingTask(swipeCount = 1) }, INTERVAL_PAGE_LOAD_MS)
+                }
                 return
             } else {
                 // 找不到历史搜索词，按返回退出
@@ -2265,12 +2458,44 @@ object AutomationController {
                 if (entryBtn != null) {
                     Log.i(TAG, "watchAd: found '我要更快拿奖' button, clicking it")
                     debugLog("watchAd: clicking '我要更快拿奖' entry button")
-                    service.performClickSafe(entryBtn)
-                    fasterRewardStage = 1
-                    // 等待确认弹窗出现（"15秒更快拿奖"）
-                    handler.postDelayed({
-                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-                    }, INTERVAL_PAGE_LOAD_MS)
+                    val originalAction = {
+                        service.performClickSafe(entryBtn)
+                        fasterRewardStage = 1
+                        // 等待确认弹窗出现（"15秒更快拿奖"）
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
+                        }, INTERVAL_PAGE_LOAD_MS)
+                    }
+                    withSceneRule(
+                        decisionPoint = "fasterReward_click_entry",
+                        proposedAction = "EXIT_TASK",
+                        proposedReason = "退出任务（跳过点击'我要更快拿奖'入口按钮）",
+                        onRuleAction = { rule ->
+                            when (rule.action) {
+                                SceneLibrary.Action.EXIT_TASK -> {
+                                    debugLog("fasterReward_click_entry: rule exit task")
+                                    getService()?.let {
+                                        currentTaskIndex++
+                                        collectedCount++
+                                        exitBrowsePage(it, reason = "scene_rule_fasterReward_click_entry")
+                                    }
+                                }
+                                SceneLibrary.Action.BACK -> {
+                                    debugLog("fasterReward_click_entry: rule back")
+                                    getService()?.pressBack()
+                                }
+                                SceneLibrary.Action.STOP_AUTOMATION -> {
+                                    debugLog("fasterReward_click_entry: rule stop automation")
+                                    stop()
+                                }
+                                SceneLibrary.Action.WAIT -> {
+                                    debugLog("fasterReward_click_entry: rule wait")
+                                }
+                                else -> originalAction()
+                            }
+                        },
+                        onFallback = originalAction
+                    )
                     return
                 }
             }
@@ -2281,14 +2506,46 @@ object AutomationController {
                     if (allowBtn != null) {
                         Log.i(TAG, "watchAd: faster reward confirm popup detected, clicking allow")
                         debugLog("watchAd: clicking allow on faster reward confirm popup")
-                        service.performClickSafe(allowBtn)
-                        fasterRewardStage = 2
-                        // 记录点击"允许"时的时间戳，用于计算16秒停留
-                        fasterRewardAppEnterTimeMs = System.currentTimeMillis()
-                        // 等待新 App 打开，然后停留16秒
-                        handler.postDelayed({
-                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-                        }, INTERVAL_PAGE_LOAD_MS)
+                        val originalAction = {
+                            service.performClickSafe(allowBtn)
+                            fasterRewardStage = 2
+                            // 记录点击"允许"时的时间戳，用于计算16秒停留
+                            fasterRewardAppEnterTimeMs = System.currentTimeMillis()
+                            // 等待新 App 打开，然后停留16秒
+                            handler.postDelayed({
+                                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
+                            }, INTERVAL_PAGE_LOAD_MS)
+                        }
+                        withSceneRule(
+                            decisionPoint = "fasterReward_click_allow",
+                            proposedAction = "EXIT_TASK",
+                            proposedReason = "退出任务（跳过点击'允许'按钮）",
+                            onRuleAction = { rule ->
+                                when (rule.action) {
+                                    SceneLibrary.Action.EXIT_TASK -> {
+                                        debugLog("fasterReward_click_allow: rule exit task")
+                                        getService()?.let {
+                                            currentTaskIndex++
+                                            collectedCount++
+                                            exitBrowsePage(it, reason = "scene_rule_fasterReward_click_allow")
+                                        }
+                                    }
+                                    SceneLibrary.Action.BACK -> {
+                                        debugLog("fasterReward_click_allow: rule back")
+                                        getService()?.pressBack()
+                                    }
+                                    SceneLibrary.Action.STOP_AUTOMATION -> {
+                                        debugLog("fasterReward_click_allow: rule stop automation")
+                                        stop()
+                                    }
+                                    SceneLibrary.Action.WAIT -> {
+                                        debugLog("fasterReward_click_allow: rule wait")
+                                    }
+                                    else -> originalAction()
+                                }
+                            },
+                            onFallback = originalAction
+                        )
                         return
                     } else {
                         // 弹窗出现但"允许"按钮未渲染，短暂等待后重试
@@ -2642,7 +2899,37 @@ object AutomationController {
                 val closeBtn = service.findAdCloseButton()
                 if (closeBtn != null) {
                     Log.i(TAG, "closeAd: found close button, clicking")
-                    service.performClickSafe(closeBtn)
+                    val originalAction = { service.performClickSafe(closeBtn) }
+                    withSceneRule(
+                        decisionPoint = "closeAd_click_close_btn",
+                        proposedAction = "EXIT_TASK",
+                        proposedReason = "退出任务（跳过点击广告关闭按钮）",
+                        onRuleAction = { rule ->
+                            when (rule.action) {
+                                SceneLibrary.Action.EXIT_TASK -> {
+                                    debugLog("closeAd_click_close_btn: rule exit task")
+                                    getService()?.let {
+                                        currentTaskIndex++
+                                        collectedCount++
+                                        exitBrowsePage(it, reason = "scene_rule_closeAd_click_close_btn")
+                                    }
+                                }
+                                SceneLibrary.Action.BACK -> {
+                                    debugLog("closeAd_click_close_btn: rule back")
+                                    getService()?.pressBack()
+                                }
+                                SceneLibrary.Action.STOP_AUTOMATION -> {
+                                    debugLog("closeAd_click_close_btn: rule stop automation")
+                                    stop()
+                                }
+                                SceneLibrary.Action.WAIT -> {
+                                    debugLog("closeAd_click_close_btn: rule wait")
+                                }
+                                else -> originalAction()
+                            }
+                        },
+                        onFallback = originalAction
+                    )
                 } else {
                     // AI 视觉识别 fallback：用大模型找广告关闭按钮
                     debugLog("closeAd: node not found, trying AI vision")
