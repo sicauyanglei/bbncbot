@@ -2307,10 +2307,12 @@ class FarmAccessibilityService : AccessibilityService() {
     fun isTaskCompletePage(): Boolean {
         val root = getRootInFarmApp() ?: return false
         val allText = collectAllText(root)
+        // 收紧完成关键词：移除"恭喜获得"、"获得肥料"等过宽关键词
+        // 原因：浏览任务进行中页面常显示"已获得肥料 xxx"（已领取的部分奖励），
+        // 会被误判为任务完成而提前退出。只有明确的完成标志才算完成。
         val isComplete = allText.any { text ->
             text.contains("任务完成") || text.contains("已完成") ||
                 text.contains("全部完成") || text.contains("已完成浏览") ||
-                text.contains("恭喜获得") || text.contains("获得肥料") ||
                 text.contains("已领取全部奖励") || text.contains("全部奖励已领取") ||
                 text.contains("奖励已领取")
         }

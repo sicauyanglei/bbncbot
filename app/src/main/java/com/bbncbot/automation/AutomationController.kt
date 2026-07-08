@@ -1108,21 +1108,20 @@ object AutomationController {
         }
 
         // 已完成所有滑动次数：判断是否需要继续等待"任务完成"
-        // 以下信号表示任务还在进行中，必须继续滑动直到"任务完成"出现：
-        // - 有"再逛xx秒后可领奖"倒计时
-        // - 有"每浏览x秒获得一次奖励"进度提示
-        // - 无以上信号且已超过等待上限 → 放弃等待，退出（避免卡死）
+        // 滑动次数达标后，在 waitLimit 内继续滑动等待"任务完成"出现
+        // 原因：滑动后页面文案可能短暂消失导致进度提示检测失败，但任务实际还在进行
+        // 只有超过 waitLimit 或检测到任务完成（上方 isTaskCompletePage）才退出
         if (swipeCount > browseTaskTargetSwipes) {
             val countdownSeconds = service.findBrowseRewardCountdownHint()
             val hasProgressHint = service.hasBrowseRewardProgressHint()
             val waitLimit = browseTaskTargetSwipes + MAX_BROWSE_WAIT_SWIPES
-            if (swipeCount <= waitLimit && (countdownSeconds > 0 || hasProgressHint)) {
-                // 任务还在进行中（倒计时或进度提示仍在），继续滑动等待"任务完成"出现
-                Log.i(TAG, "browseTask: task still in progress (countdown=${countdownSeconds}s, progressHint=$hasProgressHint), keep swiping until task complete (swipe #$swipeCount/$waitLimit)")
-                debugLog("browseTask: task in progress, keep swiping (countdown=${countdownSeconds}s, progress=$hasProgressHint, swipe #$swipeCount/$waitLimit)")
+            if (swipeCount <= waitLimit) {
+                // 还在等待上限内，继续滑动等待"任务完成"出现
+                Log.i(TAG, "browseTask: swipes reached target, keep waiting for task complete (countdown=${countdownSeconds}s, progressHint=$hasProgressHint, swipe #$swipeCount/$waitLimit)")
+                debugLog("browseTask: keep swiping within wait limit (countdown=${countdownSeconds}s, progress=$hasProgressHint, swipe #$swipeCount/$waitLimit)")
                 // 继续走下面的滑动逻辑（不 return）
             } else {
-                debugLog("browseTask: swipe limit reached and no progress signal (swipes=$swipeCount, countdown=${countdownSeconds}s, progress=$hasProgressHint), exiting browse page")
+                debugLog("browseTask: wait limit exceeded (swipes=$swipeCount/$waitLimit, countdown=${countdownSeconds}s, progress=$hasProgressHint), exiting browse page")
                 currentTaskIndex++
                 collectedCount++
                 exitBrowsePage(service)
