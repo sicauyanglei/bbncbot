@@ -1408,58 +1408,57 @@ object AutomationController {
             Triple(baseY - swipeRange, baseY + swipeRange, "down")
         }
 
-        // 先查场景规则库：命中则执行规则动作，未命中走原 withApproval 逻辑
-        // 这是从"关键词匹配"升级到"场景识别"的关键路径
+        // 先查场景规则库：命中则执行规则动作，未命中直接滑动
+        // 注意：滑动是浏览任务的常规高频动作，不走 withApproval 询问
+        // （每次滑动都弹浮窗会卡住整个任务流程）
+        // 退出/点击等关键决策仍保留询问，滑动直接执行
         val sceneFeatures = SceneFeatureExtractor.extract(service, state.name)
         debugLog("browseTask: scene sig=${sceneFeatures.signature()}")
         val sceneRule = SceneLibrary.match(sceneFeatures)
         if (sceneRule != null) {
             debugLog("browseTask: scene rule matched, action=${sceneRule.action} target=${sceneRule.targetButton} conf=${sceneRule.confidence}")
-            // 交互模式下，规则命中仍走询问流程（记录响应强化/弱化规则）
-            val ruleActionText = "规则建议: ${sceneRule.action}" + (sceneRule.targetButton?.let { " '$it'" } ?: "")
-            val ruleReason = "命中规则(来源=${sceneRule.source}, 置信度=${sceneRule.confidence}, 命中${sceneRule.hitCount}次)"
-            withApproval(
-                action = ruleActionText,
-                reason = ruleReason,
-                pageSummary = sceneFeatures.summary(),
-                onApprove = {
-                    // 用户同意，执行规则动作并记录强化
+            // 命中规则：仅当规则动作不是滑动类时才需要确认（退出/停止等关键动作）
+            // 滑动类规则直接执行，不询问
+            when (sceneRule.action) {
+                SceneLibrary.Action.SWIPE_UP, SceneLibrary.Action.SWIPE_DOWN -> {
+                    // 滑动规则：直接执行，记录强化
                     SceneLibrary.recordApproval(sceneFeatures, sceneRule.action, ActionProposer.Response.APPROVE)
                     executeSceneRuleAction(service, sceneRule, swipeCount, centerX, startY, endY)
-                },
-                onReject = {
-                    // 用户拒绝，弱化规则
-                    SceneLibrary.recordApproval(sceneFeatures, sceneRule.action, ActionProposer.Response.REJECT)
-                    debugLog("browseTask: scene rule rejected by user, continuing original swipe logic")
-                    // 走原滑动逻辑
-                    service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
-                    scheduleNextBrowseCheck(service, swipeCount)
                 }
-            )
+                SceneLibrary.Action.WAIT -> {
+                    // 等待规则：直接执行，不询问
+                    SceneLibrary.recordApproval(sceneFeatures, sceneRule.action, ActionProposer.Response.APPROVE)
+                    executeSceneRuleAction(service, sceneRule, swipeCount, centerX, startY, endY)
+                }
+                else -> {
+                    // 退出/返回/停止等关键动作：走询问流程（这些动作影响大，需要用户确认）
+                    val ruleActionText = "规则建议: ${sceneRule.action}" + (sceneRule.targetButton?.let { " '$it'" } ?: "")
+                    val ruleReason = "命中规则(来源=${sceneRule.source}, 置信度=${sceneRule.confidence}, 命中${sceneRule.hitCount}次)"
+                    withApproval(
+                        action = ruleActionText,
+                        reason = ruleReason,
+                        pageSummary = sceneFeatures.summary(),
+                        onApprove = {
+                            SceneLibrary.recordApproval(sceneFeatures, sceneRule.action, ActionProposer.Response.APPROVE)
+                            executeSceneRuleAction(service, sceneRule, swipeCount, centerX, startY, endY)
+                        },
+                        onReject = {
+                            SceneLibrary.recordApproval(sceneFeatures, sceneRule.action, ActionProposer.Response.REJECT)
+                            debugLog("browseTask: scene rule rejected by user, executing original swipe")
+                            service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
+                            scheduleNextBrowseCheck(service, swipeCount)
+                        }
+                    )
+                    return
+                }
+            }
             return
         }
 
-        // 未命中规则，走原关键词匹配逻辑（带交互询问）
+        // 未命中规则，直接执行滑动（不询问，滑动是常规动作）
         debugLog("browseTask: swipe #$swipeCount $dirText ($startY -> $endY)")
-        val swipeActionText = "浏览任务: 滑动 #$swipeCount $dirText"
-        val swipeReason = "swipe=$swipeCount/$browseTaskTargetSwipes, 未检测到任务完成，继续滑动获取肥料"
-        val swipePageSummary = pageTextSummary(service)
-        withApproval(
-            action = swipeActionText,
-            reason = swipeReason,
-            pageSummary = swipePageSummary,
-            onApprove = {
-                service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
-                scheduleNextBrowseCheck(service, swipeCount)
-            },
-            onReject = {
-                // 用户拒绝滑动：不执行滑动，但仍推进下一轮检测（避免卡死）
-                debugLog("browseTask: swipe #$swipeCount rejected by user, skip swipe and continue")
-                handler.postDelayed({
-                    if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount + 1)
-                }, BROWSE_SWIPE_INTERVAL_MS)
-            }
-        )
+        service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
+        scheduleNextBrowseCheck(service, swipeCount)
     }
 
     /**
