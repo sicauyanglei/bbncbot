@@ -16,6 +16,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import com.bbncbot.MainActivity
@@ -23,6 +24,7 @@ import com.bbncbot.R
 import com.bbncbot.automation.ActionProposer
 import com.bbncbot.automation.AutomationController
 import com.bbncbot.automation.AutomationState
+import com.bbncbot.automation.TeachCommandParser
 import com.bbncbot.service.FarmAccessibilityService
 import kotlin.math.abs
 
@@ -43,6 +45,8 @@ class FloatingWindowService : Service() {
         private const val CLICK_THRESHOLD_PX = 10f
         /** 长按切换交互模式的阈值（毫秒） */
         private const val LONG_PRESS_THRESHOLD_MS = 800L
+        /** 双击打开教学浮窗的间隔（毫秒） */
+        private const val DOUBLE_CLICK_INTERVAL_MS = 350L
     }
 
     private lateinit var windowManager: WindowManager
@@ -54,6 +58,13 @@ class FloatingWindowService : Service() {
     private var proposalActionTv: TextView? = null
     private var proposalReasonTv: TextView? = null
     private var proposalPageTv: TextView? = null
+
+    /** 教学浮窗（用户主动下发指令），默认不添加，双击主按钮或广播触发时显示 */
+    private var teachView: View? = null
+    private var teachInput: EditText? = null
+
+    /** 上次单击时间，用于双击检测 */
+    private var lastClickTime = 0L
 
     private val layoutParams: WindowManager.LayoutParams by lazy {
         WindowManager.LayoutParams().apply {
@@ -92,6 +103,24 @@ class FloatingWindowService : Service() {
         }
     }
 
+    /** 教学浮窗的 LayoutParams（居中显示，需焦点以便输入文字） */
+    private val teachLayoutParams: WindowManager.LayoutParams by lazy {
+        WindowManager.LayoutParams().apply {
+            type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            } else {
+                @Suppress("DEPRECATION")
+                WindowManager.LayoutParams.TYPE_PHONE
+            }
+            format = PixelFormat.RGBA_8888
+            // 不加 FLAG_NOT_FOCUSABLE，让 EditText 可输入
+            flags = WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+            width = WindowManager.LayoutParams.WRAP_CONTENT
+            height = WindowManager.LayoutParams.WRAP_CONTENT
+            gravity = Gravity.CENTER
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -99,6 +128,7 @@ class FloatingWindowService : Service() {
         startForeground(NOTIFICATION_ID, buildNotification())
         setupFloatingWindow()
         setupProposalWindow()
+        setupTeachWindow()
         AutomationController.onStateChanged = { state ->
             updateButtonUi(state)
         }
@@ -126,6 +156,10 @@ class FloatingWindowService : Service() {
             // adb shell am broadcast -a com.bbncbot.TOGGLE_INTERACTIVE
             Log.i(TAG, "Received TOGGLE_INTERACTIVE broadcast")
             toggleInteractiveMode()
+        } else if (intent?.action == "com.bbncbot.OPEN_TEACH") {
+            // adb shell am broadcast -a com.bbncbot.OPEN_TEACH
+            Log.i(TAG, "Received OPEN_TEACH broadcast")
+            toggleTeachWindow()
         }
         return START_STICKY
     }
@@ -144,6 +178,13 @@ class FloatingWindowService : Service() {
                 Log.w(TAG, "removeView proposal failed: ${e.message}")
             }
         }
+        teachView?.let {
+            try {
+                windowManager.removeView(it)
+            } catch (e: Exception) {
+                Log.w(TAG, "removeView teach failed: ${e.message}")
+            }
+        }
         floatingView?.let {
             try {
                 windowManager.removeView(it)
@@ -154,6 +195,7 @@ class FloatingWindowService : Service() {
         floatingView = null
         actionButton = null
         proposalView = null
+        teachView = null
         Log.i(TAG, "FloatingWindowService destroyed")
     }
 
@@ -201,8 +243,23 @@ class FloatingWindowService : Service() {
                             // 长按：切换交互模式（拟动作询问）
                             toggleInteractiveMode()
                         } else {
-                            v.performClick()
-                            onActionButtonClicked()
+                            // 短按：检测双击 → 打开教学浮窗；单击 → 启停
+                            val now = System.currentTimeMillis()
+                            if (now - lastClickTime <= DOUBLE_CLICK_INTERVAL_MS) {
+                                // 双击：打开教学浮窗
+                                lastClickTime = 0L
+                                toggleTeachWindow()
+                            } else {
+                                lastClickTime = now
+                                // 延迟触发单击，若在间隔内再来一次则视为双击
+                                v.performClick()
+                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                    if (lastClickTime != 0L && System.currentTimeMillis() - lastClickTime >= DOUBLE_CLICK_INTERVAL_MS - 50) {
+                                        lastClickTime = 0L
+                                        onActionButtonClicked()
+                                    }
+                                }, DOUBLE_CLICK_INTERVAL_MS.toLong())
+                            }
                         }
                     }
                 }
@@ -276,6 +333,86 @@ class FloatingWindowService : Service() {
         } catch (e: Exception) {
             // 未添加，忽略
         }
+    }
+
+    /** 初始化教学浮窗（默认不添加到 WindowManager） */
+    private fun setupTeachWindow() {
+        val inflater = LayoutInflater.from(this)
+        val view = inflater.inflate(R.layout.view_teach_dialog, null, false)
+        teachInput = view.findViewById(R.id.etTeachInput)
+        // 执行指令按钮：解析 EditText 内容并执行
+        view.findViewById<Button>(R.id.btnTeachExecute).setOnClickListener {
+            val input = teachInput?.text?.toString().orEmpty()
+            if (input.isBlank()) {
+                Toast.makeText(this, "请输入指令", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val service = FarmAccessibilityService.getInstance()
+            if (service == null) {
+                Toast.makeText(this, "无障碍服务未连接", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val ok = TeachCommandParser.parseAndExecute(input, service)
+            Toast.makeText(
+                this,
+                if (ok) "已执行: $input" else "无法解析指令: $input",
+                Toast.LENGTH_SHORT
+            ).show()
+            teachInput?.text?.clear()
+            hideTeach()
+        }
+        // 关闭按钮
+        view.findViewById<Button>(R.id.btnTeachClose).setOnClickListener { hideTeach() }
+        // 快捷按钮：直接执行对应动作
+        view.findViewById<Button>(R.id.btnQuickSwipeUp).setOnClickListener {
+            val s = FarmAccessibilityService.getInstance() ?: return@setOnClickListener
+            TeachCommandParser.parseAndExecute("向上", s)
+        }
+        view.findViewById<Button>(R.id.btnQuickSwipeDown).setOnClickListener {
+            val s = FarmAccessibilityService.getInstance() ?: return@setOnClickListener
+            TeachCommandParser.parseAndExecute("向下", s)
+        }
+        view.findViewById<Button>(R.id.btnQuickBack).setOnClickListener {
+            val s = FarmAccessibilityService.getInstance() ?: return@setOnClickListener
+            TeachCommandParser.parseAndExecute("返回", s)
+        }
+        view.findViewById<Button>(R.id.btnQuickExit).setOnClickListener {
+            TeachCommandParser.parseAndExecute("退出", FarmAccessibilityService.getInstance() ?: return@setOnClickListener)
+        }
+        teachView = view
+    }
+
+    /** 切换教学浮窗显示/隐藏 */
+    private fun toggleTeachWindow() {
+        if (teachView?.parent != null) hideTeach() else showTeach()
+    }
+
+    private fun showTeach() {
+        val view = teachView ?: return
+        try {
+            windowManager.removeView(view)
+        } catch (e: Exception) { /* 未添加 */ }
+        try {
+            windowManager.addView(view, teachLayoutParams)
+            // 自动获取焦点弹键盘
+            teachInput?.requestFocus()
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            imm.showSoftInput(teachInput, android.view.inputmethod.InputMethodManager.SHOW_FORCED)
+        } catch (e: Exception) {
+            Log.w(TAG, "showTeach addView failed: ${e.message}")
+        }
+    }
+
+    private fun hideTeach() {
+        val view = teachView ?: return
+        try {
+            // 隐藏键盘
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            imm.hideSoftInputFromWindow(view.windowToken, 0)
+        } catch (e: Exception) { /* ignore */ }
+        try {
+            windowManager.removeView(view)
+        } catch (e: Exception) { /* 未添加 */ }
     }
 
     private fun onActionButtonClicked() {
