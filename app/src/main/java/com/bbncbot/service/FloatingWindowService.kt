@@ -45,8 +45,6 @@ class FloatingWindowService : Service() {
         private const val CLICK_THRESHOLD_PX = 10f
         /** 长按切换交互模式的阈值（毫秒） */
         private const val LONG_PRESS_THRESHOLD_MS = 800L
-        /** 双击打开教学浮窗的间隔（毫秒） */
-        private const val DOUBLE_CLICK_INTERVAL_MS = 350L
     }
 
     private lateinit var windowManager: WindowManager
@@ -59,12 +57,9 @@ class FloatingWindowService : Service() {
     private var proposalReasonTv: TextView? = null
     private var proposalPageTv: TextView? = null
 
-    /** 教学浮窗（用户主动下发指令），默认不添加，双击主按钮或广播触发时显示 */
+    /** 教学浮窗（用户主动下发指令），默认不添加，长按主按钮或广播触发时显示 */
     private var teachView: View? = null
     private var teachInput: EditText? = null
-
-    /** 上次单击时间，用于双击检测 */
-    private var lastClickTime = 0L
 
     private val layoutParams: WindowManager.LayoutParams by lazy {
         WindowManager.LayoutParams().apply {
@@ -113,8 +108,11 @@ class FloatingWindowService : Service() {
                 WindowManager.LayoutParams.TYPE_PHONE
             }
             format = PixelFormat.RGBA_8888
-            // 不加 FLAG_NOT_FOCUSABLE，让 EditText 可输入
+            // 关键：不加 FLAG_NOT_FOCUSABLE，让 EditText 可获取焦点输入
+            // 不加 FLAG_ALT_FOCUSABLE_IM（它会阻止输入法弹出）
             flags = WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+            // 设置 softInputMode 让输入法自动弹出
+            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
             width = WindowManager.LayoutParams.WRAP_CONTENT
             height = WindowManager.LayoutParams.WRAP_CONTENT
             gravity = Gravity.CENTER
@@ -240,26 +238,13 @@ class FloatingWindowService : Service() {
                     val pressDuration = System.currentTimeMillis() - pressDownTime
                     if (!isDragging) {
                         if (pressDuration >= LONG_PRESS_THRESHOLD_MS) {
-                            // 长按：切换交互模式（拟动作询问）
-                            toggleInteractiveMode()
+                            // 长按：打开教学浮窗（用户主动下发指令）
+                            Log.i(TAG, "long press detected, opening teach window")
+                            toggleTeachWindow()
                         } else {
-                            // 短按：检测双击 → 打开教学浮窗；单击 → 启停
-                            val now = System.currentTimeMillis()
-                            if (now - lastClickTime <= DOUBLE_CLICK_INTERVAL_MS) {
-                                // 双击：打开教学浮窗
-                                lastClickTime = 0L
-                                toggleTeachWindow()
-                            } else {
-                                lastClickTime = now
-                                // 延迟触发单击，若在间隔内再来一次则视为双击
-                                v.performClick()
-                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                    if (lastClickTime != 0L && System.currentTimeMillis() - lastClickTime >= DOUBLE_CLICK_INTERVAL_MS - 50) {
-                                        lastClickTime = 0L
-                                        onActionButtonClicked()
-                                    }
-                                }, DOUBLE_CLICK_INTERVAL_MS.toLong())
-                            }
+                            // 单击：启停自动化
+                            v.performClick()
+                            onActionButtonClicked()
                         }
                     }
                 }
@@ -363,21 +348,42 @@ class FloatingWindowService : Service() {
         }
         // 关闭按钮
         view.findViewById<Button>(R.id.btnTeachClose).setOnClickListener { hideTeach() }
-        // 快捷按钮：直接执行对应动作
+        // 快捷按钮：直接执行对应动作（带 Toast 反馈）
         view.findViewById<Button>(R.id.btnQuickSwipeUp).setOnClickListener {
-            val s = FarmAccessibilityService.getInstance() ?: return@setOnClickListener
-            TeachCommandParser.parseAndExecute("向上", s)
+            val s = FarmAccessibilityService.getInstance()
+            if (s == null) {
+                Toast.makeText(this, "无障碍服务未连接", Toast.LENGTH_SHORT).show()
+            } else {
+                val ok = TeachCommandParser.parseAndExecute("向上", s)
+                Toast.makeText(this, if (ok) "已执行: 向上滑动" else "执行失败", Toast.LENGTH_SHORT).show()
+            }
         }
         view.findViewById<Button>(R.id.btnQuickSwipeDown).setOnClickListener {
-            val s = FarmAccessibilityService.getInstance() ?: return@setOnClickListener
-            TeachCommandParser.parseAndExecute("向下", s)
+            val s = FarmAccessibilityService.getInstance()
+            if (s == null) {
+                Toast.makeText(this, "无障碍服务未连接", Toast.LENGTH_SHORT).show()
+            } else {
+                val ok = TeachCommandParser.parseAndExecute("向下", s)
+                Toast.makeText(this, if (ok) "已执行: 向下滑动" else "执行失败", Toast.LENGTH_SHORT).show()
+            }
         }
         view.findViewById<Button>(R.id.btnQuickBack).setOnClickListener {
-            val s = FarmAccessibilityService.getInstance() ?: return@setOnClickListener
-            TeachCommandParser.parseAndExecute("返回", s)
+            val s = FarmAccessibilityService.getInstance()
+            if (s == null) {
+                Toast.makeText(this, "无障碍服务未连接", Toast.LENGTH_SHORT).show()
+            } else {
+                val ok = TeachCommandParser.parseAndExecute("返回", s)
+                Toast.makeText(this, if (ok) "已执行: 返回" else "执行失败", Toast.LENGTH_SHORT).show()
+            }
         }
         view.findViewById<Button>(R.id.btnQuickExit).setOnClickListener {
-            TeachCommandParser.parseAndExecute("退出", FarmAccessibilityService.getInstance() ?: return@setOnClickListener)
+            val s = FarmAccessibilityService.getInstance()
+            if (s == null) {
+                Toast.makeText(this, "无障碍服务未连接", Toast.LENGTH_SHORT).show()
+            } else {
+                val ok = TeachCommandParser.parseAndExecute("退出", s)
+                Toast.makeText(this, if (ok) "已执行: 退出" else "执行失败", Toast.LENGTH_SHORT).show()
+            }
         }
         teachView = view
     }
@@ -389,15 +395,24 @@ class FloatingWindowService : Service() {
 
     private fun showTeach() {
         val view = teachView ?: return
+        Log.i(TAG, "showTeach: opening teach window")
         try {
             windowManager.removeView(view)
         } catch (e: Exception) { /* 未添加 */ }
         try {
             windowManager.addView(view, teachLayoutParams)
-            // 自动获取焦点弹键盘
-            teachInput?.requestFocus()
-            val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-            imm.showSoftInput(teachInput, android.view.inputmethod.InputMethodManager.SHOW_FORCED)
+            Log.i(TAG, "showTeach: addView success")
+            // 延迟获取焦点 + 弹键盘（view 需要先完成 layout）
+            teachInput?.postDelayed({
+                try {
+                    teachInput?.requestFocus()
+                    val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                    val showOk = imm.showSoftInput(teachInput, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+                    Log.i(TAG, "showTeach: requestFocus done, showSoftInput=$showOk")
+                } catch (e: Exception) {
+                    Log.w(TAG, "showTeach: focus/imm failed: ${e.message}")
+                }
+            }, 200L)
         } catch (e: Exception) {
             Log.w(TAG, "showTeach addView failed: ${e.message}")
         }

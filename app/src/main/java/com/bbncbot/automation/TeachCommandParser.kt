@@ -68,27 +68,38 @@ object TeachCommandParser {
     fun parseAndExecute(input: String, service: FarmAccessibilityService): Boolean {
         val raw = input.trim()
         if (raw.isEmpty()) return false
-        val cmd = raw.replace("　", " ").lowercase(Locale.US)
+        // 注意：不 lowercase 中文指令，只 lowercase 英文关键词
+        val cmd = raw.replace("　", " ").trim()
+        Log.i(TAG, "parseAndExecute: raw='$raw' cmd='$cmd'")
         logTeach(raw)
 
         val result = parse(cmd) ?: run {
             Log.w(TAG, "无法解析指令: $raw")
             return false
         }
+        Log.i(TAG, "parseAndExecute: parsed result=$result")
 
         return when (result) {
             is ActionResult.ClickByVision -> {
                 Log.i(TAG, "执行: AI视觉点击 '${result.description}'")
                 // 异步执行，不阻塞浮窗
                 Thread {
-                    val ok = service.clickByAiVision(result.description)
-                    Log.i(TAG, "AI视觉点击结果: $ok")
+                    try {
+                        val ok = service.clickByAiVision(result.description)
+                        Log.i(TAG, "AI视觉点击结果: $ok")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "AI视觉点击异常", e)
+                    }
                 }.start()
                 true
             }
             is ActionResult.ClickByCoord -> {
                 Log.i(TAG, "执行: 坐标点击 (${result.x}, ${result.y})")
-                service.dispatchGestureClick(result.x, result.y)
+                try {
+                    service.dispatchGestureClick(result.x, result.y)
+                } catch (e: Exception) {
+                    Log.e(TAG, "坐标点击异常", e)
+                }
                 true
             }
             is ActionResult.Swipe -> {
@@ -97,24 +108,29 @@ object TeachCommandParser {
                     SwipeDir.DOWN -> 950f to 1450f // 向下滑，页面向上滚
                 }
                 Log.i(TAG, "执行: 滑动 ${result.direction}")
-                service.dispatchGestureSwipe(600f, startY, 600f, endY, 500L)
+                try {
+                    service.dispatchGestureSwipe(600f, startY, 600f, endY, 500L)
+                } catch (e: Exception) {
+                    Log.e(TAG, "滑动异常", e)
+                }
                 true
             }
             ActionResult.Back -> {
                 Log.i(TAG, "执行: 返回")
-                service.pressBack()
+                try {
+                    service.pressBack()
+                } catch (e: Exception) {
+                    Log.e(TAG, "返回异常", e)
+                }
                 true
             }
             is ActionResult.Wait -> {
                 Log.i(TAG, "执行: 等待 ${result.ms}ms")
-                // 等待不执行动作，状态机下次轮询自然继续
-                // 如果指定了毫秒数，调用方可在执行后 postDelayed
                 true
             }
             ActionResult.ExitTask -> {
                 Log.i(TAG, "执行: 退出当前任务")
-                // 通过广播触发退出（避免直接调 Controller 内部方法）
-                // 这里简单停止自动化，由用户手动重启
+                // 停止自动化，让用户手动检查后重启
                 AutomationController.stop()
                 true
             }
@@ -132,52 +148,55 @@ object TeachCommandParser {
 
     /** 纯解析，不执行（用于测试 / 日志） */
     fun parse(cmd: String): ActionResult? {
+        // 去除前后空格，统一全角空格
+        val c = cmd.trim()
+
         // 停止（优先匹配，避免被"退出"等截断）
-        if (cmd.startsWith("停止") || cmd == "stop") return ActionResult.Stop
+        if (c == "停止" || c.startsWith("停止") || c.equals("stop", ignoreCase = true)) return ActionResult.Stop
 
         // 退出
-        if (cmd.startsWith("退出") || cmd.startsWith("结束任务") || cmd.startsWith("结束")) {
+        if (c.startsWith("退出") || c.startsWith("结束任务") || c.startsWith("结束")) {
             return ActionResult.ExitTask
         }
 
         // 返回
-        if (cmd.startsWith("返回") || cmd.startsWith("后退") || cmd == "back") {
+        if (c.startsWith("返回") || c.startsWith("后退") || c.equals("back", ignoreCase = true)) {
             return ActionResult.Back
         }
 
         // 等待
-        if (cmd.startsWith("等待") || cmd.startsWith("等")) {
+        if (c.startsWith("等待") || c.startsWith("等") && c.contains("秒")) {
             // 解析"等待 5 秒" / "等3秒"
-            val match = Regex("(?:等待|等)\\s*(\\d+)\\s*秒").find(cmd)
+            val match = Regex("(?:等待|等)\\s*(\\d+)\\s*秒").find(c)
             val seconds = match?.groupValues?.getOrNull(1)?.toIntOrNull()
             return ActionResult.Wait(seconds?.let { it * 1000L })
         }
 
         // 滑动
-        if (cmd.contains("向上") || cmd == "滑动" || cmd.contains("上滑")) {
+        if (c.contains("向上") || c == "滑动" || c.contains("上滑") || c == "上") {
             return ActionResult.Swipe(SwipeDir.UP)
         }
-        if (cmd.contains("向下") || cmd.contains("下滑")) {
+        if (c.contains("向下") || c.contains("下滑") || c == "下") {
             return ActionResult.Swipe(SwipeDir.DOWN)
         }
 
         // 点击：优先匹配"坐标 x,y"
-        val coordMatch = Regex("(?:点|点击|按)\\s*坐标\\s*(\\d+)\\s*[,，]\\s*(\\d+)").find(cmd)
+        val coordMatch = Regex("(?:点|点击|按)\\s*坐标\\s*(\\d+)\\s*[,，]\\s*(\\d+)").find(c)
         if (coordMatch != null) {
             val x = coordMatch.groupValues[1].toFloatOrNull()
             val y = coordMatch.groupValues[2].toFloatOrNull()
             if (x != null && y != null) return ActionResult.ClickByCoord(x, y)
         }
 
-        // 点击："点 XX" / "点击 XX" / "按 XX"
-        val clickMatch = Regex("(?:点|点击|按)\\s+(.+)").find(cmd)
+        // 点击："点 XX" / "点击 XX" / "按 XX"（XX 至少 1 个字符）
+        val clickMatch = Regex("(?:点|点击|按)\\s+(.+)").find(c)
         if (clickMatch != null) {
             val desc = clickMatch.groupValues[1].trim()
             if (desc.isNotEmpty()) return ActionResult.ClickByVision(desc)
         }
 
         // 兜底：纯数字 x,y 当坐标
-        val pureCoord = Regex("^(\\d+)\\s*[,，]\\s*(\\d+)$").find(cmd)
+        val pureCoord = Regex("^(\\d+)\\s*[,，]\\s*(\\d+)$").find(c)
         if (pureCoord != null) {
             val x = pureCoord.groupValues[1].toFloatOrNull()
             val y = pureCoord.groupValues[2].toFloatOrNull()
