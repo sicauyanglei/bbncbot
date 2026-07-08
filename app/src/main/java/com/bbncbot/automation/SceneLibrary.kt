@@ -87,12 +87,19 @@ object SceneLibrary {
         var hitCount: Int = 0
     )
 
-    /** signature → categoryId 映射 */
+    /**
+     * signature → categoryId 映射
+     *
+     * @param coreSignature 核心签名（去掉 btns 等易变字段）。
+     *   用于"明显相同场景"自动归类：coreSignature 命中即视为同一场景，自动添加新 signature 映射。
+     *   旧数据可能为空字符串，匹配时跳过。
+     */
     data class SignatureMapping(
         val signature: String,
         val categoryId: String,
         val firstSeen: String,
-        var matchCount: Int = 0
+        var matchCount: Int = 0,
+        val coreSignature: String = ""
     )
 
     /** 旧版 Rule 类型（向后兼容读取，读后转换为 SceneCategory） */
@@ -158,6 +165,14 @@ object SceneLibrary {
     /**
      * 查询场景的匹配结果
      *
+     * 匹配优先级：
+     * 1. **signature 精确匹配** → 直接执行对应规则（高频命中场景）
+     * 2. **coreSignature 自动归类** → 明显相同的场景自动归到已有 category（不打扰用户）
+     *    核心签名去掉按钮文案等易变字段，只看平台/页面类型/任务类型/popup/countdown/progress
+     *    命中后自动添加新 signature → category 映射，下次直接走精确匹配
+     * 3. **默认规则** → type=complete 等通配规则
+     * 4. **未命中** → 返回 [MatchResult.Unmapped]，由调用方决定是否询问用户归类
+     *
      * @param features 当前场景特征
      * @return [MatchResult]
      */
@@ -177,7 +192,28 @@ object SceneLibrary {
                     return MatchResult.Matched(cat)
                 }
             }
-            // 2. 默认规则
+            // 2. coreSignature 自动归类（明显相同场景，不弹窗）
+            val coreSig = features.coreSignature()
+            val coreMatch = mappings.firstOrNull { it.coreSignature == coreSig && it.coreSignature.isNotEmpty() }
+            if (coreMatch != null) {
+                val cat = categories.firstOrNull { it.id == coreMatch.categoryId }
+                if (cat != null) {
+                    // 自动添加新 signature 映射（下次直接走精确匹配，不重复走 coreSignature 路径）
+                    val now = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(Date())
+                    mappings.add(SignatureMapping(
+                        signature = sig,
+                        categoryId = cat.id,
+                        firstSeen = now,
+                        matchCount = 1,
+                        coreSignature = coreSig
+                    ))
+                    cat.hitCount++
+                    Log.i(TAG, "auto-categorized by coreSignature: sig=$sig coreSig=$coreSig -> category='${cat.name}' (auto-added mapping)")
+                    persistAsync()
+                    return MatchResult.Matched(cat)
+                }
+            }
+            // 3. 默认规则
             for (dr in defaultRules) {
                 val pattern = dr.signaturePattern
                 val pure = pattern.trim('*')
@@ -192,8 +228,8 @@ object SceneLibrary {
                     return MatchResult.Defaulted(dr.action, dr.targetButton)
                 }
             }
-            // 3. signature 未归属任何 category
-            Log.d(TAG, "unmapped signature: $sig")
+            // 4. signature 未归属任何 category
+            Log.d(TAG, "unmapped signature: $sig coreSig=$coreSig")
             return MatchResult.Unmapped(sig)
         }
     }
@@ -215,6 +251,7 @@ object SceneLibrary {
     ): SceneCategory {
         ensureInitialized()
         val sig = features.signature()
+        val coreSig = features.coreSignature()
         synchronized(lock) {
             val cat = SceneCategory(
                 id = "cat_${System.currentTimeMillis()}",
@@ -229,9 +266,10 @@ object SceneLibrary {
                 signature = sig,
                 categoryId = cat.id,
                 firstSeen = cat.createdAt,
-                matchCount = 1
+                matchCount = 1,
+                coreSignature = coreSig
             ))
-            Log.i(TAG, "createCategory: name='$categoryName' action=$action sig=$sig")
+            Log.i(TAG, "createCategory: name='$categoryName' action=$action sig=$sig coreSig=$coreSig")
             logRecording(features, action, targetButton, categoryName)
             persistAsync()
             return cat
@@ -247,6 +285,7 @@ object SceneLibrary {
     fun mapToExistingCategory(features: SceneFeatures, categoryId: String) {
         ensureInitialized()
         val sig = features.signature()
+        val coreSig = features.coreSignature()
         synchronized(lock) {
             // 避免重复映射
             if (mappings.any { it.signature == sig && it.categoryId == categoryId }) return
@@ -255,9 +294,10 @@ object SceneLibrary {
                 signature = sig,
                 categoryId = categoryId,
                 firstSeen = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(Date()),
-                matchCount = 0
+                matchCount = 0,
+                coreSignature = coreSig
             ))
-            Log.i(TAG, "mapToExistingCategory: sig=$sig -> category='${cat.name}'")
+            Log.i(TAG, "mapToExistingCategory: sig=$sig coreSig=$coreSig -> category='${cat.name}'")
             persistAsync()
         }
     }
@@ -338,7 +378,9 @@ object SceneLibrary {
                         signature = o.getString("signature"),
                         categoryId = o.getString("categoryId"),
                         firstSeen = o.getString("firstSeen"),
-                        matchCount = o.optInt("matchCount", 0)
+                        matchCount = o.optInt("matchCount", 0),
+                        // 旧数据可能没有 coreSignature 字段，默认空字符串（match 时跳过自动归类）
+                        coreSignature = o.optString("coreSignature", "")
                     ))
                 }
                 Log.i(TAG, "loaded new format: ${categories.size} categories, ${mappings.size} mappings")
@@ -402,6 +444,7 @@ object SceneLibrary {
                         put("categoryId", m.categoryId)
                         put("firstSeen", m.firstSeen)
                         put("matchCount", m.matchCount)
+                        put("coreSignature", m.coreSignature)
                     })
                 }
                 root.put("categories", cats)
@@ -437,7 +480,8 @@ object SceneLibrary {
             sb.append("=== ${mappings.size} mappings ===\n")
             mappings.forEach { m ->
                 val cat = categories.firstOrNull { it.id == m.categoryId }
-                sb.append("  sig=${m.signature} -> '${cat?.name}' (hits=${m.matchCount})\n")
+                val coreTag = if (m.coreSignature.isNotEmpty()) " core=${m.coreSignature}" else ""
+                sb.append("  sig=${m.signature} -> '${cat?.name}' (hits=${m.matchCount})$coreTag\n")
             }
             sb.toString()
         }

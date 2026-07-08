@@ -115,6 +115,37 @@ data class SceneFeatures(
     }
 
     /**
+     * 核心签名：去掉 [clickableButtons] 等易变字段后的签名
+     *
+     * 用于"明显一样的场景"自动归类：核心签名相同 → 视为同一场景
+     * （按钮文案/顺序略变不影响场景判断）
+     */
+    fun coreSignature(): String {
+        val parts = mutableListOf<String>()
+        parts.add("p=$platform")
+        parts.add("farm=$onFarmPage")
+        parts.add(when {
+            isTaskComplete -> "type=complete"
+            isAbnormalPage -> "type=abnormal"
+            isPaidSearchPage -> "type=paid_search"
+            isBrowseDurationTask -> "type=browse_duration(${browseDurationSeconds}s)"
+            isSearchBrowseTaskPage -> "type=search_browse"
+            isBrowseTaskPage -> "type=browse"
+            onFarmPage -> "type=farm_home"
+            else -> "type=unknown"
+        })
+        if (hasRedPacketPopup) parts.add("popup=red_packet")
+        if (hasFasterRewardEntry) parts.add("popup=faster_reward_entry")
+        if (hasRewardUpgradePopup) parts.add("popup=reward_upgrade")
+        if (countdownSeconds > 0) parts.add("countdown=yes")
+        else parts.add("countdown=no")
+        if (hasBrowseProgressHint) parts.add("progress=yes")
+        else parts.add("progress=no")
+        // 不含 btns 字段
+        return parts.joinToString("|")
+    }
+
+    /**
      * 简短摘要：用于日志 / 浮窗展示
      */
     fun summary(): String {
