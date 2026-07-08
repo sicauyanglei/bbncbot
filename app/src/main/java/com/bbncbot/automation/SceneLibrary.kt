@@ -11,23 +11,28 @@ import java.util.Locale
 /**
  * 场景规则库
  *
- * 存储"场景签名 → 应执行动作"映射，并从用户的教导/批准记录中自动学习。
+ * 存储"场景签名 → 应执行动作"映射，支持三种来源：
  *
- * 三种来源：
  * 1. **内置默认规则**：[defaultRules] 写死的兜底逻辑（任务完成→退出、异常页→退出等）
- * 2. **学习规则**：从 [teachingsLog] + [proposalsLog] 自动派生，存到 [rulesFile]
- * 3. **在线学习**：[recordTeaching] / [recordApproval] 实时记录用户决策，触发规则更新
+ * 2. **录制规则**：用户开启录制模式后，每个操作（滑动/返回/点击）都会被记录成规则
+ * 3. **手动规则**：直接编辑 scene_rules.json
+ *
+ * 工作模式：
+ * - **自动执行**（默认）：bot 遇到决策点先查规则库，命中规则直接执行，**不询问用户**
+ * - **录制模式**：用户开启后 bot 暂停自动执行，用户的每个操作被记录成规则
+ * - **中断**：用户随时点浮窗"中断"按钮，bot 立即停止当前动作
  *
  * 规则匹配优先级：
- * - 学习规则（精确签名匹配） > 内置默认规则 > null（未命中，走原关键词逻辑）
+ * - 学习/录制规则（精确签名匹配，confidence 高的优先） > 内置默认规则 > null（未命中）
  *
  * 数据格式（JSON）：
  * ```json
  * [
  *   {
- *     "signature": "p=UC|farm=false|type=browse|countdown=yes|progress=yes|btns=去完成,关闭",
- *     "action": "swipe_up",
- *     "source": "teaching",
+ *     "signature": "p=UC|farm=false|type=browse|countdown=yes|progress=yes",
+ *     "action": "SWIPE_UP",
+ *     "targetButton": null,
+ *     "source": "recording",
  *     "createdAt": "2026-07-08T10:30:00",
  *     "hitCount": 3,
  *     "confidence": 0.9
@@ -57,10 +62,10 @@ object SceneLibrary {
         val signature: String,
         val action: Action,
         val targetButton: String?,     // action=CLICK_BUTTON 时填按钮文案
-        val source: String,            // teaching / proposal / default
+        val source: String,            // recording / manual / default
         val createdAt: String,
         var hitCount: Int = 0,
-        var confidence: Double = 1.0   // 学习规则初始 0.5，每被命中/确认 +0.1
+        var confidence: Double = 1.0
     )
 
     /** 规则文件路径 */
@@ -69,16 +74,10 @@ object SceneLibrary {
         "Android/data/com.bbncbot/files/scene_rules.json"
     )
 
-    /** teachings.log 路径（与 TeachCommandParser 一致） */
-    private fun teachingsFile(): File = File(
+    /** 录制日志文件（记录每次录制操作的完整上下文） */
+    private fun recordingLogFile(): File = File(
         android.os.Environment.getExternalStorageDirectory(),
-        "Android/data/com.bbncbot/files/teachings.log"
-    )
-
-    /** proposals.log 路径（与 ActionProposer 一致） */
-    private fun proposalsFile(): File = File(
-        android.os.Environment.getExternalStorageDirectory(),
-        "Android/data/com.bbncbot/files/proposals.log"
+        "Android/data/com.bbncbot/files/recording.log"
     )
 
     /** 内存中的规则列表（启动时从文件加载 + 默认规则） */
@@ -123,7 +122,7 @@ object SceneLibrary {
         Rule(
             signature = "*popup=red_packet*",
             action = Action.CLICK_BUTTON,
-            targetButton = "关闭",   // findRedPacketCloseButton 已实现，这里示意
+            targetButton = "关闭",
             source = "default",
             createdAt = "builtin",
             hitCount = 0,
@@ -147,7 +146,7 @@ object SceneLibrary {
      * 匹配场景特征，返回建议动作
      *
      * 匹配顺序：
-     * 1. 学习规则（精确签名匹配，confidence 高的优先）
+     * 1. 学习/录制规则（精确签名匹配，confidence 高的优先）
      * 2. 默认规则（通配符匹配 signature 子串）
      *
      * @param features 当前场景特征
@@ -157,7 +156,7 @@ object SceneLibrary {
         ensureInitialized()
         val sig = features.signature()
         synchronized(lock) {
-            // 1. 学习规则：精确签名匹配
+            // 1. 学习/录制规则：精确签名匹配
             val learned = rules.filter { it.source != "default" && it.signature == sig }
                 .maxByOrNull { it.confidence }
             if (learned != null) {
@@ -191,81 +190,70 @@ object SceneLibrary {
     }
 
     /**
-     * 记录用户教导：用户在场景 X 下明确指示执行动作 Y
-     * - 自动生成或更新规则
-     * - 命中已有规则时 confidence +0.1（最多 1.0）
+     * 录制规则：用户在场景 X 下执行了动作 Y，记录成规则
+     *
+     * - 自动生成或更新规则（同签名同动作 → confidence +0.1）
+     * - 完整记录到 recording.log（含场景特征、动作、时间戳）
+     * - 新规则初始 confidence = 1.0（用户亲自操作，可信度高）
+     *
+     * @param features 当前场景特征（录制时提取）
+     * @param action 用户执行的动作
+     * @param targetButton 点击动作的目标按钮文案（可为 null）
      */
-    fun recordTeaching(features: SceneFeatures, action: Action, targetButton: String? = null) {
+    fun recordRule(features: SceneFeatures, action: Action, targetButton: String? = null) {
         ensureInitialized()
         val sig = features.signature()
         synchronized(lock) {
-            val existing = rules.firstOrNull { it.signature == sig && it.action == action }
+            // 查找是否已有同签名同动作的规则
+            val existing = rules.firstOrNull {
+                it.signature == sig && it.action == action && it.targetButton == targetButton
+            }
             if (existing != null) {
+                // 已有规则：强化（confidence +0.1，最多 1.0）
                 existing.hitCount++
                 existing.confidence = (existing.confidence + 0.1).coerceAtMost(1.0)
-                Log.i(TAG, "reinforced rule: sig=$sig action=$action confidence=${existing.confidence}")
+                Log.i(TAG, "recording: reinforced rule sig=$sig action=$action confidence=${existing.confidence} hits=${existing.hitCount}")
             } else {
+                // 新规则：source=recording, confidence=1.0（用户亲自操作）
                 val newRule = Rule(
                     signature = sig,
                     action = action,
                     targetButton = targetButton,
-                    source = "teaching",
+                    source = "recording",
                     createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(Date()),
                     hitCount = 1,
-                    confidence = 0.5
+                    confidence = 1.0
                 )
                 rules = rules + newRule
-                Log.i(TAG, "learned new rule: sig=$sig action=$action")
+                Log.i(TAG, "recording: added new rule sig=$sig action=$action target=$targetButton")
             }
+            // 记录录制日志
+            logRecording(features, action, targetButton)
             persistRulesAsync()
         }
     }
 
     /**
-     * 记录用户对提议的响应：
-     * - APPROVE：强化"当前场景 → 拟动作"规则
-     * - REJECT：降低该规则 confidence（若有），并记录反例
+     * 删除指定场景的规则（用户中断后可调用，表示"这个场景不该这么操作"）
      */
-    fun recordApproval(features: SceneFeatures, proposedAction: Action, response: ActionProposer.Response) {
+    fun removeRule(features: SceneFeatures, action: Action? = null) {
         ensureInitialized()
         val sig = features.signature()
         synchronized(lock) {
-            when (response) {
-                ActionProposer.Response.APPROVE -> {
-                    val existing = rules.firstOrNull { it.signature == sig && it.action == proposedAction }
-                    if (existing != null) {
-                        existing.hitCount++
-                        existing.confidence = (existing.confidence + 0.1).coerceAtMost(1.0)
-                    } else {
-                        rules = rules + Rule(
-                            signature = sig,
-                            action = proposedAction,
-                            targetButton = null,
-                            source = "proposal",
-                            createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(Date()),
-                            hitCount = 1,
-                            confidence = 0.5
-                        )
-                    }
-                    Log.i(TAG, "approval reinforced: sig=$sig action=$proposedAction")
-                }
-                ActionProposer.Response.REJECT -> {
-                    val existing = rules.firstOrNull { it.signature == sig && it.action == proposedAction }
-                    if (existing != null) {
-                        existing.confidence = (existing.confidence - 0.2).coerceAtLeast(0.0)
-                        Log.i(TAG, "reject reduced: sig=$sig action=$proposedAction confidence=${existing.confidence}")
-                        // confidence 降到 0 删除规则
-                        if (existing.confidence <= 0.0) {
-                            rules = rules - existing
-                            Log.i(TAG, "rule removed due to low confidence: sig=$sig")
-                        }
-                    }
-                }
-                ActionProposer.Response.SKIP -> {
-                    // 跳过不影响规则
-                }
+            val before = rules.size
+            rules = rules.filter { rule ->
+                // 保留默认规则
+                if (rule.source == "default") return@filter true
+                // 删除匹配的规则
+                if (rule.signature != sig) return@filter true
+                if (action != null && rule.action != action) return@filter true
+                false
             }
-            persistRulesAsync()
+            val removed = before - rules.size
+            if (removed > 0) {
+                Log.i(TAG, "removeRule: removed $removed rules for sig=$sig action=$action")
+                persistRulesAsync()
+            }
         }
     }
 
@@ -323,20 +311,21 @@ object SceneLibrary {
         return synchronized(lock) { rules.toList() }
     }
 
-    /**
-     * 从 teachings.log + proposals.log 重新派生规则（离线学习）
-     *
-     * 启动时调用一次，把历史日志转成规则。
-     * 注：当前实现仅扫描 teachings.log，proposals.log 因格式复杂暂未解析。
-     */
-    fun rebuildFromLogs() {
-        ensureInitialized()
-        synchronized(lock) {
-            var learned = 0
-            // teachings.log 格式：HH:mm:ss.SSS TEACH input='xxx'
-            // 但 teachings.log 没记录场景签名，需要场景特征配合才能学
-            // 这里只做"清空规则文件触发重新学习"的入口，实际学习在 recordTeaching/recordApproval 时发生
-            Log.i(TAG, "rebuildFromLogs: skipped (teachings need scene features, learned at runtime)")
+    /** 录制日志 */
+    private fun logRecording(features: SceneFeatures, action: Action, targetButton: String?) {
+        try {
+            val time = SimpleDateFormat("HH:mm:ss.SSS", Locale.US).format(Date())
+            val line = "$time RECORD sig='${features.signature()}' action=$action target='$targetButton' " +
+                "state=${features.controllerState} btns=[${features.clickableButtons.joinToString(",")}]\n"
+            recordingLogFile().apply { parentFile?.mkdirs() }.appendText(line)
+        } catch (e: Exception) {
+            Log.w(TAG, "logRecording failed: ${e.message}")
         }
+    }
+
+    /** 统计：录制规则数量 */
+    fun recordingRuleCount(): Int {
+        ensureInitialized()
+        return synchronized(lock) { rules.count { it.source == "recording" } }
     }
 }

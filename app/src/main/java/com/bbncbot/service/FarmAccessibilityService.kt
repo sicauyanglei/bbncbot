@@ -202,6 +202,15 @@ class FarmAccessibilityService : AccessibilityService() {
         val pkg = event.packageName?.toString().orEmpty()
         val className = event.className?.toString().orEmpty()
 
+        // 录制模式：监听用户手势事件（点击/滑动），记录成规则
+        if (com.bbncbot.automation.RecordingManager.recording) {
+            try {
+                com.bbncbot.automation.RecordingManager.onUserGesture(event, this)
+            } catch (e: Exception) {
+                Log.w(TAG, "RecordingManager.onUserGesture failed: ${e.message}")
+            }
+        }
+
         // 跟踪窗口状态变化，记录当前前台 Activity 和包名
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
             pkg.isNotEmpty() && className.isNotEmpty()) {

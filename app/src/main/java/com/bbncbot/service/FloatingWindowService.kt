@@ -16,7 +16,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
-import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import com.bbncbot.MainActivity
@@ -24,7 +23,7 @@ import com.bbncbot.R
 import com.bbncbot.automation.ActionProposer
 import com.bbncbot.automation.AutomationController
 import com.bbncbot.automation.AutomationState
-import com.bbncbot.automation.TeachCommandParser
+import com.bbncbot.automation.RecordingManager
 import com.bbncbot.service.FarmAccessibilityService
 import kotlin.math.abs
 
@@ -57,9 +56,8 @@ class FloatingWindowService : Service() {
     private var proposalReasonTv: TextView? = null
     private var proposalPageTv: TextView? = null
 
-    /** 教学浮窗（用户主动下发指令），默认不添加，长按主按钮或广播触发时显示 */
+    /** 录制控制浮窗（开始/停止录制 + 中断），默认不添加，长按主按钮或广播触发时显示 */
     private var teachView: View? = null
-    private var teachInput: EditText? = null
 
     private val layoutParams: WindowManager.LayoutParams by lazy {
         WindowManager.LayoutParams().apply {
@@ -98,7 +96,7 @@ class FloatingWindowService : Service() {
         }
     }
 
-    /** 教学浮窗的 LayoutParams（居中显示，需焦点以便输入文字） */
+    /** 录制控制浮窗的 LayoutParams（居中显示，按钮可点击） */
     private val teachLayoutParams: WindowManager.LayoutParams by lazy {
         WindowManager.LayoutParams().apply {
             type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -108,11 +106,8 @@ class FloatingWindowService : Service() {
                 WindowManager.LayoutParams.TYPE_PHONE
             }
             format = PixelFormat.RGBA_8888
-            // 关键：不加 FLAG_NOT_FOCUSABLE，让 EditText 可获取焦点输入
-            // 不加 FLAG_ALT_FOCUSABLE_IM（它会阻止输入法弹出）
-            flags = WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-            // 设置 softInputMode 让输入法自动弹出
-            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
+            flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
             width = WindowManager.LayoutParams.WRAP_CONTENT
             height = WindowManager.LayoutParams.WRAP_CONTENT
             gravity = Gravity.CENTER
@@ -158,6 +153,14 @@ class FloatingWindowService : Service() {
             // adb shell am broadcast -a com.bbncbot.OPEN_TEACH
             Log.i(TAG, "Received OPEN_TEACH broadcast")
             toggleTeachWindow()
+        } else if (intent?.action == "com.bbncbot.TOGGLE_RECORDING") {
+            // adb shell am broadcast -a com.bbncbot.TOGGLE_RECORDING
+            Log.i(TAG, "Received TOGGLE_RECORDING broadcast")
+            RecordingManager.toggle()
+        } else if (intent?.action == "com.bbncbot.INTERRUPT") {
+            // adb shell am broadcast -a com.bbncbot.INTERRUPT
+            Log.i(TAG, "Received INTERRUPT broadcast")
+            RecordingManager.interrupt()
         }
         return START_STICKY
     }
@@ -169,6 +172,7 @@ class FloatingWindowService : Service() {
         AutomationController.stop()
         AutomationController.onStateChanged = null
         ActionProposer.onProposalChanged = null
+        RecordingManager.onRecordingChanged = null
         proposalView?.let {
             try {
                 windowManager.removeView(it)
@@ -320,71 +324,46 @@ class FloatingWindowService : Service() {
         }
     }
 
-    /** 初始化教学浮窗（默认不添加到 WindowManager） */
+    /** 初始化教学浮窗（录制控制面板） */
     private fun setupTeachWindow() {
         val inflater = LayoutInflater.from(this)
         val view = inflater.inflate(R.layout.view_teach_dialog, null, false)
-        teachInput = view.findViewById(R.id.etTeachInput)
-        // 执行指令按钮：解析 EditText 内容并执行
-        view.findViewById<Button>(R.id.btnTeachExecute).setOnClickListener {
-            val input = teachInput?.text?.toString().orEmpty()
-            if (input.isBlank()) {
-                Toast.makeText(this, "请输入指令", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            val service = FarmAccessibilityService.getInstance()
-            if (service == null) {
-                Toast.makeText(this, "无障碍服务未连接", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            val ok = TeachCommandParser.parseAndExecute(input, service)
-            Toast.makeText(
-                this,
-                if (ok) "已执行: $input" else "无法解析指令: $input",
-                Toast.LENGTH_SHORT
-            ).show()
-            teachInput?.text?.clear()
-            hideTeach()
+        val statusTv = view.findViewById<TextView>(R.id.tvRecordingStatus)
+        val recordBtn = view.findViewById<Button>(R.id.btnRecordToggle)
+        val interruptBtn = view.findViewById<Button>(R.id.btnInterrupt)
+        val closeBtn = view.findViewById<Button>(R.id.btnClosePanel)
+
+        // 录制开关
+        recordBtn.setOnClickListener {
+            RecordingManager.toggle()
         }
-        // 关闭按钮
-        view.findViewById<Button>(R.id.btnTeachClose).setOnClickListener { hideTeach() }
-        // 快捷按钮：直接执行对应动作（带 Toast 反馈）
-        view.findViewById<Button>(R.id.btnQuickSwipeUp).setOnClickListener {
-            val s = FarmAccessibilityService.getInstance()
-            if (s == null) {
-                Toast.makeText(this, "无障碍服务未连接", Toast.LENGTH_SHORT).show()
-            } else {
-                val ok = TeachCommandParser.parseAndExecute("向上", s)
-                Toast.makeText(this, if (ok) "已执行: 向上滑动" else "执行失败", Toast.LENGTH_SHORT).show()
-            }
+
+        // 中断按钮：立即停止 bot 当前动作 + 删除当前场景规则
+        interruptBtn.setOnClickListener {
+            RecordingManager.interrupt()
+            Toast.makeText(this, "已中断，删除当前场景规则", Toast.LENGTH_SHORT).show()
         }
-        view.findViewById<Button>(R.id.btnQuickSwipeDown).setOnClickListener {
-            val s = FarmAccessibilityService.getInstance()
-            if (s == null) {
-                Toast.makeText(this, "无障碍服务未连接", Toast.LENGTH_SHORT).show()
-            } else {
-                val ok = TeachCommandParser.parseAndExecute("向下", s)
-                Toast.makeText(this, if (ok) "已执行: 向下滑动" else "执行失败", Toast.LENGTH_SHORT).show()
+
+        // 关闭面板
+        closeBtn.setOnClickListener { hideTeach() }
+
+        // 录制状态变化时更新 UI
+        RecordingManager.onRecordingChanged = { isRecording ->
+            recordBtn.post {
+                if (isRecording) {
+                    recordBtn.text = "停止录制"
+                    recordBtn.setBackgroundResource(R.drawable.bg_floating_button_red)
+                    statusTv.text = "录制中...已录制 ${RecordingManager.recordedCount} 条规则"
+                    statusTv.setTextColor(android.graphics.Color.parseColor("#4CAF50"))
+                } else {
+                    recordBtn.text = "开始录制"
+                    recordBtn.setBackgroundResource(R.drawable.bg_floating_button)
+                    statusTv.text = "已录制 ${RecordingManager.recordedCount} 条规则（共 ${com.bbncbot.automation.SceneLibrary.recordingRuleCount()} 条）"
+                    statusTv.setTextColor(android.graphics.Color.parseColor("#CCCCCC"))
+                }
             }
         }
-        view.findViewById<Button>(R.id.btnQuickBack).setOnClickListener {
-            val s = FarmAccessibilityService.getInstance()
-            if (s == null) {
-                Toast.makeText(this, "无障碍服务未连接", Toast.LENGTH_SHORT).show()
-            } else {
-                val ok = TeachCommandParser.parseAndExecute("返回", s)
-                Toast.makeText(this, if (ok) "已执行: 返回" else "执行失败", Toast.LENGTH_SHORT).show()
-            }
-        }
-        view.findViewById<Button>(R.id.btnQuickExit).setOnClickListener {
-            val s = FarmAccessibilityService.getInstance()
-            if (s == null) {
-                Toast.makeText(this, "无障碍服务未连接", Toast.LENGTH_SHORT).show()
-            } else {
-                val ok = TeachCommandParser.parseAndExecute("退出", s)
-                Toast.makeText(this, if (ok) "已执行: 退出" else "执行失败", Toast.LENGTH_SHORT).show()
-            }
-        }
+
         teachView = view
     }
 
@@ -395,24 +374,13 @@ class FloatingWindowService : Service() {
 
     private fun showTeach() {
         val view = teachView ?: return
-        Log.i(TAG, "showTeach: opening teach window")
+        Log.i(TAG, "showTeach: opening recording panel")
         try {
             windowManager.removeView(view)
         } catch (e: Exception) { /* 未添加 */ }
         try {
             windowManager.addView(view, teachLayoutParams)
             Log.i(TAG, "showTeach: addView success")
-            // 延迟获取焦点 + 弹键盘（view 需要先完成 layout）
-            teachInput?.postDelayed({
-                try {
-                    teachInput?.requestFocus()
-                    val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                    val showOk = imm.showSoftInput(teachInput, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
-                    Log.i(TAG, "showTeach: requestFocus done, showSoftInput=$showOk")
-                } catch (e: Exception) {
-                    Log.w(TAG, "showTeach: focus/imm failed: ${e.message}")
-                }
-            }, 200L)
         } catch (e: Exception) {
             Log.w(TAG, "showTeach addView failed: ${e.message}")
         }
@@ -420,11 +388,6 @@ class FloatingWindowService : Service() {
 
     private fun hideTeach() {
         val view = teachView ?: return
-        try {
-            // 隐藏键盘
-            val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-            imm.hideSoftInputFromWindow(view.windowToken, 0)
-        } catch (e: Exception) { /* ignore */ }
         try {
             windowManager.removeView(view)
         } catch (e: Exception) { /* 未添加 */ }
