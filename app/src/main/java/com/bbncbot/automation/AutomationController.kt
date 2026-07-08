@@ -1046,18 +1046,21 @@ object AutomationController {
         }
 
         // 已完成所有滑动次数：判断是否需要继续等待"任务完成"
-        // - 有"再逛xx秒后可领奖"倒计时 → 必须继续滑动直到"任务完成"出现
-        // - 无倒计时且已超过等待上限 → 放弃等待，退出（避免卡死）
+        // 以下信号表示任务还在进行中，必须继续滑动直到"任务完成"出现：
+        // - 有"再逛xx秒后可领奖"倒计时
+        // - 有"每浏览x秒获得一次奖励"进度提示
+        // - 无以上信号且已超过等待上限 → 放弃等待，退出（避免卡死）
         if (swipeCount > browseTaskTargetSwipes) {
             val countdownSeconds = service.findBrowseRewardCountdownHint()
+            val hasProgressHint = service.hasBrowseRewardProgressHint()
             val waitLimit = browseTaskTargetSwipes + MAX_BROWSE_WAIT_SWIPES
-            if (countdownSeconds > 0 && swipeCount <= waitLimit) {
-                // 倒计时还在（再逛xx秒后可领奖），继续滑动等待"任务完成"出现
-                Log.i(TAG, "browseTask: countdown still active ($countdownSeconds s), keep swiping until task complete (swipe #$swipeCount/$waitLimit)")
-                debugLog("browseTask: countdown active, keep swiping (countdown=${countdownSeconds}s, swipe #$swipeCount/$waitLimit)")
+            if (swipeCount <= waitLimit && (countdownSeconds > 0 || hasProgressHint)) {
+                // 任务还在进行中（倒计时或进度提示仍在），继续滑动等待"任务完成"出现
+                Log.i(TAG, "browseTask: task still in progress (countdown=${countdownSeconds}s, progressHint=$hasProgressHint), keep swiping until task complete (swipe #$swipeCount/$waitLimit)")
+                debugLog("browseTask: task in progress, keep swiping (countdown=${countdownSeconds}s, progress=$hasProgressHint, swipe #$swipeCount/$waitLimit)")
                 // 继续走下面的滑动逻辑（不 return）
             } else {
-                debugLog("browseTask: swipe limit reached and no countdown (swipes=$swipeCount, countdown=${countdownSeconds}s), exiting browse page")
+                debugLog("browseTask: swipe limit reached and no progress signal (swipes=$swipeCount, countdown=${countdownSeconds}s, progress=$hasProgressHint), exiting browse page")
                 currentTaskIndex++
                 collectedCount++
                 exitBrowsePage(service)
@@ -1076,9 +1079,10 @@ object AutomationController {
         }
 
         // 滑动前检测：是否在付费搜索推荐页（"下单得肥料"等）→ 直接退出
-        // 注意：UC 浏览任务有"再逛xx秒"倒计时不属于此类，倒计时期间跳过本检测
+        // 注意：UC 浏览任务有"再逛xx秒"倒计时或"每浏览x秒"进度提示时不属于此类，跳过本检测
         val hasCountdown = service.findBrowseRewardCountdownHint() > 0
-        if (!hasCountdown && service.isSearchRecommendPage()) {
+        val hasProgressHint = service.hasBrowseRewardProgressHint()
+        if (!hasCountdown && !hasProgressHint && service.isSearchRecommendPage()) {
             debugLog("browseTask: paid search recommend page detected, exiting without swiping")
             currentTaskIndex++
             collectedCount++
@@ -1102,10 +1106,11 @@ object AutomationController {
 
         handler.postDelayed({
             if (state != AutomationState.BROWSING_TASK) return@postDelayed
-            // 倒计时还在（再逛xx秒后可领奖）时跳过搜索推荐页检测，避免误判提前退出
+            // 任务进行中（倒计时或"每浏览x秒"进度提示仍在）时跳过搜索推荐页检测，避免误判提前退出
             val countdownActive = service.findBrowseRewardCountdownHint() > 0
+            val progressActive = service.hasBrowseRewardProgressHint()
             // 检测搜索推荐页（"当前页下单得肥料"）→ 直接退出
-            if (!countdownActive && service.isSearchRecommendPage()) {
+            if (!countdownActive && !progressActive && service.isSearchRecommendPage()) {
                 debugLog("browseTask: search recommend page during swipe, exiting")
                 currentTaskIndex++
                 collectedCount++

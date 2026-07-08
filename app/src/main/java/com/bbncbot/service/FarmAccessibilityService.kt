@@ -2097,8 +2097,12 @@ class FarmAccessibilityService : AccessibilityService() {
 
     /**
      * 判断是否显示"任务完成"页面（得到肥料后的完成页）
-     * - 检测页面是否包含"任务完成"、"已完成"、"全部完成"等关键词
+     * - 检测页面是否包含"任务完成"、"已完成"、"全部完成"、"已领取全部奖励"等关键词
      * - 滑动浏览任务中，出现这些标志表示可以退出浏览页返回主界面
+     *
+     * 用户场景：浏览任务页面提示"每浏览x秒获得一次奖励"，等这个文字变成
+     * "已领取全部奖励"后表示任务完成，应返回芭芭农场页面。
+     *
      * @return true 表示是任务完成页面
      */
     fun isTaskCompletePage(): Boolean {
@@ -2107,12 +2111,43 @@ class FarmAccessibilityService : AccessibilityService() {
         val isComplete = allText.any { text ->
             text.contains("任务完成") || text.contains("已完成") ||
                 text.contains("全部完成") || text.contains("已完成浏览") ||
-                text.contains("恭喜获得") || text.contains("获得肥料")
+                text.contains("恭喜获得") || text.contains("获得肥料") ||
+                text.contains("已领取全部奖励") || text.contains("全部奖励已领取") ||
+                text.contains("奖励已领取")
         }
         if (isComplete) {
             debugLog("isTaskCompletePage: YES, sample=${allText.take(5)}")
         }
         return isComplete
+    }
+
+    /**
+     * 检测浏览任务页面是否有"每浏览x秒获得一次奖励"进度提示
+     *
+     * 用户场景：浏览任务页面会显示"每浏览15秒获得一次奖励"等进度提示，
+     * 表示任务还在进行中，必须继续滑动直到该提示变成"已领取全部奖励"才能退出。
+     *
+     * 识别文本示例：
+     * - "每浏览15秒获得一次奖励" / "每浏览15s获得一次奖励"
+     * - "每浏览15秒得奖励" / "每浏览15秒可领取"
+     * - "浏览15秒得一次奖励"
+     *
+     * 注意：仅检测是否在进行中，不解析秒数（用 isTaskCompletePage 检测是否完成）
+     *
+     * @return true 表示检测到"每浏览x秒获得一次奖励"进度提示（任务进行中）
+     */
+    fun hasBrowseRewardProgressHint(): Boolean {
+        val root = getRootInFarmApp() ?: return false
+        val allText = collectAllText(root)
+        // 匹配"每浏览15秒获得一次奖励"、"每浏览15秒得奖励"、"每浏览15秒可领取"等
+        val progressPattern = Regex("每浏览\\s*\\d+\\s*[秒s]")
+        for (text in allText) {
+            if (progressPattern.containsMatchIn(text)) {
+                debugLog("hasBrowseRewardProgressHint: found progress hint '$text'")
+                return true
+            }
+        }
+        return false
     }
 
     /**
