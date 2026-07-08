@@ -51,6 +51,8 @@ object AutomationController {
     private const val AD_END_CHECK_INTERVAL_MS = 5000L
     /** 广告时长解析缓冲（毫秒）：在页面提示的规定时间基础上额外等待，确保肥料奖励到账 */
     private const val AD_DURATION_BUFFER_MS = 2000L
+    /** "更快拿奖"弹窗点取消后，回到弹窗前页面的停留时间（毫秒）后再回芭芭农场 */
+    private const val FASTER_REWARD_CANCEL_STAY_MS = 1000L
     /**
      * 广告深链跳转进入其他 App（如快手）后的等待时间（毫秒）
      * - 用户要求：打开快手等其它app任务，等其它app打开后等2秒，把主界面激活到前台，同时kill掉打开的app
@@ -1903,6 +1905,55 @@ object AutomationController {
         // 每 15 秒输出一次页面快照（避免日志过多）
         if (elapsedMs % 15000L < AD_END_CHECK_INTERVAL_MS) {
             logPageSnapshot(service, "watchAd-${elapsedMs}ms")
+        }
+
+        // 优先检测：是否弹出"更快拿奖"弹窗（UC 芭芭农场广告页特有）
+        // 用户要求：遇到这种弹窗点"取消"，回到弹窗前的广告页面，停留1秒后回芭芭农场
+        // （不点"我要更快拿奖"，避免进入额外的广告停留流程）
+        if (service.isFasterRewardPopupShown()) {
+            val cancelBtn = service.findFasterRewardCancelButton()
+            if (cancelBtn != null) {
+                Log.i(TAG, "watchAd: faster reward popup detected, clicking cancel to dismiss")
+                debugLog("watchAd: faster reward popup, clicking cancel")
+                service.performClickSafe(cancelBtn)
+                service.setAdMode(false)
+                collectedCount++
+                advanceTaskIndex()
+                // 点取消后回到弹窗前的广告页面，停留1秒后回芭芭农场
+                handler.postDelayed({
+                    if (state != AutomationState.WATCHING_AD) return@postDelayed
+                    debugLog("watchAd: stayed ${FASTER_REWARD_CANCEL_STAY_MS}ms after cancel, now exiting to farm")
+                    // 退出广告页：优先点关闭/返回图标，否则按返回键
+                    val closeBtn = service.findAdCloseButton()
+                    val backIcon = service.findBackIcon()
+                    when {
+                        closeBtn != null -> { debugLog("watchAd: clicking close icon to exit"); service.performClickSafe(closeBtn) }
+                        backIcon != null -> { debugLog("watchAd: clicking back icon to exit"); service.performClickSafe(backIcon) }
+                        else -> { debugLog("watchAd: pressing back to exit"); service.pressBack() }
+                    }
+                    // 等待返回后回芭芭农场（必要时再按返回）
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) {
+                            if (!service.isOnFarmPage()) service.pressBack()
+                            handler.postDelayed({
+                                if (state == AutomationState.WATCHING_AD) {
+                                    moveTo(AutomationState.OPENING_TASK_LIST)
+                                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                                }
+                            }, INTERVAL_CLICK_MS)
+                        }
+                    }, INTERVAL_PAGE_LOAD_MS)
+                }, FASTER_REWARD_CANCEL_STAY_MS)
+                return
+            } else {
+                // 检测到弹窗但找不到取消按钮：按返回键尝试关闭
+                debugLog("watchAd: faster reward popup found but no cancel button, pressing back")
+                service.pressBack()
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
+                }, AD_END_CHECK_INTERVAL_MS)
+                return
+            }
         }
 
         // 超时强制关闭

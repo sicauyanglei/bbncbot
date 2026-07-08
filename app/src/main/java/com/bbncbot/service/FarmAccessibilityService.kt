@@ -1385,6 +1385,21 @@ class FarmAccessibilityService : AccessibilityService() {
 
     /**
      * 解析广告页面显示的"指定观看时长"提示
+     *
+     * 用户需求：有些广告页面需要指定时间才能领取肥料，太快退出会获取不到肥料。
+     * 应保持到"规定时间+1秒"后再检测退出。
+     *
+     * 识别的提示文本示例：
+     * - "观看15秒后可领取" / "观看30s"
+     * - "15秒后可关闭" / "30s后可领取"
+     * - "倒计时15s" / "倒计时30秒"
+     * - "还剩15秒" / "剩余15s"
+     * - "15s" / "15秒"（广告页面上独立的倒计时数字）
+     *
+     * 注意：仅在广告页面上调用，避免误匹配农场页面的其他文本。
+     * @return 需要观看的秒数，0 表示没有找到时长提示
+     */
+    fun findAdDurationHint(): Int {
         // 在农场页面上不解析广告时长（避免误匹配）
         if (isOnFarmPage()) return 0
         val root = rootInActiveWindowSafe() ?: return 0
@@ -1426,6 +1441,53 @@ class FarmAccessibilityService : AccessibilityService() {
             }
         }
         return bestSeconds
+    }
+
+    /**
+     * 检测 UC 芭芭农场广告页面是否有"更快拿奖"弹窗
+     *
+     * 用户需求：UC 芭芭农场的广告视频页面会弹出"更快拿奖"窗口（含"我要更快拿奖"按钮），
+     * 遇到这种弹窗，点击"取消"返回到弹窗前的广告页面，停留 1 秒后回到芭芭农场页面。
+     * （不点击"我要更快拿奖"，避免进入额外的广告停留流程）
+     *
+     * 检测条件：页面文本同时包含"更快拿奖"或"我要更快拿奖"
+     *
+     * @return true 表示检测到"更快拿奖"弹窗
+     */
+    fun isFasterRewardPopupShown(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        val hasFasterReward = allText.any { text ->
+            text.contains("更快拿奖") || text.contains("我要更快拿奖")
+        }
+        if (hasFasterReward) {
+            debugLog("isFasterRewardPopupShown: YES, faster reward popup detected")
+        }
+        return hasFasterReward
+    }
+
+    /**
+     * 查找"更快拿奖"弹窗的"取消"按钮
+     *
+     * 弹窗通常有两个按钮：
+     * - "我要更快拿奖"（不点，避免进入额外停留流程）
+     * - "取消" / "暂不" / "关闭" / "×"（点这个，返回弹窗前的广告页面）
+     *
+     * @return 取消按钮节点，null 表示未找到
+     */
+    fun findFasterRewardCancelButton(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        // 在"更快拿奖"弹窗的前提下，查找取消类按钮
+        // 注意排除"我要更快拿奖"（含"更快拿奖"），只匹配纯取消按钮
+        val cancelKeywords = listOf("取消", "暂不", "不了", "关闭", "×", "close", "以后再说", "残忍拒绝")
+        for (kw in cancelKeywords) {
+            val node = findNodeByText(root, kw)
+            if (node != null) {
+                debugLog("findFasterRewardCancelButton: found '$kw'")
+                return node
+            }
+        }
+        return null
     }
 
     /** 调试：dump 整个节点树到文件（通过 adb broadcast -a com.bbncbot.DUMP_NODES 触发） */
