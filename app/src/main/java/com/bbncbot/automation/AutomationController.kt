@@ -1078,6 +1078,30 @@ object AutomationController {
             return
         }
 
+        // 检测"浏览x分钟得xxx肥料"提示 → 停留等待，不滑动，直到"已完成"出现
+        // 与"每浏览x秒可得1次奖励"（需滑动）不同，这类任务只需停留等待
+        val browseDurationSeconds = service.findBrowseDurationRewardHint()
+        if (browseDurationSeconds > 0) {
+            // 动态设置等待上限：提示秒数/2（每次等待2秒）+ 30次缓冲
+            val durationWaitLimit = (browseDurationSeconds / (BROWSE_SWIPE_INTERVAL_MS / 1000)).toInt() + 30
+            if (swipeCount > durationWaitLimit) {
+                // 超过等待上限仍未出现"已完成"，强制退出（避免卡死）
+                Log.w(TAG, "browseTask: browse duration wait timeout (swipes=$swipeCount, limit=$durationWaitLimit, duration=${browseDurationSeconds}s), exiting")
+                debugLog("browseTask: duration wait timeout, exiting")
+                currentTaskIndex++
+                collectedCount++
+                exitBrowsePage(service)
+                return
+            }
+            // 不滑动，只等待，下次循环会重新检测"已完成"
+            Log.i(TAG, "browseTask: browse duration hint (${browseDurationSeconds}s), waiting without swiping (swipe #$swipeCount/$durationWaitLimit)")
+            debugLog("browseTask: waiting for '已完成' (duration=${browseDurationSeconds}s, swipe #$swipeCount/$durationWaitLimit)")
+            handler.postDelayed({
+                if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount + 1)
+            }, BROWSE_SWIPE_INTERVAL_MS)
+            return
+        }
+
         // 已完成所有滑动次数：判断是否需要继续等待"任务完成"
         // 以下信号表示任务还在进行中，必须继续滑动直到"任务完成"出现：
         // - 有"再逛xx秒后可领奖"倒计时
@@ -1462,6 +1486,19 @@ object AutomationController {
             // 已在浏览页面（点击任务按钮后进入），跳过 runBrowsingTask 的初始点击步骤
             browseTaskTargetSwipes = MAX_BROWSE_SWIPES  // 默认滑动次数，由进度提示驱动继续滑动
             browseFromDirectPopup = false  // 来自任务列表，完成后回 OPENING_TASK_LIST
+            browseFromSearchBrowse = false
+            moveTo(AutomationState.BROWSING_TASK)
+            handler.postDelayed({ runBrowsingTask(swipeCount = 1) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 检测：是否是"浏览x分钟得xxx肥料"停留等待页面 → 切换到浏览流程（不滑动，只等待）
+        // 用户需求：这类页面需要停留等待，直到出现"已完成"才返回
+        if (service.findBrowseDurationRewardHint() > 0) {
+            Log.i(TAG, "processTask: browse duration page detected (浏览x分钟), switching to BROWSING_TASK")
+            debugLog("processTask: browse duration hint detected, entering BROWSING_TASK (wait-only)")
+            browseTaskTargetSwipes = MAX_BROWSE_SWIPES  // 初始值，runBrowsingTask 内会根据时长动态调整等待上限
+            browseFromDirectPopup = false
             browseFromSearchBrowse = false
             moveTo(AutomationState.BROWSING_TASK)
             handler.postDelayed({ runBrowsingTask(swipeCount = 1) }, INTERVAL_CLICK_MS)

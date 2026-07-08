@@ -2350,6 +2350,43 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 检测浏览任务页面是否有"浏览x分钟得xxx肥料"停留等待提示
+     *
+     * 用户场景：页面提示"浏览5分钟得600肥料"，这类任务需要停留等待（不滑动），
+     * 直到页面出现"已完成"才退出。
+     *
+     * 与 [hasBrowseRewardProgressHint] 的区别：
+     * - "每浏览x秒可得1次奖励"（秒级）→ 需要滑动获取
+     * - "浏览x分钟得xxx肥料"（分钟级）→ 需要停留等待，不滑动
+     *
+     * 识别文本示例：
+     * - "浏览5分钟得600肥料" / "浏览3分钟得300肥料"
+     * - "浏览5分钟可领取" / "浏览5分钟即可领取"
+     * - "浏览5min得600肥料"
+     *
+     * @return 需要等待的秒数（分钟×60），0 表示未找到
+     */
+    fun findBrowseDurationRewardHint(): Int {
+        val root = getRootInFarmApp() ?: return 0
+        val allText = collectAllText(root)
+        // 匹配"浏览5分钟"、"浏览3min"、"浏览5分钟得600肥料"等
+        val durationPattern = Regex("浏览\\s*(\\d+)\\s*(?:分钟|min|分)")
+        for (text in allText) {
+            val match = durationPattern.find(text)
+            if (match != null) {
+                val minutes = match.groupValues[1].toIntOrNull() ?: continue
+                // 合理性检查：1~60分钟
+                if (minutes in 1..60) {
+                    val seconds = minutes * 60
+                    debugLog("findBrowseDurationRewardHint: found '$text', need ${seconds}s (${minutes}min)")
+                    return seconds
+                }
+            }
+        }
+        return 0
+    }
+
+    /**
      * 查找"返回首页"按钮（任务完成弹窗）
      * @return 按钮节点或null
      */
