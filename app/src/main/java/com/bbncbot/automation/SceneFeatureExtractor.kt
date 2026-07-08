@@ -29,7 +29,7 @@ object SceneFeatureExtractor {
         // 页面定位
         val pkg = service.getCurrentWindowPackage() ?: "null"
         val activity = service.getCurrentActivityName() ?: "null"
-        val platform = service.currentPlatform().name
+        val platform = service.currentPlatform.name
         val onFarm = service.isOnFarmPage()
 
         // 任务识别（按"非互斥"方式独立检测，因为某些页面可能同时触发多个信号）

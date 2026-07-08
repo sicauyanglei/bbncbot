@@ -1271,7 +1271,7 @@ object AutomationController {
                     if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount)
                 }, INTERVAL_CLICK_MS)
             }
-            val originalAction = {
+            val originalAction: () -> Unit = {
                 service.performClickSafe(redPacketBtn)
                 scheduleReentry()
             }
@@ -2458,7 +2458,7 @@ object AutomationController {
                 if (entryBtn != null) {
                     Log.i(TAG, "watchAd: found '我要更快拿奖' button, clicking it")
                     debugLog("watchAd: clicking '我要更快拿奖' entry button")
-                    val originalAction = {
+                    val originalAction: () -> Unit = {
                         service.performClickSafe(entryBtn)
                         fasterRewardStage = 1
                         // 等待确认弹窗出现（"15秒更快拿奖"）
@@ -2506,7 +2506,7 @@ object AutomationController {
                     if (allowBtn != null) {
                         Log.i(TAG, "watchAd: faster reward confirm popup detected, clicking allow")
                         debugLog("watchAd: clicking allow on faster reward confirm popup")
-                        val originalAction = {
+                        val originalAction: () -> Unit = {
                             service.performClickSafe(allowBtn)
                             fasterRewardStage = 2
                             // 记录点击"允许"时的时间戳，用于计算16秒停留
@@ -2899,7 +2899,7 @@ object AutomationController {
                 val closeBtn = service.findAdCloseButton()
                 if (closeBtn != null) {
                     Log.i(TAG, "closeAd: found close button, clicking")
-                    val originalAction = { service.performClickSafe(closeBtn) }
+                    val originalAction: () -> Unit = { service.performClickSafe(closeBtn) }
                     withSceneRule(
                         decisionPoint = "closeAd_click_close_btn",
                         proposedAction = "EXIT_TASK",

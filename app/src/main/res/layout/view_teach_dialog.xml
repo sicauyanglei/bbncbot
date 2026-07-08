@@ -32,7 +32,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
         android:hint="如：点 立即领取 / 滑动 / 返回 / 等待 5秒 / 退出"
-        android:hintTextColor="#888888"
+        android:textColorHint="#888888"
         android:textColor="#FFFFFF"
         android:textSize="13sp"
         android:inputType="text"
