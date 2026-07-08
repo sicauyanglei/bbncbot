@@ -200,6 +200,16 @@ object AutomationController {
     private var aiCalledForAdClose: Boolean = false
 
     /**
+     * "更快拿奖"弹窗处理状态
+     * - 0=未处理（等待检测"我要更快拿奖"按钮）
+     * - 1=已点击入口按钮，等待"15秒更快拿奖"确认弹窗出现
+     * - 2=已点击取消，进入退出流程（停留1秒后回芭芭农场）
+     * - 每次进入 WATCHING_AD 时重置为 0
+     */
+    @Volatile
+    private var fasterRewardStage: Int = 0
+
+    /**
      * 本轮打开任务列表时 AI 视觉已尝试次数
      * - 每次 [runOpeningTaskList] 以 attempt=0 开始时重置为 0，重新获得 [MAX_AI_OPEN_LIST_ATTEMPTS] 次配额
      * - AI 视觉升级为"首选方法"（优先于硬编码坐标），用于查找集肥料/限时挑战/得1000肥等多入口
@@ -1887,6 +1897,7 @@ object AutomationController {
         if (elapsedMs == 0L) {
             aiCalledForAdClose = false  // 重置 AI 领取路径规划标志，本次广告观看可获得 1 次 AI 介入
             deepLinkAppPkg = null       // 重置深链跳转跟踪，等待检测是否进入其他 App
+            fasterRewardStage = 0       // 重置"更快拿奖"弹窗处理状态
             watchingAdPlatform = service.currentPlatform  // 记录农场平台，强杀深链 App 后重新启动此平台
             val hintSeconds = service.findAdDurationHint()
             if (hintSeconds > 0) {
@@ -1907,52 +1918,83 @@ object AutomationController {
             logPageSnapshot(service, "watchAd-${elapsedMs}ms")
         }
 
-        // 优先检测：是否弹出"更快拿奖"弹窗（UC 芭芭农场广告页特有）
-        // 用户要求：遇到这种弹窗点"取消"，回到弹窗前的广告页面，停留1秒后回芭芭农场
-        // （不点"我要更快拿奖"，避免进入额外的广告停留流程）
-        if (service.isFasterRewardPopupShown()) {
-            val cancelBtn = service.findFasterRewardCancelButton()
-            if (cancelBtn != null) {
-                Log.i(TAG, "watchAd: faster reward popup detected, clicking cancel to dismiss")
-                debugLog("watchAd: faster reward popup, clicking cancel")
-                service.performClickSafe(cancelBtn)
-                service.setAdMode(false)
-                collectedCount++
-                advanceTaskIndex()
-                // 点取消后回到弹窗前的广告页面，停留1秒后回芭芭农场
-                handler.postDelayed({
-                    if (state != AutomationState.WATCHING_AD) return@postDelayed
-                    debugLog("watchAd: stayed ${FASTER_REWARD_CANCEL_STAY_MS}ms after cancel, now exiting to farm")
-                    // 退出广告页：优先点关闭/返回图标，否则按返回键
-                    val closeBtn = service.findAdCloseButton()
-                    val backIcon = service.findBackIcon()
-                    when {
-                        closeBtn != null -> { debugLog("watchAd: clicking close icon to exit"); service.performClickSafe(closeBtn) }
-                        backIcon != null -> { debugLog("watchAd: clicking back icon to exit"); service.performClickSafe(backIcon) }
-                        else -> { debugLog("watchAd: pressing back to exit"); service.pressBack() }
-                    }
-                    // 等待返回后回芭芭农场（必要时再按返回）
+        // 优先检测：UC 芭芭农场广告页"更快拿奖"弹窗处理
+        // 用户需求：先点"我要更快拿奖" → 弹出"15秒更快拿奖"确认弹窗 → 点"取消"
+        // → 回到弹窗前广告页 → 停留1秒 → 回芭芭农场
+        // 状态机：fasterRewardStage 0=待检测入口按钮 / 1=已点入口等待确认弹窗 / 2=已点取消进入退出流程
+        when (fasterRewardStage) {
+            0 -> {
+                // 阶段0：查找"我要更快拿奖"按钮
+                val entryBtn = service.findFasterRewardEntryButton()
+                if (entryBtn != null) {
+                    Log.i(TAG, "watchAd: found '我要更快拿奖' button, clicking it")
+                    debugLog("watchAd: clicking '我要更快拿奖' entry button")
+                    service.performClickSafe(entryBtn)
+                    fasterRewardStage = 1
+                    // 等待确认弹窗出现（"15秒更快拿奖"）
                     handler.postDelayed({
-                        if (state == AutomationState.WATCHING_AD) {
-                            if (!service.isOnFarmPage()) service.pressBack()
+                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                    return
+                }
+            }
+            1 -> {
+                // 阶段1：已点入口按钮，等待"15秒更快拿奖"确认弹窗出现，然后点"取消"
+                if (service.isFasterRewardPopupShown()) {
+                    val cancelBtn = service.findFasterRewardCancelButton()
+                    if (cancelBtn != null) {
+                        Log.i(TAG, "watchAd: faster reward confirm popup detected, clicking cancel")
+                        debugLog("watchAd: clicking cancel on faster reward confirm popup")
+                        service.performClickSafe(cancelBtn)
+                        fasterRewardStage = 2
+                        service.setAdMode(false)
+                        collectedCount++
+                        advanceTaskIndex()
+                        // 点取消后回到弹窗前的广告页，停留1秒后回芭芭农场
+                        handler.postDelayed({
+                            if (state != AutomationState.WATCHING_AD) return@postDelayed
+                            debugLog("watchAd: stayed ${FASTER_REWARD_CANCEL_STAY_MS}ms after cancel, now exiting to farm")
+                            // 退出广告页：优先点关闭/返回图标，否则按返回键
+                            val closeBtn = service.findAdCloseButton()
+                            val backIcon = service.findBackIcon()
+                            when {
+                                closeBtn != null -> { debugLog("watchAd: clicking close icon to exit"); service.performClickSafe(closeBtn) }
+                                backIcon != null -> { debugLog("watchAd: clicking back icon to exit"); service.performClickSafe(backIcon) }
+                                else -> { debugLog("watchAd: pressing back to exit"); service.pressBack() }
+                            }
+                            // 等待返回后回芭芭农场（必要时再按返回）
                             handler.postDelayed({
                                 if (state == AutomationState.WATCHING_AD) {
-                                    moveTo(AutomationState.OPENING_TASK_LIST)
-                                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                                    if (!service.isOnFarmPage()) service.pressBack()
+                                    handler.postDelayed({
+                                        if (state == AutomationState.WATCHING_AD) {
+                                            moveTo(AutomationState.OPENING_TASK_LIST)
+                                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                                        }
+                                    }, INTERVAL_CLICK_MS)
                                 }
-                            }, INTERVAL_CLICK_MS)
-                        }
-                    }, INTERVAL_PAGE_LOAD_MS)
-                }, FASTER_REWARD_CANCEL_STAY_MS)
-                return
-            } else {
-                // 检测到弹窗但找不到取消按钮：按返回键尝试关闭
-                debugLog("watchAd: faster reward popup found but no cancel button, pressing back")
-                service.pressBack()
-                handler.postDelayed({
-                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-                }, AD_END_CHECK_INTERVAL_MS)
-                return
+                            }, INTERVAL_PAGE_LOAD_MS)
+                        }, FASTER_REWARD_CANCEL_STAY_MS)
+                        return
+                    } else {
+                        // 弹窗出现但取消按钮未渲染，短暂等待后重试
+                        debugLog("watchAd: faster reward popup shown but cancel button not found, retrying")
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
+                        }, INTERVAL_CLICK_MS)
+                        return
+                    }
+                } else {
+                    // 确认弹窗还没出现，继续等待（可能页面切换中）
+                    debugLog("watchAd: waiting for faster reward confirm popup (stage=1)")
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
+                    }, AD_END_CHECK_INTERVAL_MS)
+                    return
+                }
+            }
+            2 -> {
+                // 阶段2：已进入退出流程，不重复处理（避免重复点击）
             }
         }
 

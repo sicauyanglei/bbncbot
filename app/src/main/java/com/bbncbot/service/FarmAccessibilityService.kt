@@ -1444,21 +1444,45 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * 检测 UC 芭芭农场广告页面是否有"更快拿奖"弹窗
+     * 查找"我要更快拿奖"按钮（UC 芭芭农场广告页第一层入口）
      *
-     * 用户需求：UC 芭芭农场的广告视频页面会弹出"更快拿奖"窗口（含"我要更快拿奖"按钮），
-     * 遇到这种弹窗，点击"取消"返回到弹窗前的广告页面，停留 1 秒后回到芭芭农场页面。
-     * （不点击"我要更快拿奖"，避免进入额外的广告停留流程）
+     * 用户需求流程：
+     * 1. 广告页显示"我要更快拿奖"按钮 → 点击它
+     * 2. 弹出"15秒更快拿奖"确认弹窗 → 点击"取消"
+     * 3. 回到弹窗前的广告页面，停留 1 秒后回芭芭农场
      *
-     * 检测条件：页面文本同时包含"更快拿奖"或"我要更快拿奖"
+     * 注意：本方法只查找"我要更快拿奖"按钮（精确匹配，不含"取消"）
+     * 由调用方在点击后等待弹窗，再用 findFasterRewardCancelButton() 查找取消按钮
      *
-     * @return true 表示检测到"更快拿奖"弹窗
+     * @return "我要更快拿奖"按钮节点，null 表示未找到
+     */
+    fun findFasterRewardEntryButton(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        // 精确匹配"我要更快拿奖"，避免误匹配弹窗里的"取消"
+        val node = findNodeByText(root, "我要更快拿奖")
+        if (node != null) {
+            debugLog("findFasterRewardEntryButton: found '我要更快拿奖'")
+            return node
+        }
+        return null
+    }
+
+    /**
+     * 检测是否显示了"更快拿奖"确认弹窗（第二层）
+     *
+     * 用户需求：点击"我要更快拿奖"后会弹出确认弹窗（含"15秒更快拿奖"文案和"取消"按钮），
+     * 遇到此弹窗点"取消"返回到弹窗前的广告页面。
+     *
+     * 检测条件：页面文本包含"更快拿奖"（确认弹窗的标题/文案通常含此关键词）
+     * 注意：初始的"我要更快拿奖"按钮页面也会包含此关键词，调用方应先检查是否已点击过入口按钮
+     *
+     * @return true 表示检测到"更快拿奖"相关弹窗
      */
     fun isFasterRewardPopupShown(): Boolean {
         val root = rootInActiveWindowSafe() ?: return false
         val allText = collectAllText(root)
         val hasFasterReward = allText.any { text ->
-            text.contains("更快拿奖") || text.contains("我要更快拿奖")
+            text.contains("更快拿奖")
         }
         if (hasFasterReward) {
             debugLog("isFasterRewardPopupShown: YES, faster reward popup detected")
@@ -1467,18 +1491,17 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * 查找"更快拿奖"弹窗的"取消"按钮
+     * 查找"更快拿奖"确认弹窗的"取消"按钮
      *
-     * 弹窗通常有两个按钮：
-     * - "我要更快拿奖"（不点，避免进入额外停留流程）
+     * 确认弹窗通常有两个按钮：
+     * - 确认类（不点，避免进入额外的广告停留流程）
      * - "取消" / "暂不" / "关闭" / "×"（点这个，返回弹窗前的广告页面）
      *
      * @return 取消按钮节点，null 表示未找到
      */
     fun findFasterRewardCancelButton(): AccessibilityNodeInfo? {
         val root = rootInActiveWindowSafe() ?: return null
-        // 在"更快拿奖"弹窗的前提下，查找取消类按钮
-        // 注意排除"我要更快拿奖"（含"更快拿奖"），只匹配纯取消按钮
+        // 匹配纯取消按钮文案
         val cancelKeywords = listOf("取消", "暂不", "不了", "关闭", "×", "close", "以后再说", "残忍拒绝")
         for (kw in cancelKeywords) {
             val node = findNodeByText(root, kw)
