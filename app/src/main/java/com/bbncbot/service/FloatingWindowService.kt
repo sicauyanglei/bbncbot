@@ -57,8 +57,10 @@ class FloatingWindowService : Service() {
     private var proposalReasonTv: TextView? = null
     private var proposalPageTv: TextView? = null
 
-    /** 录制控制浮窗（开始/停止录制 + 中断），默认不添加，长按主按钮或广播触发时显示 */
-    private var teachView: View? = null
+    /** 录制小图标（与主按钮同窗口），开启/停止录制 */
+    private var recordToggleButton: Button? = null
+    /** 中断小图标（与主按钮同窗口），立即停止 bot + 删除当前场景规则 */
+    private var interruptButton: Button? = null
 
     private val layoutParams: WindowManager.LayoutParams by lazy {
         WindowManager.LayoutParams().apply {
@@ -97,24 +99,6 @@ class FloatingWindowService : Service() {
         }
     }
 
-    /** 录制控制浮窗的 LayoutParams（居中显示，按钮可点击） */
-    private val teachLayoutParams: WindowManager.LayoutParams by lazy {
-        WindowManager.LayoutParams().apply {
-            type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            } else {
-                @Suppress("DEPRECATION")
-                WindowManager.LayoutParams.TYPE_PHONE
-            }
-            format = PixelFormat.RGBA_8888
-            flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-            width = WindowManager.LayoutParams.WRAP_CONTENT
-            height = WindowManager.LayoutParams.WRAP_CONTENT
-            gravity = Gravity.CENTER
-        }
-    }
-
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -122,7 +106,6 @@ class FloatingWindowService : Service() {
         startForeground(NOTIFICATION_ID, buildNotification())
         setupFloatingWindow()
         setupProposalWindow()
-        setupTeachWindow()
         setupSceneAutoCreatedCallback()
         AutomationController.onStateChanged = { state ->
             updateButtonUi(state)
@@ -153,8 +136,9 @@ class FloatingWindowService : Service() {
             toggleInteractiveMode()
         } else if (intent?.action == "com.bbncbot.OPEN_TEACH") {
             // adb shell am broadcast -a com.bbncbot.OPEN_TEACH
+            // 录制控制已并入主悬浮窗，此广播改为切换交互模式
             Log.i(TAG, "Received OPEN_TEACH broadcast")
-            toggleTeachWindow()
+            toggleInteractiveMode()
         } else if (intent?.action == "com.bbncbot.TOGGLE_RECORDING") {
             // adb shell am broadcast -a com.bbncbot.TOGGLE_RECORDING
             Log.i(TAG, "Received TOGGLE_RECORDING broadcast")
@@ -183,13 +167,6 @@ class FloatingWindowService : Service() {
                 Log.w(TAG, "removeView proposal failed: ${e.message}")
             }
         }
-        teachView?.let {
-            try {
-                windowManager.removeView(it)
-            } catch (e: Exception) {
-                Log.w(TAG, "removeView teach failed: ${e.message}")
-            }
-        }
         floatingView?.let {
             try {
                 windowManager.removeView(it)
@@ -199,8 +176,9 @@ class FloatingWindowService : Service() {
         }
         floatingView = null
         actionButton = null
+        recordToggleButton = null
+        interruptButton = null
         proposalView = null
-        teachView = null
         Log.i(TAG, "FloatingWindowService destroyed")
     }
 
@@ -209,6 +187,33 @@ class FloatingWindowService : Service() {
         val view = inflater.inflate(R.layout.view_floating_button, null, false)
         val button = view.findViewById<Button>(R.id.btnAction)
         actionButton = button
+
+        // 录制 / 中断小图标（与主按钮同窗口，避免独立窗口触摸卡死）
+        val recordBtn = view.findViewById<Button>(R.id.btnRecordToggle)
+        val interruptBtn = view.findViewById<Button>(R.id.btnInterrupt)
+        recordToggleButton = recordBtn
+        interruptButton = interruptBtn
+
+        recordBtn.setOnClickListener {
+            RecordingManager.toggle()
+        }
+        interruptBtn.setOnClickListener {
+            RecordingManager.interrupt()
+            Toast.makeText(this, "已中断，删除当前场景规则", Toast.LENGTH_SHORT).show()
+        }
+
+        // 录制状态变化时更新小图标样式
+        RecordingManager.onRecordingChanged = { isRecording ->
+            recordBtn.post {
+                if (isRecording) {
+                    recordBtn.text = "停录"
+                    recordBtn.setBackgroundResource(R.drawable.bg_floating_button_red)
+                } else {
+                    recordBtn.text = "录制"
+                    recordBtn.setBackgroundResource(R.drawable.bg_floating_button)
+                }
+            }
+        }
 
         var initialX = 0
         var initialY = 0
@@ -245,9 +250,9 @@ class FloatingWindowService : Service() {
                     val pressDuration = System.currentTimeMillis() - pressDownTime
                     if (!isDragging) {
                         if (pressDuration >= LONG_PRESS_THRESHOLD_MS) {
-                            // 长按：打开教学浮窗（用户主动下发指令）
-                            Log.i(TAG, "long press detected, opening teach window")
-                            toggleTeachWindow()
+                            // 长按：切换交互模式（每个拟动作弹询问浮窗）
+                            Log.i(TAG, "long press detected, toggling interactive mode")
+                            toggleInteractiveMode()
                         } else {
                             // 单击：启停自动化
                             v.performClick()
@@ -327,49 +332,6 @@ class FloatingWindowService : Service() {
         }
     }
 
-    /** 初始化教学浮窗（录制控制面板） */
-    private fun setupTeachWindow() {
-        val inflater = LayoutInflater.from(this)
-        val view = inflater.inflate(R.layout.view_teach_dialog, null, false)
-        val statusTv = view.findViewById<TextView>(R.id.tvRecordingStatus)
-        val recordBtn = view.findViewById<Button>(R.id.btnRecordToggle)
-        val interruptBtn = view.findViewById<Button>(R.id.btnInterrupt)
-        val closeBtn = view.findViewById<Button>(R.id.btnClosePanel)
-
-        // 录制开关
-        recordBtn.setOnClickListener {
-            RecordingManager.toggle()
-        }
-
-        // 中断按钮：立即停止 bot 当前动作 + 删除当前场景规则
-        interruptBtn.setOnClickListener {
-            RecordingManager.interrupt()
-            Toast.makeText(this, "已中断，删除当前场景规则", Toast.LENGTH_SHORT).show()
-        }
-
-        // 关闭面板
-        closeBtn.setOnClickListener { hideTeach() }
-
-        // 录制状态变化时更新 UI
-        RecordingManager.onRecordingChanged = { isRecording ->
-            recordBtn.post {
-                if (isRecording) {
-                    recordBtn.text = "停止录制"
-                    recordBtn.setBackgroundResource(R.drawable.bg_floating_button_red)
-                    statusTv.text = "录制中...已录制 ${RecordingManager.recordedCount} 条规则"
-                    statusTv.setTextColor(android.graphics.Color.parseColor("#4CAF50"))
-                } else {
-                    recordBtn.text = "开始录制"
-                    recordBtn.setBackgroundResource(R.drawable.bg_floating_button)
-                    statusTv.text = "已录制 ${RecordingManager.recordedCount} 条规则（共 ${com.bbncbot.automation.SceneLibrary.recordingRuleCount()} 条）"
-                    statusTv.setTextColor(android.graphics.Color.parseColor("#CCCCCC"))
-                }
-            }
-        }
-
-        teachView = view
-    }
-
     /**
      * 注册场景自动创建回调
      *
@@ -382,32 +344,6 @@ class FloatingWindowService : Service() {
                 Toast.makeText(this, "已录制场景：$name", Toast.LENGTH_SHORT).show()
             }
         }
-    }
-
-    /** 切换教学浮窗显示/隐藏 */
-    private fun toggleTeachWindow() {
-        if (teachView?.parent != null) hideTeach() else showTeach()
-    }
-
-    private fun showTeach() {
-        val view = teachView ?: return
-        Log.i(TAG, "showTeach: opening recording panel")
-        try {
-            windowManager.removeView(view)
-        } catch (e: Exception) { /* 未添加 */ }
-        try {
-            windowManager.addView(view, teachLayoutParams)
-            Log.i(TAG, "showTeach: addView success")
-        } catch (e: Exception) {
-            Log.w(TAG, "showTeach addView failed: ${e.message}")
-        }
-    }
-
-    private fun hideTeach() {
-        val view = teachView ?: return
-        try {
-            windowManager.removeView(view)
-        } catch (e: Exception) { /* 未添加 */ }
     }
 
     private fun onActionButtonClicked() {
@@ -450,28 +386,15 @@ class FloatingWindowService : Service() {
     private fun updateButtonUi(state: AutomationState) {
         actionButton?.post {
             val btn = actionButton ?: return@post
+            // 紧凑小图标：仅区分空闲/运行，详细状态见日志与通知
             when (state) {
                 AutomationState.IDLE -> {
-                    btn.text = getString(R.string.btn_start_fertilize)
+                    btn.text = "开始"
                     btn.setBackgroundResource(R.drawable.bg_floating_button)
                 }
-                AutomationState.STOPPING -> {
-                    btn.text = getString(R.string.btn_stopping)
-                    btn.setBackgroundResource(R.drawable.bg_floating_button_red)
-                }
                 else -> {
-                    // v2: 根据状态显示不同文本
-                    val text = when (state) {
-                        AutomationState.NAVIGATING -> "导航中...停止"
-                        AutomationState.OPENING_TASK_LIST -> "打开任务列表...停止"
-                        AutomationState.PROCESSING_TASK -> "处理任务...停止"
-                        AutomationState.WATCHING_AD -> "看广告...停止"
-                        AutomationState.CLOSING_AD -> "关闭广告...停止"
-                        AutomationState.RETURNING -> "返回中...停止"
-                        AutomationState.WAITING -> "等待中...停止"
-                        else -> getString(R.string.btn_stop_fertilize)
-                    }
-                    btn.text = text
+                    // 运行中（含 STOPPING 及各业务状态）
+                    btn.text = "停止"
                     btn.setBackgroundResource(R.drawable.bg_floating_button_red)
                 }
             }

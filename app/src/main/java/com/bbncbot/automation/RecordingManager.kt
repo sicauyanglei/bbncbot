@@ -81,9 +81,20 @@ object RecordingManager {
     }
 
     /**
+     * 后台执行器：特征提取（节点遍历）+ 规则匹配/记录（文件 IO + 锁）都在此线程完成，
+     * 不阻塞主线程——否则录制时每个无障碍事件都占主线程，悬浮窗按钮（如"停录"）无法响应。
+     */
+    private val recordExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+        Thread(r, "RecordingManager-worker").apply { isDaemon = true }
+    }
+
+    /**
      * 处理用户手势事件（由 FarmAccessibilityService.onAccessibilityEvent 调用）
      *
      * 只在录制模式下生效，识别用户操作类型并记录规则。
+     *
+     * 线程策略：主线程仅读取事件原始字段（廉价），重活丢到 [recordExecutor]，
+     * 保证主线程不被阻塞、悬浮窗按钮可即时响应。
      *
      * 流程：
      * 1. 提取操作前的场景特征
@@ -99,36 +110,43 @@ object RecordingManager {
     fun onUserGesture(event: AccessibilityEvent, service: FarmAccessibilityService) {
         if (!recording) return
 
-        // 提取操作前的场景特征
-        val features = SceneFeatureExtractor.extract(service, AutomationController.currentState.name)
+        // 主线程：仅读取事件原始字段（廉价），不访问节点树/文件
+        val eventType = event.eventType
+        val eventText: String? = event.text?.joinToString(" ")?.trim()
+        val classNameStr: String = event.className?.toString()?.trim() ?: ""
+        val source = event.source
+        val nodeText: String? = source?.text?.toString()?.trim()
+        val desc: String? = source?.contentDescription?.toString()?.trim()
+        val deltaY = event.scrollDeltaY
+        val stateName = AutomationController.currentState.name
 
-        when (event.eventType) {
-            AccessibilityEvent.TYPE_VIEW_CLICKED -> {
-                val text = event.text?.joinToString(" ")?.trim()
-                    ?: event.className?.toString()?.trim()
-                    ?: ""
-                val source = event.source
-                val nodeText = source?.text?.toString()?.trim()
-                val desc = source?.contentDescription?.toString()?.trim()
-                val targetButton = when {
-                    !nodeText.isNullOrEmpty() -> nodeText
-                    !desc.isNullOrEmpty() -> desc
-                    text.isNotEmpty() -> text
-                    else -> null
+        // 后台线程：特征提取（节点遍历）+ 规则匹配/记录（文件 IO + 锁）
+        recordExecutor.execute {
+            // 停录后排队的残余事件直接跳过，快速排空队列
+            if (!recording) return@execute
+            val features = SceneFeatureExtractor.extract(service, stateName)
+            when (eventType) {
+                AccessibilityEvent.TYPE_VIEW_CLICKED -> {
+                    val text = eventText ?: classNameStr
+                    val targetButton = when {
+                        !nodeText.isNullOrEmpty() -> nodeText
+                        !desc.isNullOrEmpty() -> desc
+                        text.isNotEmpty() -> text
+                        else -> null
+                    }
+                    Log.i(TAG, "录制点击: target='$targetButton' sig=${features.signature()}")
+                    logToRecordingFile("CLICK target='$targetButton' sig='${features.signature()}' btns=[${features.clickableButtons.joinToString(",")}]")
+                    handleGesture(features, SceneLibrary.Action.CLICK_BUTTON, targetButton, "点击 ${targetButton ?: "按钮"}")
                 }
-                Log.i(TAG, "录制点击: target='$targetButton' sig=${features.signature()}")
-                logToRecordingFile("CLICK target='$targetButton' sig='${features.signature()}' btns=[${features.clickableButtons.joinToString(",")}]")
-                handleGesture(features, SceneLibrary.Action.CLICK_BUTTON, targetButton, "点击 ${targetButton ?: "按钮"}")
-            }
-            AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
-                val deltaY = event.scrollDeltaY
-                val action = if (deltaY > 0) SceneLibrary.Action.SWIPE_UP else SceneLibrary.Action.SWIPE_DOWN
-                Log.i(TAG, "录制滑动: deltaY=$deltaY action=$action sig=${features.signature()}")
-                logToRecordingFile("SWIPE deltaY=$deltaY action=$action sig='${features.signature()}'")
-                handleGesture(features, action, null, "滑动 $action")
-            }
-            else -> {
-                // 忽略其他事件
+                AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
+                    val action = if (deltaY > 0) SceneLibrary.Action.SWIPE_UP else SceneLibrary.Action.SWIPE_DOWN
+                    Log.i(TAG, "录制滑动: deltaY=$deltaY action=$action sig=${features.signature()}")
+                    logToRecordingFile("SWIPE deltaY=$deltaY action=$action sig='${features.signature()}'")
+                    handleGesture(features, action, null, "滑动 $action")
+                }
+                else -> {
+                    // 忽略其他事件
+                }
             }
         }
     }
