@@ -1385,21 +1385,6 @@ class FarmAccessibilityService : AccessibilityService() {
 
     /**
      * 解析广告页面显示的"指定观看时长"提示
-     *
-     * 用户需求：有些广告页面需要指定时间才能领取肥料，太快退出会获取不到肥料。
-     * 应保持到"规定时间+1秒"后再检测退出。
-     *
-     * 识别的提示文本示例：
-     * - "观看15秒后可领取" / "观看30s"
-     * - "15秒后可关闭" / "30s后可领取"
-     * - "倒计时15s" / "倒计时30秒"
-     * - "还剩15秒" / "剩余15s"
-     * - "15s" / "15秒"（广告页面上独立的倒计时数字）
-     *
-     * 注意：仅在广告页面上调用，避免误匹配农场页面的其他文本。
-     * @return 需要观看的秒数，0 表示没有找到时长提示
-     */
-    fun findAdDurationHint(): Int {
         // 在农场页面上不解析广告时长（避免误匹配）
         if (isOnFarmPage()) return 0
         val root = rootInActiveWindowSafe() ?: return 0
