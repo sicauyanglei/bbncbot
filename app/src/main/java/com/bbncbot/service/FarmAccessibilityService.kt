@@ -772,11 +772,13 @@ class FarmAccessibilityService : AccessibilityService() {
             }
             val searchPageKeywords = listOf(
                 "下单得肥料", "当前页下单", "搜索有惊喜", "搜一搜浏览",
-                "搜索有福利", "搜索后浏览立得奖励", "浏览宝贝得奖励"
+                "搜索有福利"
             )
             val matchCount = searchPageKeywords.count { text -> allText.any { it.contains(text) } }
             val hasSearchOnlyKeyword = allText.any { it.contains("搜一搜") || it.contains("搜索有惊喜") }
             // 只有在没有种植页核心元素，且匹配到搜索推荐页特征时才判断为搜索推荐页
+            // 注意："搜索后浏览立得奖励"、"浏览宝贝得奖励"是免费浏览任务（需点击历史搜索词进入），
+            // 不属于付费搜索推荐页，不应在此误判
             val isSearchPage = !hasFarmCore && (matchCount >= 2 || (matchCount >= 1 && hasSearchOnlyKeyword))
             if (isSearchPage) {
                 debugLog("isOnFarmPage: search recommend page detected (matchCount=$matchCount, hasFarmCore=$hasFarmCore), not farm page")
@@ -1992,10 +1994,12 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * 检测当前页面是否是"下单得肥料"搜索推荐页面
+     * 检测当前页面是否是"下单得肥料"付费搜索推荐页面
      * - 这个页面有搜索框和商品推荐列表，不是芭芭农场种植页
      * - 需要从这个页面退出回到种植页
-     * @return true 表示是搜索推荐页面
+     * - 注意："搜索后浏览立得奖励"、"浏览宝贝得奖励"是免费浏览任务（需点击历史搜索词进入），
+     *   不属于付费搜索推荐页，不应在此误判（由 isSearchBrowseTaskPage 检测）
+     * @return true 表示是付费搜索推荐页面
      */
     fun isSearchRecommendPage(): Boolean {
         val root = getRootInFarmApp() ?: return false
@@ -2010,7 +2014,7 @@ class FarmAccessibilityService : AccessibilityService() {
         if (hasFarmCore) return false
         val searchPageKeywords = listOf(
             "下单得肥料", "当前页下单", "搜索有惊喜", "搜一搜浏览",
-            "搜索有福利", "搜索后浏览立得奖励", "浏览宝贝得奖励"
+            "搜索有福利"
         )
         val matchCount = searchPageKeywords.count { text -> allText.any { it.contains(text) } }
         val hasSearchOnlyKeyword = allText.any { it.contains("搜一搜") || it.contains("搜索有惊喜") }
@@ -2019,6 +2023,89 @@ class FarmAccessibilityService : AccessibilityService() {
             debugLog("isSearchRecommendPage: YES (matchCount=$matchCount)")
         }
         return isSearchPage
+    }
+
+    /**
+     * 检测当前页面是否是"搜索后浏览立得奖励"任务页面（免费浏览任务）
+     *
+     * 用户需求：任务窗口右上角提示"搜索后浏览立得奖励"，需要点击一个历史搜索内容
+     * （如"纽安思甘露糖"），进入真正的任务页面（显示"滑动浏览得肥料"），上下滑动
+     * 直到出现"任务完成"，返回两次回到芭芭农场页面。
+     *
+     * 检测条件：页面文本包含"搜索后浏览立得奖励"或"浏览宝贝得奖励"
+     *
+     * @return true 表示是搜索浏览任务页面
+     */
+    fun isSearchBrowseTaskPage(): Boolean {
+        val root = getRootInFarmApp() ?: return false
+        val allText = collectAllText(root)
+        val isSearchBrowse = allText.any { text ->
+            text.contains("搜索后浏览立得奖励") || text.contains("浏览宝贝得奖励")
+        }
+        if (isSearchBrowse) {
+            debugLog("isSearchBrowseTaskPage: YES, search browse task page detected")
+        }
+        return isSearchBrowse
+    }
+
+    /**
+     * 在"搜索后浏览立得奖励"任务页面查找历史搜索词并返回可点击节点
+     *
+     * 用户需求：点击历史搜索内容（如"纽安思甘露糖"）进入真正的任务页面。
+     * 历史搜索词通常在搜索框下方的列表中，是可点击的文本节点。
+     *
+     * 策略：排除搜索框占位符（"搜索"/"搜一搜"）和任务提示文案（"搜索后浏览立得奖励"等），
+     * 找到第一个非占位符的可点击文本节点作为历史搜索词。
+     *
+     * @return 历史搜索词节点，null 表示未找到
+     */
+    fun findHistorySearchKeyword(): AccessibilityNodeInfo? {
+        val root = getRootInFarmApp() ?: return null
+        // 排除的文本：搜索框占位符、任务提示文案、按钮文案等
+        val excludeTexts = listOf(
+            "搜索", "搜一搜", "搜索后浏览立得奖励", "浏览宝贝得奖励",
+            "取消", "返回", "关闭", "×", "确定", "历史搜索",
+            "搜索发现", "搜索历史", "大家都在搜", "热门搜索",
+            "换一换", "更多", "展开", "收起"
+        )
+        // 查找所有可点击节点，排除占位符后返回第一个
+        val candidates = mutableListOf<AccessibilityNodeInfo>()
+        collectClickableTextNodes(root, candidates, maxDepth = 10)
+        for (node in candidates) {
+            val text = node.text?.toString()?.trim().orEmpty()
+            val desc = node.contentDescription?.toString()?.trim().orEmpty()
+            val nodeText = if (text.isNotEmpty()) text else desc
+            if (nodeText.isEmpty()) continue
+            // 排除占位符和任务提示文案
+            val isExcluded = excludeTexts.any { nodeText.contains(it) }
+            if (isExcluded) continue
+            // 排除纯数字或过短的文本
+            if (nodeText.length < 2) continue
+            // 排除过长的文案（历史搜索词通常较短）
+            if (nodeText.length > 20) continue
+            debugLog("findHistorySearchKeyword: found candidate '$nodeText'")
+            return node
+        }
+        debugLog("findHistorySearchKeyword: no history search keyword found")
+        return null
+    }
+
+    /** 递归收集所有可点击的文本节点 */
+    private fun collectClickableTextNodes(
+        node: AccessibilityNodeInfo,
+        out: MutableList<AccessibilityNodeInfo>,
+        maxDepth: Int
+    ) {
+        if (maxDepth <= 0) return
+        val text = node.text?.toString()?.trim().orEmpty()
+        val desc = node.contentDescription?.toString()?.trim().orEmpty()
+        if ((text.isNotEmpty() || desc.isNotEmpty()) && node.isClickable) {
+            out.add(node)
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            collectClickableTextNodes(child, out, maxDepth - 1)
+        }
     }
 
     /**

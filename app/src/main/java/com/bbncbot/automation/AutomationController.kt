@@ -95,6 +95,16 @@ object AutomationController {
     private var browseFromDirectPopup: Boolean = false
 
     /**
+     * 标记当前浏览任务是否从"搜索后浏览立得奖励"任务页进入
+     * - true：浏览完成后需要返回两次（搜索结果页 → 搜索任务页 → 芭芭农场）
+     * - false（默认）：正常退出流程
+     * - 场景：点击任务按钮进入"搜索后浏览立得奖励"页面，点击历史搜索词进入真正的浏览页面，
+     *   滑动到"任务完成"后需要返回两次才能回到芭芭农场
+     */
+    @Volatile
+    private var browseFromSearchBrowse: Boolean = false
+
+    /**
      * 当前广告的最短观看时长（毫秒）
      * - 进入 WATCHING_AD 时解析广告页面提示动态设置（页面提示的秒数 + 缓冲）
      * - 无提示时使用默认值 [AD_MIN_DURATION_MS]
@@ -375,6 +385,7 @@ object AutomationController {
         noProgressRounds = 0
         taskButtons = emptyList()
         browseFromDirectPopup = false  // 复位 direct 弹窗标记，避免上一轮残留
+        browseFromSearchBrowse = false  // 复位搜索浏览任务标记，避免上一轮残留
         // 重置当前平台的广告完成标记（新一轮运行可重新标记完成）
         resetCurrentPlatformComplete(service)
         moveTo(AutomationState.NAVIGATING)
@@ -1151,8 +1162,18 @@ object AutomationController {
                 }
                 collectedCount++
                 currentTaskIndex++
+                // 从"搜索后浏览立得奖励"任务页进入的浏览：需要返回两次回芭芭农场
+                val fromSearchBrowse = browseFromSearchBrowse
+                browseFromSearchBrowse = false  // 复位
                 handler.postDelayed({
-                    if (!service.isOnFarmPage()) service.pressBack()
+                    // 搜索浏览任务：第一次返回后还需再按一次返回退出搜索任务页
+                    if (fromSearchBrowse && !service.isOnFarmPage()) {
+                        debugLog("browseTask: from search browse, pressing back again to exit search task page")
+                        service.pressBack()
+                    } else if (!service.isOnFarmPage()) {
+                        // 普通浏览任务：不在农场页时按一次返回
+                        service.pressBack()
+                    }
                     handler.postDelayed({
                         // 从 direct 弹窗进入的浏览：完成后回 COLLECTING_DIRECT
                         val fromDirect = browseFromDirectPopup
@@ -1193,6 +1214,26 @@ object AutomationController {
                 debugLog("exitBrowsePage: browse was from direct popup, returning to COLLECTING_DIRECT")
                 moveTo(AutomationState.COLLECTING_DIRECT)
                 handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
+                return@postDelayed
+            }
+            // 从"搜索后浏览立得奖励"任务页进入的浏览：完成后需要返回两次回芭芭农场
+            // 第一次返回已执行（上方 backIcon/pressBack），这里再按一次返回
+            val fromSearchBrowse = browseFromSearchBrowse
+            browseFromSearchBrowse = false  // 复位
+            if (fromSearchBrowse && !service.isOnFarmPage()) {
+                debugLog("exitBrowsePage: browse was from search browse task, pressing back again to return to farm")
+                service.pressBack()
+                handler.postDelayed({
+                    if (service.isOnFarmPage()) {
+                        debugLog("exitBrowsePage: returned to farm after second back")
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    } else {
+                        debugLog("exitBrowsePage: still not on farm after second back, re-navigating")
+                        moveTo(AutomationState.NAVIGATING)
+                        handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
                 return@postDelayed
             }
             if (service.isOnFarmPage()) {
@@ -1411,9 +1452,42 @@ object AutomationController {
             // 已在浏览页面（点击任务按钮后进入），跳过 runBrowsingTask 的初始点击步骤
             browseTaskTargetSwipes = MAX_BROWSE_SWIPES  // 默认滑动次数，由进度提示驱动继续滑动
             browseFromDirectPopup = false  // 来自任务列表，完成后回 OPENING_TASK_LIST
+            browseFromSearchBrowse = false
             moveTo(AutomationState.BROWSING_TASK)
             handler.postDelayed({ runBrowsingTask(swipeCount = 1) }, INTERVAL_CLICK_MS)
             return
+        }
+
+        // 检测：是否是"搜索后浏览立得奖励"任务页面 → 点击历史搜索词进入浏览流程
+        // 用户需求：点击历史搜索内容进入真正的任务页面（显示"滑动浏览得肥料"），
+        // 上下滑动直到"任务完成"，返回两次回到芭芭农场
+        if (service.isSearchBrowseTaskPage()) {
+            val historyKeyword = service.findHistorySearchKeyword()
+            if (historyKeyword != null) {
+                Log.i(TAG, "processTask: search browse task page detected, clicking history search keyword")
+                debugLog("processTask: clicking history search keyword to enter browse page")
+                service.performClickSafe(historyKeyword)
+                // 标记来自搜索浏览任务，退出时返回两次
+                browseFromSearchBrowse = true
+                browseFromDirectPopup = false
+                browseTaskTargetSwipes = MAX_BROWSE_SWIPES
+                // 等待进入真正的浏览页面（"滑动浏览得肥料"），然后切换到 BROWSING_TASK
+                moveTo(AutomationState.BROWSING_TASK)
+                handler.postDelayed({ runBrowsingTask(swipeCount = 1) }, INTERVAL_PAGE_LOAD_MS)
+                return
+            } else {
+                // 找不到历史搜索词，按返回退出
+                debugLog("processTask: search browse task page but no history keyword found, exiting")
+                service.pressBack()
+                currentTaskIndex++
+                handler.postDelayed({
+                    if (state == AutomationState.PROCESSING_TASK) {
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
         }
 
         // 检测：是否在"下单得肥料"搜索推荐页面 → 退出这个页面
