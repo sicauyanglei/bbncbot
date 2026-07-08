@@ -1515,6 +1515,48 @@ class FarmAccessibilityService : AccessibilityService() {
         return null
     }
 
+    /**
+     * 查找"更快拿奖"确认弹窗的"允许"按钮
+     *
+     * 用户需求：点击"我要更快拿奖"后弹出确认弹窗，点击"允许"会打开新的 App 窗口，
+     * 停留16秒后关闭新打开的 App，回到"恭喜获得奖励提升"窗口，点右上角关闭回芭芭农场。
+     *
+     * @return "允许"按钮节点，null 表示未找到
+     */
+    fun findFasterRewardAllowButton(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        val allowKeywords = listOf("允许", "同意", "确定", "确认", "立即开启", "去开启", "继续")
+        for (kw in allowKeywords) {
+            val node = findNodeByText(root, kw)
+            if (node != null) {
+                debugLog("findFasterRewardAllowButton: found '$kw'")
+                return node
+            }
+        }
+        return null
+    }
+
+    /**
+     * 检测是否显示了"恭喜获得奖励提升"窗口
+     *
+     * 用户需求：关闭新打开的 App 后会回到"恭喜获得奖励提升"窗口，
+     * 需要点击右上角关闭按钮回到芭芭农场页面。
+     *
+     * @return true 表示检测到"恭喜获得奖励提升"窗口
+     */
+    fun isRewardUpgradePopupShown(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        val hasRewardUpgrade = allText.any { text ->
+            text.contains("恭喜获得") && text.contains("奖励提升") ||
+                text.contains("奖励提升") || text.contains("获得奖励提升")
+        }
+        if (hasRewardUpgrade) {
+            debugLog("isRewardUpgradePopupShown: YES, reward upgrade popup detected")
+        }
+        return hasRewardUpgrade
+    }
+
     /** 调试：dump 整个节点树到文件（通过 adb broadcast -a com.bbncbot.DUMP_NODES 触发） */
     fun dumpNodeTree() {
         try {
