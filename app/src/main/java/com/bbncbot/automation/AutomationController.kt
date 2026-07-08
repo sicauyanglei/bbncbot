@@ -334,6 +334,43 @@ object AutomationController {
     }
 
     /**
+     * 命中规则的统一视图（适配 SceneLibrary 重构后的 MatchResult API）
+     *
+     * SceneLibrary 重构后 [SceneLibrary.match] 返回 [SceneLibrary.MatchResult]
+     * （Matched/Unmapped/Defaulted/None）。此处把 Matched/Defaulted 折叠为带
+     * action/targetButton/hitCount/source/confidence 的统一对象，Unmapped/None
+     * 视为未命中返回 null，保持 withSceneRule 等调用方原控制流不变。
+     */
+    @PublishedApi
+    internal data class MatchedRule(
+        val action: SceneLibrary.Action,
+        val targetButton: String?,
+        val hitCount: Int,
+        val source: String,
+        val confidence: Double
+    )
+
+    @PublishedApi
+    internal fun SceneLibrary.MatchResult.toMatchedRuleOrNull(): MatchedRule? = when (this) {
+        is SceneLibrary.MatchResult.Matched -> MatchedRule(
+            action = category.action,
+            targetButton = category.targetButton,
+            hitCount = category.hitCount,
+            source = "category:${category.name}",
+            confidence = 1.0
+        )
+        is SceneLibrary.MatchResult.Defaulted -> MatchedRule(
+            action = action,
+            targetButton = targetButton,
+            hitCount = 0,
+            source = "default",
+            confidence = 0.5
+        )
+        is SceneLibrary.MatchResult.Unmapped,
+        SceneLibrary.MatchResult.None -> null
+    }
+
+    /**
      * 场景规则统一接入点 - 把"提取特征→查规则→询问→执行/学习"完整流程封装
      *
      * 工作流：
@@ -354,7 +391,7 @@ object AutomationController {
         decisionPoint: String,
         proposedAction: String,
         proposedReason: String,
-        crossinline onRuleAction: (SceneLibrary.Rule) -> Unit,
+        crossinline onRuleAction: (MatchedRule) -> Unit,
         crossinline onFallback: () -> Unit
     ) {
         val service = getService() ?: run { onFallback(); return }
@@ -362,7 +399,7 @@ object AutomationController {
         val features = SceneFeatureExtractor.extract(service, state.name)
         debugLog("$decisionPoint: scene sig=${features.signature()}")
         // 查规则库
-        val rule = SceneLibrary.match(features)
+        val rule = SceneLibrary.match(features).toMatchedRuleOrNull()
         if (rule == null) {
             // 未命中规则，走原逻辑
             debugLog("$decisionPoint: no scene rule matched, fallback to original logic")
@@ -379,12 +416,11 @@ object AutomationController {
             pageSummary = features.summary(),
             onApprove = {
                 // 用户同意，执行规则动作并记录强化
-                SceneLibrary.recordApproval(features, rule.action, ActionProposer.Response.APPROVE)
+                SceneLibrary.recordRule(features, rule.action, rule.targetButton)
                 onRuleAction(rule)
             },
             onReject = {
-                // 用户拒绝，弱化规则并走原逻辑
-                SceneLibrary.recordApproval(features, rule.action, ActionProposer.Response.REJECT)
+                // 用户拒绝：新 API 已移除弱化语义，仅走原逻辑
                 debugLog("$decisionPoint: scene rule rejected by user, fallback to original logic")
                 onFallback()
             }
@@ -1426,7 +1462,7 @@ object AutomationController {
         // 退出/点击等关键决策仍保留询问，滑动直接执行
         val sceneFeatures = SceneFeatureExtractor.extract(service, state.name)
         debugLog("browseTask: scene sig=${sceneFeatures.signature()}")
-        val sceneRule = SceneLibrary.match(sceneFeatures)
+        val sceneRule = SceneLibrary.match(sceneFeatures).toMatchedRuleOrNull()
         if (sceneRule != null) {
             debugLog("browseTask: scene rule matched, action=${sceneRule.action} target=${sceneRule.targetButton} conf=${sceneRule.confidence}")
             // 命中规则：仅当规则动作不是滑动类时才需要确认（退出/停止等关键动作）
@@ -1434,12 +1470,12 @@ object AutomationController {
             when (sceneRule.action) {
                 SceneLibrary.Action.SWIPE_UP, SceneLibrary.Action.SWIPE_DOWN -> {
                     // 滑动规则：直接执行，记录强化
-                    SceneLibrary.recordApproval(sceneFeatures, sceneRule.action, ActionProposer.Response.APPROVE)
+                    SceneLibrary.recordRule(sceneFeatures, sceneRule.action, sceneRule.targetButton)
                     executeSceneRuleAction(service, sceneRule, swipeCount, centerX, startY, endY)
                 }
                 SceneLibrary.Action.WAIT -> {
                     // 等待规则：直接执行，不询问
-                    SceneLibrary.recordApproval(sceneFeatures, sceneRule.action, ActionProposer.Response.APPROVE)
+                    SceneLibrary.recordRule(sceneFeatures, sceneRule.action, sceneRule.targetButton)
                     executeSceneRuleAction(service, sceneRule, swipeCount, centerX, startY, endY)
                 }
                 else -> {
@@ -1451,11 +1487,11 @@ object AutomationController {
                         reason = ruleReason,
                         pageSummary = sceneFeatures.summary(),
                         onApprove = {
-                            SceneLibrary.recordApproval(sceneFeatures, sceneRule.action, ActionProposer.Response.APPROVE)
+                            SceneLibrary.recordRule(sceneFeatures, sceneRule.action, sceneRule.targetButton)
                             executeSceneRuleAction(service, sceneRule, swipeCount, centerX, startY, endY)
                         },
                         onReject = {
-                            SceneLibrary.recordApproval(sceneFeatures, sceneRule.action, ActionProposer.Response.REJECT)
+                            // 新 API 已移除 REJECT 弱化语义，仅记录日志
                             debugLog("browseTask: scene rule rejected by user, executing original swipe")
                             service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
                             scheduleNextBrowseCheck(service, swipeCount)
@@ -1480,7 +1516,7 @@ object AutomationController {
      */
     private fun executeSceneRuleAction(
         service: FarmAccessibilityService,
-        rule: SceneLibrary.Rule,
+        rule: MatchedRule,
         swipeCount: Int,
         centerX: Float,
         startY: Float,
