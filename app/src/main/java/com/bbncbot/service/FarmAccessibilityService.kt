@@ -554,7 +554,7 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /** 收集节点树中所有文本 */
-    private fun collectAllText(node: AccessibilityNodeInfo, depth: Int = 0): List<String> {
+    fun collectAllText(node: AccessibilityNodeInfo, depth: Int = 0): List<String> {
         if (depth > 30) return emptyList()
         val result = mutableListOf<String>()
         val text = node.text?.toString()?.trim().orEmpty()
