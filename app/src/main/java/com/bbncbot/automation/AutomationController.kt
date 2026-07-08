@@ -1068,18 +1068,10 @@ object AutomationController {
             return
         }
 
-        // 优先检测：是否已显示"任务完成" → 这是浏览任务的真正退出信号
-        // UC 极速版等平台：滑动获取肥料，直到显示"任务完成"才退出（倒计时"再逛xx秒"只是过程提示）
-        if (service.isTaskCompletePage()) {
-            debugLog("browseTask: task complete detected, exiting (swipes=$swipeCount/$browseTaskTargetSwipes)")
-            currentTaskIndex++
-            collectedCount++
-            exitBrowsePage(service)
-            return
-        }
-
-        // 检测"浏览x分钟得xxx肥料"提示 → 停留等待，不滑动，直到"已完成"出现
+        // 优先检测："浏览x分钟得xxx肥料"提示 → 停留等待，不滑动，直到"已完成"出现
         // 与"每浏览x秒可得1次奖励"（需滑动）不同，这类任务只需停留等待
+        // 必须放在 isTaskCompletePage() 之前检测：因为"浏览5分钟得600肥料"页面可能同时
+        // 包含"获得肥料"等文案，会被 isTaskCompletePage() 误判为已完成而提前退出
         val browseDurationSeconds = service.findBrowseDurationRewardHint()
         if (browseDurationSeconds > 0) {
             // 动态设置等待上限：提示秒数/2（每次等待2秒）+ 30次缓冲
@@ -1093,12 +1085,25 @@ object AutomationController {
                 exitBrowsePage(service)
                 return
             }
-            // 不滑动，只等待，下次循环会重新检测"已完成"
+            // 在停留等待期间，用精确的完成检测（而非宽泛的 isTaskCompletePage）
+            // 完成标志：页面出现"已完成"或"任务完成"，且不再显示"浏览x分钟"提示
+            // 注意：findBrowseDurationRewardHint 已返回 >0 表示提示还在，所以这里一定不会退出
+            // 只有当提示消失（文案变成"已完成"等）才会跳出此分支，进入下面的 isTaskCompletePage 检测
             Log.i(TAG, "browseTask: browse duration hint (${browseDurationSeconds}s), waiting without swiping (swipe #$swipeCount/$durationWaitLimit)")
             debugLog("browseTask: waiting for '已完成' (duration=${browseDurationSeconds}s, swipe #$swipeCount/$durationWaitLimit)")
             handler.postDelayed({
                 if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount + 1)
             }, BROWSE_SWIPE_INTERVAL_MS)
+            return
+        }
+
+        // 优先检测：是否已显示"任务完成" → 这是浏览任务的真正退出信号
+        // UC 极速版等平台：滑动获取肥料，直到显示"任务完成"才退出（倒计时"再逛xx秒"只是过程提示）
+        if (service.isTaskCompletePage()) {
+            debugLog("browseTask: task complete detected, exiting (swipes=$swipeCount/$browseTaskTargetSwipes)")
+            currentTaskIndex++
+            collectedCount++
+            exitBrowsePage(service)
             return
         }
 
