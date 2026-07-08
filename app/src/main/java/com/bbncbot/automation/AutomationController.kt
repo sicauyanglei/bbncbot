@@ -65,6 +65,8 @@ object AutomationController {
     private const val MAX_FERTILIZE_CLICKS = 30
     /** 滑动浏览任务最大滑动次数 */
     private const val MAX_BROWSE_SWIPES = 6
+    /** 滑动达标后等待"再逛xx秒后可领奖"倒计时结束的最大额外滑动次数（避免无限等待） */
+    private const val MAX_BROWSE_WAIT_SWIPES = 30
     /** 每次滑动间隔（毫秒） */
     private const val BROWSE_SWIPE_INTERVAL_MS = 2000L
     /** 游戏任务最大时长（3 分钟），超时放弃 */
@@ -1020,40 +1022,56 @@ object AutomationController {
         }
 
         // 已完成所有滑动，退出浏览页面
+        // UC 极速版等平台有"再逛xx秒后可领奖"倒计时：必须等提示消失才能退出，否则拿不到肥料
+        var inCountdown = false
         if (swipeCount > browseTaskTargetSwipes) {
-            debugLog("browseTask: done ($swipeCount/$browseTaskTargetSwipes swipes), exiting browse page")
-            currentTaskIndex++
-            collectedCount++
-            exitBrowsePage(service)
-            return
+            val countdownSeconds = service.findBrowseRewardCountdownHint()
+            val waitLimit = browseTaskTargetSwipes + MAX_BROWSE_WAIT_SWIPES
+            if (countdownSeconds > 0 && swipeCount <= waitLimit) {
+                // 倒计时还在（再逛xx秒后可领奖），继续小幅滑动等待，直到提示消失才退出
+                Log.i(TAG, "browseTask: swipe target reached but countdown still active ($countdownSeconds s), keep browsing (swipe #$swipeCount)")
+                debugLog("browseTask: countdown active, keep swiping (countdown=${countdownSeconds}s, swipe #$swipeCount/$waitLimit)")
+                inCountdown = true
+                // 继续走下面的滑动逻辑（不 return），跳过中间的退出检测
+            } else {
+                debugLog("browseTask: done (swipes=$swipeCount/$browseTaskTargetSwipes, countdown=${countdownSeconds}s), exiting browse page")
+                currentTaskIndex++
+                collectedCount++
+                exitBrowsePage(service)
+                return
+            }
         }
 
-        // 滑动前检测：是否在搜索推荐页（"当前页下单得肥料"等）→ 直接退出，不需要滑动
-        if (service.isSearchRecommendPage()) {
-            debugLog("browseTask: search recommend page detected, exiting without swiping")
-            currentTaskIndex++
-            collectedCount++
-            exitBrowsePage(service)
-            return
-        }
+        // 倒计时还在时跳过退出检测（搜索推荐页/异常页/任务完成），必须等倒计时结束
+        // 倒计时结束后任务才算完成，此时再检测这些状态
+        if (!inCountdown) {
+            // 滑动前检测：是否在搜索推荐页（"当前页下单得肥料"等）→ 直接退出，不需要滑动
+            if (service.isSearchRecommendPage()) {
+                debugLog("browseTask: search recommend page detected, exiting without swiping")
+                currentTaskIndex++
+                collectedCount++
+                exitBrowsePage(service)
+                return
+            }
 
-        // 滑动前检测：是否在异常页面（交易页面、收银台等需要花钱的页面）→ 立即退出
-        // 注意：商品详情页（ttdetailactivity）不是异常页面，可以滑动浏览
-        if (service.isOnAbnormalPage()) {
-            debugLog("browseTask: abnormal/trading page detected, exiting immediately")
-            currentTaskIndex++
-            collectedCount++
-            exitBrowsePage(service)
-            return
-        }
+            // 滑动前检测：是否在异常页面（交易页面、收银台等需要花钱的页面）→ 立即退出
+            // 注意：商品详情页（ttdetailactivity）不是异常页面，可以滑动浏览
+            if (service.isOnAbnormalPage()) {
+                debugLog("browseTask: abnormal/trading page detected, exiting immediately")
+                currentTaskIndex++
+                collectedCount++
+                exitBrowsePage(service)
+                return
+            }
 
-        // 滑动前检测：是否已出现"全部完成"/"已完成"等完成标志 → 直接退出，无需继续滑动
-        if (service.isTaskCompletePage()) {
-            debugLog("browseTask: task complete markers detected before swipe, exiting")
-            currentTaskIndex++
-            collectedCount++
-            exitBrowsePage(service)
-            return
+            // 滑动前检测：是否已出现"全部完成"/"已完成"等完成标志 → 直接退出，无需继续滑动
+            if (service.isTaskCompletePage()) {
+                debugLog("browseTask: task complete markers detected before swipe, exiting")
+                currentTaskIndex++
+                collectedCount++
+                exitBrowsePage(service)
+                return
+            }
         }
 
         // 执行滑动：在屏幕中部轻微上下交替滑动（不需要一直向下滑，小幅上下滑动即可模拟浏览）
@@ -1072,8 +1090,10 @@ object AutomationController {
 
         handler.postDelayed({
             if (state != AutomationState.BROWSING_TASK) return@postDelayed
+            // 倒计时还在（再逛xx秒后可领奖）时跳过搜索推荐页检测，避免误判提前退出
+            val countdownActive = service.findBrowseRewardCountdownHint() > 0
             // 检测搜索推荐页（"当前页下单得肥料"）→ 直接退出
-            if (service.isSearchRecommendPage()) {
+            if (!countdownActive && service.isSearchRecommendPage()) {
                 debugLog("browseTask: search recommend page during swipe, exiting")
                 currentTaskIndex++
                 collectedCount++

@@ -1353,6 +1353,37 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 检测浏览任务页面是否有"再逛xx秒后可领奖"倒计时提示
+     *
+     * UC 极速版等平台的浏览任务会有倒计时提示（如"再逛15秒后可领奖"），
+     * 必须等到该提示消失（倒计时结束、可领奖）才能退出浏览页面，
+     * 否则提前退出会拿不到肥料。
+     *
+     * 识别文本示例：
+     * - "再逛15秒后可领奖" / "再逛15s后可领奖" / "再逛15s"
+     * - "逛15秒后可领取" / "逛15s后可领取"
+     * - "再逛15秒" / "逛15秒"
+     *
+     * @return 剩余秒数（>0 表示倒计时还在，0 表示没有提示或倒计时已结束）
+     */
+    fun findBrowseRewardCountdownHint(): Int {
+        val root = getRootInFarmApp() ?: return 0
+        val allText = collectAllText(root)
+        for (text in allText) {
+            // 匹配"再逛15秒"、"逛15s"、"再逛15秒后可领奖"等
+            val match = Regex("(?:再逛|逛)\\s*(\\d+)\\s*[秒s]").find(text)
+            if (match != null) {
+                val seconds = match.groupValues[1].toIntOrNull() ?: 0
+                if (seconds > 0 && seconds <= 300) {  // 合理范围：1-300秒
+                    debugLog("findBrowseRewardCountdownHint: found '$text', seconds=$seconds")
+                    return seconds
+                }
+            }
+        }
+        return 0
+    }
+
+    /**
      * 解析广告页面显示的"指定观看时长"提示
      *
      * 用户需求：有些广告页面需要指定时间才能领取肥料，太快退出会获取不到肥料。
