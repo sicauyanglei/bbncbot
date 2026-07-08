@@ -312,11 +312,23 @@ object AutomationController {
             onApprove()
             return
         }
-        Log.i(TAG, "withApproval: proposing action='$action' reason='$reason'")
+        Log.i(TAG, "withApproval: proposing action='$action' reason='$reason' state=$state")
+        val stateAtProposal = state
         ActionProposer.requestApproval(action, reason, pageSummary) { response ->
+            Log.i(TAG, "withApproval: received response=$response (action='$action', stateAtProposal=$stateAtProposal, stateNow=$state)")
+            if (state != stateAtProposal) {
+                Log.w(TAG, "withApproval: state changed during wait! was=$stateAtProposal now=$state, action may be skipped")
+            }
             when (response) {
-                ActionProposer.Response.APPROVE -> onApprove()
-                ActionProposer.Response.REJECT, ActionProposer.Response.SKIP -> onReject()
+                ActionProposer.Response.APPROVE -> {
+                    Log.i(TAG, "withApproval: executing onApprove for '$action'")
+                    onApprove()
+                    Log.i(TAG, "withApproval: onApprove returned for '$action'")
+                }
+                ActionProposer.Response.REJECT, ActionProposer.Response.SKIP -> {
+                    Log.i(TAG, "withApproval: executing onReject for '$action'")
+                    onReject()
+                }
             }
         }
     }

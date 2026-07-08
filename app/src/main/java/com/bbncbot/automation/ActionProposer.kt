@@ -104,20 +104,31 @@ object ActionProposer {
      */
     fun respond(response: Response) {
         val proposal = pendingProposal ?: run {
-            Log.w(TAG, "respond: no pending proposal, ignore")
+            Log.w(TAG, "respond: no pending proposal, ignore (response=$response)")
             return
         }
         val cb = responder ?: run {
-            Log.w(TAG, "respond: no responder, ignore")
+            Log.w(TAG, "respond: no responder, ignore (response=$response, proposal=${proposal.action})")
             return
         }
+        Log.i(TAG, "respond: processing response=$response for action='${proposal.action}'")
         pendingProposal = null
         responder = null
         logResponse(proposal, response)
         // 先通知浮窗隐藏，再触发回调
         mainHandler.post {
-            onProposalChanged?.invoke(null)
-            cb(response)
+            try {
+                onProposalChanged?.invoke(null)
+            } catch (e: Exception) {
+                Log.w(TAG, "onProposalChanged(null) threw: ${e.message}")
+            }
+            try {
+                Log.i(TAG, "respond: invoking callback with response=$response")
+                cb(response)
+                Log.i(TAG, "respond: callback invoked successfully")
+            } catch (e: Exception) {
+                Log.e(TAG, "respond: callback threw exception", e)
+            }
         }
     }
 
