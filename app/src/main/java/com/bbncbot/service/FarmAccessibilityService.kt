@@ -1737,6 +1737,59 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 检测浏览任务页面是否有红包弹窗，并返回可关闭/领取的按钮
+     *
+     * 用户需求：浏览任务页面会弹出红包窗口，需要先关闭它才能继续滑动获取肥料。
+     * 红包弹窗通常有"红包"字样，关闭/领取按钮文案如"开心收下"、"收下"、
+     * "立即领取"、"好的"、"知道了"、"继续赚钱"等。
+     *
+     * 识别策略：
+     * 1. 先确认页面文本包含"红包"（避免误点任务列表的"领取"按钮）
+     * 2. 在包含"红包"的前提下，查找关闭/领取按钮
+     *
+     * @return 红包弹窗的关闭/领取按钮节点，null 表示没有红包弹窗
+     */
+    fun findRedPacketCloseButton(): AccessibilityNodeInfo? {
+        val root = getRootInFarmApp() ?: return null
+        val allText = collectAllText(root)
+        // 1. 必须先确认有红包弹窗（页面文本包含"红包"）
+        val hasRedPacket = allText.any { it.contains("红包") }
+        if (!hasRedPacket) return null
+        // 2. 查找红包弹窗的关闭/领取按钮
+        // 注意："立即领取"放最前：红包弹窗的领取按钮通常是这个文字
+        // "×"和"关闭"用于右上角关闭图标
+        val keywords = listOf(
+            "开心收下", "收下", "立即领取", "领取红包", "好的", "知道了",
+            "我知道了", "知道啦", "继续赚钱", "继续逛", "去使用", "×", "关闭", "close"
+        )
+        for (kw in keywords) {
+            val node = findNodeByText(root, kw)
+            if (node != null) {
+                debugLog("findRedPacketCloseButton: found '$kw' in red packet popup")
+                return node
+            }
+        }
+        // 3. 文字没找到，尝试查找右上角区域的可点击小图标（红包弹窗关闭按钮通常在右上角）
+        val closeIcon = findTopRightClickableIcon(root, isRight = true)
+        if (closeIcon != null) {
+            debugLog("findRedPacketCloseButton: found top-right close icon in red packet popup")
+            return closeIcon
+        }
+        debugLog("findRedPacketCloseButton: red packet popup detected but no close button found")
+        return null
+    }
+
+    /**
+     * 判断当前页面是否显示红包弹窗（仅检测，不返回按钮）
+     * @return true 表示页面有红包弹窗
+     */
+    fun isRedPacketPopupShown(): Boolean {
+        val root = getRootInFarmApp() ?: return false
+        val allText = collectAllText(root)
+        return allText.any { it.contains("红包") }
+    }
+
+    /**
      * 查找广告关闭按钮
      * - 优先查找"×"、"关闭"节点
      * - 失败时返回null，由调用方尝试坐标候选

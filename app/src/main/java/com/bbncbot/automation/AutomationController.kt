@@ -1021,6 +1021,20 @@ object AutomationController {
             return
         }
 
+        // 优先检测：是否有红包弹窗 → 先关闭它，才能继续滑动获取肥料
+        // 红包弹窗会遮挡页面，不关闭无法滑动；关闭后保持 swipeCount 重新进入
+        val redPacketBtn = service.findRedPacketCloseButton()
+        if (redPacketBtn != null) {
+            Log.i(TAG, "browseTask: red packet popup detected, closing it first")
+            debugLog("browseTask: closing red packet popup before swiping (swipe #$swipeCount)")
+            service.performClickSafe(redPacketBtn)
+            // 等待弹窗关闭后重新进入（保持 swipeCount 不变，不消耗滑动次数）
+            handler.postDelayed({
+                if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount)
+            }, INTERVAL_CLICK_MS)
+            return
+        }
+
         // 优先检测：是否已显示"任务完成" → 这是浏览任务的真正退出信号
         // UC 极速版等平台：滑动获取肥料，直到显示"任务完成"才退出（倒计时"再逛xx秒"只是过程提示）
         if (service.isTaskCompletePage()) {
