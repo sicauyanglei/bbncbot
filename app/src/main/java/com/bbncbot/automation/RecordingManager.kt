@@ -85,18 +85,24 @@ object RecordingManager {
      *
      * 只在录制模式下生效，识别用户操作类型并记录规则。
      *
+     * 流程：
+     * 1. 提取操作前的场景特征
+     * 2. 识别操作类型（点击/滑动）
+     * 3. 检查 signature 是否已归属某 category
+     *    - 已归属 → 直接执行该 category 的规则（强化）
+     *    - 未归属 → 弹窗询问用户场景命名/归类
+     *
      * @param event 无障碍事件
      * @param service 无障碍服务实例
      */
     fun onUserGesture(event: AccessibilityEvent, service: FarmAccessibilityService) {
         if (!recording) return
 
-        // 提取操作前的场景特征（事件触发时的页面状态）
+        // 提取操作前的场景特征
         val features = SceneFeatureExtractor.extract(service, AutomationController.currentState.name)
 
         when (event.eventType) {
             AccessibilityEvent.TYPE_VIEW_CLICKED -> {
-                // 点击事件：找被点击节点的文本
                 val text = event.text?.joinToString(" ")?.trim()
                     ?: event.className?.toString()?.trim()
                     ?: ""
@@ -111,24 +117,97 @@ object RecordingManager {
                 }
                 Log.i(TAG, "录制点击: target='$targetButton' sig=${features.signature()}")
                 logToRecordingFile("CLICK target='$targetButton' sig='${features.signature()}' btns=[${features.clickableButtons.joinToString(",")}]")
-                SceneLibrary.recordRule(features, SceneLibrary.Action.CLICK_BUTTON, targetButton)
-                recordedCount++
+
+                // 检查是否已有 category
+                val matchResult = SceneLibrary.match(features)
+                when (matchResult) {
+                    is SceneLibrary.MatchResult.Matched -> {
+                        // 已有 category，直接强化
+                        Log.i(TAG, "已有 category '${matchResult.category.name}'，强化规则")
+                        SceneLibrary.recordRule(features, SceneLibrary.Action.CLICK_BUTTON, targetButton)
+                        recordedCount++
+                    }
+                    else -> {
+                        // 未归属，弹窗询问场景命名/归类
+                        pendingSceneFeatures = features
+                        pendingAction = SceneLibrary.Action.CLICK_BUTTON
+                        pendingTargetButton = targetButton
+                        showCategorizeDialog(features, "点击 ${targetButton ?: "按钮"}")
+                    }
+                }
             }
             AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
-                // 滑动事件：根据 scrollDeltaY 判断方向
-                // scrollDeltaY > 0 表示内容向上滚（用户向下滑动）
-                // scrollDeltaY < 0 表示内容向下滚（用户向上滑动）
                 val deltaY = event.scrollDeltaY
                 val action = if (deltaY > 0) SceneLibrary.Action.SWIPE_UP else SceneLibrary.Action.SWIPE_DOWN
                 Log.i(TAG, "录制滑动: deltaY=$deltaY action=$action sig=${features.signature()}")
                 logToRecordingFile("SWIPE deltaY=$deltaY action=$action sig='${features.signature()}'")
-                SceneLibrary.recordRule(features, action)
-                recordedCount++
+
+                // 检查是否已有 category
+                val matchResult = SceneLibrary.match(features)
+                when (matchResult) {
+                    is SceneLibrary.MatchResult.Matched -> {
+                        Log.i(TAG, "已有 category '${matchResult.category.name}'，强化规则")
+                        SceneLibrary.recordRule(features, action)
+                        recordedCount++
+                    }
+                    else -> {
+                        pendingSceneFeatures = features
+                        pendingAction = action
+                        pendingTargetButton = null
+                        showCategorizeDialog(features, "滑动 $action")
+                    }
+                }
             }
             else -> {
                 // 忽略其他事件
             }
         }
+    }
+
+    /** 待归类的场景数据 */
+    @Volatile private var pendingSceneFeatures: SceneFeatures? = null
+    @Volatile private var pendingAction: SceneLibrary.Action? = null
+    @Volatile private var pendingTargetButton: String? = null
+
+    /** 用户确认归类后的回调（由 FloatingWindowService 设置） */
+    @Volatile var onShowCategorizeDialog: ((features: SceneFeatures, actionDesc: String) -> Unit)? = null
+
+    private fun showCategorizeDialog(features: SceneFeatures, actionDesc: String) {
+        onShowCategorizeDialog?.invoke(features, actionDesc)
+    }
+
+    /**
+     * 用户确认场景命名/归类（由浮窗 UI 调用）
+     *
+     * @param categoryName 用户输入的场景名（如"浏览15秒任务"）
+     * @param existingCategoryId 可选：归到已有 category 的 id（null 表示创建新 category）
+     */
+    fun confirmCategorize(categoryName: String, existingCategoryId: String? = null) {
+        val features = pendingSceneFeatures ?: return
+        val action = pendingAction ?: return
+        val targetButton = pendingTargetButton
+
+        if (existingCategoryId != null) {
+            // 归到已有 category
+            SceneLibrary.mapToExistingCategory(features, existingCategoryId)
+            Log.i(TAG, "已归到已有 category: categoryId=$existingCategoryId")
+        } else {
+            // 创建新 category
+            SceneLibrary.createCategory(features, categoryName, action, targetButton)
+            Log.i(TAG, "已创建新 category: name='$categoryName' action=$action")
+        }
+
+        recordedCount++
+        pendingSceneFeatures = null
+        pendingAction = null
+        pendingTargetButton = null
+    }
+
+    /** 取消归类（用户关闭弹窗不操作） */
+    fun cancelCategorize() {
+        pendingSceneFeatures = null
+        pendingAction = null
+        pendingTargetButton = null
     }
 
     /**
