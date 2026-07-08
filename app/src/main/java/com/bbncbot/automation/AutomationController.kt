@@ -1377,6 +1377,33 @@ object AutomationController {
             return
         }
 
+        // 优先检测：是否有红包弹窗 → 先关闭它，才能继续处理
+        // 红包弹窗会遮挡页面，不关闭会干扰后续检测
+        val redPacketBtn = service.findRedPacketCloseButton()
+        if (redPacketBtn != null) {
+            Log.i(TAG, "processTask: red packet popup detected, closing it first")
+            debugLog("processTask: closing red packet popup")
+            service.performClickSafe(redPacketBtn)
+            // 等待弹窗关闭后重新检测
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt)
+            }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 检测：是否是浏览奖励页面（"每浏览x秒可得1次奖励"等）→ 切换到浏览滑动流程
+        // 用户需求：这类页面需要上下滑动获取肥料，直到变成"已领取全部奖励"才返回
+        if (service.hasBrowseRewardProgressHint()) {
+            Log.i(TAG, "processTask: browse reward page detected (每浏览x秒), switching to BROWSING_TASK")
+            debugLog("processTask: browse reward progress hint detected, entering BROWSING_TASK")
+            // 已在浏览页面（点击任务按钮后进入），跳过 runBrowsingTask 的初始点击步骤
+            browseTaskTargetSwipes = MAX_BROWSE_SWIPES  // 默认滑动次数，由进度提示驱动继续滑动
+            browseFromDirectPopup = false  // 来自任务列表，完成后回 OPENING_TASK_LIST
+            moveTo(AutomationState.BROWSING_TASK)
+            handler.postDelayed({ runBrowsingTask(swipeCount = 1) }, INTERVAL_CLICK_MS)
+            return
+        }
+
         // 检测：是否在"下单得肥料"搜索推荐页面 → 退出这个页面
         if (service.isSearchRecommendPage()) {
             Log.i(TAG, "processTask: search recommend page detected, exiting")
