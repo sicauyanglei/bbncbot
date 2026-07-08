@@ -1,0 +1,129 @@
+package com.bbncbot.automation
+
+/**
+ * 场景特征 - 把当前页面抽象成结构化数据，作为决策依据
+ *
+ * 设计原则：
+ * - 字段尽量"原始"，不做判断（判断在 [SceneLibrary] 规则里做）
+ * - 可序列化为 JSON 持久化（用于规则匹配 + 学习样本）
+ * - 不包含瞬时数据（如时间戳），保证同一场景多次提取结果一致
+ *
+ * 提取来源：AccessibilityService 节点树文本（[FarmAccessibilityService.collectAllText]）
+ * 不依赖 OCR / 截图，毫秒级完成
+ */
+data class SceneFeatures(
+
+    // ---------- 页面定位 ----------
+    /** 当前前台包名（如 "com.ucmobile.lite"） */
+    val windowPackage: String,
+
+    /** 当前 Activity 类名（小写，如 "ttdetailactivity"） */
+    val windowActivity: String,
+
+    /** 平台枚举名（UC / ALIPAY / TAOBAO / UNKNOWN） */
+    val platform: String,
+
+    /** 是否在农场主页 */
+    val onFarmPage: Boolean,
+
+    // ---------- 任务识别 ----------
+    /** 是否在浏览任务页（有"浏览得奖励""每浏览x秒"等提示） */
+    val isBrowseTaskPage: Boolean,
+
+    /** 是否在"浏览x分钟得xxx肥料"长停留任务页 */
+    val isBrowseDurationTask: Boolean,
+
+    /** 长停留任务总时长（秒，0 表示非此类任务） */
+    val browseDurationSeconds: Int,
+
+    /** 是否在搜索浏览任务页（右上角"搜索后浏览立得奖励"） */
+    val isSearchBrowseTaskPage: Boolean,
+
+    /** 是否在付费搜索推荐页（"下单得肥料"等） */
+    val isPaidSearchPage: Boolean,
+
+    /** 是否在异常页（交易/收银台等需花钱） */
+    val isAbnormalPage: Boolean,
+
+    /** 是否任务完成页（"任务完成""已领取全部奖励"等） */
+    val isTaskComplete: Boolean,
+
+    // ---------- 进度状态 ----------
+    /** "再逛xx秒后可领奖"倒计时剩余秒数（0 表示无倒计时） */
+    val countdownSeconds: Int,
+
+    /** 是否有"每浏览x秒可得1次奖励"进度提示 */
+    val hasBrowseProgressHint: Boolean,
+
+    /** 是否有红包弹窗遮挡 */
+    val hasRedPacketPopup: Boolean,
+
+    /** 是否有"更快拿奖"入口/弹窗 */
+    val hasFasterRewardEntry: Boolean,
+
+    /** 是否有"恭喜获得奖励提升"窗口 */
+    val hasRewardUpgradePopup: Boolean,
+
+    // ---------- 关键信号 ----------
+    /** 页面所有可见文本（截断到前 30 条避免太长） */
+    val pageTexts: List<String>,
+
+    /** 可点击按钮文案列表（去重，最多 20 个） */
+    val clickableButtons: List<String>,
+
+    /** 当前状态机状态名（如 BROWSING_TASK / PROCESSING_TASK） */
+    val controllerState: String
+) {
+    /**
+     * 生成场景签名：用于规则匹配的稳定键
+     *
+     * 签名包含"页面类型 + 任务类型 + 进度状态"组合，
+     * 同一签名视为同一类场景，应执行相同动作。
+     *
+     * 不包含瞬时数据（倒计时秒数、pageTexts 全量列表等），
+     * 只保留分类性的稳定信号。
+     */
+    fun signature(): String {
+        val parts = mutableListOf<String>()
+        // 平台 + 是否农场页
+        parts.add("p=$platform")
+        parts.add("farm=$onFarmPage")
+        // 任务类型（互斥优先级：完成 > 异常 > 付费 > 浏览时长 > 搜索浏览 > 浏览 > 其他）
+        parts.add(when {
+            isTaskComplete -> "type=complete"
+            isAbnormalPage -> "type=abnormal"
+            isPaidSearchPage -> "type=paid_search"
+            isBrowseDurationTask -> "type=browse_duration(${browseDurationSeconds}s)"
+            isSearchBrowseTaskPage -> "type=search_browse"
+            isBrowseTaskPage -> "type=browse"
+            onFarmPage -> "type=farm_home"
+            else -> "type=unknown"
+        })
+        // 进度状态
+        if (hasRedPacketPopup) parts.add("popup=red_packet")
+        if (hasFasterRewardEntry) parts.add("popup=faster_reward_entry")
+        if (hasRewardUpgradePopup) parts.add("popup=reward_upgrade")
+        if (countdownSeconds > 0) parts.add("countdown=yes")
+        else parts.add("countdown=no")
+        if (hasBrowseProgressHint) parts.add("progress=yes")
+        else parts.add("progress=no")
+        // 可点按钮集合（粗粒度，作为辅助信号）
+        if (clickableButtons.isNotEmpty()) {
+            parts.add("btns=${clickableButtons.toSet().toList().sorted().joinToString(",")}")
+        }
+        return parts.joinToString("|")
+    }
+
+    /**
+     * 简短摘要：用于日志 / 浮窗展示
+     */
+    fun summary(): String {
+        val sb = StringBuilder()
+        sb.append("sig=").append(signature()).append(" ")
+        sb.append("btns=").append(clickableButtons.take(5))
+        if (pageTexts.isNotEmpty()) {
+            sb.append(" texts=").append(pageTexts.take(5))
+        }
+        return sb.toString()
+    }
+}

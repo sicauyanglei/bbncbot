@@ -1219,6 +1219,39 @@ object AutomationController {
             // 偶数次：向下滑（页面向上滚动）
             Triple(baseY - swipeRange, baseY + swipeRange, "down")
         }
+
+        // 先查场景规则库：命中则执行规则动作，未命中走原 withApproval 逻辑
+        // 这是从"关键词匹配"升级到"场景识别"的关键路径
+        val sceneFeatures = SceneFeatureExtractor.extract(service, state.name)
+        debugLog("browseTask: scene sig=${sceneFeatures.signature()}")
+        val sceneRule = SceneLibrary.match(sceneFeatures)
+        if (sceneRule != null) {
+            debugLog("browseTask: scene rule matched, action=${sceneRule.action} target=${sceneRule.targetButton} conf=${sceneRule.confidence}")
+            // 交互模式下，规则命中仍走询问流程（记录响应强化/弱化规则）
+            val ruleActionText = "规则建议: ${sceneRule.action}" + (sceneRule.targetButton?.let { " '$it'" } ?: "")
+            val ruleReason = "命中规则(来源=${sceneRule.source}, 置信度=${sceneRule.confidence}, 命中${sceneRule.hitCount}次)"
+            withApproval(
+                action = ruleActionText,
+                reason = ruleReason,
+                pageSummary = sceneFeatures.summary(),
+                onApprove = {
+                    // 用户同意，执行规则动作并记录强化
+                    SceneLibrary.recordApproval(sceneFeatures, sceneRule.action, ActionProposer.Response.APPROVE)
+                    executeSceneRuleAction(service, sceneRule, swipeCount, centerX, startY, endY)
+                },
+                onReject = {
+                    // 用户拒绝，弱化规则
+                    SceneLibrary.recordApproval(sceneFeatures, sceneRule.action, ActionProposer.Response.REJECT)
+                    debugLog("browseTask: scene rule rejected by user, continuing original swipe logic")
+                    // 走原滑动逻辑
+                    service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
+                    scheduleNextBrowseCheck(service, swipeCount)
+                }
+            )
+            return
+        }
+
+        // 未命中规则，走原关键词匹配逻辑（带交互询问）
         debugLog("browseTask: swipe #$swipeCount $dirText ($startY -> $endY)")
         val swipeActionText = "浏览任务: 滑动 #$swipeCount $dirText"
         val swipeReason = "swipe=$swipeCount/$browseTaskTargetSwipes, 未检测到任务完成，继续滑动获取肥料"
@@ -1229,75 +1262,7 @@ object AutomationController {
             pageSummary = swipePageSummary,
             onApprove = {
                 service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
-                // 滑动后等待 BROWSE_SWIPE_INTERVAL_MS 再进入下一轮检测
-                handler.postDelayed({
-                    if (state != AutomationState.BROWSING_TASK) return@postDelayed
-                    // 任务进行中（倒计时或"每浏览x秒"进度提示仍在）时跳过搜索推荐页检测，避免误判提前退出
-                    val countdownActive = service.findBrowseRewardCountdownHint() > 0
-                    val progressActive = service.hasBrowseRewardProgressHint()
-                    // 检测搜索推荐页（"当前页下单得肥料"）→ 直接退出
-                    if (!countdownActive && !progressActive && service.isSearchRecommendPage()) {
-                        debugLog("browseTask: search recommend page during swipe, exiting")
-                        currentTaskIndex++
-                        collectedCount++
-                        exitBrowsePage(service, reason = "paid_search_in_swipe")
-                        return@postDelayed
-                    }
-                    // 检测异常页面（交易页面、收银台等需要花钱的页面）→ 立即退出
-                    // 注意：商品详情页可以滑动浏览，不算异常页面
-                    if (service.isOnAbnormalPage()) {
-                        debugLog("browseTask: abnormal/trading page during swipe, exiting immediately")
-                        currentTaskIndex++
-                        collectedCount++
-                        exitBrowsePage(service, reason = "abnormal_in_swipe")
-                        return@postDelayed
-                    }
-                    // 检测是否已完成任务（得到肥料）
-                    if (service.isTaskCompletePage()) {
-                        debugLog("browseTask: task complete detected during swipe, exiting")
-                        // 退出前截图 + 结束会话（这里直接 return 不走 exitBrowsePage，需手动调用）
-                        service.dumpScreenshotWithMeta("browse", state.name, browseTaskTargetSwipes, "exit_task_complete_in_swipe")
-                        service.endDumpSession()
-                        // 优先点右上角关闭或左上角返回图标
-                        val closeBtn = service.findAdCloseButton()
-                        val backIcon = service.findBackIcon()
-                        when {
-                            closeBtn != null -> { debugLog("browseTask: clicking close icon"); service.performClickSafe(closeBtn) }
-                            backIcon != null -> { debugLog("browseTask: clicking back icon"); service.performClickSafe(backIcon) }
-                            else -> { debugLog("browseTask: pressing back"); service.pressBack() }
-                        }
-                        collectedCount++
-                        currentTaskIndex++
-                        // 从"搜索后浏览立得奖励"任务页进入的浏览：需要返回两次回芭芭农场
-                        val fromSearchBrowse = browseFromSearchBrowse
-                        browseFromSearchBrowse = false  // 复位
-                        handler.postDelayed({
-                            // 搜索浏览任务：第一次返回后还需再按一次返回退出搜索任务页
-                            if (fromSearchBrowse && !service.isOnFarmPage()) {
-                                debugLog("browseTask: from search browse, pressing back again to exit search task page")
-                                service.pressBack()
-                            } else if (!service.isOnFarmPage()) {
-                                // 普通浏览任务：不在农场页时按一次返回
-                                service.pressBack()
-                            }
-                            handler.postDelayed({
-                                // 从 direct 弹窗进入的浏览：完成后回 COLLECTING_DIRECT
-                                val fromDirect = browseFromDirectPopup
-                                browseFromDirectPopup = false  // 复位
-                                if (fromDirect) {
-                                    debugLog("browseTask: was from direct popup, returning to COLLECTING_DIRECT")
-                                    moveTo(AutomationState.COLLECTING_DIRECT)
-                                    handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
-                                } else {
-                                    moveTo(AutomationState.OPENING_TASK_LIST)
-                                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
-                                }
-                            }, INTERVAL_CLICK_MS)
-                        }, INTERVAL_PAGE_LOAD_MS)
-                        return@postDelayed
-                    }
-                    runBrowsingTask(swipeCount + 1)
-                }, BROWSE_SWIPE_INTERVAL_MS)
+                scheduleNextBrowseCheck(service, swipeCount)
             },
             onReject = {
                 // 用户拒绝滑动：不执行滑动，但仍推进下一轮检测（避免卡死）
@@ -1307,6 +1272,148 @@ object AutomationController {
                 }, BROWSE_SWIPE_INTERVAL_MS)
             }
         )
+    }
+
+    /**
+     * 执行场景规则动作
+     * - 把 [SceneLibrary.Action] 映射到具体的 service 调用
+     * - 滑动动作用当前的滑动参数（centerX/startY/endY），其他动作独立执行
+     */
+    private fun executeSceneRuleAction(
+        service: FarmAccessibilityService,
+        rule: SceneLibrary.Rule,
+        swipeCount: Int,
+        centerX: Float,
+        startY: Float,
+        endY: Float
+    ) {
+        when (rule.action) {
+            SceneLibrary.Action.SWIPE_UP, SceneLibrary.Action.SWIPE_DOWN -> {
+                debugLog("sceneRule: swipe (count=$swipeCount)")
+                service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
+                scheduleNextBrowseCheck(service, swipeCount)
+            }
+            SceneLibrary.Action.BACK -> {
+                debugLog("sceneRule: press back")
+                service.pressBack()
+            }
+            SceneLibrary.Action.EXIT_TASK -> {
+                debugLog("sceneRule: exit task")
+                currentTaskIndex++
+                collectedCount++
+                exitBrowsePage(service, reason = "scene_rule_exit")
+            }
+            SceneLibrary.Action.WAIT -> {
+                debugLog("sceneRule: wait")
+                handler.postDelayed({
+                    if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount + 1)
+                }, BROWSE_SWIPE_INTERVAL_MS)
+            }
+            SceneLibrary.Action.CLICK_BUTTON -> {
+                val target = rule.targetButton
+                if (target != null) {
+                    debugLog("sceneRule: click button '$target'")
+                    val root = service.getRootInFarmApp()
+                    val node = root?.let { service.findNodeByText(it, target) }
+                    if (node != null) {
+                        service.performClickSafe(node)
+                    } else {
+                        debugLog("sceneRule: button '$target' not found, fallback to swipe")
+                        service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
+                        scheduleNextBrowseCheck(service, swipeCount)
+                    }
+                } else {
+                    debugLog("sceneRule: click button without target, fallback to swipe")
+                    service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
+                    scheduleNextBrowseCheck(service, swipeCount)
+                }
+            }
+            SceneLibrary.Action.STOP_AUTOMATION -> {
+                debugLog("sceneRule: stop automation")
+                stop()
+            }
+            SceneLibrary.Action.UNKNOWN -> {
+                debugLog("sceneRule: unknown action, fallback to swipe")
+                service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
+                scheduleNextBrowseCheck(service, swipeCount)
+            }
+        }
+    }
+
+    /**
+     * 安排滑动后的下一轮检测
+     * - 滑动后等 BROWSE_SWIPE_INTERVAL_MS，重新进入 runBrowsingTask
+     * - 包含中途的搜索推荐页/异常页/任务完成检测
+     */
+    private fun scheduleNextBrowseCheck(service: FarmAccessibilityService, swipeCount: Int) {
+        handler.postDelayed({
+            if (state != AutomationState.BROWSING_TASK) return@postDelayed
+            // 任务进行中（倒计时或"每浏览x秒"进度提示仍在）时跳过搜索推荐页检测，避免误判提前退出
+            val countdownActive = service.findBrowseRewardCountdownHint() > 0
+            val progressActive = service.hasBrowseRewardProgressHint()
+            // 检测搜索推荐页（"当前页下单得肥料"）→ 直接退出
+            if (!countdownActive && !progressActive && service.isSearchRecommendPage()) {
+                debugLog("browseTask: search recommend page during swipe, exiting")
+                currentTaskIndex++
+                collectedCount++
+                exitBrowsePage(service, reason = "paid_search_in_swipe")
+                return@postDelayed
+            }
+            // 检测异常页面（交易页面、收银台等需要花钱的页面）→ 立即退出
+            // 注意：商品详情页可以滑动浏览，不算异常页面
+            if (service.isOnAbnormalPage()) {
+                debugLog("browseTask: abnormal/trading page during swipe, exiting immediately")
+                currentTaskIndex++
+                collectedCount++
+                exitBrowsePage(service, reason = "abnormal_in_swipe")
+                return@postDelayed
+            }
+            // 检测是否已完成任务（得到肥料）
+            if (service.isTaskCompletePage()) {
+                debugLog("browseTask: task complete detected during swipe, exiting")
+                // 退出前截图 + 结束会话（这里直接 return 不走 exitBrowsePage，需手动调用）
+                service.dumpScreenshotWithMeta("browse", state.name, browseTaskTargetSwipes, "exit_task_complete_in_swipe")
+                service.endDumpSession()
+                // 优先点右上角关闭或左上角返回图标
+                val closeBtn = service.findAdCloseButton()
+                val backIcon = service.findBackIcon()
+                when {
+                    closeBtn != null -> { debugLog("browseTask: clicking close icon"); service.performClickSafe(closeBtn) }
+                    backIcon != null -> { debugLog("browseTask: clicking back icon"); service.performClickSafe(backIcon) }
+                    else -> { debugLog("browseTask: pressing back"); service.pressBack() }
+                }
+                collectedCount++
+                currentTaskIndex++
+                // 从"搜索后浏览立得奖励"任务页进入的浏览：需要返回两次回芭芭农场
+                val fromSearchBrowse = browseFromSearchBrowse
+                browseFromSearchBrowse = false  // 复位
+                handler.postDelayed({
+                    // 搜索浏览任务：第一次返回后还需再按一次返回退出搜索任务页
+                    if (fromSearchBrowse && !service.isOnFarmPage()) {
+                        debugLog("browseTask: from search browse, pressing back again to exit search task page")
+                        service.pressBack()
+                    } else if (!service.isOnFarmPage()) {
+                        // 普通浏览任务：不在农场页时按一次返回
+                        service.pressBack()
+                    }
+                    handler.postDelayed({
+                        // 从 direct 弹窗进入的浏览：完成后回 COLLECTING_DIRECT
+                        val fromDirect = browseFromDirectPopup
+                        browseFromDirectPopup = false  // 复位
+                        if (fromDirect) {
+                            debugLog("browseTask: was from direct popup, returning to COLLECTING_DIRECT")
+                            moveTo(AutomationState.COLLECTING_DIRECT)
+                            handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
+                        } else {
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        }
+                    }, INTERVAL_CLICK_MS)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return@postDelayed
+            }
+            runBrowsingTask(swipeCount + 1)
+        }, BROWSE_SWIPE_INTERVAL_MS)
     }
 
     /** 退出浏览页面：优先用左上角返回图标，否则按返回键，然后重新打开任务列表 */
