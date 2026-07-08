@@ -1218,6 +1218,174 @@ class FarmAccessibilityService : AccessibilityService() {
         return action
     }
 
+    // ============== 训练样本采集（截图 + 元数据） ==============
+
+    /**
+     * 当前采集会话的根目录。
+     * - 一次完整的"任务开始→任务结束"会创建一个 [sessionDir]，下挂多张截图 + 一个 session.json
+     * - null 表示当前没有活跃采集会话，[dumpScreenshotWithMeta] 会跳过
+     */
+    @Volatile
+    private var dumpSessionDir: java.io.File? = null
+
+    /** 当前采集会话的起始时间戳（毫秒），用于计算每张截图相对会话开始的偏移量 */
+    @Volatile
+    private var dumpSessionStartMs: Long = 0L
+
+    /** 当前采集会话累计截图数（用于命名 + 顺序定位） */
+    @Volatile
+    private var dumpSessionShotIndex: Int = 0
+
+    /**
+     * 开始一个新的采集会话。
+     * - 在任务开始时（如 [AutomationController] 进入 BROWSING_TASK 状态）调用一次
+     * - 之后每次 [dumpScreenshotWithMeta] 都会把截图写到该会话目录
+     * - 结束后调用 [endDumpSession] 复位
+     *
+     * @param sessionTag 会话标签，用于目录命名（如 "browse_15s"、"browse_5min"）
+     */
+    fun startDumpSession(sessionTag: String) {
+        try {
+            val timeStr = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US)
+                .format(java.util.Date())
+            val safeTag = sessionTag.replace(Regex("[^a-zA-Z0-9]"), "_")
+            val dir = java.io.File(
+                android.os.Environment.getExternalStorageDirectory(),
+                "Android/data/com.bbncbot/files/sessions/${timeStr}_${safeTag}_${currentPlatform.name}"
+            )
+            dir.mkdirs()
+            dumpSessionDir = dir
+            dumpSessionStartMs = System.currentTimeMillis()
+            dumpSessionShotIndex = 0
+            debugLog("dumpSession: started, dir=${dir.absolutePath}")
+        } catch (e: Exception) {
+            debugLog("dumpSession: start failed: ${e.message}")
+        }
+    }
+
+    /**
+     * 结束当前采集会话，复位状态。
+     * - 在任务退出（如 [AutomationController.exitBrowsePage]）时调用
+     */
+    fun endDumpSession() {
+        if (dumpSessionDir == null) return
+        debugLog("dumpSession: ended, shots=${dumpSessionShotIndex}")
+        dumpSessionDir = null
+        dumpSessionStartMs = 0L
+        dumpSessionShotIndex = 0
+    }
+
+    /**
+     * 截图并写入当前采集会话目录，同时写一个同名 .json 元数据文件。
+     * - 若没有活跃会话（[dumpSessionDir] 为 null）则跳过
+     * - API < 30 不支持 takeScreenshot，跳过
+     * - 截图与文件 IO 全部在子线程进行，不阻塞主线程
+     *
+     * 每张截图的 sidecar JSON 包含：
+     * - shotIndex：本会话内序号（从 0 开始）
+     * - offsetMs：相对会话开始的毫秒偏移
+     * - platform / taskType / state / swipeCount / reason / pageTexts / screenSize
+     *
+     * @param taskType 任务类型（如 "browse"、"ad"、"faster_reward"）
+     * @param state 当前状态机状态（如 "BROWSING_TASK"）
+     * @param swipeCount 当前滑动次数
+     * @param reason 截图原因（如 "task_start"、"swipe_after"、"red_packet_popup"、"exit"）
+     * @return 生成的文件名（不含路径），null 表示未生成（无会话 / API 不支持 / 截图失败）
+     */
+    fun dumpScreenshotWithMeta(
+        taskType: String,
+        state: String,
+        swipeCount: Int,
+        reason: String
+    ): String? {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) return null
+        val sessionDir = dumpSessionDir ?: return null
+
+        val shotIndex = dumpSessionShotIndex++
+        val offsetMs = System.currentTimeMillis() - dumpSessionStartMs
+        val timeStr = java.text.SimpleDateFormat("HHmmss_SSS", java.util.Locale.US)
+            .format(java.util.Date())
+        val safeReason = reason.replace(Regex("[^a-zA-Z0-9]"), "_")
+        val baseName = "${String.format("%03d", shotIndex)}_${timeStr}_${safeReason}"
+
+        // 提前采集页面文本（在主线程做，避免 root 失效）
+        val root = getRootInFarmApp()
+        val pageTexts: List<String> = root?.let { collectAllText(it) } ?: emptyList()
+        val pkg = getCurrentWindowPackage() ?: "null"
+        val activity = getCurrentActivityName() ?: "null"
+
+        try {
+            takeScreenshot(
+                android.os.Build.VERSION.SDK_INT,
+                java.util.concurrent.Executor { it.run() },
+                object : AccessibilityService.TakeScreenshotCallback {
+                    override fun onSuccess(result: AccessibilityService.ScreenshotResult) {
+                        try {
+                            val hardwareBuffer = result.hardwareBuffer
+                            val hwBitmap = android.graphics.Bitmap.wrapHardwareBuffer(hardwareBuffer, result.colorSpace)
+                            hardwareBuffer.close()
+                            if (hwBitmap == null) {
+                                debugLog("dumpScreenshot: bitmap null for $baseName")
+                                return
+                            }
+                            // hardware bitmap 不能直接 compress PNG，需 copy 成 software bitmap
+                            val swBitmap = try {
+                                hwBitmap.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
+                            } finally {
+                                hwBitmap.recycle()
+                            }
+                            if (swBitmap == null) {
+                                debugLog("dumpScreenshot: copy to software bitmap failed for $baseName")
+                                return
+                            }
+                            // 文件 IO 放子线程
+                            Thread {
+                                try {
+                                    val pngFile = java.io.File(sessionDir, "$baseName.png")
+                                    pngFile.outputStream().use { os ->
+                                        swBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, os)
+                                    }
+                                    val metrics = resources.displayMetrics
+                                    val meta = org.json.JSONObject().apply {
+                                        put("shotIndex", shotIndex)
+                                        put("offsetMs", offsetMs)
+                                        put("timestamp", System.currentTimeMillis())
+                                        put("platform", currentPlatform.name)
+                                        put("windowPackage", pkg)
+                                        put("windowActivity", activity)
+                                        put("taskType", taskType)
+                                        put("state", state)
+                                        put("swipeCount", swipeCount)
+                                        put("reason", reason)
+                                        put("screenWidth", metrics.widthPixels)
+                                        put("screenHeight", metrics.heightPixels)
+                                        put("pageTexts", org.json.JSONArray(pageTexts))
+                                    }
+                                    val jsonFile = java.io.File(sessionDir, "$baseName.json")
+                                    jsonFile.writeText(meta.toString(2))
+                                    debugLog("dumpScreenshot: saved $baseName")
+                                } catch (e: Exception) {
+                                    debugLog("dumpScreenshot: write failed for $baseName: ${e.message}")
+                                } finally {
+                                    swBitmap.recycle()
+                                }
+                            }.start()
+                        } catch (e: Exception) {
+                            debugLog("dumpScreenshot: process failed for $baseName: ${e.message}")
+                        }
+                    }
+
+                    override fun onFailure(errorCode: Int) {
+                        debugLog("dumpScreenshot: takeScreenshot failed for $baseName, code=$errorCode")
+                    }
+                }
+            )
+        } catch (e: Exception) {
+            debugLog("dumpScreenshot: error for $baseName: ${e.message}")
+        }
+        return baseName
+    }
+
     /**
      * 执行 AI 决策的动作
      * @return true 表示执行了有效动作（click/swipe/back），false 表示无动作或动作无效

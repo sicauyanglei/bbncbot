@@ -1007,10 +1007,22 @@ object AutomationController {
 
         if (swipeCount == 0) {
             logPageSnapshot(service, "browseTask-start")
+            // 启动采集会话：记录"任务开始→任务结束"全过程截图
+            // tag 包含来源（direct/search/browse）+ 任务索引，便于事后筛选
+            val sourceTag = when {
+                browseFromDirectPopup -> "from_direct"
+                browseFromSearchBrowse -> "from_search_browse"
+                else -> "from_list"
+            }
+            service.startDumpSession("browse_${currentTaskIndex}_${sourceTag}")
+            service.dumpScreenshotWithMeta("browse", "BROWSING_TASK", 0, "task_start")
             // 第一步：点击"去完成"按钮进入浏览页面
             val button = taskButtons.getOrNull(currentTaskIndex)
             if (button == null) {
                 debugLog("browseTask: button gone, back to processing")
+                // 任务按钮失效：刚启动会话就要早退，结束会话避免泄漏
+                service.dumpScreenshotWithMeta("browse", state.name, 0, "exit_button_gone")
+                service.endDumpSession()
                 // 从 direct 弹窗进入的浏览：节点失效回 COLLECTING_DIRECT
                 val fromDirect = browseFromDirectPopup
                 browseFromDirectPopup = false
@@ -1054,12 +1066,18 @@ object AutomationController {
             return
         }
 
+        // swipeCount > 0 进入滑动循环：每次都截一张图（用于事后回看"何时该退出"）
+        if (swipeCount > 0) {
+            service.dumpScreenshotWithMeta("browse", "BROWSING_TASK", swipeCount, "swipe_loop")
+        }
+
         // 优先检测：是否有红包弹窗 → 先关闭它，才能继续滑动获取肥料
         // 红包弹窗会遮挡页面，不关闭无法滑动；关闭后保持 swipeCount 重新进入
         val redPacketBtn = service.findRedPacketCloseButton()
         if (redPacketBtn != null) {
             Log.i(TAG, "browseTask: red packet popup detected, closing it first")
             debugLog("browseTask: closing red packet popup before swiping (swipe #$swipeCount)")
+            service.dumpScreenshotWithMeta("browse", "BROWSING_TASK", swipeCount, "red_packet_popup")
             service.performClickSafe(redPacketBtn)
             // 等待弹窗关闭后重新进入（保持 swipeCount 不变，不消耗滑动次数）
             handler.postDelayed({
@@ -1082,7 +1100,7 @@ object AutomationController {
                 debugLog("browseTask: duration wait timeout, exiting")
                 currentTaskIndex++
                 collectedCount++
-                exitBrowsePage(service)
+                exitBrowsePage(service, reason = "timeout_duration_wait")
                 return
             }
             // 在停留等待期间，用精确的完成检测（而非宽泛的 isTaskCompletePage）
@@ -1103,7 +1121,7 @@ object AutomationController {
             debugLog("browseTask: task complete detected, exiting (swipes=$swipeCount/$browseTaskTargetSwipes)")
             currentTaskIndex++
             collectedCount++
-            exitBrowsePage(service)
+            exitBrowsePage(service, reason = "task_complete")
             return
         }
 
@@ -1124,7 +1142,7 @@ object AutomationController {
                 debugLog("browseTask: wait limit exceeded (swipes=$swipeCount/$waitLimit, countdown=${countdownSeconds}s, progress=$hasProgressHint), exiting browse page")
                 currentTaskIndex++
                 collectedCount++
-                exitBrowsePage(service)
+                exitBrowsePage(service, reason = "timeout_wait_limit")
                 return
             }
         }
@@ -1135,7 +1153,7 @@ object AutomationController {
             debugLog("browseTask: abnormal/trading page detected, exiting immediately")
             currentTaskIndex++
             collectedCount++
-            exitBrowsePage(service)
+            exitBrowsePage(service, reason = "abnormal_page")
             return
         }
 
@@ -1147,7 +1165,7 @@ object AutomationController {
             debugLog("browseTask: paid search recommend page detected, exiting without swiping")
             currentTaskIndex++
             collectedCount++
-            exitBrowsePage(service)
+            exitBrowsePage(service, reason = "paid_search_recommend")
             return
         }
 
@@ -1175,7 +1193,7 @@ object AutomationController {
                 debugLog("browseTask: search recommend page during swipe, exiting")
                 currentTaskIndex++
                 collectedCount++
-                exitBrowsePage(service)
+                exitBrowsePage(service, reason = "paid_search_in_swipe")
                 return@postDelayed
             }
             // 检测异常页面（交易页面、收银台等需要花钱的页面）→ 立即退出
@@ -1184,12 +1202,15 @@ object AutomationController {
                 debugLog("browseTask: abnormal/trading page during swipe, exiting immediately")
                 currentTaskIndex++
                 collectedCount++
-                exitBrowsePage(service)
+                exitBrowsePage(service, reason = "abnormal_in_swipe")
                 return@postDelayed
             }
             // 检测是否已完成任务（得到肥料）
             if (service.isTaskCompletePage()) {
                 debugLog("browseTask: task complete detected during swipe, exiting")
+                // 退出前截图 + 结束会话（这里直接 return 不走 exitBrowsePage，需手动调用）
+                service.dumpScreenshotWithMeta("browse", state.name, browseTaskTargetSwipes, "exit_task_complete_in_swipe")
+                service.endDumpSession()
                 // 优先点右上角关闭或左上角返回图标
                 val closeBtn = service.findAdCloseButton()
                 val backIcon = service.findBackIcon()
@@ -1233,7 +1254,12 @@ object AutomationController {
     }
 
     /** 退出浏览页面：优先用左上角返回图标，否则按返回键，然后重新打开任务列表 */
-    private fun exitBrowsePage(service: FarmAccessibilityService) {
+    private fun exitBrowsePage(service: FarmAccessibilityService, reason: String = "exit_browse_page") {
+        // 退出前截图：这是判断"任务是否真的完成 / 该不该退出"的最关键样本
+        // reason 用于事后看图区分退出原因（task_complete / timeout / abnormal_page / paid_search...）
+        service.dumpScreenshotWithMeta("browse", state.name, browseTaskTargetSwipes, "exit_${reason}")
+        // 结束采集会话（截图已落盘，避免下个任务混进来）
+        service.endDumpSession()
         // 优先点击左上角返回图标退出（"下单得奖励"、"当前页下单得肥料"等搜索推荐页面）
         val backIcon = service.findBackIcon()
         if (backIcon != null) {
