@@ -80,23 +80,31 @@ object RecordingManager {
     /** 开启录制 */
     fun start() {
         if (recording) return
-        recording = true
-        recordedCount = 0
-        // 创建新录制会话（任务流程闭环）
-        val sessionName = "流程${System.currentTimeMillis() % 10000}"
-        val sess = SceneLibrary.startSession(sessionName)
-        currentSessionId = sess.id
-        // 记录录制开始时的肥料数值（用于停录时对比）
-        initialFertilizer = readFertilizerAmount()
-        Log.i(TAG, "=== 录制开始 session=${sess.id} name='$sessionName' initialFertilizer=$initialFertilizer ===")
-        logToRecordingFile("=== 录制开始 session=${sess.id} name='$sessionName' initialFertilizer=$initialFertilizer ===")
-        // 暂停自动化（避免 bot 干扰用户操作）+ 重置执行上下文
-        if (AutomationController.isRunning) {
-            Log.i(TAG, "pausing automation for recording")
-            AutomationController.stop()
+        try {
+            recording = true
+            recordedCount = 0
+            // 创建新录制会话（任务流程闭环）
+            val sessionName = "流程${System.currentTimeMillis() % 10000}"
+            val sess = SceneLibrary.startSession(sessionName)
+            currentSessionId = sess.id
+            // 记录录制开始时的肥料数值（用于停录时对比）——后台线程读取，避免主线程阻塞
+            recordExecutor.execute {
+                initialFertilizer = readFertilizerAmount()
+                Log.i(TAG, "initialFertilizer=$initialFertilizer (async)")
+            }
+            Log.i(TAG, "=== 录制开始 session=${sess.id} name='$sessionName' ===")
+            logToRecordingFile("=== 录制开始 session=${sess.id} name='$sessionName' ===")
+            // 暂停自动化（避免 bot 干扰用户操作）+ 重置执行上下文
+            if (AutomationController.isRunning) {
+                Log.i(TAG, "pausing automation for recording")
+                AutomationController.stop()
+            }
+            SceneLibrary.resetSessionContext()
+        } catch (e: Exception) {
+            Log.e(TAG, "start recording failed: ${e.message}", e)
+            recording = false
         }
-        SceneLibrary.resetSessionContext()
-        onRecordingChanged?.invoke(true)
+        onRecordingChanged?.invoke(recording)
     }
 
     /** 停止录制 */
@@ -105,34 +113,43 @@ object RecordingManager {
         recording = false
         val sessId = currentSessionId
         val initial = initialFertilizer
-
-        // 读取停录时的肥料数值，与开始时对比
-        val finalFertilizer = readFertilizerAmount()
-        val gained = if (initial >= 0 && finalFertilizer >= 0) finalFertilizer - initial else null
-
-        if (sessId != null) {
-            if (gained != null && gained > 0) {
-                // 肥料有增加 → 保存录制为规则
-                SceneLibrary.endSession(sessId, recordedCount)
-                Log.i(TAG, "=== 录制结束 session=$sessId 肥料 $initial → $finalFertilizer (+$gained)，保存规则 ===")
-                logToRecordingFile("=== 录制结束 session=$sessId 肥料 $initial → $finalFertilizer (+$gained)，保存规则 ===")
-                onRecordingStopped?.invoke(true, initial, finalFertilizer, recordedCount)
-            } else {
-                // 肥料没增加（或读取失败）→ 删除本次录制（不保存为规则）
-                SceneLibrary.deleteSession(sessId)
-                val reason = when {
-                    gained == null -> "肥料数值读取失败(initial=$initial final=$finalFertilizer)"
-                    gained == 0 -> "肥料无变化($initial → $finalFertilizer)"
-                    else -> "肥料减少($initial → $finalFertilizer)"
-                }
-                Log.w(TAG, "=== 录制结束 session=$sessId $reason，丢弃本次录制 ===")
-                logToRecordingFile("=== 录制结束 session=$sessId $reason，丢弃本次录制 ===")
-                onRecordingStopped?.invoke(false, initial, finalFertilizer, recordedCount)
-            }
-        }
+        val steps = recordedCount
         currentSessionId = null
         initialFertilizer = -1
+        // UI 立即响应（按钮变回"录制"）
         onRecordingChanged?.invoke(false)
+
+        // 肥料读取 + 对比 + 保存/丢弃都在后台线程，避免主线程阻塞
+        recordExecutor.execute {
+            try {
+                val finalFertilizer = readFertilizerAmount()
+                val gained = if (initial >= 0 && finalFertilizer >= 0) finalFertilizer - initial else null
+
+                if (sessId != null) {
+                    if (gained != null && gained > 0) {
+                        // 肥料有增加 → 保存录制为规则
+                        SceneLibrary.endSession(sessId, steps)
+                        Log.i(TAG, "=== 录制结束 session=$sessId 肥料 $initial → $finalFertilizer (+$gained)，保存规则 ===")
+                        logToRecordingFile("=== 录制结束 session=$sessId 肥料 $initial → $finalFertilizer (+$gained)，保存规则 ===")
+                        onRecordingStopped?.invoke(true, initial, finalFertilizer, steps)
+                    } else {
+                        // 肥料没增加（或读取失败）→ 删除本次录制（不保存为规则）
+                        SceneLibrary.deleteSession(sessId)
+                        val reason = when {
+                            gained == null -> "肥料数值读取失败(initial=$initial final=$finalFertilizer)"
+                            gained == 0 -> "肥料无变化($initial → $finalFertilizer)"
+                            else -> "肥料减少($initial → $finalFertilizer)"
+                        }
+                        Log.w(TAG, "=== 录制结束 session=$sessId $reason，丢弃本次录制 ===")
+                        logToRecordingFile("=== 录制结束 session=$sessId $reason，丢弃本次录制 ===")
+                        onRecordingStopped?.invoke(false, initial, finalFertilizer, steps)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "stop recording background task failed: ${e.message}", e)
+                logToRecordingFile("ERROR stop failed: ${e.message}")
+            }
+        }
     }
 
     /** 切换录制状态 */
@@ -197,31 +214,37 @@ object RecordingManager {
 
         // 后台线程：特征提取（节点遍历）+ 规则匹配/记录（文件 IO + 锁）
         recordExecutor.execute {
-            // 停录后排队的残余事件直接跳过，快速排空队列
-            if (!recording) return@execute
-            val features = SceneFeatureExtractor.extract(service, stateName)
-            when (eventType) {
-                AccessibilityEvent.TYPE_VIEW_CLICKED -> {
-                    val text = eventText ?: classNameStr
-                    val targetButton = when {
-                        !nodeText.isNullOrEmpty() -> nodeText
-                        !desc.isNullOrEmpty() -> desc
-                        text.isNotEmpty() -> text
-                        else -> null
+            try {
+                // 停录后排队的残余事件直接跳过，快速排空队列
+                if (!recording) return@execute
+                val features = SceneFeatureExtractor.extract(service, stateName)
+                when (eventType) {
+                    AccessibilityEvent.TYPE_VIEW_CLICKED -> {
+                        val text = eventText ?: classNameStr
+                        val targetButton = when {
+                            !nodeText.isNullOrEmpty() -> nodeText
+                            !desc.isNullOrEmpty() -> desc
+                            text.isNotEmpty() -> text
+                            else -> null
+                        }
+                        Log.i(TAG, "录制点击: target='$targetButton' sig=${features.signature()}")
+                        logToRecordingFile("CLICK target='$targetButton' sig='${features.signature()}' btns=[${features.clickableButtons.joinToString(",")}]")
+                        handleGesture(features, SceneLibrary.Action.CLICK_BUTTON, targetButton, "点击 ${targetButton ?: "按钮"}")
                     }
-                    Log.i(TAG, "录制点击: target='$targetButton' sig=${features.signature()}")
-                    logToRecordingFile("CLICK target='$targetButton' sig='${features.signature()}' btns=[${features.clickableButtons.joinToString(",")}]")
-                    handleGesture(features, SceneLibrary.Action.CLICK_BUTTON, targetButton, "点击 ${targetButton ?: "按钮"}")
+                    AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
+                        val action = if (deltaY > 0) SceneLibrary.Action.SWIPE_UP else SceneLibrary.Action.SWIPE_DOWN
+                        Log.i(TAG, "录制滑动: deltaY=$deltaY action=$action sig=${features.signature()}")
+                        logToRecordingFile("SWIPE deltaY=$deltaY action=$action sig='${features.signature()}'")
+                        handleGesture(features, action, null, "滑动 $action")
+                    }
+                    else -> {
+                        // 忽略其他事件
+                    }
                 }
-                AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
-                    val action = if (deltaY > 0) SceneLibrary.Action.SWIPE_UP else SceneLibrary.Action.SWIPE_DOWN
-                    Log.i(TAG, "录制滑动: deltaY=$deltaY action=$action sig=${features.signature()}")
-                    logToRecordingFile("SWIPE deltaY=$deltaY action=$action sig='${features.signature()}'")
-                    handleGesture(features, action, null, "滑动 $action")
-                }
-                else -> {
-                    // 忽略其他事件
-                }
+            } catch (e: Exception) {
+                // 防止异常被 Executors 默认 handler 静默吞掉，导致录制无声失败
+                Log.e(TAG, "onUserGesture background task failed: ${e.message}", e)
+                logToRecordingFile("ERROR onUserGesture failed: ${e.message}")
             }
         }
     }
