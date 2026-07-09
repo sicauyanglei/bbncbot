@@ -61,6 +61,9 @@ object RecordingManager {
     /** 录制日志（详细记录每次操作，用于事后分析） */
     private val dateFormat = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 
+    /** 停录后排队的残余事件计数器（合并打日志，避免刷屏） */
+    private val pendingSkipCount = java.util.concurrent.atomic.AtomicInteger(0)
+
     /** 当录制状态变化时通知浮窗更新 UI */
     @Volatile
     var onRecordingChanged: ((Boolean) -> Unit)? = null
@@ -254,14 +257,32 @@ object RecordingManager {
         // 后台线程：特征提取（节点遍历）+ 规则匹配/记录（文件 IO + 锁）
         recordExecutor.execute {
             try {
-                // 停录后排队的残余事件直接跳过，快速排空队列
+                // 停录后排队的残余事件直接跳过（合并打一行汇总，避免刷屏）
                 if (!recording) {
-                    logToRecordingFile("SKIP残余事件 (recording=false) type=0x${eventType.toString(16)}")
+                    pendingSkipCount.incrementAndGet()
                     return@execute
                 }
+                // 若有累积的残余事件，先 flush 一行汇总日志
+                val skipped = pendingSkipCount.getAndSet(0)
+                if (skipped > 0) {
+                    logToRecordingFile("SKIP残余事件 x$skipped (recording=false)")
+                }
                 val features = SceneFeatureExtractor.extract(service, stateName)
-                when (eventType) {
-                    AccessibilityEvent.TYPE_VIEW_CLICKED -> {
+                // H5 WebView 上点击通常触发 TYPE_VIEW_TEXT_CHANGED(0x800) 或
+                // TYPE_WINDOW_STATE_CHANGED(0x20)，而非标准 TYPE_VIEW_CLICKED(0x1)。
+                // 支付宝/淘宝芭芭农场都是 H5 页面，需要把这些事件也当作点击录制。
+                val isClickLikeEvent = eventType == AccessibilityEvent.TYPE_VIEW_CLICKED ||
+                    eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED ||
+                    eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                when {
+                    eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
+                        val action = if (deltaY > 0) SceneLibrary.Action.SWIPE_UP else SceneLibrary.Action.SWIPE_DOWN
+                        Log.i(TAG, "录制滑动: deltaY=$deltaY action=$action sig=${features.signature()}")
+                        logToRecordingFile("SWIPE deltaY=$deltaY action=$action sig='${features.signature()}'")
+                        handleGesture(features, action, null, "滑动 $action")
+                    }
+                    isClickLikeEvent -> {
+                        // 从事件 source 提取目标按钮信息（text/desc），用于规则匹配和命名
                         val text = eventText ?: classNameStr
                         val targetButton = when {
                             !nodeText.isNullOrEmpty() -> nodeText
@@ -269,18 +290,18 @@ object RecordingManager {
                             text.isNotEmpty() -> text
                             else -> null
                         }
-                        Log.i(TAG, "录制点击: target='$targetButton' sig=${features.signature()}")
-                        logToRecordingFile("CLICK target='$targetButton' sig='${features.signature()}' btns=[${features.clickableButtons.joinToString(",")}]")
+                        // WINDOW_STATE_CHANGED 无 source 时，跳过（避免误把页面跳转记成点击）
+                        if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+                            nodeText.isNullOrEmpty() && desc.isNullOrEmpty() && eventText.isNullOrEmpty()) {
+                            logToRecordingFile("SKIP_WINDOW_STATE type=0x${eventType.toString(16)} class=$classNameStr (无文本，仅页面切换)")
+                            return@execute
+                        }
+                        Log.i(TAG, "录制点击(H5): type=0x${eventType.toString(16)} target='$targetButton' sig=${features.signature()}")
+                        logToRecordingFile("CLICK_H5 type=0x${eventType.toString(16)} target='$targetButton' sig='${features.signature()}' btns=[${features.clickableButtons.joinToString(",")}]")
                         handleGesture(features, SceneLibrary.Action.CLICK_BUTTON, targetButton, "点击 ${targetButton ?: "按钮"}")
                     }
-                    AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
-                        val action = if (deltaY > 0) SceneLibrary.Action.SWIPE_UP else SceneLibrary.Action.SWIPE_DOWN
-                        Log.i(TAG, "录制滑动: deltaY=$deltaY action=$action sig=${features.signature()}")
-                        logToRecordingFile("SWIPE deltaY=$deltaY action=$action sig='${features.signature()}'")
-                        handleGesture(features, action, null, "滑动 $action")
-                    }
                     else -> {
-                        // 忽略其他事件，但记录到日志便于诊断为何 steps=0
+                        // 其他事件类型忽略，但记录到日志便于后续诊断
                         logToRecordingFile("IGNORE type=0x${eventType.toString(16)} pkg=${event.packageName} class=$classNameStr")
                     }
                 }
