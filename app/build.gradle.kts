@@ -11,8 +11,8 @@ android {
         applicationId = "com.bbncbot"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
     }
 
     // release 签名（CI 生成 release.keystore；本地缺失时回退 debug）

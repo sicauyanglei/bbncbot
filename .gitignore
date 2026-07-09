@@ -5,9 +5,9 @@ build/
 # Local configuration file (sdk path, etc)
 local.properties
 
-# Sign files
-*.keystore
+# Sign files（release.keystore 已固定提交到仓库，保证每次 CI 签名一致）
 *.jks
+debug.keystore
 
 # IDE
 .idea/
