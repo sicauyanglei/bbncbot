@@ -160,6 +160,7 @@ class FloatingWindowService : Service() {
         ActionProposer.onProposalChanged = null
         RecordingManager.onRecordingChanged = null
         RecordingManager.onSceneAutoCreated = null
+        RecordingManager.onRecordingStopped = null
         proposalView?.let {
             try {
                 windowManager.removeView(it)
@@ -342,6 +343,24 @@ class FloatingWindowService : Service() {
         RecordingManager.onSceneAutoCreated = { name ->
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 Toast.makeText(this, "已录制场景：$name", Toast.LENGTH_SHORT).show()
+            }
+        }
+        // 录制停止后的结果通知：保存或丢弃
+        RecordingManager.onRecordingStopped = { saved, initial, finalAmount, stepCount ->
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                val msg = if (saved) {
+                    "录制已保存：肥料 $initial → $finalAmount (+${finalAmount - initial})，共 $stepCount 步"
+                } else {
+                    when {
+                        initial < 0 || finalAmount < 0 ->
+                            "录制已丢弃：肥料数值读取失败（开始=$initial 结束=$finalAmount），请确保在农场主页停录"
+                        finalAmount == initial ->
+                            "录制已丢弃：肥料无变化（$initial），本次任务未获得肥料"
+                        else ->
+                            "录制已丢弃：肥料减少（$initial → $finalAmount）"
+                    }
+                }
+                Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
             }
         }
     }

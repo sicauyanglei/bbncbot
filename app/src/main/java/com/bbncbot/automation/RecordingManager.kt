@@ -54,12 +54,28 @@ object RecordingManager {
     @Volatile
     private var currentSessionId: String? = null
 
+    /** 本次录制开始时的肥料数值（-1 表示未能读取，无法判断是否获得肥料） */
+    @Volatile
+    private var initialFertilizer: Int = -1
+
     /** 录制日志（详细记录每次操作，用于事后分析） */
     private val dateFormat = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 
     /** 当录制状态变化时通知浮窗更新 UI */
     @Volatile
     var onRecordingChanged: ((Boolean) -> Unit)? = null
+
+    /**
+     * 录制停止后的结果通知（由 FloatingWindowService 设置，用于显示 Toast）
+     *
+     * 参数：
+     * - saved：true 表示肥料增加，已保存为规则；false 表示无变化，已丢弃
+     * - initial：开始时的肥料数值（-1 表示读取失败）
+     * - finalAmount：结束时的肥料数值（-1 表示读取失败）
+     * - stepCount：本次录制的步骤数
+     */
+    @Volatile
+    var onRecordingStopped: ((saved: Boolean, initial: Int, finalAmount: Int, stepCount: Int) -> Unit)? = null
 
     /** 开启录制 */
     fun start() {
@@ -70,8 +86,10 @@ object RecordingManager {
         val sessionName = "流程${System.currentTimeMillis() % 10000}"
         val sess = SceneLibrary.startSession(sessionName)
         currentSessionId = sess.id
-        Log.i(TAG, "=== 录制开始 session=${sess.id} name='$sessionName' ===")
-        logToRecordingFile("=== 录制开始 session=${sess.id} name='$sessionName' ===")
+        // 记录录制开始时的肥料数值（用于停录时对比）
+        initialFertilizer = readFertilizerAmount()
+        Log.i(TAG, "=== 录制开始 session=${sess.id} name='$sessionName' initialFertilizer=$initialFertilizer ===")
+        logToRecordingFile("=== 录制开始 session=${sess.id} name='$sessionName' initialFertilizer=$initialFertilizer ===")
         // 暂停自动化（避免 bot 干扰用户操作）+ 重置执行上下文
         if (AutomationController.isRunning) {
             Log.i(TAG, "pausing automation for recording")
@@ -86,18 +104,55 @@ object RecordingManager {
         if (!recording) return
         recording = false
         val sessId = currentSessionId
+        val initial = initialFertilizer
+
+        // 读取停录时的肥料数值，与开始时对比
+        val finalFertilizer = readFertilizerAmount()
+        val gained = if (initial >= 0 && finalFertilizer >= 0) finalFertilizer - initial else null
+
         if (sessId != null) {
-            SceneLibrary.endSession(sessId, recordedCount)
+            if (gained != null && gained > 0) {
+                // 肥料有增加 → 保存录制为规则
+                SceneLibrary.endSession(sessId, recordedCount)
+                Log.i(TAG, "=== 录制结束 session=$sessId 肥料 $initial → $finalFertilizer (+$gained)，保存规则 ===")
+                logToRecordingFile("=== 录制结束 session=$sessId 肥料 $initial → $finalFertilizer (+$gained)，保存规则 ===")
+                onRecordingStopped?.invoke(true, initial, finalFertilizer, recordedCount)
+            } else {
+                // 肥料没增加（或读取失败）→ 删除本次录制（不保存为规则）
+                SceneLibrary.deleteSession(sessId)
+                val reason = when {
+                    gained == null -> "肥料数值读取失败(initial=$initial final=$finalFertilizer)"
+                    gained == 0 -> "肥料无变化($initial → $finalFertilizer)"
+                    else -> "肥料减少($initial → $finalFertilizer)"
+                }
+                Log.w(TAG, "=== 录制结束 session=$sessId $reason，丢弃本次录制 ===")
+                logToRecordingFile("=== 录制结束 session=$sessId $reason，丢弃本次录制 ===")
+                onRecordingStopped?.invoke(false, initial, finalFertilizer, recordedCount)
+            }
         }
-        Log.i(TAG, "=== 录制结束 session=$sessId 本次录制 $recordedCount 条规则 ===")
-        logToRecordingFile("=== 录制结束 session=$sessId 本次录制 $recordedCount 条规则 ===")
         currentSessionId = null
+        initialFertilizer = -1
         onRecordingChanged?.invoke(false)
     }
 
     /** 切换录制状态 */
     fun toggle() {
         if (recording) stop() else start()
+    }
+
+    /**
+     * 读取当前肥料数值（在主线程外调用，因为 findFertilizeButton 会遍历节点树）
+     *
+     * @return 肥料数值；-1 表示读取失败（不在农场主页/找不到施肥按钮/解析失败）
+     */
+    private fun readFertilizerAmount(): Int {
+        val service = FarmAccessibilityService.getInstance() ?: return -1
+        return try {
+            service.findCurrentFertilizerAmount()
+        } catch (e: Exception) {
+            Log.w(TAG, "readFertilizerAmount failed: ${e.message}")
+            -1
+        }
     }
 
     /**

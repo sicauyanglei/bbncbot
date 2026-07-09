@@ -2602,6 +2602,35 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 读取农场主页施肥大按钮上的当前肥料数值
+     *
+     * 施肥按钮的 text/contentDescription 形如：
+     * - "施肥，肥料39442，可施肥65次"
+     * - "施肥，肥料 39442"
+     * - "施肥，肥料39442克"
+     *
+     * 提取"肥料"后面紧跟的数字作为当前肥料数量。
+     * 用于录制前后对比，判断本次任务是否真的获得肥料。
+     *
+     * @return 当前肥料数值；找不到施肥按钮或解析失败返回 -1
+     */
+    fun findCurrentFertilizerAmount(): Int {
+        val btn = findFertilizeButton() ?: return -1
+        val text = btn.text?.toString().orEmpty()
+        val desc = btn.contentDescription?.toString().orEmpty()
+        val combined = if (text.contains("肥料")) text else desc
+        // 匹配"肥料"后面紧跟的可选空格 + 数字
+        val regex = Regex("肥料\\s*(\\d+)")
+        val match = regex.find(combined) ?: run {
+            Log.d(TAG, "findCurrentFertilizerAmount: 肥料数值未匹配，text='$text' desc='$desc'")
+            return -1
+        }
+        val amount = match.groupValues[1].toIntOrNull() ?: -1
+        Log.d(TAG, "findCurrentFertilizerAmount: amount=$amount (text='$text' desc='$desc')")
+        return amount
+    }
+
+    /**
      * 查找农场主页上所有直接可领取肥料的按钮
      * - 如"兔兔挖肥料，50肥料，可领取"、"4100，肥料，明日7点可领"
      * - 使用 currentPlatformConfig().directCollectTexts 匹配关键词
