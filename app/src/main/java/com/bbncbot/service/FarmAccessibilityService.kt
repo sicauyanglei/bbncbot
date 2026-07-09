@@ -2622,24 +2622,22 @@ class FarmAccessibilityService : AccessibilityService() {
      * - "施肥，肥料 39442"
      * - "施肥，肥料39442克"
      *
-     * 提取"肥料"后面紧跟的数字作为当前肥料数量。
-     * 用于录制前后对比，判断本次任务是否真的获得肥料。
+     * H5 农场页中，可点击"施肥"按钮自身 text 可能只是"施肥"二字，肥料数字可能在：
+     * - 父节点 contentDescription（H5 容器常把完整描述放在可点击元素上）
+     * - 子节点 text（多个 span 拼出"施肥 8432 肥料"）
+     * 因此本方法在自身匹配失败时，会向上遍历父节点、向下收集子树文本兜底提取，
+     * 最后兜底遍历整页查找"肥料XXXX"。
      *
      * @return 当前肥料数值；找不到施肥按钮或解析失败返回 -1
      */
     fun findCurrentFertilizerAmount(): Int {
-        val btn = findFertilizeButton() ?: return -1
-        val text = btn.text?.toString().orEmpty()
-        val desc = btn.contentDescription?.toString().orEmpty()
-        val combined = if (text.contains("肥料")) text else desc
-        // 匹配"肥料"后面紧跟的可选空格 + 数字
-        val regex = Regex("肥料\\s*(\\d+)")
-        val match = regex.find(combined) ?: run {
-            Log.d(TAG, "findCurrentFertilizerAmount: 肥料数值未匹配，text='$text' desc='$desc'")
+        val root = getRootInFarmApp() ?: rootInActiveWindowSafe() ?: run {
+            Log.d(TAG, "findCurrentFertilizerAmount: root is null")
             return -1
         }
-        val amount = match.groupValues[1].toIntOrNull() ?: -1
-        Log.d(TAG, "findCurrentFertilizerAmount: amount=$amount (text='$text' desc='$desc')")
+        val btn = findFertilizeButton()
+        val amount = extractFertilizerAmount(root, btn)
+        Log.d(TAG, "findCurrentFertilizerAmount: amount=$amount (btn found=${btn != null})")
         return amount
     }
 
@@ -2649,7 +2647,7 @@ class FarmAccessibilityService : AccessibilityService() {
      * 失败原因分类：
      * - no_root：拿不到无障碍根节点（可能不在农场 App）
      * - no_fertilize_button：找不到"施肥"按钮（不在农场主页）
-     * - parse_failed：找到按钮但 text/desc 中无"肥料XXXX"格式
+     * - parse_failed：找到按钮但自身/父节点/子树/整页均无"肥料XXXX"格式
      * - sample=...：失败时附带当前页面文本样本，便于判断当前在哪个页面
      *
      * @return Pair(amount, reason) amount=-1 时 reason 为失败原因；成功时 reason 为空
@@ -2660,24 +2658,118 @@ class FarmAccessibilityService : AccessibilityService() {
             return Pair(-1, "no_root (拿不到无障碍根节点，可能不在农场 App 或服务未就绪)")
         }
         val btn = findFertilizeButton()
-        if (btn == null) {
-            // 采样当前页面可见文本，便于判断在哪个页面
-            val sample = collectVisibleTextSample(root, 8)
-            return Pair(-1, "no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: $sample)")
+        val amount = extractFertilizerAmount(root, btn)
+        if (amount >= 0) {
+            return Pair(amount, "")
         }
-        val text = btn.text?.toString().orEmpty()
-        val desc = btn.contentDescription?.toString().orEmpty()
-        val combined = if (text.contains("肥料")) text else desc
+        // 失败诊断
+        val sample = collectVisibleTextSample(root, 8)
+        val reason = if (btn == null) {
+            "no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: $sample)"
+        } else {
+            val t = btn.text?.toString().orEmpty()
+            val d = btn.contentDescription?.toString().orEmpty()
+            "parse_failed (找到施肥按钮但自身/父节点/子树/整页均无'肥料XXXX'格式；text='$t' desc='$d'；页面样本: $sample)"
+        }
+        return Pair(-1, reason)
+    }
+
+    /**
+     * 核心提取逻辑：从施肥按钮节点树（自身/父节点/子树）提取肥料数值，失败时遍历整页兜底
+     *
+     * H5 农场页结构示例（施肥按钮自身可能不含数字）：
+     * - 按钮 text="施肥"，父节点 desc="施肥，肥料8432，可施肥65次"
+     * - 按钮 text="施肥"，子节点 span 拼出"施肥 8432 肥料"
+     * - 按钮自身 desc="施肥，肥料8432"（最理想情况）
+     *
+     * @param root 页面根节点（兜底遍历用）
+     * @param btn  施肥按钮节点（可为 null）
+     * @return 肥料数值；-1 表示未提取到
+     */
+    private fun extractFertilizerAmount(root: AccessibilityNodeInfo, btn: AccessibilityNodeInfo?): Int {
+        if (btn != null) {
+            // 1. 自身 text/desc
+            val selfAmt = matchFertilizerNumber(btn.text?.toString().orEmpty(), btn.contentDescription?.toString().orEmpty())
+            if (selfAmt >= 0) return selfAmt
+            // 2. 向上遍历父节点（最多 3 层），H5 容器常把完整 desc 放在可点击元素上
+            var parent: AccessibilityNodeInfo? = btn.parent
+            var depth = 0
+            while (parent != null && depth < 3) {
+                val pAmt = matchFertilizerNumber(parent.text?.toString().orEmpty(), parent.contentDescription?.toString().orEmpty())
+                if (pAmt >= 0) return pAmt
+                parent = parent.parent
+                depth++
+            }
+            // 3. 向下收集子树文本拼接后匹配
+            val sb = StringBuilder()
+            collectTextInto(btn, sb, maxDepth = 3)
+            val subAmt = matchFertilizerNumber(sb.toString(), "")
+            if (subAmt >= 0) return subAmt
+        }
+        // 4. 兜底：遍历整页查找"肥料\s*\d{3,}"，取最大值（肥料总数通常最大）
+        return extractFertilizerFromEntireTree(root)
+    }
+
+    /**
+     * 从 text/desc 中匹配"肥料\s*(\d+)"，先匹配 text 再匹配 desc
+     * @return 肥料数值；-1 表示未匹配
+     */
+    private fun matchFertilizerNumber(text: String, desc: String): Int {
         val regex = Regex("肥料\\s*(\\d+)")
-        val match = regex.find(combined)
-        if (match == null) {
-            return Pair(-1, "parse_failed (找到施肥按钮但无'肥料XXXX'格式；text='$text' desc='$desc')")
+        regex.find(text)?.let { m ->
+            m.groupValues[1].toIntOrNull()?.let { if (it >= 0) return it }
         }
-        val amount = match.groupValues[1].toIntOrNull()
-        if (amount == null) {
-            return Pair(-1, "parse_failed (数字解析失败；matched='${match.groupValues[1]}')")
+        regex.find(desc)?.let { m ->
+            m.groupValues[1].toIntOrNull()?.let { if (it >= 0) return it }
         }
-        return Pair(amount, "")
+        return -1
+    }
+
+    /**
+     * 收集节点及子节点的 text/contentDescription 拼接到 [sb]（用于兜底提取数字）
+     */
+    private fun collectTextInto(node: AccessibilityNodeInfo, sb: StringBuilder, maxDepth: Int, depth: Int = 0) {
+        if (depth > maxDepth) return
+        val t = node.text?.toString().orEmpty()
+        if (t.isNotEmpty()) sb.append(t).append(' ')
+        val d = node.contentDescription?.toString().orEmpty()
+        if (d.isNotEmpty()) sb.append(d).append(' ')
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            collectTextInto(child, sb, maxDepth, depth + 1)
+        }
+    }
+
+    /**
+     * 遍历整棵树查找"肥料\s*\d{3,}"，返回最大的匹配数字
+     *
+     * - 要求至少 3 位数字，过滤"还差3次领肥料"等小数字/无数字误匹配
+     * - 排除含进度提示字样的节点（"还差"、"次领"、"%"等）
+     * - 取最大值：施肥按钮 desc 形如"施肥，肥料8432，可施肥65次"，8432 最大
+     *
+     * @return 肥料数值；-1 表示未找到
+     */
+    private fun extractFertilizerFromEntireTree(root: AccessibilityNodeInfo): Int {
+        val regex = Regex("肥料\\s*(\\d{3,})")
+        val excludeKeywords = listOf("还差", "次领", "%")
+        var bestAmount = -1
+        fun walk(node: AccessibilityNodeInfo) {
+            val text = node.text?.toString().orEmpty()
+            val desc = node.contentDescription?.toString().orEmpty()
+            for (combined in listOf(text, desc)) {
+                if (!combined.contains("肥料")) continue
+                if (excludeKeywords.any { combined.contains(it) }) continue
+                val match = regex.find(combined) ?: continue
+                val amount = match.groupValues[1].toIntOrNull() ?: continue
+                if (amount > bestAmount) bestAmount = amount
+            }
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                walk(child)
+            }
+        }
+        walk(root)
+        return bestAmount
     }
 
     /**
