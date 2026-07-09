@@ -11,8 +11,8 @@ android {
         applicationId = "com.bbncbot"
         minSdk = 24
         targetSdk = 34
-        versionCode = 11
-        versionName = "2.0"
+        versionCode = 12
+        versionName = "2.1"
     }
 
     // release 签名（CI 用仓库内固定的 release.keystore，保证每次签名一致可覆盖安装）

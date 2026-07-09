@@ -390,9 +390,26 @@ object RecordingManager {
                 onSceneAutoCreated?.invoke(name)
             }
             is SceneLibrary.MatchResult.Defaulted, SceneLibrary.MatchResult.None -> {
-                // 命中默认规则，不需要录制
-                Log.d(TAG, "命中默认规则，跳过录制: actionDesc=$actionDesc")
-                logToRecordingFile("SKIP_DEFAULTED action=$action actionDesc=$actionDesc sig='${features.signature()}' (命中默认规则，不录制)")
+                // 录制模式：默认规则不应吞掉用户的点击，仍创建新规则（不带 popup=* 的通配才真正跳过）
+                // 仅对 popup=red_packet 且用户点的就是"关闭"这种通用按钮跳过
+                val sig = features.signature()
+                val isGenericCloseButton = targetButton == "关闭" && sig.contains("popup=red_packet")
+                if (isGenericCloseButton) {
+                    Log.d(TAG, "命中默认规则且为通用关闭按钮，跳过录制: actionDesc=$actionDesc")
+                    logToRecordingFile("SKIP_DEFAULTED action=$action actionDesc=$actionDesc sig='$sig' (命中默认规则，不录制)")
+                } else {
+                    // 当作全新场景创建规则
+                    val name = SceneLibrary.autoName(features, action, targetButton)
+                    SceneLibrary.createCategory(
+                        features, name, action, targetButton,
+                        sessionId = sessId,
+                        stepIndex = recordedCount
+                    )
+                    recordedCount++
+                    Log.i(TAG, "自动创建场景(默认规则跳过录制): name='$name' action=$action session=$sessId step=${recordedCount - 1}")
+                    logToRecordingFile("AUTO_CREATE name='$name' action=$action session=$sessId step=${recordedCount - 1} sig='$sig'")
+                    onSceneAutoCreated?.invoke(name)
+                }
             }
         }
     }
