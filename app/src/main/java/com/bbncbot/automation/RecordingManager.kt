@@ -247,6 +247,12 @@ object RecordingManager {
     fun onUserGesture(event: AccessibilityEvent, service: FarmAccessibilityService) {
         if (!recording) return
 
+        // 过滤掉本应用（悬浮窗按钮）的事件，避免误录自己的录制/停录/中断按钮
+        val eventPkg = event.packageName?.toString() ?: ""
+        if (eventPkg == "com.bbncbot") {
+            return
+        }
+
         // 主线程：仅读取事件原始字段（廉价），不访问节点树/文件
         val eventType = event.eventType
         val eventText: String? = event.text?.joinToString(" ")?.trim()
