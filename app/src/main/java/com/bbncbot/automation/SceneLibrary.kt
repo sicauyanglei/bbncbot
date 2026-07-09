@@ -773,6 +773,160 @@ object SceneLibrary {
         }
     }
 
+    /**
+     * 生成规则判断依据的人类可读说明
+     *
+     * 把每个 category 的 signature/coreSignature 各字段解析成中文描述，
+     * 让用户核对"bot 命中这个规则时依据是什么"是否准确。
+     *
+     * 输出格式示例：
+     * ```
+     * === 规则判断依据 ===
+     *
+     * 【规则1】UC-浏览15秒任务-向上滑动
+     *   执行动作：向上滑动
+     *   命中次数：3 次
+     *   归属流程：流程1234 步骤 0
+     *
+     *   判断依据（精确匹配 signature）：
+     *     平台：UC
+     *     农场主页：否
+     *     任务类型：浏览15秒任务
+     *     倒计时：有
+     *     进度提示：有
+     *     按钮集合：去完成,关闭
+     *
+     *   判断依据（核心匹配 coreSignature，按钮变化时也命中）：
+     *     平台：UC
+     *     任务类型：浏览15秒任务
+     *     倒计时：有
+     *     进度提示：有
+     * ```
+     */
+    fun explainRules(): String {
+        ensureInitialized()
+        return synchronized(lock) {
+            val sb = StringBuilder()
+            sb.append("=== 规则判断依据（共 ${categories.size} 条规则）===\n\n")
+            if (categories.isEmpty()) {
+                sb.append("（暂无规则，请先录制）\n")
+                return sb.toString()
+            }
+            categories.forEachIndexed { idx, c ->
+                sb.append("【规则${idx + 1}】${c.name}\n")
+                sb.append("  执行动作：${actionToText(c.action, c.targetButton)}\n")
+                sb.append("  命中次数：${c.hitCount} 次\n")
+                if (c.sessionId.isNotEmpty()) {
+                    val sess = sessions.firstOrNull { it.id == c.sessionId }
+                    val sessName = sess?.name ?: c.sessionId
+                    sb.append("  归属流程：$sessName 步骤 ${c.stepIndex}\n")
+                }
+                // 该 category 关联的所有 mapping
+                val relatedMaps = mappings.filter { it.categoryId == c.id }
+                if (relatedMaps.isEmpty()) {
+                    sb.append("  （无 signature 映射，规则无法命中）\n\n")
+                    return@forEachIndexed
+                }
+                // 精确匹配依据（取第一个 mapping 的 signature 解析）
+                val firstMap = relatedMaps.first()
+                sb.append("  判断依据（精确匹配，所有字段必须一致）：\n")
+                sb.append(parseSignatureReadable(firstMap.signature, indent = "    "))
+                // 核心匹配依据
+                if (firstMap.coreSignature.isNotEmpty()) {
+                    sb.append("  判断依据（核心匹配，按钮文案变化时也命中）：\n")
+                    sb.append(parseSignatureReadable(firstMap.coreSignature, indent = "    "))
+                }
+                // 如果有多个 mapping，列出其他变体
+                if (relatedMaps.size > 1) {
+                    sb.append("  其他已记录的签名变体（${relatedMaps.size - 1} 个）：\n")
+                    relatedMaps.drop(1).forEach { m ->
+                        sb.append("    - ${m.signature}\n")
+                    }
+                }
+                sb.append("\n")
+            }
+            sb.toString()
+        }
+    }
+
+    /** 把 signature 字符串解析成中文可读字段列表 */
+    private fun parseSignatureReadable(sig: String, indent: String): String {
+        val sb = StringBuilder()
+        val parts = sig.split("|")
+        for (part in parts) {
+            val eqIdx = part.indexOf('=')
+            if (eqIdx < 0) continue
+            val key = part.substring(0, eqIdx)
+            val value = part.substring(eqIdx + 1)
+            val readable = when (key) {
+                "p" -> "平台：${platformToText(value)}"
+                "farm" -> "农场主页：${if (value == "true") "是" else "否"}"
+                "type" -> "任务类型：${typeToText(value)}"
+                "popup" -> "弹窗：${popupToText(value)}"
+                "countdown" -> "倒计时：${if (value == "yes") "有" else "无"}"
+                "progress" -> "进度提示：${if (value == "yes") "有" else "无"}"
+                "btns" -> "按钮集合：$value"
+                else -> "$key：$value"
+            }
+            sb.append("$indent$readable\n")
+        }
+        return sb.toString()
+    }
+
+    private fun platformToText(p: String): String = when (p) {
+        "UC" -> "UC"
+        "ALIPAY" -> "支付宝"
+        "TAOBAO" -> "淘宝"
+        "UNKNOWN" -> "未知"
+        else -> p
+    }
+
+    private fun typeToText(t: String): String = when {
+        t == "complete" -> "任务完成页"
+        t == "abnormal" -> "异常页（交易/收银台）"
+        t == "paid_search" -> "付费搜索推荐页"
+        t.startsWith("browse_duration") -> "浏览时长任务（$t）"
+        t == "search_browse" -> "搜索浏览任务"
+        t == "browse" -> "浏览任务"
+        t == "farm_home" -> "农场主页"
+        else -> "未知页（$t）"
+    }
+
+    private fun popupToText(p: String): String = when (p) {
+        "red_packet" -> "红包弹窗"
+        "faster_reward_entry" -> "更快拿奖入口"
+        "reward_upgrade" -> "奖励提升窗口"
+        else -> p
+    }
+
+    private fun actionToText(action: Action, target: String?): String = when (action) {
+        Action.SWIPE_UP -> "向上滑动"
+        Action.SWIPE_DOWN -> "向下滑动"
+        Action.BACK -> "返回"
+        Action.EXIT_TASK -> "退出任务"
+        Action.WAIT -> "等待"
+        Action.CLICK_BUTTON -> "点击按钮「${target ?: "未知"}」"
+        Action.STOP_AUTOMATION -> "停止自动化"
+        Action.UNKNOWN -> "未知动作"
+    }
+
+    /** 把规则判断依据写入文件，供用户查看 */
+    fun dumpRulesExplanationToFile(): String {
+        val text = explainRules()
+        val file = java.io.File(
+            android.os.Environment.getExternalStorageDirectory(),
+            "Android/data/com.bbncbot/files/rules_explanation.txt"
+        )
+        try {
+            file.parentFile?.mkdirs()
+            file.writeText(text)
+            Log.i(TAG, "规则判断依据已写入 ${file.absolutePath}")
+        } catch (e: Exception) {
+            Log.w(TAG, "dumpRulesExplanationToFile failed: ${e.message}")
+        }
+        return text
+    }
+
     /** 兼容旧调用：录制规则（用 action 直接创建 category，名字用 action 名） */
     fun recordRule(features: SceneFeatures, action: Action, targetButton: String? = null) {
         ensureInitialized()

@@ -67,6 +67,7 @@
                 <action android:name="com.bbncbot.OPEN_TEACH" />
                 <action android:name="com.bbncbot.TOGGLE_RECORDING" />
                 <action android:name="com.bbncbot.INTERRUPT" />
+                <action android:name="com.bbncbot.DUMP_RULES" />
             </intent-filter>
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"

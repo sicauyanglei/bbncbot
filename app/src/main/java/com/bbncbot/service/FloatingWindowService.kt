@@ -147,6 +147,12 @@ class FloatingWindowService : Service() {
             // adb shell am broadcast -a com.bbncbot.INTERRUPT
             Log.i(TAG, "Received INTERRUPT broadcast")
             RecordingManager.interrupt()
+        } else if (intent?.action == "com.bbncbot.DUMP_RULES") {
+            // adb shell am broadcast -a com.bbncbot.DUMP_RULES
+            Log.i(TAG, "Received DUMP_RULES broadcast")
+            val text = SceneLibrary.dumpRulesExplanationToFile()
+            Log.i(TAG, "规则判断依据：\n$text")
+            Toast.makeText(this, "规则依据已写入文件并打印到 logcat", Toast.LENGTH_LONG).show()
         }
         return START_STICKY
     }
