@@ -776,77 +776,128 @@ object SceneLibrary {
     /**
      * 生成规则判断依据的人类可读说明
      *
-     * 把每个 category 的 signature/coreSignature 各字段解析成中文描述，
-     * 让用户核对"bot 命中这个规则时依据是什么"是否准确。
+     * **规则单元 = 一个完整任务流程（RecordingSession）**，不是单个录制操作。
+     *
+     * 一次录制 = 一个完整任务闭环（从开始到获得肥料），bot 命中流程起点后按顺序执行各步骤。
+     * 因此 explainRules 按 session 展示：每个 session 是一条规则，内含有序步骤，
+     * 每个步骤有独立的判断依据（场景特征）。
+     *
+     * 独立规则（无 session 归属的 category，旧数据）单独展示。
      *
      * 输出格式示例：
      * ```
-     * === 规则判断依据 ===
+     * === 规则判断依据（共 2 条规则）===
      *
-     * 【规则1】UC-浏览15秒任务-向上滑动
-     *   执行动作：向上滑动
-     *   命中次数：3 次
-     *   归属流程：流程1234 步骤 0
+     * 【规则1】流程1234-UC-浏览任务（完整任务流程）
+     *   流程状态：已完成
+     *   步骤数：3
+     *   总命中：5 次
      *
-     *   判断依据（精确匹配 signature）：
-     *     平台：UC
-     *     农场主页：否
-     *     任务类型：浏览15秒任务
-     *     倒计时：有
-     *     进度提示：有
-     *     按钮集合：去完成,关闭
+     *   步骤1：向上滑动
+     *     触发条件（bot 进入此步骤时依据）：
+     *       平台：UC
+     *       农场主页：否
+     *       任务类型：浏览时长任务（browse_duration(15s)）
+     *       倒计时：有
+     *       进度提示：有
+     *     核心匹配（按钮文案变化时也命中）：
+     *       平台：UC ···
      *
-     *   判断依据（核心匹配 coreSignature，按钮变化时也命中）：
-     *     平台：UC
-     *     任务类型：浏览15秒任务
-     *     倒计时：有
-     *     进度提示：有
+     *   步骤2：点击按钮「领取」
+     *     触发条件：···
+     *
+     *   步骤3：退出任务
+     *     触发条件：···
      * ```
      */
     fun explainRules(): String {
         ensureInitialized()
         return synchronized(lock) {
             val sb = StringBuilder()
-            sb.append("=== 规则判断依据（共 ${categories.size} 条规则）===\n\n")
-            if (categories.isEmpty()) {
+            // 规则单元：session（完整流程）+ 独立规则（无 session 的 category）
+            val sessionCats = categories.filter { it.sessionId.isNotEmpty() }
+            val standaloneCats = categories.filter { it.sessionId.isEmpty() }
+            val sessionsWithCats = sessions.map { sess ->
+                sess to sessionCats.filter { it.sessionId == sess.id }.sortedBy { it.stepIndex }
+            }
+            val ruleCount = sessionsWithCats.size + standaloneCats.size
+
+            sb.append("=== 规则判断依据（共 $ruleCount 条规则）===\n\n")
+            if (ruleCount == 0) {
                 sb.append("（暂无规则，请先录制）\n")
                 return sb.toString()
             }
-            categories.forEachIndexed { idx, c ->
-                sb.append("【规则${idx + 1}】${c.name}\n")
-                sb.append("  执行动作：${actionToText(c.action, c.targetButton)}\n")
-                sb.append("  命中次数：${c.hitCount} 次\n")
-                if (c.sessionId.isNotEmpty()) {
-                    val sess = sessions.firstOrNull { it.id == c.sessionId }
-                    val sessName = sess?.name ?: c.sessionId
-                    sb.append("  归属流程：$sessName 步骤 ${c.stepIndex}\n")
+
+            var ruleIdx = 0
+            // 1. 按 session 展示（一条规则 = 一个完整流程）
+            sessionsWithCats.forEach { (sess, cats) ->
+                ruleIdx++
+                sb.append("【规则$ruleIdx】${sess.name}（完整任务流程）\n")
+                sb.append("  流程状态：${sessionStatusToText(sess.status)}\n")
+                sb.append("  步骤数：${cats.size}\n")
+                val totalHits = cats.sumOf { it.hitCount }
+                sb.append("  总命中：${totalHits} 次\n\n")
+                if (cats.isEmpty()) {
+                    sb.append("  （流程无步骤，可能录制中断已丢弃）\n\n")
+                    return@forEach
                 }
-                // 该 category 关联的所有 mapping
-                val relatedMaps = mappings.filter { it.categoryId == c.id }
-                if (relatedMaps.isEmpty()) {
-                    sb.append("  （无 signature 映射，规则无法命中）\n\n")
-                    return@forEachIndexed
-                }
-                // 精确匹配依据（取第一个 mapping 的 signature 解析）
-                val firstMap = relatedMaps.first()
-                sb.append("  判断依据（精确匹配，所有字段必须一致）：\n")
-                sb.append(parseSignatureReadable(firstMap.signature, indent = "    "))
-                // 核心匹配依据
-                if (firstMap.coreSignature.isNotEmpty()) {
-                    sb.append("  判断依据（核心匹配，按钮文案变化时也命中）：\n")
-                    sb.append(parseSignatureReadable(firstMap.coreSignature, indent = "    "))
-                }
-                // 如果有多个 mapping，列出其他变体
-                if (relatedMaps.size > 1) {
-                    sb.append("  其他已记录的签名变体（${relatedMaps.size - 1} 个）：\n")
-                    relatedMaps.drop(1).forEach { m ->
-                        sb.append("    - ${m.signature}\n")
+                cats.forEachIndexed { stepIdx, c ->
+                    sb.append("  步骤${stepIdx + 1}：${actionToText(c.action, c.targetButton)}")
+                    sb.append("  [命中${c.hitCount}次]\n")
+                    val relatedMaps = mappings.filter { it.categoryId == c.id }
+                    if (relatedMaps.isEmpty()) {
+                        sb.append("    （无 signature 映射，此步骤无法触发）\n\n")
+                        return@forEachIndexed
                     }
+                    val firstMap = relatedMaps.first()
+                    sb.append("    触发条件（精确匹配，所有字段必须一致）：\n")
+                    sb.append(parseSignatureReadable(firstMap.signature, indent = "      "))
+                    if (firstMap.coreSignature.isNotEmpty()) {
+                        sb.append("    核心匹配（按钮文案变化时也命中）：\n")
+                        sb.append(parseSignatureReadable(firstMap.coreSignature, indent = "      "))
+                    }
+                    if (relatedMaps.size > 1) {
+                        sb.append("    其他签名变体（${relatedMaps.size - 1} 个，同步骤的不同页面状态）：\n")
+                        relatedMaps.drop(1).forEach { m ->
+                            sb.append("      - ${m.signature}\n")
+                        }
+                    }
+                    sb.append("\n")
                 }
-                sb.append("\n")
+            }
+            // 2. 独立规则（无 session 归属，旧数据或兼容调用产生的单步规则）
+            if (standaloneCats.isNotEmpty()) {
+                if (ruleIdx > 0) sb.append("\n")
+                sb.append("--- 独立规则（无流程归属，单步匹配）---\n\n")
+                standaloneCats.forEach { c ->
+                    ruleIdx++
+                    sb.append("【规则$ruleIdx】${c.name}（独立单步）\n")
+                    sb.append("  执行动作：${actionToText(c.action, c.targetButton)}\n")
+                    sb.append("  命中次数：${c.hitCount} 次\n")
+                    val relatedMaps = mappings.filter { it.categoryId == c.id }
+                    if (relatedMaps.isEmpty()) {
+                        sb.append("  （无 signature 映射，规则无法命中）\n\n")
+                        return@forEach
+                    }
+                    val firstMap = relatedMaps.first()
+                    sb.append("  触发条件（精确匹配，所有字段必须一致）：\n")
+                    sb.append(parseSignatureReadable(firstMap.signature, indent = "    "))
+                    if (firstMap.coreSignature.isNotEmpty()) {
+                        sb.append("  核心匹配（按钮文案变化时也命中）：\n")
+                        sb.append(parseSignatureReadable(firstMap.coreSignature, indent = "    "))
+                    }
+                    sb.append("\n")
+                }
             }
             sb.toString()
         }
+    }
+
+    private fun sessionStatusToText(status: String): String = when (status) {
+        "RECORDING" -> "录制中"
+        "COMPLETED" -> "已完成"
+        "ABORTED" -> "已中断"
+        else -> status
     }
 
     /** 把 signature 字符串解析成中文可读字段列表 */
