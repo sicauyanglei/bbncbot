@@ -212,7 +212,7 @@ class FarmAccessibilityService : AccessibilityService() {
                 evType == AccessibilityEvent.TYPE_VIEW_LONG_CLICKED ||
                 evType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED ||
                 evType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
-                evType == AccessibilityEvent.TYPE_TOUCH_EXPLORATION_GESTURE_END) {
+                evType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
                 val srcText = event.source?.text?.toString().orEmpty()
                 val srcDesc = event.source?.contentDescription?.toString().orEmpty()
                 debugLog("record event: type=0x${evType.toString(16)} pkg=$pkg class=$className text='$srcText' desc='$srcDesc'")
