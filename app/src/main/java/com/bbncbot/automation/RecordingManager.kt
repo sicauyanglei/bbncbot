@@ -263,11 +263,14 @@ object RecordingManager {
         val deltaY = event.scrollDeltaY
         val stateName = AutomationController.currentState.name
 
+        // 主线程捕获 sessionId 副本，避免 stop() 在事件处理前置空 sessionId 导致丢失事件
+        val sessIdAtEnqueue = currentSessionId
+
         // 后台线程：特征提取（节点遍历）+ 规则匹配/记录（文件 IO + 锁）
         recordExecutor.execute {
             try {
                 // 停录后排队的残余事件直接跳过（合并打一行汇总，避免刷屏）
-                if (!recording) {
+                if (!recording && sessIdAtEnqueue == null) {
                     pendingSkipCount.incrementAndGet()
                     return@execute
                 }
@@ -291,7 +294,7 @@ object RecordingManager {
                         val action = if (deltaY > 0) SceneLibrary.Action.SWIPE_UP else SceneLibrary.Action.SWIPE_DOWN
                         Log.i(TAG, "录制滑动: deltaY=$deltaY action=$action sig=${features.signature()}")
                         logToRecordingFile("SWIPE deltaY=$deltaY action=$action sig='${features.signature()}'")
-                        handleGesture(features, action, null, "滑动 $action")
+                        handleGesture(features, action, null, "滑动 $action", sessIdAtEnqueue)
                     }
                     isClickLikeEvent -> {
                         // 从事件 source 提取目标按钮信息（text/desc），用于规则匹配和命名
@@ -327,7 +330,7 @@ object RecordingManager {
                         }
                         Log.i(TAG, "录制点击(H5): type=0x${eventType.toString(16)} target='$targetButton' sig=${features.signature()}")
                         logToRecordingFile("CLICK_H5 type=0x${eventType.toString(16)} target='$targetButton' sig='${features.signature()}' btns=[${features.clickableButtons.joinToString(",")}]")
-                        handleGesture(features, SceneLibrary.Action.CLICK_BUTTON, targetButton, "点击 ${targetButton ?: "按钮"}")
+                        handleGesture(features, SceneLibrary.Action.CLICK_BUTTON, targetButton, "点击 ${targetButton ?: "按钮"}", sessIdAtEnqueue)
                     }
                     else -> {
                         // 其他事件类型忽略，但记录到日志便于后续诊断
@@ -356,9 +359,10 @@ object RecordingManager {
         features: SceneFeatures,
         action: SceneLibrary.Action,
         targetButton: String?,
-        actionDesc: String
+        actionDesc: String,
+        sessId: String?
     ) {
-        val sessId = currentSessionId ?: run {
+        if (sessId == null) {
             logToRecordingFile("SKIP handleGesture: sessionId=null (录制已停止)")
             return // 录制已停止（残余事件）
         }
