@@ -631,6 +631,8 @@ object AutomationController {
         // 取消进行中的导航回调，避免 stop 后导航继续干扰用户操作
         getService()?.cancelNavigation()
         getService()?.setAdMode(false)
+        // 重置场景执行上下文（不再按 session 流程执行）
+        SceneLibrary.resetSessionContext()
         moveTo(AutomationState.IDLE)
     }
 

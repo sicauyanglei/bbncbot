@@ -23,12 +23,18 @@ import java.util.Locale
  *   - TYPE_VIEW_TEXT_CHANGED → 忽略
  * - 用户按返回键（pressBack）由 service 拦截
  *
+ * **任务流程闭环**：每次录制 = 一个完整任务流程
+ * - [start] 时创建 [SceneLibrary.RecordingSession]
+ * - 录制期间每个规则按顺序记录 [SceneLibrary.SceneCategory.stepIndex]（0,1,2,...）
+ * - [stop] 时标记 session 完成
+ * - bot 执行时若场景匹配 session 第一步，进入"按流程执行"模式，优先匹配下一步
+ *
  * 录制完成后关闭录制，bot 恢复自动执行，遇到相同场景按录制规则操作。
  *
  * 中断机制：
  * - 浮窗常驻"中断"按钮
- * - 用户点击 → [interrupt] → 立即停止 AutomationController + 删除当前场景的规则
- *   （表示"这个场景不该这么操作"）
+ * - 用户点击 → [interrupt] → 立即停止 AutomationController + 删除当前 session 的所有规则
+ *   （表示"这个流程不对"）
  */
 object RecordingManager {
 
@@ -44,6 +50,10 @@ object RecordingManager {
     var recordedCount: Int = 0
         private set
 
+    /** 当前录制会话 ID（录制中非空，停止后为空） */
+    @Volatile
+    private var currentSessionId: String? = null
+
     /** 录制日志（详细记录每次操作，用于事后分析） */
     private val dateFormat = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 
@@ -56,13 +66,18 @@ object RecordingManager {
         if (recording) return
         recording = true
         recordedCount = 0
-        Log.i(TAG, "=== 录制开始 ===")
-        logToRecordingFile("=== 录制开始 ===")
-        // 暂停自动化（避免 bot 干扰用户操作）
+        // 创建新录制会话（任务流程闭环）
+        val sessionName = "流程${System.currentTimeMillis() % 10000}"
+        val sess = SceneLibrary.startSession(sessionName)
+        currentSessionId = sess.id
+        Log.i(TAG, "=== 录制开始 session=${sess.id} name='$sessionName' ===")
+        logToRecordingFile("=== 录制开始 session=${sess.id} name='$sessionName' ===")
+        // 暂停自动化（避免 bot 干扰用户操作）+ 重置执行上下文
         if (AutomationController.isRunning) {
             Log.i(TAG, "pausing automation for recording")
             AutomationController.stop()
         }
+        SceneLibrary.resetSessionContext()
         onRecordingChanged?.invoke(true)
     }
 
@@ -70,8 +85,13 @@ object RecordingManager {
     fun stop() {
         if (!recording) return
         recording = false
-        Log.i(TAG, "=== 录制结束，本次录制 $recordedCount 条规则 ===")
-        logToRecordingFile("=== 录制结束，本次录制 $recordedCount 条规则 ===")
+        val sessId = currentSessionId
+        if (sessId != null) {
+            SceneLibrary.endSession(sessId, recordedCount)
+        }
+        Log.i(TAG, "=== 录制结束 session=$sessId 本次录制 $recordedCount 条规则 ===")
+        logToRecordingFile("=== 录制结束 session=$sessId 本次录制 $recordedCount 条规则 ===")
+        currentSessionId = null
         onRecordingChanged?.invoke(false)
     }
 
@@ -154,9 +174,12 @@ object RecordingManager {
     /**
      * 统一处理手势录制逻辑（点击/滑动共用）
      *
-     * - Matched → 强化已有规则
-     * - Unmapped → 自动命名 + 创建 category（不弹窗，通过 [onSceneAutoCreated] 回调通知 UI 显示 Toast）
+     * 录制模式下，所有规则都归属当前 session（任务流程闭环）：
+     * - Matched → 已有 category，强化规则（若同 session 同 stepIndex 已存在，跳过重复录制）
+     * - Unmapped → 全新场景，自动命名 + 创建 category（带 sessionId + stepIndex）
      * - Defaulted/None → 命中默认规则，跳过录制
+     *
+     * stepIndex 取 recordedCount（本次会话已录制规则数），保证同一 session 内步骤序号连续。
      */
     private fun handleGesture(
         features: SceneFeatures,
@@ -164,6 +187,7 @@ object RecordingManager {
         targetButton: String?,
         actionDesc: String
     ) {
+        val sessId = currentSessionId ?: return // 录制已停止（残余事件）
         val matchResult = SceneLibrary.match(features)
         when (matchResult) {
             is SceneLibrary.MatchResult.Matched -> {
@@ -173,12 +197,16 @@ object RecordingManager {
                 recordedCount++
             }
             is SceneLibrary.MatchResult.Unmapped -> {
-                // 全新场景，自动命名 + 创建（不弹窗）
+                // 全新场景，自动命名 + 创建（归属当前 session，stepIndex = recordedCount）
                 val name = SceneLibrary.autoName(features, action, targetButton)
-                SceneLibrary.createCategory(features, name, action, targetButton)
+                SceneLibrary.createCategory(
+                    features, name, action, targetButton,
+                    sessionId = sessId,
+                    stepIndex = recordedCount
+                )
                 recordedCount++
-                Log.i(TAG, "自动创建场景: name='$name' action=$action")
-                logToRecordingFile("AUTO_CREATE name='$name' action=$action sig='${features.signature()}'")
+                Log.i(TAG, "自动创建场景: name='$name' action=$action session=$sessId step=${recordedCount - 1}")
+                logToRecordingFile("AUTO_CREATE name='$name' action=$action session=$sessId step=${recordedCount - 1} sig='${features.signature()}'")
                 // 通知 UI 显示 Toast
                 onSceneAutoCreated?.invoke(name)
             }
@@ -201,7 +229,8 @@ object RecordingManager {
      * 中断当前 bot 动作（用户点击浮窗"中断"按钮时调用）
      *
      * - 立即停止 AutomationController
-     * - 删除当前场景的规则（表示"这个场景不该这么操作"）
+     * - 删除当前场景所属规则（若归属 session，删除整个 session，表示"这个流程不对"）
+     * - 重置执行上下文（不再按 session 流程执行）
      * - 如果在录制中，也停止录制
      */
     fun interrupt() {
@@ -213,16 +242,25 @@ object RecordingManager {
         if (service != null) {
             val features = SceneFeatureExtractor.extract(service, AutomationController.currentState.name)
             Log.i(TAG, "中断场景: sig=${features.signature()}")
-            // 删除当前场景的所有规则（表示"这个场景不该这么操作"）
+            // 删除当前场景的规则（若归属 session，删除整个 session）
             SceneLibrary.removeRule(features)
+        } else {
+            // 没有场景信息时也重置执行上下文
+            SceneLibrary.resetSessionContext()
         }
 
         // 停止自动化
         AutomationController.stop()
 
-        // 停止录制（如果在录制）
+        // 停止录制（如果在录制）— stop 会调用 endSession，但中断应删除 session
+        val sessId = currentSessionId
         if (recording) {
             stop()
+            // 录制中中断 → 删除未完成的 session（表示"这个流程不对"）
+            if (sessId != null) {
+                SceneLibrary.deleteSession(sessId)
+                Log.i(TAG, "录制中中断：删除未完成 session=$sessId")
+            }
         }
     }
 

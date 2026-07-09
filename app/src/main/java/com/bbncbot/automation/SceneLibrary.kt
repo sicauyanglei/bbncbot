@@ -84,7 +84,27 @@ object SceneLibrary {
         val action: Action,
         val targetButton: String?,
         val createdAt: String,
-        var hitCount: Int = 0
+        var hitCount: Int = 0,
+        /** 归属的录制会话 ID（旧数据为空字符串，表示独立规则） */
+        val sessionId: String = "",
+        /** 在 session 中的步骤序号（从 0 开始，独立规则为 -1） */
+        val stepIndex: Int = -1
+    )
+
+    /**
+     * 录制会话：一次"开始→结束"的完整任务流程闭环
+     *
+     * - 一次录制对应一个 session，包含多个有序 [SceneCategory]
+     * - 执行时若场景匹配 session 第一步，bot 进入"按流程执行"模式，
+     *   优先匹配 session 下一步（stepIndex+1），不匹配则回退全局匹配
+     * - 任务完成/异常页时自动结束 session 上下文
+     */
+    data class RecordingSession(
+        val id: String,                 // sess_1, sess_2, ...
+        var name: String,               // 自动命名，如"流程1-UC-浏览任务"
+        val createdAt: String,
+        var stepCount: Int = 0,         // 录制的步骤数
+        var status: String = "RECORDING" // RECORDING / COMPLETED / ABORTED
     )
 
     /**
@@ -125,8 +145,19 @@ object SceneLibrary {
 
     @Volatile private var categories: MutableList<SceneCategory> = mutableListOf()
     @Volatile private var mappings: MutableList<SignatureMapping> = mutableListOf()
+    @Volatile private var sessions: MutableList<RecordingSession> = mutableListOf()
     @Volatile private var initialized: Boolean = false
     private val lock = Any()
+
+    /**
+     * 当前进行中的 session 执行上下文（运行时状态，不持久化）
+     *
+     * - [currentSessionId] 非空表示 bot 正在按某 session 流程执行
+     * - [currentStepIndex] 表示已执行到的步骤序号，下次优先匹配 stepIndex == currentStepIndex + 1
+     * - 任务完成/异常页/手动停止时重置为 null
+     */
+    @Volatile private var currentSessionId: String? = null
+    @Volatile private var currentStepIndex: Int = -1
 
     /** 内置默认规则（按 signature 通配匹配） */
     private data class DefaultRule(val signaturePattern: String, val action: Action, val targetButton: String?)
@@ -166,12 +197,14 @@ object SceneLibrary {
      * 查询场景的匹配结果
      *
      * 匹配优先级：
-     * 1. **signature 精确匹配** → 直接执行对应规则（高频命中场景）
-     * 2. **coreSignature 自动归类** → 明显相同的场景自动归到已有 category（不打扰用户）
+     * 1. **session 流程下一步** → 若当前在 session 执行上下文中，优先匹配 stepIndex+1 的规则（有上下文感）
+     *    任务完成/异常页时自动重置 session 上下文
+     * 2. **signature 精确匹配** → 直接执行对应规则（高频命中场景）
+     * 3. **coreSignature 自动归类** → 明显相同的场景自动归到已有 category（不打扰用户）
      *    核心签名去掉按钮文案等易变字段，只看平台/页面类型/任务类型/popup/countdown/progress
      *    命中后自动添加新 signature → category 映射，下次直接走精确匹配
-     * 3. **默认规则** → type=complete 等通配规则
-     * 4. **未命中** → 返回 [MatchResult.Unmapped]，由调用方决定是否询问用户归类
+     * 4. **默认规则** → type=complete 等通配规则
+     * 5. **未命中** → 返回 [MatchResult.Unmapped]，由调用方决定是否询问用户归类
      *
      * @param features 当前场景特征
      * @return [MatchResult]
@@ -180,19 +213,53 @@ object SceneLibrary {
         ensureInitialized()
         val sig = features.signature()
         synchronized(lock) {
-            // 1. signature 精确匹配 → 找到所属 category
+            // 任务完成/异常页 → 自动结束 session 上下文（流程闭环）
+            if (features.isTaskComplete || features.isAbnormalPage) {
+                if (currentSessionId != null) {
+                    Log.i(TAG, "session context reset: task complete/abnormal (sessionId=$currentSessionId)")
+                    currentSessionId = null
+                    currentStepIndex = -1
+                }
+            }
+            // 1. session 流程下一步优先匹配
+            val sessId = currentSessionId
+            if (sessId != null) {
+                val nextStep = currentStepIndex + 1
+                val nextMapping = mappings.firstOrNull { m ->
+                    val cat = categories.firstOrNull { it.id == m.categoryId }
+                    cat != null && cat.sessionId == sessId && cat.stepIndex == nextStep && m.signature == sig
+                }
+                if (nextMapping != null) {
+                    val cat = categories.firstOrNull { it.id == nextMapping.categoryId }!!
+                    nextMapping.matchCount++
+                    cat.hitCount++
+                    currentStepIndex = nextStep
+                    Log.i(TAG, "session step matched: session=$sessId step=$nextStep -> category='${cat.name}' action=${cat.action}")
+                    persistAsync()
+                    return MatchResult.Matched(cat)
+                }
+                // session 下一步场景不匹配 → 不强制流程，回退全局匹配（混合模式）
+                Log.d(TAG, "session next step not matched, fallback to global (session=$sessId expectedStep=$nextStep)")
+            }
+            // 2. signature 精确匹配 → 找到所属 category
             val mapping = mappings.firstOrNull { it.signature == sig }
             if (mapping != null) {
                 val cat = categories.firstOrNull { it.id == mapping.categoryId }
                 if (cat != null) {
                     mapping.matchCount++
                     cat.hitCount++
+                    // 命中带 sessionId 的规则 → 进入该 session 上下文（流程起点或中断后恢复）
+                    if (cat.sessionId.isNotEmpty() && cat.sessionId != sessId) {
+                        currentSessionId = cat.sessionId
+                        currentStepIndex = cat.stepIndex
+                        Log.i(TAG, "entered session context: session=${cat.sessionId} step=${cat.stepIndex}")
+                    }
                     Log.i(TAG, "matched: sig=$sig -> category='${cat.name}' action=${cat.action} hits=${cat.hitCount}")
                     persistAsync()
                     return MatchResult.Matched(cat)
                 }
             }
-            // 2. coreSignature 自动归类（明显相同场景，不弹窗）
+            // 3. coreSignature 自动归类（明显相同场景，不弹窗）
             val coreSig = features.coreSignature()
             val coreMatch = mappings.firstOrNull { it.coreSignature == coreSig && it.coreSignature.isNotEmpty() }
             if (coreMatch != null) {
@@ -208,12 +275,18 @@ object SceneLibrary {
                         coreSignature = coreSig
                     ))
                     cat.hitCount++
+                    // 命中带 sessionId 的规则 → 进入 session 上下文
+                    if (cat.sessionId.isNotEmpty() && cat.sessionId != sessId) {
+                        currentSessionId = cat.sessionId
+                        currentStepIndex = cat.stepIndex
+                        Log.i(TAG, "entered session context via coreSignature: session=${cat.sessionId} step=${cat.stepIndex}")
+                    }
                     Log.i(TAG, "auto-categorized by coreSignature: sig=$sig coreSig=$coreSig -> category='${cat.name}' (auto-added mapping)")
                     persistAsync()
                     return MatchResult.Matched(cat)
                 }
             }
-            // 3. 默认规则
+            // 4. 默认规则
             for (dr in defaultRules) {
                 val pattern = dr.signaturePattern
                 val pure = pattern.trim('*')
@@ -228,9 +301,22 @@ object SceneLibrary {
                     return MatchResult.Defaulted(dr.action, dr.targetButton)
                 }
             }
-            // 4. signature 未归属任何 category
+            // 5. signature 未归属任何 category
             Log.d(TAG, "unmapped signature: $sig coreSig=$coreSig")
             return MatchResult.Unmapped(sig)
+        }
+    }
+
+    /**
+     * 重置当前 session 执行上下文（手动停止 / 用户中断时调用）
+     */
+    fun resetSessionContext() {
+        synchronized(lock) {
+            if (currentSessionId != null) {
+                Log.i(TAG, "session context reset manually (was session=$currentSessionId step=$currentStepIndex)")
+            }
+            currentSessionId = null
+            currentStepIndex = -1
         }
     }
 
@@ -295,31 +381,37 @@ object SceneLibrary {
     }
 
     /**
-     * 创建新场景分类（用户录制时调用）
+     * 创建新场景分类（录制时调用）
      *
      * @param features 场景特征
-     * @param categoryName 用户命名的场景名（如"浏览15秒任务"）
+     * @param categoryName 场景名（自动生成或用户输入）
      * @param action 执行动作
      * @param targetButton 点击动作的目标按钮文案
+     * @param sessionId 录制会话 ID（独立规则传空字符串）
+     * @param stepIndex 在 session 中的步骤序号（独立规则传 -1）
      * @return 创建的 SceneCategory
      */
     fun createCategory(
         features: SceneFeatures,
         categoryName: String,
         action: Action,
-        targetButton: String? = null
+        targetButton: String? = null,
+        sessionId: String = "",
+        stepIndex: Int = -1
     ): SceneCategory {
         ensureInitialized()
         val sig = features.signature()
         val coreSig = features.coreSignature()
         synchronized(lock) {
             val cat = SceneCategory(
-                id = "cat_${System.currentTimeMillis()}",
+                id = "cat_${System.currentTimeMillis()}_${stepIndex}",
                 name = categoryName,
                 action = action,
                 targetButton = targetButton,
                 createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(Date()),
-                hitCount = 1
+                hitCount = 1,
+                sessionId = sessionId,
+                stepIndex = stepIndex
             )
             categories.add(cat)
             mappings.add(SignatureMapping(
@@ -329,11 +421,85 @@ object SceneLibrary {
                 matchCount = 1,
                 coreSignature = coreSig
             ))
-            Log.i(TAG, "createCategory: name='$categoryName' action=$action sig=$sig coreSig=$coreSig")
+            Log.i(TAG, "createCategory: name='$categoryName' action=$action sig=$sig coreSig=$coreSig session=$sessionId step=$stepIndex")
             logRecording(features, action, targetButton, categoryName)
             persistAsync()
             return cat
         }
+    }
+
+    /**
+     * 开始一次录制会话（任务流程闭环）
+     *
+     * @param name 会话名（如"流程1-UC-浏览任务"）
+     * @return 创建的 RecordingSession
+     */
+    fun startSession(name: String): RecordingSession {
+        ensureInitialized()
+        val now = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(Date())
+        val sess = RecordingSession(
+            id = "sess_${System.currentTimeMillis()}",
+            name = name,
+            createdAt = now,
+            stepCount = 0,
+            status = "RECORDING"
+        )
+        synchronized(lock) {
+            sessions.add(sess)
+            Log.i(TAG, "startSession: id=${sess.id} name='$name'")
+            persistAsync()
+        }
+        return sess
+    }
+
+    /**
+     * 结束录制会话（用户停止录制时调用）
+     *
+     * @param sessionId 会话 ID
+     * @param stepCount 录制的步骤数
+     */
+    fun endSession(sessionId: String, stepCount: Int) {
+        ensureInitialized()
+        synchronized(lock) {
+            val sess = sessions.firstOrNull { it.id == sessionId } ?: return
+            sess.status = "COMPLETED"
+            sess.stepCount = stepCount
+            Log.i(TAG, "endSession: id=$sessionId stepCount=$stepCount")
+            persistAsync()
+        }
+    }
+
+    /**
+     * 中断会话：删除指定 session 及其所有规则（用户点击"中断"时调用）
+     */
+    fun deleteSession(sessionId: String) {
+        ensureInitialized()
+        synchronized(lock) {
+            val catIds = categories.filter { it.sessionId == sessionId }.map { it.id }.toSet()
+            if (catIds.isEmpty()) {
+                sessions.removeAll { it.id == sessionId }
+                persistAsync()
+                return
+            }
+            categories.removeAll { it.sessionId == sessionId }
+            mappings.removeAll { it.categoryId in catIds }
+            sessions.removeAll { it.id == sessionId }
+            // 如果中断的是当前执行中的 session，重置上下文
+            if (currentSessionId == sessionId) {
+                currentSessionId = null
+                currentStepIndex = -1
+            }
+            Log.i(TAG, "deleteSession: id=$sessionId removed ${catIds.size} categories")
+            persistAsync()
+        }
+    }
+
+    /**
+     * 列出所有录制会话
+     */
+    fun listSessions(): List<RecordingSession> {
+        ensureInitialized()
+        return synchronized(lock) { sessions.toList() }
     }
 
     /**
@@ -388,21 +554,45 @@ object SceneLibrary {
     }
 
     /**
-     * 中断：删除当前场景所属 category（表示"这个场景不该这么操作"）
+     * 中断：删除当前场景所属规则
+     *
+     * - 若规则归属某 session，删除整个 session（表示"这个流程不对"）
+     * - 否则只删除单个 category
+     * - 同时重置执行上下文
      */
     fun deleteCategoryForSignature(features: SceneFeatures) {
         ensureInitialized()
         val sig = features.signature()
         synchronized(lock) {
-            val mapping = mappings.firstOrNull { it.signature == sig }
-            if (mapping != null) {
-                val catId = mapping.categoryId
-                categories.removeAll { it.id == catId }
-                mappings.removeAll { it.categoryId == catId }
-                Log.i(TAG, "interrupt: deleted category for sig=$sig (categoryId=$catId)")
-                persistAsync()
+            val mapping = mappings.firstOrNull { it.signature == sig } ?: run {
+                // 即使没匹配到，也重置 session 上下文
+                currentSessionId = null
+                currentStepIndex = -1
+                return
             }
+            val cat = categories.firstOrNull { it.id == mapping.categoryId }
+            if (cat != null && cat.sessionId.isNotEmpty()) {
+                // 归属 session → 删除整个 session
+                deleteSessionLocked(cat.sessionId)
+            } else {
+                // 独立规则 → 只删除该 category
+                categories.removeAll { it.id == mapping.categoryId }
+                mappings.removeAll { it.categoryId == mapping.categoryId }
+                Log.i(TAG, "interrupt: deleted category for sig=$sig (categoryId=${mapping.categoryId})")
+            }
+            currentSessionId = null
+            currentStepIndex = -1
+            persistAsync()
         }
+    }
+
+    /** 内部方法：删除 session 及其所有规则（调用方持有锁） */
+    private fun deleteSessionLocked(sessionId: String) {
+        val catIds = categories.filter { it.sessionId == sessionId }.map { it.id }.toSet()
+        categories.removeAll { it.sessionId == sessionId }
+        mappings.removeAll { it.categoryId in catIds }
+        sessions.removeAll { it.id == sessionId }
+        Log.i(TAG, "deleteSessionLocked: id=$sessionId removed ${catIds.size} categories")
     }
 
     /** 统计 */
@@ -417,7 +607,7 @@ object SceneLibrary {
         try {
             val text = file.readText()
             val root = JSONObject(text)
-            // 新格式：{ categories: [...], mappings: [...] }
+            // 新格式：{ categories: [...], mappings: [...], sessions: [...] }
             if (root.has("categories")) {
                 val cats = root.getJSONArray("categories")
                 for (i in 0 until cats.length()) {
@@ -428,7 +618,10 @@ object SceneLibrary {
                         action = Action.valueOf(o.getString("action")),
                         targetButton = o.optString("targetButton", null),
                         createdAt = o.getString("createdAt"),
-                        hitCount = o.optInt("hitCount", 0)
+                        hitCount = o.optInt("hitCount", 0),
+                        // 旧数据没有 sessionId/stepIndex，默认空/-1（独立规则）
+                        sessionId = o.optString("sessionId", ""),
+                        stepIndex = o.optInt("stepIndex", -1)
                     ))
                 }
                 val maps = root.getJSONArray("mappings")
@@ -443,7 +636,21 @@ object SceneLibrary {
                         coreSignature = o.optString("coreSignature", "")
                     ))
                 }
-                Log.i(TAG, "loaded new format: ${categories.size} categories, ${mappings.size} mappings")
+                // sessions（可选，旧数据可能没有）
+                if (root.has("sessions")) {
+                    val sess = root.getJSONArray("sessions")
+                    for (i in 0 until sess.length()) {
+                        val o = sess.getJSONObject(i)
+                        sessions.add(RecordingSession(
+                            id = o.getString("id"),
+                            name = o.getString("name"),
+                            createdAt = o.getString("createdAt"),
+                            stepCount = o.optInt("stepCount", 0),
+                            status = o.optString("status", "COMPLETED")
+                        ))
+                    }
+                }
+                Log.i(TAG, "loaded new format: ${categories.size} categories, ${mappings.size} mappings, ${sessions.size} sessions")
                 return
             }
             // 旧格式：[ { signature, action, ... }, ... ]
@@ -495,6 +702,8 @@ object SceneLibrary {
                         put("targetButton", c.targetButton)
                         put("createdAt", c.createdAt)
                         put("hitCount", c.hitCount)
+                        put("sessionId", c.sessionId)
+                        put("stepIndex", c.stepIndex)
                     })
                 }
                 val maps = JSONArray()
@@ -507,10 +716,21 @@ object SceneLibrary {
                         put("coreSignature", m.coreSignature)
                     })
                 }
+                val sess = JSONArray()
+                sessions.forEach { s ->
+                    sess.put(JSONObject().apply {
+                        put("id", s.id)
+                        put("name", s.name)
+                        put("createdAt", s.createdAt)
+                        put("stepCount", s.stepCount)
+                        put("status", s.status)
+                    })
+                }
                 root.put("categories", cats)
                 root.put("mappings", maps)
+                root.put("sessions", sess)
                 rulesFile().apply { parentFile?.mkdirs() }.writeText(root.toString(2))
-                Log.d(TAG, "persisted ${cats.length()} categories, ${maps.length()} mappings")
+                Log.d(TAG, "persisted ${cats.length()} categories, ${maps.length()} mappings, ${sess.length()} sessions")
             } catch (e: Exception) {
                 Log.w(TAG, "persistAsync failed: ${e.message}")
             }
@@ -533,9 +753,15 @@ object SceneLibrary {
         ensureInitialized()
         return synchronized(lock) {
             val sb = StringBuilder()
+            sb.append("=== ${sessions.size} sessions ===\n")
+            sessions.forEach { s ->
+                val cur = if (s.id == currentSessionId) " <CURRENT(step=$currentStepIndex)>" else ""
+                sb.append("  [${s.id}] '${s.name}' steps=${s.stepCount} status=${s.status}$cur\n")
+            }
             sb.append("=== ${categories.size} categories ===\n")
             categories.forEach { c ->
-                sb.append("  [${c.id}] '${c.name}' action=${c.action} target='${c.targetButton}' hits=${c.hitCount}\n")
+                val sessTag = if (c.sessionId.isNotEmpty()) " session=${c.sessionId} step=${c.stepIndex}" else ""
+                sb.append("  [${c.id}] '${c.name}' action=${c.action} target='${c.targetButton}' hits=${c.hitCount}$sessTag\n")
             }
             sb.append("=== ${mappings.size} mappings ===\n")
             mappings.forEach { m ->
