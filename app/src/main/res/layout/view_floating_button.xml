@@ -4,6 +4,7 @@
     - btnAction：启停自动化 / 长按切换交互模式（可拖动）
     - btnRecordToggle：开启/停止录制
     - btnInterrupt：立即停止 bot + 删除当前场景规则
+    - btnHome：回到 App 主界面
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -63,5 +64,24 @@
         android:textSize="12sp"
         android:textStyle="bold"
         android:background="@drawable/bg_floating_button_red" />
+
+    <Space
+        android:layout_width="6dp"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/btnHome"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="44dp"
+        android:minHeight="36dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:text="主页"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:background="@drawable/bg_floating_button"
+        tools:ignore="HardcodedText" />
 
 </LinearLayout>

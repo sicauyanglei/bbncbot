@@ -77,7 +77,7 @@ class FloatingWindowService : Service() {
             height = WindowManager.LayoutParams.WRAP_CONTENT
             gravity = Gravity.TOP or Gravity.START
             x = 20
-            y = 200
+            y = 400
         }
     }
 
@@ -198,6 +198,7 @@ class FloatingWindowService : Service() {
         // 录制 / 中断小图标（与主按钮同窗口，避免独立窗口触摸卡死）
         val recordBtn = view.findViewById<Button>(R.id.btnRecordToggle)
         val interruptBtn = view.findViewById<Button>(R.id.btnInterrupt)
+        val homeBtn = view.findViewById<Button>(R.id.btnHome)
         recordToggleButton = recordBtn
         interruptButton = interruptBtn
 
@@ -207,6 +208,17 @@ class FloatingWindowService : Service() {
         interruptBtn.setOnClickListener {
             RecordingManager.interrupt()
             Toast.makeText(this, "已中断，删除当前场景规则", Toast.LENGTH_SHORT).show()
+        }
+        // 回主界面：启动 MainActivity（singleTask，已存在则带到前台）
+        homeBtn.setOnClickListener {
+            try {
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                }
+                startActivity(intent)
+            } catch (e: Exception) {
+                Log.w(TAG, "startActivity MainActivity failed: ${e.message}")
+            }
         }
 
         // 录制状态变化时更新小图标样式
