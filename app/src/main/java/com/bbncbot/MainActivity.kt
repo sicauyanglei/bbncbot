@@ -68,6 +68,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        // 清除旧版录制日志，避免旧版本日志混在新版本里导致误判
+        com.bbncbot.automation.RecordingManager.clearLogOnAppStart(this)
 
         tvStatus = findViewById(R.id.tvStatus)
         btnAccessibility = findViewById(R.id.btnOpenAccessibility)

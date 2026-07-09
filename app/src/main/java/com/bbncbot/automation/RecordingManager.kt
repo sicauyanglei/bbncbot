@@ -435,4 +435,40 @@ object RecordingManager {
             Log.w(TAG, "logToRecordingFile failed: ${e.message}")
         }
     }
+
+    /**
+     * 清除旧录制日志，并在新日志开头写入版本号
+     *
+     * 用途：app 启动时调用，确保 [recording.log] 是当前版本产生的，
+     * 避免旧版本日志混在新版本日志里导致误判。
+     */
+    fun clearLogOnAppStart(context: android.content.Context) {
+        try {
+            val file = java.io.File(
+                android.os.Environment.getExternalStorageDirectory(),
+                "Android/data/com.bbncbot/files/recording.log"
+            )
+            file.parentFile?.mkdirs()
+            // 读取版本号
+            val pm = context.packageManager
+            val versionName = try {
+                pm.getPackageInfo(context.packageName, 0).versionName ?: "?"
+            } catch (e: Exception) {
+                "?"
+            }
+            val versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                try {
+                    pm.getPackageInfo(context.packageName, 0).longVersionCode.toString()
+                } catch (e: Exception) { "?" }
+            } else {
+                @Suppress("DEPRECATION")
+                try { pm.getPackageInfo(context.packageName, 0).versionCode.toString() } catch (e: Exception) { "?" }
+            }
+            // 清空并写入版本标识
+            file.writeText("=== recording.log cleared on app start (version=$versionName/$versionCode, time=${dateFormat.format(Date())}) ===\n")
+            Log.i(TAG, "recording.log cleared, version=$versionName/$versionCode")
+        } catch (e: Exception) {
+            Log.w(TAG, "clearLogOnAppStart failed: ${e.message}")
+        }
+    }
 }
