@@ -355,7 +355,12 @@ class FloatingWindowService : Service() {
         RecordingManager.onRecordingStopped = { saved, initial, finalAmount, stepCount ->
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 val msg = if (saved) {
-                    "录制已保存：肥料 $initial → $finalAmount (+${finalAmount - initial})，共 $stepCount 步"
+                    if (initial < 0 || finalAmount < 0) {
+                        // 肥料读取失败但保留了
+                        "录制已保存（$stepCount 步，肥料读取失败但已保留规则）"
+                    } else {
+                        "录制已保存：肥料 $initial → $finalAmount (+${finalAmount - initial})，共 $stepCount 步"
+                    }
                 } else {
                     when {
                         initial < 0 || finalAmount < 0 ->
