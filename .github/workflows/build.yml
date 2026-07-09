@@ -21,9 +21,17 @@ jobs:
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
+        # ubuntu-latest runner 自带 Android SDK，直接配置环境变量即可，避免 setup-android action 卡在 license 交互
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls "$ANDROID_HOME/platforms" 2>/dev/null || true
+          ls "$ANDROID_HOME/build-tools" 2>/dev/null || true
+          # 若缺 android-34，用 sdkmanager 非交互安装（stdin=Yes 自动接受 license）
+          if [ ! -d "$ANDROID_HOME/platforms/android-34" ]; then
+            yes | sdkmanager --licenses >/dev/null 2>&1 || true
+            sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          fi
 
       - name: Cache Gradle
         uses: actions/cache@v3
