@@ -268,12 +268,16 @@ object RecordingManager {
                     logToRecordingFile("SKIP残余事件 x$skipped (recording=false)")
                 }
                 val features = SceneFeatureExtractor.extract(service, stateName)
-                // H5 WebView 上点击通常触发 TYPE_VIEW_TEXT_CHANGED(0x800) 或
-                // TYPE_WINDOW_STATE_CHANGED(0x20)，而非标准 TYPE_VIEW_CLICKED(0x1)。
-                // 支付宝/淘宝芭芭农场都是 H5 页面，需要把这些事件也当作点击录制。
+                // H5 WebView 上点击通常触发：
+                // - TYPE_VIEW_CLICKED(0x1) 原生点击
+                // - TYPE_WINDOW_STATE_CHANGED(0x20) 页面跳转
+                // - TYPE_TOUCH_EXPLORATION_GESTURE_END(0x800) 触摸手势结束
+                // 支付宝/淘宝芭芭农场都是 H5 页面，普通按钮点击主要触发 0x800。
+                // 0x10 是 TEXT_CHANGED（文本变化），H5 点击较少触发。
                 val isClickLikeEvent = eventType == AccessibilityEvent.TYPE_VIEW_CLICKED ||
                     eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED ||
-                    eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                    eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+                    eventType == AccessibilityEvent.TYPE_TOUCH_EXPLORATION_GESTURE_END
                 when {
                     eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
                         val action = if (deltaY > 0) SceneLibrary.Action.SWIPE_UP else SceneLibrary.Action.SWIPE_DOWN
@@ -289,6 +293,13 @@ object RecordingManager {
                             !desc.isNullOrEmpty() -> desc
                             text.isNotEmpty() -> text
                             else -> null
+                        }
+                        // 0x800 触摸事件噪音多（每次触摸都触发），要求 source 必须有可识别 text/desc。
+                        // 0x20 页面跳转允许无 text（用 className 兜底）。
+                        if (eventType == AccessibilityEvent.TYPE_TOUCH_EXPLORATION_GESTURE_END &&
+                            targetButton == null) {
+                            // 静默丢弃（不写日志，避免刷屏）
+                            return@execute
                         }
                         // WINDOW_STATE_CHANGED 无 source 时，跳过（避免误把页面跳转记成点击）
                         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
