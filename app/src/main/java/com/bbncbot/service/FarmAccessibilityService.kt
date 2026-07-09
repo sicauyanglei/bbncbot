@@ -2631,6 +2631,64 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 读取当前肥料数值并返回详细失败原因（用于录制失败诊断）
+     *
+     * 失败原因分类：
+     * - no_root：拿不到无障碍根节点（可能不在农场 App）
+     * - no_fertilize_button：找不到"施肥"按钮（不在农场主页）
+     * - parse_failed：找到按钮但 text/desc 中无"肥料XXXX"格式
+     * - sample=...：失败时附带当前页面文本样本，便于判断当前在哪个页面
+     *
+     * @return Pair(amount, reason) amount=-1 时 reason 为失败原因；成功时 reason 为空
+     */
+    fun findCurrentFertilizerAmountWithReason(): Pair<Int, String> {
+        val root = getRootInFarmApp() ?: rootInActiveWindowSafe()
+        if (root == null) {
+            return Pair(-1, "no_root (拿不到无障碍根节点，可能不在农场 App 或服务未就绪)")
+        }
+        val btn = findFertilizeButton()
+        if (btn == null) {
+            // 采样当前页面可见文本，便于判断在哪个页面
+            val sample = collectVisibleTextSample(root, 8)
+            return Pair(-1, "no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: $sample)")
+        }
+        val text = btn.text?.toString().orEmpty()
+        val desc = btn.contentDescription?.toString().orEmpty()
+        val combined = if (text.contains("肥料")) text else desc
+        val regex = Regex("肥料\\s*(\\d+)")
+        val match = regex.find(combined)
+        if (match == null) {
+            return Pair(-1, "parse_failed (找到施肥按钮但无'肥料XXXX'格式；text='$text' desc='$desc')")
+        }
+        val amount = match.groupValues[1].toIntOrNull()
+        if (amount == null) {
+            return Pair(-1, "parse_failed (数字解析失败；matched='${match.groupValues[1]}')")
+        }
+        return Pair(amount, "")
+    }
+
+    /**
+     * 采样当前页面可见文本（用于失败诊断，判断当前在哪个页面）
+     * 只取前 [maxCount] 个非空文本节点，每个截断到 20 字
+     */
+    private fun collectVisibleTextSample(root: AccessibilityNodeInfo, maxCount: Int): String {
+        val out = mutableListOf<String>()
+        fun walk(node: AccessibilityNodeInfo) {
+            if (out.size >= maxCount) return
+            val t = node.text?.toString()?.trim().orEmpty()
+            if (t.isNotEmpty()) out.add(t.take(20))
+            val d = node.contentDescription?.toString()?.trim().orEmpty()
+            if (d.isNotEmpty() && d != t) out.add(d.take(20))
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                walk(child)
+            }
+        }
+        walk(root)
+        return out.joinToString(" | ")
+    }
+
+    /**
      * 查找农场主页上所有直接可领取肥料的按钮
      * - 如"兔兔挖肥料，50肥料，可领取"、"4100，肥料，明日7点可领"
      * - 使用 currentPlatformConfig().directCollectTexts 匹配关键词

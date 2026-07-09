@@ -89,7 +89,7 @@ object RecordingManager {
             currentSessionId = sess.id
             // 记录录制开始时的肥料数值（用于停录时对比）——后台线程读取，避免主线程阻塞
             recordExecutor.execute {
-                initialFertilizer = readFertilizerAmount()
+                initialFertilizer = readFertilizerAmountWithDiag("start")
                 Log.i(TAG, "initialFertilizer=$initialFertilizer (async)")
             }
             Log.i(TAG, "=== 录制开始 session=${sess.id} name='$sessionName' ===")
@@ -122,7 +122,7 @@ object RecordingManager {
         // 肥料读取 + 对比 + 保存/丢弃都在后台线程，避免主线程阻塞
         recordExecutor.execute {
             try {
-                val finalFertilizer = readFertilizerAmount()
+                val finalFertilizer = readFertilizerAmountWithDiag("stop")
                 val gained = if (initial >= 0 && finalFertilizer >= 0) finalFertilizer - initial else null
 
                 if (sessId != null) {
@@ -136,12 +136,12 @@ object RecordingManager {
                         // 肥料没增加（或读取失败）→ 删除本次录制（不保存为规则）
                         SceneLibrary.deleteSession(sessId)
                         val reason = when {
-                            gained == null -> "肥料数值读取失败(initial=$initial final=$finalFertilizer)"
+                            gained == null -> "肥料数值读取失败(initial=$initial final=$finalFertilizer)，详见上方 FERTILIZER_READ_FAIL"
                             gained == 0 -> "肥料无变化($initial → $finalFertilizer)"
                             else -> "肥料减少($initial → $finalFertilizer)"
                         }
                         Log.w(TAG, "=== 录制结束 session=$sessId $reason，丢弃本次录制 ===")
-                        logToRecordingFile("=== 录制结束 session=$sessId $reason，丢弃本次录制 ===")
+                        logToRecordingFile("=== 录制结束 session=$sessId DISCARD reason=$reason steps=$steps ===")
                         onRecordingStopped?.invoke(false, initial, finalFertilizer, steps)
                     }
                 }
@@ -163,11 +163,41 @@ object RecordingManager {
      * @return 肥料数值；-1 表示读取失败（不在农场主页/找不到施肥按钮/解析失败）
      */
     private fun readFertilizerAmount(): Int {
-        val service = FarmAccessibilityService.getInstance() ?: return -1
+        val service = FarmAccessibilityService.getInstance() ?: run {
+            Log.w(TAG, "readFertilizerAmount failed: service null")
+            return -1
+        }
         return try {
             service.findCurrentFertilizerAmount()
         } catch (e: Exception) {
             Log.w(TAG, "readFertilizerAmount failed: ${e.message}")
+            -1
+        }
+    }
+
+    /**
+     * 读取当前肥料数值并附带详细诊断信息（失败时记录原因，便于定位）
+     *
+     * @param tag 上下文标记："start" 或 "stop"，用于日志区分
+     * @return 肥料数值；-1 表示读取失败
+     */
+    private fun readFertilizerAmountWithDiag(tag: String): Int {
+        val service = FarmAccessibilityService.getInstance()
+        if (service == null) {
+            logToRecordingFile("[$tag] FERTILIZER_READ_FAIL reason=service_null (无障碍服务未连接)")
+            return -1
+        }
+        return try {
+            // 调用 service 的诊断版本，拿到 amount + 失败原因
+            val (amount, reason) = service.findCurrentFertilizerAmountWithReason()
+            if (amount >= 0) {
+                logToRecordingFile("[$tag] FERTILIZER_READ_OK amount=$amount")
+            } else {
+                logToRecordingFile("[$tag] FERTILIZER_READ_FAIL reason=$reason")
+            }
+            amount
+        } catch (e: Exception) {
+            logToRecordingFile("[$tag] FERTILIZER_READ_FAIL reason=exception:${e.message}")
             -1
         }
     }
