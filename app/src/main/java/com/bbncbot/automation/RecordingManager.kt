@@ -255,7 +255,10 @@ object RecordingManager {
         recordExecutor.execute {
             try {
                 // 停录后排队的残余事件直接跳过，快速排空队列
-                if (!recording) return@execute
+                if (!recording) {
+                    logToRecordingFile("SKIP残余事件 (recording=false) type=0x${eventType.toString(16)}")
+                    return@execute
+                }
                 val features = SceneFeatureExtractor.extract(service, stateName)
                 when (eventType) {
                     AccessibilityEvent.TYPE_VIEW_CLICKED -> {
@@ -277,7 +280,8 @@ object RecordingManager {
                         handleGesture(features, action, null, "滑动 $action")
                     }
                     else -> {
-                        // 忽略其他事件
+                        // 忽略其他事件，但记录到日志便于诊断为何 steps=0
+                        logToRecordingFile("IGNORE type=0x${eventType.toString(16)} pkg=${event.packageName} class=$classNameStr")
                     }
                 }
             } catch (e: Exception) {
@@ -304,12 +308,16 @@ object RecordingManager {
         targetButton: String?,
         actionDesc: String
     ) {
-        val sessId = currentSessionId ?: return // 录制已停止（残余事件）
+        val sessId = currentSessionId ?: run {
+            logToRecordingFile("SKIP handleGesture: sessionId=null (录制已停止)")
+            return // 录制已停止（残余事件）
+        }
         val matchResult = SceneLibrary.match(features)
         when (matchResult) {
             is SceneLibrary.MatchResult.Matched -> {
                 // 已有 category（含 coreSignature 自动归类），强化规则
                 Log.i(TAG, "已有 category '${matchResult.category.name}'，强化规则")
+                logToRecordingFile("MATCHED name='${matchResult.category.name}' action=$action")
                 SceneLibrary.recordRule(features, action, targetButton)
                 recordedCount++
             }
@@ -330,6 +338,7 @@ object RecordingManager {
             is SceneLibrary.MatchResult.Defaulted, SceneLibrary.MatchResult.None -> {
                 // 命中默认规则，不需要录制
                 Log.d(TAG, "命中默认规则，跳过录制: actionDesc=$actionDesc")
+                logToRecordingFile("SKIP_DEFAULTED action=$action actionDesc=$actionDesc sig='${features.signature()}' (命中默认规则，不录制)")
             }
         }
     }

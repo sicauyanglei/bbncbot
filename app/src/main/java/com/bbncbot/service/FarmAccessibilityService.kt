@@ -204,6 +204,16 @@ class FarmAccessibilityService : AccessibilityService() {
 
         // 录制模式：监听用户手势事件（点击/滑动），记录成规则
         if (com.bbncbot.automation.RecordingManager.recording) {
+            // 仅对可能的手势事件（CLICK/SCROLLED/LONG_CLICKED/FOCUS）打印诊断日志，
+            // 便于定位"录制时步骤为0"问题：确认事件是否到达 service、eventType 是什么
+            val evType = event.eventType
+            if (evType == AccessibilityEvent.TYPE_VIEW_CLICKED ||
+                evType == AccessibilityEvent.TYPE_VIEW_SCROLLED ||
+                evType == AccessibilityEvent.TYPE_VIEW_LONG_CLICKED) {
+                val srcText = event.source?.text?.toString().orEmpty()
+                val srcDesc = event.source?.contentDescription?.toString().orEmpty()
+                debugLog("record event: type=0x${evType.toString(16)} pkg=$pkg class=$className text='$srcText' desc='$srcDesc'")
+            }
             try {
                 com.bbncbot.automation.RecordingManager.onUserGesture(event, this)
             } catch (e: Exception) {
