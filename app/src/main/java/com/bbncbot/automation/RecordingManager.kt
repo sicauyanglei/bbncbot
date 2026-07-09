@@ -193,6 +193,13 @@ object RecordingManager {
     /**
      * 读取当前肥料数值并附带详细诊断信息（失败时记录原因，便于定位）
      *
+     * 读取链路（逐级降级，任一成功即返回）：
+     * 1. 无障碍节点树提取（[FarmAccessibilityService.findCurrentFertilizerAmountWithReason]）
+     *    - 自身/父节点/子树/整页遍历正则匹配"肥料XXXX"
+     * 2. OCR 截图识别兜底（[FarmAccessibilityService.findCurrentFertilizerAmountByOcr]）
+     *    - H5 农场页施肥按钮是图标/Canvas、数字单独渲染，无障碍树无文本节点时使用
+     *    - ML Kit 中文 OCR 识别全屏文本，按"肥料+数字"格式或施肥行数字提取
+     *
      * @param tag 上下文标记："start" 或 "stop"，用于日志区分
      * @return 肥料数值；-1 表示读取失败
      */
@@ -203,14 +210,22 @@ object RecordingManager {
             return -1
         }
         return try {
-            // 调用 service 的诊断版本，拿到 amount + 失败原因
+            // 1. 无障碍节点树提取
             val (amount, reason) = service.findCurrentFertilizerAmountWithReason()
             if (amount >= 0) {
-                logToRecordingFile("[$tag] FERTILIZER_READ_OK amount=$amount")
-            } else {
-                logToRecordingFile("[$tag] FERTILIZER_READ_FAIL reason=$reason")
+                logToRecordingFile("[$tag] FERTILIZER_READ_OK amount=$amount (source=accessibility)")
+                return amount
             }
-            amount
+            logToRecordingFile("[$tag] FERTILIZER_ACCESSIBILITY_FAIL reason=$reason → 尝试 OCR 兜底")
+
+            // 2. OCR 截图识别兜底（H5 页无障碍树读不到文本时）
+            val ocrAmount = service.findCurrentFertilizerAmountByOcr()
+            if (ocrAmount >= 0) {
+                logToRecordingFile("[$tag] FERTILIZER_READ_OK amount=$ocrAmount (source=ocr)")
+                return ocrAmount
+            }
+            logToRecordingFile("[$tag] FERTILIZER_READ_FAIL reason=ocr_fail (无障碍和OCR均未识别到肥料总数)")
+            -1
         } catch (e: Exception) {
             logToRecordingFile("[$tag] FERTILIZER_READ_FAIL reason=exception:${e.message}")
             -1
