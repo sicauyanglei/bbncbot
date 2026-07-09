@@ -2849,7 +2849,7 @@ class FarmAccessibilityService : AccessibilityService() {
         }
         try {
             val image = com.google.mlkit.vision.common.InputImage.fromBitmap(bitmap, 0)
-            val recognizer = com.google.mlkit.vision.text.chinese.ChineseTextRecognizer
+            val recognizer = com.google.mlkit.vision.text.TextRecognition
                 .getClient(com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions.Builder().build())
             val latch = java.util.concurrent.CountDownLatch(1)
             var ocrText: com.google.mlkit.vision.text.Text? = null
