@@ -3078,18 +3078,23 @@ class FarmAccessibilityService : AccessibilityService() {
         if (farmEntry != null) {
             val rect = android.graphics.Rect()
             farmEntry.getBoundsInScreen(rect)
+            val entryDesc = farmEntry.contentDescription?.toString()?.trim().orEmpty()
+            val entryText = farmEntry.text?.toString()?.trim().orEmpty()
+            // 排除搜索框/搜索按钮：搜索框内部含"芭芭农场"占位文字（如"搜索 芭芭农场"）时，
+            // findNodeByText 会把搜索框本身作为最近可点击父节点返回，导致误点搜索框
+            val isSearchNode = entryDesc.contains("搜索") || entryText.contains("搜索")
             // 排除超大容器，且必须 bounds 合法（left<right, top<bottom，且在屏幕范围内）
             // 否则可能拿到 WebView 内的离屏节点（如 bounds=[4476,822][1200,1139]），点击无效
             val boundsValid = rect.width() > 0 && rect.height() > 0 &&
                 rect.left < rect.right && rect.top < rect.bottom &&
                 rect.left >= 0 && rect.top >= 0
-            if (boundsValid && rect.height() < 600 && rect.width() < 1000) {
+            if (boundsValid && !isSearchNode && rect.height() < 600 && rect.width() < 1000) {
                 debugLog("navigateAlipay: found 芭芭农场 entry at ${rect.toShortString()}, clicking")
                 performClickSafe(farmEntry)
                 navHandler.postDelayed({ clearNavigatingFlag() }, 8000L)
                 return
             }
-            debugLog("navigateAlipay: 芭芭农场 entry bounds invalid or too large: ${rect.toShortString()}")
+            debugLog("navigateAlipay: 芭芭农场 entry invalid (searchNode=$isSearchNode, bounds=${rect.toShortString()}), fallback to search")
         }
 
         // 策略2：点击首页搜索框，搜索"芭芭农场"
