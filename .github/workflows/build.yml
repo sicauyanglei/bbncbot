@@ -25,11 +25,14 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
 
-      - name: Set up Gradle
-        # 不依赖 gradlew（仓库未包含 wrapper jar），由 setup-gradle 直接提供 gradle 8.5
-        uses: gradle/actions/setup-gradle@v3
+      - name: Cache Gradle
+        uses: actions/cache@v3
         with:
-          gradle-version: '8.5'
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', 'gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
 
       - name: Generate debug.keystore
         # release 复用 debug 签名以便 APK 可直接安装测试，keystore 被 .gitignore 排除，CI 上需生成
@@ -49,8 +52,11 @@ jobs:
             echo "debug.keystore exists"
           fi
 
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
       - name: Build release APK
-        run: gradle assembleRelease --no-daemon --stacktrace
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
