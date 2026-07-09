@@ -15,7 +15,7 @@ android {
         versionName = "1.0"
     }
 
-    // 复用 debug 签名以便 release APK 可直接安装测试
+    // release 签名（CI 生成 release.keystore；本地缺失时回退 debug）
     signingConfigs {
         getByName("debug") {
             storeFile = file("debug.keystore")
@@ -24,17 +24,22 @@ android {
             keyPassword = "android"
         }
         create("release") {
-            storeFile = file("debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+            storeFile = file("release.keystore")
+            storePassword = "bbncbot123"
+            keyAlias = "bbncbot"
+            keyPassword = "bbncbot123"
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            // 优先用 release.keystore；本地没有则用 debug 签名（仍能安装测试）
+            signingConfig = if (file("release.keystore").exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

@@ -42,21 +42,22 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', 'gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      - name: Generate debug.keystore
+      - name: Generate release keystore
+        # 生成正式的 release 签名（非 debug），避免系统拦截 debug 签名的 release 包
         run: |
-          if [ ! -f app/debug.keystore ]; then
+          if [ ! -f app/release.keystore ]; then
             keytool -genkeypair -v \
-              -keystore app/debug.keystore \
-              -storepass android \
-              -alias androiddebugkey \
-              -keypass android \
+              -keystore app/release.keystore \
+              -storepass bbncbot123 \
+              -alias bbncbot \
+              -keypass bbncbot123 \
               -keyalg RSA \
               -keysize 2048 \
               -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
-            echo "debug.keystore generated"
+              -dname "CN=BBNCBot,O=BBNCBot,C=CN"
+            echo "release.keystore generated"
           else
-            echo "debug.keystore exists"
+            echo "release.keystore exists"
           fi
 
       - name: Grant execute permission for gradlew
