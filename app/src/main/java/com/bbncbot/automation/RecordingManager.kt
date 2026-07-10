@@ -166,17 +166,20 @@ object RecordingManager {
             } finally {
                 // 上传日志到 GitHub（若用户在 MainActivity 配置了 Token）
                 // 放在 finally 里确保无论保存/丢弃都上传，方便排查问题
+                // 不论成功失败都写日志，便于在 recording.log 中看到上传结果
                 try {
                     val ctx = FarmAccessibilityService.getInstance()
-                    if (ctx != null) {
+                    if (ctx == null) {
+                        logToRecordingFile("LOG_UPLOAD_SKIP reason=service_null (无障碍服务未连接)")
+                    } else {
                         val shortId = sessId?.takeLast(6) ?: "nosess"
                         val n = LogUploader.upload(ctx, "sess_$shortId")
-                        if (n > 0) {
-                            logToRecordingFile("LOG_UPLOADED count=$n (tag=sess_$shortId)")
-                        }
+                        // LogUploader.lastResult 包含失败原因（401/403/404/timeout 等）
+                        logToRecordingFile("LOG_UPLOAD_RESULT n=$n tag=sess_$shortId detail=${LogUploader.lastResult}")
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "upload logs failed: ${e.message}")
+                    logToRecordingFile("LOG_UPLOAD_EXCEPTION: ${e.javaClass.simpleName}: ${e.message}")
                 }
             }
         }
