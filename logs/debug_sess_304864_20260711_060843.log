@@ -1,0 +1,220 @@
+23:25:37.330 FarmAccessibilityService connected
+23:25:46.023 onResume: no pending platform
+23:25:53.110 onResume: no pending platform
+23:36:19.939 onResume: no pending platform
+23:41:10.954 onResume: no pending platform
+23:46:02.679 onResume: no pending platform
+05:30:57.153 onResume: no pending platform
+05:31:31.300 onResume: no pending platform
+06:07:04.552 onResume: no pending platform
+06:07:14.218 FarmAccessibilityService connected
+06:07:16.579 onResume: no pending platform
+06:07:21.665 setPendingApp: label=支付宝, userType=main
+06:07:21.666 setPendingApp: inferred platform=ALIPAY from label='支付宝'
+06:07:21.666 launchAppForUser start: pkg=com.eg.android.AlipayGphone, user=UserHandle{0}
+06:07:21.669 getActivityList returned 1 activities in UserHandle{0}
+06:07:21.669 found ComponentInfo{com.eg.android.AlipayGphone/com.eg.android.AlipayGphone.AlipayLogin} in UserHandle{0}
+06:07:21.681 startMainActivity SUCCESS (main) for ComponentInfo{com.eg.android.AlipayGphone/com.eg.android.AlipayGphone.AlipayLogin}
+06:07:25.320 navigateAlipay: found 芭芭农场 entry at [225,281][975,510], clicking
+06:07:25.321 performClickSafe: text='芭芭农场,种果树得水果，助农增收' desc='' bounds=[225,281][975,510] clickable=false
+06:07:25.322 performClickSafe: ACTION_CLICK failed, trying gesture
+06:07:25.322 dispatchGesture: screen=[[225,281][975,510]] window=[[0,0][0,0]]
+06:07:25.323 dispatchGesture: not in popup, screen bounds valid, click at (600.0, 395.5)
+06:07:51.420 === Automation v2 Started === platform=ALIPAY
+06:07:51.422 cancelNavigation: all navigation callbacks cancelled
+06:07:51.432 reset platform complete: ALIPAY
+06:07:51.434 state: IDLE -> NAVIGATING
+06:07:51.931 [navigate-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:07:51.941 navigate: on farm page, platform=ALIPAY
+06:07:51.961 hasFarmContentLoaded: text count=438, sample=[百县百品-26年活动专场, O1CN011X6jFP29OceEOmIz7_!!6000000008058-2-tps-750-422.png_, O1CN01TZsKlr1Ul9tMQT6RO_!!6000000002557-2-tps-750-110.png_, O1CN01WezwoW1MdMDeza5OA_!!6000000001457-2-tps-702-274, O1CN01eAYykT1orNS4KFR3T_!!6000000005278-2-tps-58-60.png_110x10000.jpg_, O1CN014saj1E1KuBXRqMEax_!!6000000001223-2-tps-151-31.png_, ｜, 硒养好物，一生平安, O1CN01l0xVr41cxXWal0VZb_!!6000000003667-2-tps-400-400.png_290x10000.jpg_, O1CN019P2hjF1eesUPWHy0u_!!6000000003897-0-tps-254-40.jpg_290x10000Q75.jpg_]
+06:07:51.963 hasFarmContentLoaded: realContent count=408
+06:07:51.964 navigate: hasFarmContentLoaded=true, attempt=0
+06:07:51.965 state: NAVIGATING -> COLLECTING_DIRECT
+06:07:54.700 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:07:54.726 collectDirect: found 0 direct buttons, attempt=0
+06:07:54.726 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+06:07:56.875 [openTaskList-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:07:56.924 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, will follow recorded rule)
+06:07:57.107 openTaskList_ALIPAY_entry: scene sig=p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=更多,返回
+06:07:57.117 openTaskList_ALIPAY_entry: scene rule matched, action=CLICK_BUTTON target=支付宝 conf=1.0 hits=510
+06:07:57.119 openTaskList: [ALIPAY闭环] recorded rule executed, checking task list opened
+06:08:02.947 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+06:08:05.855 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+06:08:07.929 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+06:08:08.013 state: OPENING_TASK_LIST -> STOPPING
+06:08:08.014 cancelNavigation: all navigation callbacks cancelled
+06:08:08.015 state: STOPPING -> IDLE
+06:08:25.176 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+06:08:25.281 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+06:08:27.414 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:27.522 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:27.587 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:27.683 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:27.738 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:27.741 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+06:08:27.754 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+06:08:27.842 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:28.073 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:28.189 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:28.362 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:28.372 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='前往手机淘宝-芭芭农场' desc=''
+06:08:29.147 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:29.155 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:29.192 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:29.255 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:29.334 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:29.361 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:29.371 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:29.417 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:29.455 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='领取' desc=''
+06:08:29.473 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:29.553 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='领取' desc=''
+06:08:29.595 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:29.609 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:29.635 findRedPacketCloseButton: found '知道了' in red packet popup
+06:08:29.670 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:29.735 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:29.740 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+06:08:29.743 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='今天' desc=''
+06:08:29.748 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+06:08:29.920 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='已领取' desc=''
+06:08:29.934 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:29.938 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Image text='标题' desc=''
+06:08:29.943 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+06:08:30.007 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='已领取' desc=''
+06:08:30.068 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:30.072 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:30.770 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+06:08:30.810 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:30.825 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:30.877 findRedPacketCloseButton: found '知道了' in red packet popup
+06:08:30.921 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:31.060 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:31.077 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:31.130 findRedPacketCloseButton: found '知道了' in red packet popup
+06:08:31.172 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:31.310 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:31.342 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:31.391 findRedPacketCloseButton: found '知道了' in red packet popup
+06:08:31.453 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:31.575 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:31.588 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:31.617 findRedPacketCloseButton: found '知道了' in red packet popup
+06:08:31.653 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:31.774 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:31.789 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:31.831 findRedPacketCloseButton: found '知道了' in red packet popup
+06:08:31.870 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:32.003 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:32.020 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:32.071 findRedPacketCloseButton: found '知道了' in red packet popup
+06:08:32.118 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:32.240 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:32.254 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:32.292 findRedPacketCloseButton: found '知道了' in red packet popup
+06:08:32.336 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:32.437 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:32.450 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:32.476 findRedPacketCloseButton: found '知道了' in red packet popup
+06:08:32.518 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:32.643 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:32.674 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:32.684 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:32.735 findRedPacketCloseButton: found '知道了' in red packet popup
+06:08:32.767 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:32.892 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:32.924 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:32.955 findRedPacketCloseButton: found '知道了' in red packet popup
+06:08:33.024 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:33.134 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:33.148 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:33.175 findRedPacketCloseButton: found '知道了' in red packet popup
+06:08:33.216 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:33.301 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:33.315 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:33.347 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='我知道了' desc=''
+06:08:33.351 findRedPacketCloseButton: found '知道了' in red packet popup
+06:08:33.364 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+06:08:33.422 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:33.451 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='' desc=''
+06:08:33.518 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:33.535 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:33.541 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+06:08:33.646 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+06:08:33.681 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:33.686 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+06:08:34.853 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:34.870 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:34.919 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:34.964 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:35.097 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='关闭做任务集肥料弹窗' desc=''
+06:08:35.104 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+06:08:35.121 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+06:08:35.178 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:35.199 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='' desc=''
+06:08:35.268 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:35.463 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:35.682 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:35.753 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='囤高原特产，得6万肥料' desc=''
+06:08:35.761 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='囤高原特产，得6万肥料' desc=''
+06:08:35.764 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='“抢”青海农货得6万肥料' desc=''
+06:08:35.767 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='“抢”青海农货得6万肥料' desc=''
+06:08:35.777 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='每日最高120300肥料' desc=''
+06:08:35.782 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='每日最高120300肥料' desc=''
+06:08:35.894 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:36.016 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:36.078 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+06:08:36.128 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='任务列表' desc=''
+06:08:36.132 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+06:08:36.143 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='大额' desc=''
+06:08:36.230 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='任务列表' desc=''
+06:08:36.550 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:36.788 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:37.038 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:37.262 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:37.486 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:37.738 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:37.999 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:38.223 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:38.448 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:38.688 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:38.939 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:39.195 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:39.529 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:39.668 === Automation v2 Started === platform=ALIPAY
+06:08:39.669 cancelNavigation: all navigation callbacks cancelled
+06:08:39.671 reset platform complete: ALIPAY
+06:08:39.672 state: IDLE -> NAVIGATING
+06:08:39.826 [navigate-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:08:39.842 navigate: on farm page, platform=ALIPAY
+06:08:39.858 hasFarmContentLoaded: text count=29, sample=[松开刷新, 任务列表, 农场乐园入口, 还差3次领肥料, 切换摇钱树, 逛农货, 我的收获, 芭芭农场,种果树得水果，助农增收, 青海好农货正热销！, 农货百款 等你来“挑”]
+06:08:39.859 hasFarmContentLoaded: realContent count=26
+06:08:39.859 navigate: hasFarmContentLoaded=true, attempt=0
+06:08:39.859 state: NAVIGATING -> COLLECTING_DIRECT
+06:08:39.917 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:40.106 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:40.348 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:40.569 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:40.789 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:41.048 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:41.292 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:41.529 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:41.751 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:41.974 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:08:41.992 collectDirect: found 0 direct buttons, attempt=0
+06:08:41.994 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+06:08:42.106 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:42.371 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:42.614 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:42.831 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:43.048 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:43.310 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:43.533 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:43.748 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:44.138 [openTaskList-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:08:44.140 openTaskList: reset taskListOpenedThisRound for new round (attempt=0)
+06:08:44.156 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, will follow recorded rule)
+06:08:44.297 findRedPacketCloseButton: found '关闭' in red packet popup
+06:08:44.359 openTaskList_ALIPAY_entry: scene sig=p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|btns=三国冰河,亲友树 合种/帮种,任务列表,关闭,农场乐园入口,切换摇钱树,寻道大千,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,返回,还差3次领肥料,逛农货,钓红包
+06:08:44.362 openTaskList_ALIPAY_entry: scene rule matched, action=CLICK_BUTTON target=支付宝 conf=1.0 hits=292
+06:08:44.364 openTaskList: [ALIPAY闭环] recorded rule executed, checking task list opened
