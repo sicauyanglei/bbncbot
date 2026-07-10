@@ -13,8 +13,7 @@ import com.bbncbot.service.FarmAccessibilityService
  * - 包名：com.taobao.taobao
  * - 农场入口：淘宝首页"推荐"feed 中的"芭芭农场"卡片，或"我的淘宝"tab 进入
  * - 农场页 Activity：tmsactivity / multipagecontaineractivity
- * - 主账号导航：在主页找"芭芭农场"节点点击
- * - 分身导航：从"我的淘宝"tab → "芭芭农场"入口（手势坐标）
+ * - 导航：在主页找"芭芭农场"节点点击，失败时兜底从"我的淘宝"tab → "芭芭农场"入口（手势坐标）
  * - 淘宝主页"芭芭农场"节点用 content-desc（不是 text）
  *
  * TODO: 根据用户截图补充淘宝特有的任务列表和获取肥料路径
@@ -46,10 +45,8 @@ object TaobaoFertilizerCollector : FertilizerCollector {
         "搜索有福利", "搜索后浏览立得奖励", "浏览宝贝得奖励"
     )
 
-    override fun navigateToFarm(service: FarmAccessibilityService, isClone: Boolean): Boolean {
-        // 淘宝导航：
-        // - 主账号：stepClickFarmTab（在主页找"芭芭农场"节点）
-        // - 分身：stepClickFarmTabByGesture（"我的淘宝"tab → "芭芭农场"入口）
+    override fun navigateToFarm(service: FarmAccessibilityService): Boolean {
+        // 淘宝导航：stepClickFarmTab（在主页找"芭芭农场"节点）失败后兜底 stepClickFarmTabByGesture
         service.navigateToFarm()
         return true
     }

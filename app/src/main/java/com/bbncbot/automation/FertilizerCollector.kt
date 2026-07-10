@@ -24,12 +24,9 @@ interface FertilizerCollector {
 
     /**
      * 导航到芭芭农场页
-     * - 主账号：使用节点查找（findNodeByText）
-     * - 分身：使用手势坐标（dispatchGesture）
-     * @param isClone 是否为分身账号
      * @return true 表示导航已触发（不保证成功，需要后续验证 isOnFarmPage）
      */
-    fun navigateToFarm(service: FarmAccessibilityService, isClone: Boolean): Boolean
+    fun navigateToFarm(service: FarmAccessibilityService): Boolean
 
     /**
      * 判断当前是否在芭芭农场种植页

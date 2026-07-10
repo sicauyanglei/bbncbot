@@ -44,9 +44,8 @@ object UcFertilizerCollector : FertilizerCollector {
         "搜索有福利", "搜索后浏览立得奖励", "浏览宝贝得奖励"
     )
 
-    override fun navigateToFarm(service: FarmAccessibilityService, isClone: Boolean): Boolean {
+    override fun navigateToFarm(service: FarmAccessibilityService): Boolean {
         // UC 导航：主页搜索"芭芭农场"或直接访问 URL
-        // 主账号用节点查找，分身用手势坐标
         service.navigateToFarm()
         return true
     }

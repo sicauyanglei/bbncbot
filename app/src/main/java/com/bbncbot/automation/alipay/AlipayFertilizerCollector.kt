@@ -44,7 +44,7 @@ object AlipayFertilizerCollector : FertilizerCollector {
         "搜索有福利", "搜索后浏览立得奖励", "浏览宝贝得奖励"
     )
 
-    override fun navigateToFarm(service: FarmAccessibilityService, isClone: Boolean): Boolean {
+    override fun navigateToFarm(service: FarmAccessibilityService): Boolean {
         // 支付宝导航：策略1找"芭芭农场"入口，策略2搜索"芭芭农场"
         service.navigateToFarm()
         return true

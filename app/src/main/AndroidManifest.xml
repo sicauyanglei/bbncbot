@@ -17,9 +17,6 @@
     <!-- 网络权限（WebView 加载农场页面） -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- 跨 user 启动分身 App（华为 work profile user 128） -->
-    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
-    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS_FULL" />
     <!-- 强杀广告深链跳转拉起的 App（21秒超时后 killBackgroundProcesses） -->
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
 

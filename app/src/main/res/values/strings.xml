@@ -43,12 +43,5 @@
     <string name="shortcut_taobao_short">淘宝芭芭农场</string>
     <string name="shortcut_taobao_long">打开淘宝芭芭农场</string>
 
-    <!-- 分身快捷方式 -->
-    <string name="shortcut_uc_clone_short">UC 芭芭农场（分身）</string>
-    <string name="shortcut_uc_clone_long">打开 UC 芭芭农场（分身账号）</string>
-    <string name="shortcut_alipay_clone_short">支付宝芭芭农场（分身）</string>
-    <string name="shortcut_alipay_clone_long">打开支付宝芭芭农场（分身账号）</string>
-    <string name="shortcut_taobao_clone_short">淘宝芭芭农场（分身）</string>
-    <string name="shortcut_taobao_clone_long">打开淘宝芭芭农场（分身账号）</string>
     <string name="shortcut_disabled">快捷方式不可用</string>
 </resources>

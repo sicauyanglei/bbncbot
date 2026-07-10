@@ -1,22 +1,14 @@
 package com.bbncbot
 
 import android.Manifest
-import android.app.ActivityOptions
 import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
-import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
-import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.os.Process
-import android.os.UserHandle
-import android.os.UserManager
-import android.provider.Settings
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
@@ -34,7 +26,6 @@ class MainActivity : AppCompatActivity() {
         private const val TAG = "MainActivity"
         private const val FARM_URL = "https://broccoli.uc.cn/apps/ucfarm/routes/farm"
         const val EXTRA_PLATFORM = "extra_platform"
-        const val EXTRA_USER = "extra_user"
     }
 
     private lateinit var tvStatus: TextView
@@ -55,9 +46,6 @@ class MainActivity : AppCompatActivity() {
      * - 在 [onResume] 中消费，避免在 onCreate 阶段权限未就绪时启动
      */
     private var pendingPlatform: String? = null
-
-    /** 待执行的用户类型："main" 主账号 / "clone" 分身 */
-    private var pendingUser: String = "main"
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -137,18 +125,17 @@ class MainActivity : AppCompatActivity() {
             onStartFloatingClicked()
         }
         btnOpenFarm.setOnClickListener {
-            openFarmInUcBrowser(isClone = false)
+            openFarmInUcBrowser()
         }
         btnOpenAlipayFarm.setOnClickListener {
-            openApp("com.eg.android.AlipayGphone", "支付宝", isClone = false)
+            openApp("com.eg.android.AlipayGphone", "支付宝")
         }
         btnOpenTaobaoFarm.setOnClickListener {
-            openApp("com.taobao.taobao", "淘宝", isClone = false)
+            openApp("com.taobao.taobao", "淘宝")
         }
 
         // 解析 shortcut intent 中的平台参数
         pendingPlatform = intent?.getStringExtra(EXTRA_PLATFORM)
-        pendingUser = intent?.getStringExtra(EXTRA_USER) ?: "main"
 
         // Android 13+ 申请通知权限
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -165,7 +152,6 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent)
         // singleTask 模式下复用 Activity，从桌面快捷方式再次进入会走这里
         pendingPlatform = intent?.getStringExtra(EXTRA_PLATFORM)
-        pendingUser = intent?.getStringExtra(EXTRA_USER) ?: "main"
     }
 
     override fun onResume() {
@@ -175,13 +161,11 @@ class MainActivity : AppCompatActivity() {
         val platform = pendingPlatform
         if (platform != null) {
             pendingPlatform = null
-            val isClone = pendingUser == "clone"
-            debugLog("onResume consume: platform=$platform, user=$pendingUser, isClone=$isClone")
-            pendingUser = "main"
+            debugLog("onResume consume: platform=$platform")
             when (platform) {
-                "uc" -> openFarmInUcBrowser(isClone = isClone)
-                "alipay" -> openApp("com.eg.android.AlipayGphone", "支付宝", isClone = isClone)
-                "taobao" -> openApp("com.taobao.taobao", "淘宝", isClone = isClone)
+                "uc" -> openFarmInUcBrowser()
+                "alipay" -> openApp("com.eg.android.AlipayGphone", "支付宝")
+                "taobao" -> openApp("com.taobao.taobao", "淘宝")
             }
         } else {
             debugLog("onResume: no pending platform")
@@ -204,21 +188,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** 尝试用 UC 浏览器打开芭芭农场页面 */
-    private fun openFarmInUcBrowser(isClone: Boolean = false) {
-        if (isClone) {
-            // 分身 UC：用 LauncherApps 启动分身 UC（无法跨 user 传 URL，启动后由用户手动进入芭芭农场）
-            val userHandle = findCloneUserHandle()
-            // 设置 pendingAppLabel 给无障碍服务，用于自动处理华为 HwChooserActivity 选择器
-            FarmAccessibilityService.getInstance()?.setPendingApp("UC 浏览器", "clone")
-            if (userHandle != null && launchAppForUser("com.ucmobile.lite", "UC 浏览器", userHandle)) {
-                Toast.makeText(
-                    this,
-                    "已打开 UC 浏览器（分身），请手动进入芭芭农场",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            return
-        }
+    private fun openFarmInUcBrowser() {
         val uri = Uri.parse(FARM_URL)
         // 尝试 UC 极速版 / UC 浏览器
         val ucPackages = listOf("com.ucmobile.lite", "com.UCMobile.x86", "com.UCMobile")
@@ -251,24 +221,23 @@ class MainActivity : AppCompatActivity() {
      * 启动指定包名的 App（支付宝/淘宝等）
      * - 启动后通过无障碍服务自动导航到芭芭农场页面（点击主页上的"芭芭农场"标签）
      * - 需要：1) 无障碍服务已开启 2) 前台 App 平台被正确识别
-     * @param isClone true 时启动分身 App（work profile user 128）
      */
-    private fun openApp(packageName: String, label: String, isClone: Boolean = false) {
-        val userHandle = if (isClone) findCloneUserHandle() else Process.myUserHandle()
-        if (userHandle == null) {
-            Toast.makeText(this, "未找到 $label 分身，请确认分身已创建", Toast.LENGTH_LONG).show()
+    private fun openApp(packageName: String, label: String) {
+        val intent = packageManager.getLaunchIntentForPackage(packageName)
+        if (intent == null) {
+            Toast.makeText(this, "未安装 $label（$packageName）", Toast.LENGTH_LONG).show()
             return
         }
-        // 设置 pendingAppLabel 给无障碍服务，用于自动处理华为 HwChooserActivity 选择器
-        val service = FarmAccessibilityService.getInstance()
-        service?.setPendingApp(label, if (isClone) "clone" else "main")
-        if (!launchAppForUser(packageName, label, userHandle)) {
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "无法启动 $label：${e.message}", Toast.LENGTH_LONG).show()
             return
         }
-        val suffix = if (isClone) "（分身）" else ""
         Toast.makeText(
             this,
-            "已打开 $label$suffix，正在自动导航到芭芭农场...",
+            "已打开 $label，正在自动导航到芭芭农场...",
             Toast.LENGTH_LONG
         ).show()
         // 延迟 2 秒等待 App 启动 + 无障碍服务识别平台，然后触发自动导航
@@ -286,68 +255,11 @@ class MainActivity : AppCompatActivity() {
             if (!started) {
                 Toast.makeText(
                     this,
-                    "未识别到 $label$suffix 平台，请在 App 内手动打开芭芭农场",
+                    "未识别到 $label 平台，请在 App 内手动打开芭芭农场",
                     Toast.LENGTH_LONG
                 ).show()
             }
         }, 2000L)
-    }
-
-    /**
-     * 查找分身 user handle（work profile，非当前 user）
-     * @return 第一个非当前 user 的 profile，找不到返回 null
-     */
-    private fun findCloneUserHandle(): UserHandle? {
-        val userManager = getSystemService(Context.USER_SERVICE) as UserManager
-        val currentUser = Process.myUserHandle()
-        val profiles = userManager.userProfiles
-        debugLog("findCloneUserHandle: profiles=${profiles.size}, currentUser=$currentUser")
-        for (profile in profiles) {
-            if (profile != currentUser) {
-                debugLog("found clone profile=$profile")
-                return profile
-            }
-        }
-        debugLog("no clone profile found")
-        return null
-    }
-
-    /**
-     * 通过 LauncherApps 启动指定 user 下的 App
-     *
-     * 关键：主账号和分身都用 [LauncherApps.startMainActivity]，
-     * 直接指定 ComponentName + UserHandle 启动，绕过华为 HwChooserActivity 选择器
-     * （华为在有原 App+分身时，startActivity(Intent setComponent) 会被 HwChooserActivity 拦截）
-     *
-     * @return true 启动成功，false 失败
-     */
-    private fun launchAppForUser(packageName: String, label: String, user: UserHandle): Boolean {
-        debugLog("launchAppForUser start: pkg=$packageName, user=$user")
-        val launcherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
-        val activities = launcherApps.getActivityList(packageName, user)
-        debugLog("getActivityList returned ${activities?.size ?: "null"} activities in $user")
-        if (activities.isNullOrEmpty()) {
-            Toast.makeText(this, "未安装 $label（$packageName）", Toast.LENGTH_LONG).show()
-            return false
-        }
-        val activity = activities[0]
-        val componentName = activity.componentName
-        debugLog("found $componentName in $user")
-        val isMainUser = user == Process.myUserHandle()
-        return try {
-            // 统一用 startMainActivity 启动，绕过华为选择器
-            launcherApps.startMainActivity(componentName, user, null, null)
-            debugLog("startMainActivity SUCCESS (${if (isMainUser) "main" else "clone"}) for $componentName")
-            true
-        } catch (e: SecurityException) {
-            debugLog("SecurityException: ${e.message}")
-            Toast.makeText(this, "无法启动 $label（权限不足）：${e.message}", Toast.LENGTH_LONG).show()
-            false
-        } catch (e: Exception) {
-            debugLog("Exception: ${e.javaClass.simpleName}: ${e.message}")
-            Toast.makeText(this, "无法启动 $label：${e.message}", Toast.LENGTH_LONG).show()
-            false
-        }
     }
 
     /** 调试日志写到外部存储文件（华为 logcat 加密，用文件替代） */

@@ -74,96 +74,6 @@ class FarmAccessibilityService : AccessibilityService() {
     private var currentEventPkg: String? = null
 
     /**
-     * 待处理的应用标签（用于 HwChooserActivity 自动选择）
-     * - 由 [com.bbncbot.MainActivity.openApp] 在启动 App 前设置
-     * - 当华为 HwChooserActivity 弹出时，无障碍服务根据此标签自动选择对应选项
-     * - 例如 "淘宝"、"支付宝"、"UC 浏览器"
-     */
-    @Volatile
-    var pendingAppLabel: String? = null
-        private set
-
-    /**
-     * 待处理的应用用户类型："main" 主账号 / "clone" 分身
-     * - 配合 [pendingAppLabel] 使用，决定在 HwChooserActivity 中选择哪个选项
-     */
-    @Volatile
-    var pendingUserType: String = "main"
-        private set
-
-    /** 设置待处理的应用标签和用户类型（由 MainActivity 在启动 App 前调用） */
-    fun setPendingApp(label: String?, userType: String) {
-        pendingAppLabel = label
-        pendingUserType = userType
-        // 新启动 App：清除 HwChooser 处理标志和冷却，允许重新检测
-        hwChooserHandled = false
-        hwChooserCooldownUntil = 0L
-        Log.i(TAG, "setPendingApp: label=$label, userType=$userType")
-        debugLog("setPendingApp: label=$label, userType=$userType")
-        // 根据 label 预设平台（用于分身情况：u0 服务收不到 u128 的事件，平台不会被自动检测）
-        val inferredPlatform = inferPlatformFromLabel(label)
-        if (inferredPlatform != Platform.UNKNOWN) {
-            currentPlatform = inferredPlatform
-            debugLog("setPendingApp: inferred platform=$inferredPlatform from label='$label'")
-        }
-        // 分身（clone）启动时，HwChooserActivity 可能出现在 u128（work profile），
-        // 实测：HwChooser 是系统对话框，u0 服务能收到事件，事件路径已能处理。
-        // 但保留 fallback 手势点击作为兜底（坐标基于 dump 确认），防止事件未到达的边缘情况。
-        // 坐标基于 HwChooserActivity dump 确认：分身选项 bounds=[600,1984][1069,2298]，中心 (834, 2141)。
-        if (label != null && userType == "clone") {
-            scheduleHwChooserFallbackClick(label)
-        }
-    }
-
-    /** 从应用标签推断平台（淘宝→TAOBAO，支付宝→ALIPAY，UC→UC） */
-    private fun inferPlatformFromLabel(label: String?): Platform {
-        if (label == null) return Platform.UNKNOWN
-        val lower = label.lowercase()
-        return when {
-            lower.contains("淘宝") || lower.contains("taobao") -> Platform.TAOBAO
-            lower.contains("支付宝") || lower.contains("alipay") -> Platform.ALIPAY
-            lower.contains("uc") -> Platform.UC
-            else -> Platform.UNKNOWN
-        }
-    }
-
-    /**
-     * 安排 HwChooserActivity fallback 手势点击（仅用于分身情况）
-     * - 延迟 800ms 后执行（给 startMainActivity 留时间触发 HwChooser）
-     * - 若 HwChooser 已被 [handleHwChooserActivity] 处理（理论上分身不会走这里，但兜底），hwChooserHandled 为 true，跳过 fallback
-     * - 否则按坐标手势点击分身选项（u0 服务无法收到 u128 事件，必须 fallback）
-     */
-    private fun scheduleHwChooserFallbackClick(label: String) {
-        // 分身选项坐标（dump 确认）：bounds=[600,1984][1069,2298] → 中心 (834, 2141)
-        val x = 834f
-        val y = 2141f
-        navHandler.postDelayed({
-            if (hwChooserHandled) {
-                debugLog("HwChooser fallback: already handled by event, skip gesture")
-                return@postDelayed
-            }
-            if (pendingAppLabel == null) {
-                debugLog("HwChooser fallback: pendingLabel already cleared, skip gesture")
-                return@postDelayed
-            }
-            debugLog("HwChooser fallback: dispatchGesture tap at ($x, $y) for label='$label'")
-            hwChooserHandled = true
-            dispatchGestureClick(x, y)
-            pendingAppLabel = null
-            // 5 秒后重置标志，允许下次处理
-            navHandler.postDelayed({ hwChooserHandled = false }, 5000L)
-        }, 800L)
-    }
-
-    /** HwChooserActivity 处理标志，防止重复点击 */
-    @Volatile
-    private var hwChooserHandled: Boolean = false
-
-    /** HwChooserActivity 处理冷却时间戳（毫秒），避免无候选时空跑 */
-    @Volatile
-    private var hwChooserCooldownUntil: Long = 0L
-
-    /**
      * 当前检测到的平台（自动更新）
      * - 通过 [getCurrentWindowPackage] 在需要时刷新
      * - UNKNOWN 表示未识别到任何支持的平台
@@ -235,22 +145,6 @@ class FarmAccessibilityService : AccessibilityService() {
                 currentPlatform = detected
             }
             Log.d(TAG, "window-state-changed pkg=$pkg class=$className platform=$currentPlatform")
-            // 当 HwChooserActivity 出现时记录到文件
-            if (pkg == "com.hihonor.android.internal.app") {
-                debugLog("HwChooser event: pkg=$pkg class=$className pendingLabel=$pendingAppLabel")
-            }
-        }
-
-        // 处理华为 HwChooserActivity（应用选择器）
-        if (pkg == "com.hihonor.android.internal.app") {
-            // 无 pending label 时直接静默返回（避免系统其他对话框误触发刷屏）
-            if (pendingAppLabel == null) return
-            // 冷却期内跳过（避免无候选时反复扫描节点树）
-            val now = System.currentTimeMillis()
-            if (now < hwChooserCooldownUntil) return
-            debugLog("HwChooser detected, calling handleHwChooserActivity")
-            handleHwChooserActivity()
-            return
         }
 
         // 仅记录已识别平台的事件，过滤无关包
@@ -275,156 +169,6 @@ class FarmAccessibilityService : AccessibilityService() {
             file.parentFile?.mkdirs()
             file.appendText(line)
         } catch (_: Exception) { /* ignore */ }
-    }
-
-    /**
-     * 自动处理华为 HwChooserActivity（应用选择器）
-     *
-     * - 华为在有原 App + 分身时，LAUNCHER intent 会被 HwChooserActivity 拦截让用户选择
-     * - 此方法根据 [pendingAppLabel] 和 [pendingUserType] 自动选择对应选项：
-     *   - 主账号：选择 content-desc 不带"分身"后缀的选项
-     *   - 分身：选择 content-desc 带"分身"后缀的选项
-     * - HwChooserActivity UI 结构（dump 确认）：
-     *   - 标题："使用以下方式打开"
-     *   - 两个选项都是 GridView 中的 LinearLayout（可点击）
-     *     - 子节点 ImageView + TextView(text=应用名)
-     *     - 主账号选项：TextView text="淘宝", content-desc=""
-     *     - 分身选项：TextView text="淘宝", content-desc="淘宝分身"
-     *   - 取消按钮
-     * - 处理后清除 [pendingAppLabel] 避免重复点击
-     */
-    private fun handleHwChooserActivity() {
-        if (hwChooserHandled) {
-            debugLog("HwChooser: already handled, skip")
-            return
-        }
-        val label = pendingAppLabel
-        if (label == null) {
-            debugLog("HwChooser: no pending label, skip")
-            return
-        }
-        val root = rootInActiveWindowSafe()
-        if (root == null) {
-            debugLog("HwChooser: root is null, skip")
-            // root 还没准备好，短冷却后重试
-            hwChooserCooldownUntil = System.currentTimeMillis() + 500L
-            return
-        }
-        debugLog("HwChooser detected, looking for label='$label', userType=$pendingUserType")
-
-        // 收集所有匹配 label 的可点击选项（含 text 和 desc 信息）
-        val candidates = mutableListOf<HwChooserOption>()
-        collectHwChooserOptions(root, label, candidates)
-        debugLog("HwChooser: found ${candidates.size} candidates for label='$label'")
-        for (c in candidates) {
-            debugLog("HwChooser candidate: text='${c.text}' desc='${c.desc}'")
-        }
-
-        // 选择目标节点：主账号选不带"分身"的，分身选带"分身"的
-        val isMain = pendingUserType != "clone"
-        val target = if (isMain) {
-            // 主账号：优先选 desc 不带"分身"的选项
-            candidates.firstOrNull { !it.desc.contains("分身") }
-                ?: candidates.firstOrNull()
-        } else {
-            // 分身：优先选 desc 带"分身"的选项
-            candidates.firstOrNull { it.desc.contains("分身") }
-                ?: candidates.lastOrNull()
-        }
-
-        if (target == null) {
-            debugLog("HwChooser: no matching option for label='$label', abort")
-            // 无候选：进入冷却（2 秒），避免每个事件都重新扫描节点树
-            // 同时清除 pendingLabel，防止持续触发（应用未安装分身等情况）
-            hwChooserCooldownUntil = System.currentTimeMillis() + 2000L
-            return
-        }
-        debugLog("HwChooser: clicking option text='${target.text}' desc='${target.desc}' (userType=$pendingUserType)")
-        hwChooserHandled = true
-        // 处理成功，清除冷却
-        hwChooserCooldownUntil = 0L
-        performClickSafe(target.node)
-        // 清除 pending label，避免重复处理
-        pendingAppLabel = null
-        // 5 秒后重置 hwChooserHandled 标志，允许下次处理
-        navHandler.postDelayed({ hwChooserHandled = false }, 5000L)
-    }
-
-    /** HwChooserActivity 选项信息 */
-    private data class HwChooserOption(
-        val node: AccessibilityNodeInfo,
-        val text: String,   // 节点 text
-        val desc: String    // 节点 content-desc
-    )
-
-    /**
-     * 递归收集 HwChooserActivity 中匹配 label 的可点击选项
-     *
-     * - HwChooserActivity 的选项结构：可点击的 LinearLayout 包含 ImageView + TextView
-     * - TextView 的 text 是应用名（如"淘宝"），可能 content-desc 为空（主账号）或"淘宝分身"（分身）
-     * - 当匹配到 TextView 但其本身不可点击时，向上查找可点击的父节点（选项容器）
-     *
-     * @param node 当前节点
-     * @param label 目标应用标签（如"淘宝"）
-     * @param out 输出列表
-     */
-    private fun collectHwChooserOptions(
-        node: AccessibilityNodeInfo,
-        label: String,
-        out: MutableList<HwChooserOption>
-    ) {
-        val text = node.text?.toString()?.trim().orEmpty()
-        val desc = node.contentDescription?.toString()?.trim().orEmpty()
-        // HwChooserActivity 选项的 TextView 通常 text=label（如"淘宝"），
-        // 主账号 content-desc 为空，分身 content-desc 为"淘宝分身"
-        val matched = text.contains(label, ignoreCase = true) ||
-            desc.contains(label, ignoreCase = true)
-        if (matched) {
-            // 找到匹配的节点（通常是 TextView，本身不可点击），向上找可点击的父节点
-            val clickable = findClickableSelfOrParentInternal(node)
-            if (clickable != null) {
-                // 避免重复添加同一可点击节点
-                val alreadyAdded = out.any { it.node === clickable }
-                if (!alreadyAdded) {
-                    // 使用子节点的 text/desc（更精确），而不是父节点的（可能为空）
-                    val childText = findChildText(clickable, label) ?: text
-                    val childDesc = findChildDesc(clickable, label) ?: desc
-                    out.add(HwChooserOption(clickable, childText, childDesc))
-                }
-            }
-        }
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            collectHwChooserOptions(child, label, out)
-        }
-    }
-
-    /** 在子节点中查找包含 label 的 text */
-    private fun findChildText(node: AccessibilityNodeInfo, label: String): String? {
-        val text = node.text?.toString()?.trim().orEmpty()
-        if (text.contains(label, ignoreCase = true)) return text
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            val result = findChildText(child, label)
-            if (result != null) return result
-        }
-        return null
-    }
-
-    /** 在子节点中查找包含 label 的 content-desc */
-    private fun findChildDesc(node: AccessibilityNodeInfo, label: String): String? {
-        val desc = node.contentDescription?.toString()?.trim().orEmpty()
-        // 注意：主账号选项 desc 为空，分身 desc="淘宝分身"
-        // 这里查找带"分身"的 desc，或任何匹配 label 的 desc
-        if (desc.isNotEmpty() && (desc.contains("分身") || desc.contains(label, ignoreCase = true))) {
-            return desc
-        }
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            val result = findChildDesc(child, label)
-            if (result != null) return result
-        }
-        return null
     }
 
     /** 判断包名是否与本应用支持的农场 App 相关（含本应用自身） */
@@ -2987,7 +2731,6 @@ class FarmAccessibilityService : AccessibilityService() {
      *
      * - 用于在支付宝/淘宝/UC 之间切换以获取跨平台肥料奖励
      * - 启动后重置 currentPlatform 为 UNKNOWN，等待新平台被自动检测
-     * - 仅支持主账号启动（跨 user 启动需要 LauncherApps，这里用普通 Intent）
      *
      * @param targetPlatform 目标平台
      * @return true 启动成功，false 失败
@@ -3048,8 +2791,6 @@ class FarmAccessibilityService : AccessibilityService() {
      * 在主页上找"芭芭农场"标签并点击
      * - 带重试机制（最多 6 次，每 2 秒一次），等待主页加载完成
      * - 自动处理弹出的权限对话框（淘宝 PermissionActivity 等）
-     * - 分身（clone）情况：u0 服务无法访问 u128 的窗口内容（rootInActiveWindow 返回 null），
-     *   改用 dispatchGesture 在已知坐标点击"芭芭农场"标签
      */
     private fun stepClickFarmTab(platform: Platform, retry: Int = 0) {
         // 自动化正在运行且不在 NAVIGATING/SWITCHING_PLATFORM 状态时，停止导航重试（避免干扰任务列表等操作）
@@ -3063,19 +2804,6 @@ class FarmAccessibilityService : AccessibilityService() {
             clearNavigatingFlag()
             return
         }
-        // 分身情况：u0 的 rootInActiveWindow 返回 u0 当前窗口（如 launcher），
-        // 而非 u128 的淘宝窗口，所以节点查找不可靠，直接用手势坐标点击
-        if (pendingUserType == "clone") {
-            debugLog("navigate stepTab: clone mode, use gesture fallback retry=$retry")
-            if (retry < 3) {
-                navHandler.postDelayed({ stepClickFarmTabByGesture(platform, retry) }, 2500L)
-                return
-            }
-            debugLog("navigate stepTab: clone gesture retries exhausted, abort")
-            clearNavigatingFlag()
-            return
-        }
-        // 主账号：正常使用节点查找
         val root = rootInActiveWindowSafe()
         if (root == null) {
             if (retry < 6) {
@@ -3257,7 +2985,7 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * 分身情况下的手势点击 fallback（u0 无法访问 u128 窗口内容时使用）
+     * 手势点击导航到芭芭农场（节点查找失败时的兜底路径）
      *
      * 导航流程（基于用户确认的"我的淘宝"入口路径）：
      * 1. 点击底部"我的淘宝"tab（bounds=[960,2481][1200,2664]，中心 (1080, 2572)）
@@ -3280,16 +3008,11 @@ class FarmAccessibilityService : AccessibilityService() {
             return
         }
 
-        // 检查当前是否在淘宝主页（主账号通过节点检测，分身通过 activity 检测）
+        // 检查当前是否在淘宝主页（通过底部 tab 栏节点检测判断）
         val activity = currentActivityName?.lowercase().orEmpty()
-        val isOnTaobaoMainPage = if (pendingUserType != "clone") {
-            // 主账号：尝试检测底部 tab 栏判断是否在主页
+        val isOnTaobaoMainPage = run {
             val root = rootInActiveWindowSafe()
             root != null && isOnTaobaoHomePage(root)
-        } else {
-            // 分身：无法读取 u128 窗口，通过 activity 名粗略判断
-            activity.contains("mainactivity") || activity.contains("fragmenttabactivity") ||
-                activity.contains("taobaomain")
         }
 
         if (!isOnTaobaoMainPage) {
