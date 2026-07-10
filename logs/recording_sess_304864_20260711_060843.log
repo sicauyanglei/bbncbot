@@ -1,0 +1,33 @@
+=== recording.log cleared on app start (version=2.1/12, time=06:07:04.533) ===
+06:08:24.865 === 录制开始 session=sess_1783721304864 name='流程4863' ===
+06:08:25.010 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 芭芭农场,种果树得水果，助农增收) → 尝试 OCR 兜底
+06:08:25.012 [start] FERTILIZER_READ_FAIL reason=exception:Services don't have the capability of taking the screenshot.
+06:08:31.891 CLICK_H5 type=0x800 target='前往手机淘宝-芭芭农场' sig='p=ALIPAY|farm=true|type=browse|popup=red_packet|countdown=yes|progress=yes|btns=三国冰河,亲友树 合种/帮种,任务列表,关闭做任务集肥料弹窗,农场乐园入口,切换摇钱树,前往手机淘宝-芭芭农场,去分享,去完成,去逛逛,去邀请,寻道大千,得1000肥 向僵尸开炮,我的收获,我知道了,还差3次领肥料,连续签到任务规则,逛农货,钓红包,领取' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 向僵尸开炮,三国冰河,寻道大千,关闭做任务集肥料弹窗,连续签到任务规则,去完成,去逛逛,领取,去分享,去邀请,前往手机淘宝-芭芭农场,我知道了]
+06:08:31.892 MATCHED name='支付宝-浏览任务-红包弹窗-点击9s后领取' action=CLICK_BUTTON
+06:08:32.353 CLICK_H5 type=0x800 target='领取' sig='p=ALIPAY|farm=true|type=browse|popup=red_packet|countdown=yes|progress=yes|btns=三国冰河,亲友树 合种/帮种,任务列表,关闭做任务集肥料弹窗,农场乐园入口,切换摇钱树,前往手机淘宝-芭芭农场,去分享,去完成,去逛逛,去邀请,寻道大千,得1000肥 向僵尸开炮,我的收获,我知道了,还差3次领肥料,连续签到任务规则,逛农货,钓红包,领取' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 向僵尸开炮,三国冰河,寻道大千,关闭做任务集肥料弹窗,连续签到任务规则,去完成,去逛逛,领取,去分享,去邀请,前往手机淘宝-芭芭农场,我知道了]
+06:08:32.355 MATCHED name='支付宝-浏览任务-红包弹窗-点击9s后领取' action=CLICK_BUTTON
+06:08:33.233 CLICK_H5 type=0x800 target='今天' sig='p=ALIPAY|farm=true|type=browse|popup=red_packet|countdown=yes|progress=yes|btns=三国冰河,亲友树 合种/帮种,任务列表,关闭做任务集肥料弹窗,农场乐园入口,切换摇钱树,前往手机淘宝-芭芭农场,去分享,去完成,去逛逛,去邀请,寻道大千,得1000肥 向僵尸开炮,我的收获,我知道了,还差3次领肥料,连续签到任务规则,逛农货,钓红包,领取' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 向僵尸开炮,三国冰河,寻道大千,关闭做任务集肥料弹窗,连续签到任务规则,去完成,去逛逛,领取,去分享,去邀请,前往手机淘宝-芭芭农场,我知道了]
+06:08:33.234 MATCHED name='支付宝-浏览任务-红包弹窗-点击9s后领取' action=CLICK_BUTTON
+06:08:34.983 CLICK_H5 type=0x800 target='已领取' sig='p=ALIPAY|farm=true|type=browse|popup=red_packet|countdown=yes|progress=yes|btns=三国冰河,亲友树 合种/帮种,任务列表,关闭做任务集肥料弹窗,农场乐园入口,切换摇钱树,前往手机淘宝-芭芭农场,去分享,去完成,去逛逛,去邀请,寻道大千,得1000肥 向僵尸开炮,我的收获,返回,还差3次领肥料,连续签到任务规则,逛农货,钓红包,领取' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 向僵尸开炮,三国冰河,寻道大千,关闭做任务集肥料弹窗,连续签到任务规则,去完成,去逛逛,领取,去分享,去邀请,前往手机淘宝-芭芭农场,返回]
+06:08:34.984 MATCHED name='支付宝-浏览任务-红包弹窗-点击9s后领取' action=CLICK_BUTTON
+06:08:35.817 CLICK_H5 type=0x800 target='标题' sig='p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|btns=三国冰河,亲友树 合种/帮种,任务列表,关闭,农场乐园入口,切换摇钱树,寻道大千,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 向僵尸开炮,三国冰河,寻道大千,返回,支付宝·芭芭农场,更多,关闭]
+06:08:35.819 MATCHED name='支付宝-农场主页-红包弹窗-点击支付宝' action=CLICK_BUTTON
+06:08:36.615 CLICK_H5 type=0x800 target='已领取' sig='p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|btns=三国冰河,亲友树 合种/帮种,任务列表,关闭,农场乐园入口,切换摇钱树,寻道大千,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 向僵尸开炮,三国冰河,寻道大千,返回,支付宝·芭芭农场,更多,关闭]
+06:08:36.618 MATCHED name='支付宝-农场主页-红包弹窗-点击支付宝' action=CLICK_BUTTON
+06:08:37.800 CLICK_H5 type=0x800 target='我知道了' sig='p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|btns=三国冰河,亲友树 合种/帮种,任务列表,关闭,农场乐园入口,切换摇钱树,寻道大千,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 向僵尸开炮,三国冰河,寻道大千,返回,支付宝·芭芭农场,更多,关闭]
+06:08:37.803 MATCHED name='支付宝-农场主页-红包弹窗-点击支付宝' action=CLICK_BUTTON
+06:08:40.163 CLICK_H5 type=0x800 target='关闭做任务集肥料弹窗' sig='p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|btns=三国冰河,亲友树 合种/帮种,任务列表,关闭,农场乐园入口,切换摇钱树,寻道大千,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 向僵尸开炮,三国冰河,寻道大千,返回,支付宝·芭芭农场,更多,关闭]
+06:08:40.166 MATCHED name='支付宝-农场主页-红包弹窗-点击支付宝' action=CLICK_BUTTON
+06:08:41.113 CLICK_H5 type=0x800 target='囤高原特产，得6万肥料' sig='p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|btns=三国冰河,亲友树 合种/帮种,任务列表,关闭,农场乐园入口,切换摇钱树,寻道大千,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 向僵尸开炮,三国冰河,寻道大千,返回,支付宝·芭芭农场,更多,关闭]
+06:08:41.116 MATCHED name='支付宝-农场主页-红包弹窗-点击支付宝' action=CLICK_BUTTON
+06:08:41.594 CLICK_H5 type=0x800 target='“抢”青海农货得6万肥料' sig='p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|btns=三国冰河,亲友树 合种/帮种,任务列表,关闭,农场乐园入口,切换摇钱树,寻道大千,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 向僵尸开炮,三国冰河,寻道大千,返回,支付宝·芭芭农场,更多,关闭]
+06:08:41.598 MATCHED name='支付宝-农场主页-红包弹窗-点击支付宝' action=CLICK_BUTTON
+06:08:42.195 CLICK_H5 type=0x800 target='每日最高120300肥料' sig='p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|btns=三国冰河,亲友树 合种/帮种,任务列表,关闭,农场乐园入口,切换摇钱树,寻道大千,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 向僵尸开炮,三国冰河,寻道大千,返回,支付宝·芭芭农场,更多,关闭]
+06:08:42.198 MATCHED name='支付宝-农场主页-红包弹窗-点击支付宝' action=CLICK_BUTTON
+06:08:43.126 CLICK_H5 type=0x800 target='任务列表' sig='p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|btns=三国冰河,亲友树 合种/帮种,任务列表,关闭,农场乐园入口,切换摇钱树,寻道大千,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 向僵尸开炮,三国冰河,寻道大千,返回,支付宝·芭芭农场,更多,关闭]
+06:08:43.129 MATCHED name='支付宝-农场主页-红包弹窗-点击支付宝' action=CLICK_BUTTON
+06:08:43.589 CLICK_H5 type=0x800 target='大额' sig='p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|btns=三国冰河,亲友树 合种/帮种,任务列表,关闭,农场乐园入口,切换摇钱树,寻道大千,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 向僵尸开炮,三国冰河,寻道大千,返回,支付宝·芭芭农场,更多,关闭]
+06:08:43.590 MATCHED name='支付宝-农场主页-红包弹窗-点击支付宝' action=CLICK_BUTTON
+06:08:43.878 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 芭芭农场,种果树得水果，助农增收) → 尝试 OCR 兜底
+06:08:43.882 [stop] FERTILIZER_READ_FAIL reason=exception:Services don't have the capability of taking the screenshot.
+06:08:43.885 === 录制结束 session=sess_1783721304864 KEEP reason=肥料读取失败(initial=-1 final=-1)，但已录制 6 步，保留规则 steps=6 ===
