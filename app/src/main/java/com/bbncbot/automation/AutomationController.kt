@@ -915,53 +915,63 @@ object AutomationController {
             return
         }
 
-        // 闭环规则：支付宝/淘宝每次进入 OPENING_TASK_LIST 必须重新调出任务列表
-        // 用户要求：支付宝/淘宝农场页起始画面（任务开始前）和任务结束后都要停在任务列表页，形成闭环。
+        // 闭环规则：支付宝/淘宝/UC 每次进入 OPENING_TASK_LIST 必须保证在任务列表页（截图页面）
+        // 用户要求：三个平台农场页起始画面（任务开始前）和任务结束后都要停在任务列表页，形成闭环。
         //           但具体点哪个按钮进去任务由用户录制规则时决定（不写死"集肥料"）。
-        // 实现：支付宝/淘宝每轮重新打开任务列表时（taskListOpenedThisRound=false），
-        //       走 withSceneRule 让录制规则决定点哪个按钮；
-        //       命中规则→规则自己点（onRuleAction 后安排检查）；
-        //       未命中→降级用 findCollectFertilizerButton 文本查找 + 坐标兜底（onFallback）。
-        if ((service.currentPlatform == Platform.ALIPAY || service.currentPlatform == Platform.TAOBAO) && !taskListOpenedThisRound) {
-            taskListOpenedThisRound = true  // 标记本轮已尝试调出，避免重复进入死循环
-            debugLog("openTaskList: [${service.currentPlatform}闭环] forcing re-open task list this round (attempt=$attempt, will follow recorded rule)")
-            withSceneRule(
-                decisionPoint = "openTaskList_${service.currentPlatform}_entry",
-                proposedAction = "${service.currentPlatform}闭环：调出任务列表入口",
-                proposedReason = "${service.currentPlatform}任务开始前/结束后都要停在任务列表页",
-                onRuleAction = { _ ->
-                    // 录制规则已执行点击（CLICK_BUTTON/BACK 等），等页面加载后检查任务列表是否打开
-                    debugLog("openTaskList: [${service.currentPlatform}闭环] recorded rule executed, checking task list opened")
-                    handler.postDelayed({
-                        if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
-                    }, INTERVAL_PAGE_LOAD_MS)
-                },
-                onFallback = {
-                    // 未命中录制规则：降级用 collectFertilizerTexts 文本查找入口按钮
-                    debugLog("openTaskList: [${service.currentPlatform}闭环] no recorded rule, fallback to text search (attempt=$attempt)")
-                    val entryButton = service.findCollectFertilizerButton()
-                    if (entryButton != null) {
-                        debugLog("openTaskList: [${service.currentPlatform}闭环] clicking entry button by text (attempt=$attempt)")
-                        service.performClickSafe(entryButton)
-                    } else {
-                        // 文本也没找到，用坐标候选兜底
-                        val candidates = collectFertilizerCandidates(service)
-                        if (candidates.isNotEmpty()) {
-                            val coordIndex = attempt % candidates.size
-                            val (xRatio, yRatio) = candidates[coordIndex]
-                            debugLog("openTaskList: [${service.currentPlatform}闭环] no entry button, clicking by coordinate #$coordIndex (attempt=$attempt)")
-                            clickAtRatio(service, xRatio, yRatio, "集肥料")
+        // 实现：每轮重新打开任务列表时（taskListOpenedThisRound=false）：
+        //   - 先检查页面是否已有"去完成"按钮（任务列表本就开着，如 UC 主页）→ 直接处理，无需再点
+        //   - 没有则走 withSceneRule 让录制规则决定点哪个按钮调出任务列表
+        //   - 未命中规则→降级 findCollectFertilizerButton 文本查找 + 坐标兜底
+        // 这样既保证闭环（任务结束后回到任务列表页），又不破坏 UC 任务入口原本在主页的行为。
+        if (service.currentPlatform != Platform.UNKNOWN && !taskListOpenedThisRound) {
+            // 先检查页面上是否已有可见的"去完成"按钮（UC 主页任务入口直接可见的情况）
+            val visibleGoComplete = service.findGoCompleteButtons()
+            if (visibleGoComplete.isEmpty()) {
+                // 任务列表未打开：走录制规则 / 降级逻辑调出任务列表
+                taskListOpenedThisRound = true  // 标记本轮已尝试调出，避免重复进入死循环
+                debugLog("openTaskList: [${service.currentPlatform}闭环] no goComplete buttons visible, opening task list (attempt=$attempt, will follow recorded rule)")
+                withSceneRule(
+                    decisionPoint = "openTaskList_${service.currentPlatform}_entry",
+                    proposedAction = "${service.currentPlatform}闭环：调出任务列表入口",
+                    proposedReason = "${service.currentPlatform}任务开始前/结束后都要停在任务列表页",
+                    onRuleAction = { _ ->
+                        // 录制规则已执行点击（CLICK_BUTTON/BACK 等），等页面加载后检查任务列表是否打开
+                        debugLog("openTaskList: [${service.currentPlatform}闭环] recorded rule executed, checking task list opened")
+                        handler.postDelayed({
+                            if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
+                        }, INTERVAL_PAGE_LOAD_MS)
+                    },
+                    onFallback = {
+                        // 未命中录制规则：降级用 collectFertilizerTexts 文本查找入口按钮
+                        debugLog("openTaskList: [${service.currentPlatform}闭环] no recorded rule, fallback to text search (attempt=$attempt)")
+                        val entryButton = service.findCollectFertilizerButton()
+                        if (entryButton != null) {
+                            debugLog("openTaskList: [${service.currentPlatform}闭环] clicking entry button by text (attempt=$attempt)")
+                            service.performClickSafe(entryButton)
                         } else {
-                            debugLog("openTaskList: [${service.currentPlatform}闭环] no entry found (text+coord), reset flag for next round")
-                            taskListOpenedThisRound = false  // 重置，让下一轮还能尝试
+                            // 文本也没找到，用坐标候选兜底
+                            val candidates = collectFertilizerCandidates(service)
+                            if (candidates.isNotEmpty()) {
+                                val coordIndex = attempt % candidates.size
+                                val (xRatio, yRatio) = candidates[coordIndex]
+                                debugLog("openTaskList: [${service.currentPlatform}闭环] no entry button, clicking by coordinate #$coordIndex (attempt=$attempt)")
+                                clickAtRatio(service, xRatio, yRatio, "集肥料")
+                            } else {
+                                debugLog("openTaskList: [${service.currentPlatform}闭环] no entry found (text+coord), reset flag for next round")
+                                taskListOpenedThisRound = false  // 重置，让下一轮还能尝试
+                            }
                         }
+                        handler.postDelayed({
+                            if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
+                        }, INTERVAL_PAGE_LOAD_MS)
                     }
-                    handler.postDelayed({
-                        if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
-                    }, INTERVAL_PAGE_LOAD_MS)
-                }
-            )
-            return
+                )
+                return
+            } else {
+                // 任务列表本就开着（UC 主页有去完成按钮），标记本轮已确认，直接走下面的处理
+                taskListOpenedThisRound = true
+                debugLog("openTaskList: [${service.currentPlatform}闭环] ${visibleGoComplete.size} goComplete buttons already visible, task list open, processing directly")
+            }
         }
 
         // 优先检查：页面上是否已有"去完成"按钮（UC 等平台任务入口直接在主页上，无需点击"集肥料"打开任务列表）
