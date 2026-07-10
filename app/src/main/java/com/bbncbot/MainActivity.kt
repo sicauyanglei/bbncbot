@@ -51,6 +51,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvApiKeyStatus: TextView
     private lateinit var spinnerApiProvider: Spinner
     private lateinit var tvProviderQuota: TextView
+    private lateinit var etGhToken: EditText
+    private lateinit var btnSaveGhToken: Button
+    private lateinit var tvGhTokenStatus: TextView
 
     /**
      * 待执行的平台快捷方式（来自桌面快捷方式或 shortcut intent）
@@ -83,6 +86,9 @@ class MainActivity : AppCompatActivity() {
         tvApiKeyStatus = findViewById(R.id.tvApiKeyStatus)
         spinnerApiProvider = findViewById(R.id.spinnerApiProvider)
         tvProviderQuota = findViewById(R.id.tvProviderQuota)
+        etGhToken = findViewById(R.id.etGhToken)
+        btnSaveGhToken = findViewById(R.id.btnSaveGhToken)
+        tvGhTokenStatus = findViewById(R.id.tvGhTokenStatus)
 
         // 初始化 API 提供商下拉选择
         val providers = com.bbncbot.automation.AiVisionHelper.ApiProvider.displayNames
@@ -135,6 +141,28 @@ class MainActivity : AppCompatActivity() {
                 com.bbncbot.automation.AiVisionHelper.apiKey = ""
                 tvApiKeyStatus.text = "AI 视觉识别：未配置"
                 Toast.makeText(this, "API Key 已清除", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // 加载已保存的 GitHub Token（日志上传用）
+        val savedGhToken = com.bbncbot.automation.LogUploader.loadToken(this)
+        if (savedGhToken.isNotEmpty()) {
+            etGhToken.setText(savedGhToken)
+            tvGhTokenStatus.text = "日志上传：已配置（${savedGhToken.take(4)}...${savedGhToken.takeLast(4)}）"
+        } else {
+            tvGhTokenStatus.text = "日志上传：未配置（录制停止不会自动上传）"
+        }
+
+        btnSaveGhToken.setOnClickListener {
+            val token = etGhToken.text.toString().trim()
+            if (token.isNotEmpty()) {
+                com.bbncbot.automation.LogUploader.saveToken(this, token)
+                tvGhTokenStatus.text = "日志上传：已配置（${token.take(4)}...${token.takeLast(4)}）"
+                Toast.makeText(this, "GitHub Token 已保存", Toast.LENGTH_SHORT).show()
+            } else {
+                com.bbncbot.automation.LogUploader.saveToken(this, "")
+                tvGhTokenStatus.text = "日志上传：未配置"
+                Toast.makeText(this, "GitHub Token 已清除", Toast.LENGTH_SHORT).show()
             }
         }
 

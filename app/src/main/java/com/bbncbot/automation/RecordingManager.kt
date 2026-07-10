@@ -163,6 +163,21 @@ object RecordingManager {
             } catch (e: Exception) {
                 Log.e(TAG, "stop recording background task failed: ${e.message}", e)
                 logToRecordingFile("ERROR stop failed: ${e.message}")
+            } finally {
+                // 上传日志到 GitHub（若用户在 MainActivity 配置了 Token）
+                // 放在 finally 里确保无论保存/丢弃都上传，方便排查问题
+                try {
+                    val ctx = FarmAccessibilityService.getInstance()
+                    if (ctx != null) {
+                        val shortId = sessId?.takeLast(6) ?: "nosess"
+                        val n = LogUploader.upload(ctx, "sess_$shortId")
+                        if (n > 0) {
+                            logToRecordingFile("LOG_UPLOADED count=$n (tag=sess_$shortId)")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "upload logs failed: ${e.message}")
+                }
             }
         }
     }
