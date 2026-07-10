@@ -88,6 +88,14 @@ interface PlatformConfig {
 
     /** 退回按钮坐标比例候选 */
     val backButtonCoords: List<Pair<Float, Float>>
+
+    /**
+     * 芭芭农场直达 deep link / URL（桌面快捷方式背后的链接）
+     * - 非 null 时：用 [Intent.ACTION_VIEW] 直接打开，等同从桌面快捷方式进入
+     * - null 时：走 App 内无障碍导航（启动 App → 找"芭芭农场"入口）
+     * - 获取方法：adb logcat 抓取点击桌面快捷方式时的 startActivity 日志
+     */
+    val farmDeepLink: String?
 }
 
 /** UC 极速版（com.ucmobile.lite）配置 - 沿用现有 v2 实现 */
@@ -127,6 +135,7 @@ object UcPlatformConfig : PlatformConfig {
         Pair(0.950f, 0.050f),  // 右上角关闭
         Pair(0.500f, 0.950f)   // 底部中央
     )
+    override val farmDeepLink = "https://broccoli.uc.cn/apps/ucfarm/routes/farm"
 }
 
 /**
@@ -190,6 +199,8 @@ object AlipayPlatformConfig : PlatformConfig {
         Pair(0.500f, 0.950f),
         Pair(0.112f, 0.874f)
     )
+    // TODO: 用户提供支付宝芭芭农场桌面快捷方式的 deep link 后填入（如 alipays://platformapi/startapp?appId=xxx）
+    override val farmDeepLink: String? = null
 }
 
 /**
@@ -231,4 +242,6 @@ object TaobaoPlatformConfig : PlatformConfig {
         Pair(0.500f, 0.950f),
         Pair(0.112f, 0.874f)
     )
+    // TODO: 用户提供淘宝芭芭农场桌面快捷方式的 deep link 后填入
+    override val farmDeepLink: String? = null
 }

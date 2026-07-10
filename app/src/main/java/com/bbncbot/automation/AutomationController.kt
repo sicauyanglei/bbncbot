@@ -2975,6 +2975,16 @@ object AutomationController {
 
         if (attempt == 0) {
             logPageSnapshot(service, "return-start")
+            // 优先用 deep link 重开农场主页（等同从桌面快捷方式进入），替代按返回键逐步退回
+            // 成功后进入 NAVIGATING 等待页面加载，再重新走 COLLECTING_DIRECT → OPENING_TASK_LIST
+            if (service.reopenFarmByDeepLink()) {
+                Log.i(TAG, "return: reopened farm by deep link, switching to NAVIGATING")
+                moveTo(AutomationState.NAVIGATING)
+                handler.postDelayed({ runNavigating(0) }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            // 无 deep link 或重开失败，走原有按返回键逐步退回逻辑
+            Log.i(TAG, "return: no deep link, fallback to back-key return")
         }
 
         // 检测异常页面（交易页面等），按返回退出

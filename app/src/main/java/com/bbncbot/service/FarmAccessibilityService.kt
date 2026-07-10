@@ -1,6 +1,9 @@
 package com.bbncbot.service
 
 import android.accessibilityservice.AccessibilityService
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -2647,6 +2650,41 @@ class FarmAccessibilityService : AccessibilityService() {
     private val navHandler = Handler(Looper.getMainLooper())
 
     /**
+     * 用 deep link 重新打开芭芭农场页面（等同从桌面快捷方式进入）
+     *
+     * - 用于任务完成后回到农场主页，替代按返回键逐步退回
+     * - 若当前平台未配置 [PlatformConfig.farmDeepLink]，返回 false，由调用方回退到导航逻辑
+     * - 可指定 [targetPlatform]，用于跨平台切换场景；默认用当前检测到的平台
+     *
+     * @return true 表示已发起打开请求，false 表示无 deep link 或打开失败
+     */
+    fun reopenFarmByDeepLink(targetPlatform: Platform = currentPlatform): Boolean {
+        val deepLink = targetPlatform.config.farmDeepLink
+        if (deepLink.isNullOrEmpty()) {
+            debugLog("reopenFarmByDeepLink: no deep link for $targetPlatform, fallback to navigation")
+            return false
+        }
+        return try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+            debugLog("reopenFarmByDeepLink: opened $deepLink for $targetPlatform")
+            // 切换平台后重置检测状态，等待新平台 H5 加载后被自动识别
+            if (targetPlatform != currentPlatform) {
+                currentPlatform = Platform.UNKNOWN
+            }
+            true
+        } catch (e: ActivityNotFoundException) {
+            debugLog("reopenFarmByDeepLink: no app handles $deepLink (${e.message})")
+            false
+        } catch (e: Exception) {
+            debugLog("reopenFarmByDeepLink: failed $deepLink (${e.javaClass.simpleName}: ${e.message})")
+            false
+        }
+    }
+
+    /**
      * 自动导航到芭芭农场页面（淘宝/支付宝）
      * - 假设 App 已启动到首页，由 [MainActivity.openApp] 调用
      * - 淘宝/支付宝主页直接有"芭芭农场"标签，直接查找并点击，无需搜索
@@ -2736,6 +2774,12 @@ class FarmAccessibilityService : AccessibilityService() {
      * @return true 启动成功，false 失败
      */
     fun launchPlatformApp(targetPlatform: com.bbncbot.automation.Platform): Boolean {
+        // 优先用 deep link 直达目标平台农场页（等同桌面快捷方式进入）
+        if (reopenFarmByDeepLink(targetPlatform)) {
+            debugLog("launchPlatformApp: opened $targetPlatform via deep link")
+            return true
+        }
+        // 无 deep link 或失败：启动 App 主页，由无障碍服务导航
         val pkg = targetPlatform.config.packageNames.firstOrNull() ?: return false
         return try {
             val intent = packageManager.getLaunchIntentForPackage(pkg)

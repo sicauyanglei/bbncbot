@@ -16,6 +16,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import com.bbncbot.automation.Platform
 import com.bbncbot.service.FarmAccessibilityService
 import com.bbncbot.service.FloatingWindowService
 import com.bbncbot.util.PermissionUtils
@@ -218,11 +219,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * 启动指定包名的 App（支付宝/淘宝等）
-     * - 启动后通过无障碍服务自动导航到芭芭农场页面（点击主页上的"芭芭农场"标签）
+     * 启动指定包名的 App（支付宝/淘宝等）并进入芭芭农场
+     * - 优先用 [PlatformConfig.farmDeepLink] 直达农场页（等同桌面快捷方式进入）
+     * - 无 deep link 时回退：启动 App + 无障碍服务自动导航到芭芭农场页
      * - 需要：1) 无障碍服务已开启 2) 前台 App 平台被正确识别
      */
     private fun openApp(packageName: String, label: String) {
+        val platform = Platform.fromPackage(packageName)
+        val deepLink = platform.config.farmDeepLink
+        // 优先用 deep link 直达农场页（等同从桌面快捷方式进入）
+        if (deepLink != null) {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(intent)
+                Toast.makeText(this, "正在用 $label 打开芭芭农场...", Toast.LENGTH_SHORT).show()
+                return
+            } catch (e: Exception) {
+                // deep link 失败，回退到启动 App + 导航
+                Toast.makeText(this, "直达链接失败，回退启动 $label...", Toast.LENGTH_SHORT).show()
+            }
+        }
+        // 无 deep link：启动 App + 无障碍服务自动导航
         val intent = packageManager.getLaunchIntentForPackage(packageName)
         if (intent == null) {
             Toast.makeText(this, "未安装 $label（$packageName）", Toast.LENGTH_LONG).show()

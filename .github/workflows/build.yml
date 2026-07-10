@@ -54,6 +54,35 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
+      - name: Code rules check
+        # 代码规则验证：确保无分身(clone)残留代码、关键文件齐全
+        run: |
+          echo "=== 检查无分身(clone)残留代码 ==="
+          # 在 Kotlin/XML 源码中搜索分身相关关键词，命中则报错
+          if grep -rnE "(isClone|pendingUserType|setPendingApp|findCloneUserHandle|launchAppForUser|scheduleHwChooserFallbackClick|handleHwChooserActivity|HwChooserOption|extra_user)" \
+            app/src/main/java app/src/main/res --include="*.kt" --include="*.xml"; then
+            echo "::error::检测到分身(clone)残留代码，请彻底移除后再编译"
+            exit 1
+          fi
+          echo "✓ 无分身残留代码"
+          echo ""
+          echo "=== 检查 shortcuts.xml 仅含 3 个主账号快捷方式 ==="
+          SHORTCUT_COUNT=$(grep -c "<shortcut" app/src/main/res/xml/shortcuts.xml)
+          if [ "$SHORTCUT_COUNT" -ne 3 ]; then
+            echo "::error::shortcuts.xml 应仅含 3 个快捷方式，实际 $SHORTCUT_COUNT 个"
+            exit 1
+          fi
+          echo "✓ shortcuts.xml 含 $SHORTCUT_COUNT 个快捷方式"
+          echo ""
+          echo "=== 检查 AndroidManifest 无跨 user 权限 ==="
+          if grep -qE "INTERACT_ACROSS_USERS" app/src/main/AndroidManifest.xml; then
+            echo "::error::AndroidManifest 仍含 INTERACT_ACROSS_USERS 权限（分身专用）"
+            exit 1
+          fi
+          echo "✓ 无跨 user 权限"
+          echo ""
+          echo "=== 编译前规则检查通过 ==="
+
       - name: Build release APK
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
