@@ -892,6 +892,13 @@ object AutomationController {
 
         if (attempt == 0) {
             logPageSnapshot(service, "openTaskList-start")
+            // 闭环规则：每轮任务循环重新打开任务列表时，重置"已点集肥料"标志
+            // 确保支付宝每次新一轮都会先点集肥料调出任务列表，而非沿用上轮残留按钮。
+            // attempt>0 的重试不重置（避免点完集肥料后又重置导致死循环）。
+            if (taskListOpenedThisRound) {
+                taskListOpenedThisRound = false
+                debugLog("openTaskList: reset taskListOpenedThisRound for new round (attempt=0)")
+            }
         }
 
         if (attempt >= MAX_TASK_LIST_ATTEMPTS) {
