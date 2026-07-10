@@ -165,6 +165,20 @@ object AutomationController {
     @Volatile
     private var taskButtons: List<AccessibilityNodeInfo> = emptyList()
 
+    /**
+     * 本轮任务列表是否已通过点击"集肥料"按钮主动调出（闭环规则）
+     *
+     * 规则：支付宝每次进入 OPENING_TASK_LIST 状态时，必须先主动点击一次
+     * "集肥料/施肥/领肥料/任务列表"等入口按钮，确保任务列表是本轮重新打开的，
+     * 而非沿用上一轮残留可见的旧按钮。
+     * - true：本轮已点击过集肥料入口（或已确认任务列表打开），可直接处理
+     * - false：本轮还没点过，必须先点，不能因为有残留"去完成"按钮就跳过
+     *
+     * 每次进入新一轮任务循环（任务结束返回农场页重新 OPENING_TASK_LIST）时重置为 false。
+     */
+    @Volatile
+    private var taskListOpenedThisRound: Boolean = false
+
     /** 连续无进展轮次 */
     @Volatile
     private var noProgressRounds: Int = 0
@@ -892,6 +906,46 @@ object AutomationController {
                 handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
             }
             return
+        }
+
+        // 闭环规则：支付宝每次进入 OPENING_TASK_LIST 必须先点"集肥料"调出任务列表
+        // 用户要求：支付宝农场页起始画面都要先点集肥料/施肥/领肥料/任务列表按钮（位置不定，需文本查找）
+        //           才能调出任务列表。不能因为页面上有上一轮残留的"去完成"按钮就直接处理，
+        //           否则会点到旧按钮/错位按钮。本轮必须重新点一次入口按钮确认任务列表是刚打开的。
+        if (service.currentPlatform == Platform.ALIPAY && !taskListOpenedThisRound) {
+            // 先尝试文本查找入口按钮（位置不定，必须靠文本定位）
+            val entryButton = service.findCollectFertilizerButton()
+            if (entryButton != null) {
+                Log.i(TAG, "openTaskList: [ALIPAY闭环] clicking 集肥料 entry button to open task list (attempt ${attempt + 1})")
+                debugLog("openTaskList: [ALIPAY闭环] found entry button, clicking to open fresh task list (attempt=$attempt)")
+                service.performClickSafe(entryButton)
+                taskListOpenedThisRound = true
+                handler.postDelayed({
+                    if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            // 文本没找到，用坐标候选（支付宝坐标在 PlatformConfig 已配置）
+            val candidates = collectFertilizerCandidates(service)
+            if (candidates.isNotEmpty()) {
+                val coordIndex = attempt % candidates.size
+                val (xRatio, yRatio) = candidates[coordIndex]
+                Log.i(TAG, "openTaskList: [ALIPAY闭环] entry button not found by text, clicking by coordinate #$coordIndex (attempt ${attempt + 1})")
+                debugLog("openTaskList: [ALIPAY闭环] falling back to coordinate #$coordIndex (attempt=$attempt)")
+                withSceneRuleClick(
+                    decisionPoint = "openTaskList_alipay_click_fertilizer_entry",
+                    actionDesc = "支付宝闭环：坐标点击集肥料入口 (coord=#$coordIndex)"
+                ) {
+                    clickAtRatio(service, xRatio, yRatio, "集肥料")
+                }
+                taskListOpenedThisRound = true
+                handler.postDelayed({
+                    if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            // 文本和坐标都没找到入口，降级走下面的通用流程（可能页面还没加载完）
+            debugLog("openTaskList: [ALIPAY闭环] no entry button found (text+coord), falling through to default flow (attempt=$attempt)")
         }
 
         // 优先检查：页面上是否已有"去完成"按钮（UC 等平台任务入口直接在主页上，无需点击"集肥料"打开任务列表）
