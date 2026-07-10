@@ -915,33 +915,33 @@ object AutomationController {
             return
         }
 
-        // 闭环规则：支付宝每次进入 OPENING_TASK_LIST 必须重新调出任务列表
-        // 用户要求：支付宝农场页起始画面（任务开始前）和任务结束后都要停在任务列表页，形成闭环。
+        // 闭环规则：支付宝/淘宝每次进入 OPENING_TASK_LIST 必须重新调出任务列表
+        // 用户要求：支付宝/淘宝农场页起始画面（任务开始前）和任务结束后都要停在任务列表页，形成闭环。
         //           但具体点哪个按钮进去任务由用户录制规则时决定（不写死"集肥料"）。
-        // 实现：支付宝每轮重新打开任务列表时（taskListOpenedThisRound=false），
+        // 实现：支付宝/淘宝每轮重新打开任务列表时（taskListOpenedThisRound=false），
         //       走 withSceneRule 让录制规则决定点哪个按钮；
         //       命中规则→规则自己点（onRuleAction 后安排检查）；
         //       未命中→降级用 findCollectFertilizerButton 文本查找 + 坐标兜底（onFallback）。
-        if (service.currentPlatform == Platform.ALIPAY && !taskListOpenedThisRound) {
+        if ((service.currentPlatform == Platform.ALIPAY || service.currentPlatform == Platform.TAOBAO) && !taskListOpenedThisRound) {
             taskListOpenedThisRound = true  // 标记本轮已尝试调出，避免重复进入死循环
-            debugLog("openTaskList: [ALIPAY闭环] forcing re-open task list this round (attempt=$attempt, will follow recorded rule)")
+            debugLog("openTaskList: [${service.currentPlatform}闭环] forcing re-open task list this round (attempt=$attempt, will follow recorded rule)")
             withSceneRule(
-                decisionPoint = "openTaskList_alipay_entry",
-                proposedAction = "支付宝闭环：调出任务列表入口",
-                proposedReason = "支付宝任务开始前/结束后都要停在任务列表页",
+                decisionPoint = "openTaskList_${service.currentPlatform}_entry",
+                proposedAction = "${service.currentPlatform}闭环：调出任务列表入口",
+                proposedReason = "${service.currentPlatform}任务开始前/结束后都要停在任务列表页",
                 onRuleAction = { _ ->
                     // 录制规则已执行点击（CLICK_BUTTON/BACK 等），等页面加载后检查任务列表是否打开
-                    debugLog("openTaskList: [ALIPAY闭环] recorded rule executed, checking task list opened")
+                    debugLog("openTaskList: [${service.currentPlatform}闭环] recorded rule executed, checking task list opened")
                     handler.postDelayed({
                         if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
                     }, INTERVAL_PAGE_LOAD_MS)
                 },
                 onFallback = {
                     // 未命中录制规则：降级用 collectFertilizerTexts 文本查找入口按钮
-                    debugLog("openTaskList: [ALIPAY闭环] no recorded rule, fallback to text search (attempt=$attempt)")
+                    debugLog("openTaskList: [${service.currentPlatform}闭环] no recorded rule, fallback to text search (attempt=$attempt)")
                     val entryButton = service.findCollectFertilizerButton()
                     if (entryButton != null) {
-                        debugLog("openTaskList: [ALIPAY闭环] clicking entry button by text (attempt=$attempt)")
+                        debugLog("openTaskList: [${service.currentPlatform}闭环] clicking entry button by text (attempt=$attempt)")
                         service.performClickSafe(entryButton)
                     } else {
                         // 文本也没找到，用坐标候选兜底
@@ -949,10 +949,10 @@ object AutomationController {
                         if (candidates.isNotEmpty()) {
                             val coordIndex = attempt % candidates.size
                             val (xRatio, yRatio) = candidates[coordIndex]
-                            debugLog("openTaskList: [ALIPAY闭环] no entry button, clicking by coordinate #$coordIndex (attempt=$attempt)")
+                            debugLog("openTaskList: [${service.currentPlatform}闭环] no entry button, clicking by coordinate #$coordIndex (attempt=$attempt)")
                             clickAtRatio(service, xRatio, yRatio, "集肥料")
                         } else {
-                            debugLog("openTaskList: [ALIPAY闭环] no entry found (text+coord), reset flag for next round")
+                            debugLog("openTaskList: [${service.currentPlatform}闭环] no entry found (text+coord), reset flag for next round")
                             taskListOpenedThisRound = false  // 重置，让下一轮还能尝试
                         }
                     }
