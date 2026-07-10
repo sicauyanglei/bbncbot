@@ -39,8 +39,6 @@ object AutomationController {
     private const val INTERVAL_WAIT_MS = 5000L
     /** 任务列表最大尝试次数（需大于平台坐标候选数，支付宝有11个候选） */
     private const val MAX_TASK_LIST_ATTEMPTS = 8
-    /** AI 视觉查找集肥料入口的最大尝试次数（每轮打开任务列表，限制 API 配额消耗） */
-    private const val MAX_AI_OPEN_LIST_ATTEMPTS = 2
     /** 单个任务最大尝试次数 */
     private const val MAX_TASK_ATTEMPTS = 3
     /** 广告播放最短等待时间（默认值，单位毫秒） */
@@ -181,33 +179,12 @@ object AutomationController {
     @Volatile
     private var taskReplayRemaining: Int = 0
 
-    /**
-     * 当前任务已调用 AI 视觉决策的次数
-     * - 用户要求：任务执行过程中页面可能变化，借助 AI 得出任务完成路径直到获取肥料
-     * - 每个任务最多调用 [MAX_AI_CALLS_PER_TASK] 次 AI，让 AI 逐步规划路径适应页面连续变化
-     * - 反应式规划：每次 AI 返回一个动作→执行→页面变化→AI 重新分析→下一步动作，逐步逼近肥料
-     * - 点击任务按钮时重置为 0（新一轮尝试）
-     */
-    @Volatile
-    private var aiCallsForTask: Int = 0
-
     /** 当前任务连续失败次数（未知页面/卡住等）。达到 MAX_TASK_FAILS 跳过任务 */
     @Volatile
     private var currentTaskFailCount: Int = 0
 
     /** 单个任务最大失败次数，超过则跳过该任务 */
     private const val MAX_TASK_FAILS = 2
-
-    /** 单个任务 AI 路径规划最大调用次数（适应页面变化的多步规划，限制免费 API 配额） */
-    private const val MAX_AI_CALLS_PER_TASK = 3
-
-    /**
-     * 本次广告观看是否已调用 AI 规划领取路径
-     * - 广告结束后页面可能变化（领取弹窗/确认对话框/关闭页），AI 介入理解页面找领取/关闭按钮
-     * - 每次进入 WATCHING_AD 时重置为 false，确保每次广告观看最多调用 1 次 AI（避免 API 消耗）
-     */
-    @Volatile
-    private var aiCalledForAdClose: Boolean = false
 
     /**
      * "更快拿奖"弹窗处理状态
@@ -228,15 +205,6 @@ object AutomationController {
     /** "更快拿奖"流程：点击"允许"时的时间戳（用于计算16秒停留） */
     @Volatile
     private var fasterRewardAppEnterTimeMs: Long = 0L
-
-    /**
-     * 本轮打开任务列表时 AI 视觉已尝试次数
-     * - 每次 [runOpeningTaskList] 以 attempt=0 开始时重置为 0，重新获得 [MAX_AI_OPEN_LIST_ATTEMPTS] 次配额
-     * - AI 视觉升级为"首选方法"（优先于硬编码坐标），用于查找集肥料/限时挑战/得1000肥等多入口
-     * - 限制次数避免无限消耗免费 API 配额
-     */
-    @Volatile
-    private var aiOpenListAttempts: Int = 0
 
     // ---------- 跨平台切换 ----------
     /** 跨平台切换：原平台（切换完成后回到此平台） */
@@ -910,8 +878,6 @@ object AutomationController {
 
         if (attempt == 0) {
             logPageSnapshot(service, "openTaskList-start")
-            // 重置 AI 视觉尝试计数：新一轮打开任务列表，重新获得 MAX_AI_OPEN_LIST_ATTEMPTS 次配额
-            aiOpenListAttempts = 0
         }
 
         if (attempt >= MAX_TASK_LIST_ATTEMPTS) {
@@ -974,26 +940,6 @@ object AutomationController {
                 if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
             }, INTERVAL_PAGE_LOAD_MS)
             return
-        }
-
-        // AI 视觉识别（首选方法，优先于硬编码坐标）
-        // 用户要求：运行时优先用 AI 视觉找按钮，支持多入口（集肥料/限时挑战/得1000肥/领肥料/今日可领等）
-        // 每轮打开任务列表最多调用 MAX_AI_OPEN_LIST_ATTEMPTS 次，避免无限消耗免费 API 配额；
-        // 当 AI 不可用（无 API Key / API < 30 / 调用失败）或配额耗尽时，自动降级到硬编码坐标兜底
-        if (aiOpenListAttempts < MAX_AI_OPEN_LIST_ATTEMPTS) {
-            aiOpenListAttempts++
-            debugLog("openTaskList: trying AI vision to find fertilizer entry (aiAttempt=$aiOpenListAttempts/$MAX_AI_OPEN_LIST_ATTEMPTS, attempt=$attempt)")
-            val clicked = service.clickByAiVision(
-                "获取肥料的入口按钮（可能是集肥料、限时挑战、得1000肥、领肥料、今日可领、打开任务列表、任务列表等任意一个可点击的入口）"
-            )
-            if (clicked) {
-                debugLog("openTaskList: AI vision clicked fertilizer entry, waiting for task list")
-                handler.postDelayed({
-                    if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
-                }, INTERVAL_PAGE_LOAD_MS)
-                return
-            }
-            debugLog("openTaskList: AI vision did not find fertilizer entry (attempt=$attempt)")
         }
 
         // 失败时尝试坐标候选位置
@@ -1163,7 +1109,6 @@ object AutomationController {
             debugLog("processTask: game task #${currentTaskIndex + 1}, text='$buttonText', AI will play to complete")
             // 点击"去完成"进入游戏
             service.performClickSafe(button)
-            aiCallsForTask = 0
             moveTo(AutomationState.GAME_PLAYING)
             handler.postDelayed({ runGamePlaying(elapsedMs = 0L, actionCount = 0) }, INTERVAL_PAGE_LOAD_MS)
             return
@@ -1174,7 +1119,6 @@ object AutomationController {
             Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is forest task, entering FOREST_COLLECTING (text='$buttonText')")
             debugLog("processTask: forest task #${currentTaskIndex + 1}, text='$buttonText', will close popups → claim reward → 逛农场得落叶肥料")
             service.performClickSafe(button)
-            aiCallsForTask = 0
             moveTo(AutomationState.FOREST_COLLECTING)
             handler.postDelayed({ runForestCollecting(step = 0, retryCount = 0) }, INTERVAL_PAGE_LOAD_MS)
             return
@@ -1191,7 +1135,6 @@ object AutomationController {
             switchRetryCount = 0
             // 先点击"去完成"按钮（部分任务点击后会自动跳转到目标平台）
             service.performClickSafe(button)
-            aiCallsForTask = 0
             moveTo(AutomationState.SWITCHING_PLATFORM)
             handler.postDelayed({ runSwitchingPlatform() }, INTERVAL_PAGE_LOAD_MS)
             return
@@ -1208,7 +1151,6 @@ object AutomationController {
 
         // 3. 普通任务（看广告、答题、签到等）：点击按钮
         Log.i(TAG, "processTask: clicking task #${currentTaskIndex + 1}/${taskButtons.size} (attempt ${attempt + 1})")
-        aiCallsForTask = 0       // 新任务/新一轮尝试，重置 AI 路径规划计数
         currentTaskFailCount = 0 // 新任务开始，重置失败计数
         // 解析任务剩余次数（如 "1/3" → 还可重玩 2 次），仅首次点击时解析
         if (attempt == 0 && taskReplayRemaining == 0) {
@@ -1820,14 +1762,9 @@ object AutomationController {
             // 优先找关闭按钮点击（暂不充值/取消/×图标等）
             val closed = service.clickCloseOnRechargePage()
             if (!closed) {
-                // 找不到关闭按钮，AI 视觉找关闭按钮
-                debugLog("gamePlay: no close button found by text, trying AI vision")
-                val aiClosed = service.clickByAiVision("充值/付费页面的关闭按钮（×图标或暂不充值/取消按钮）")
-                if (!aiClosed) {
-                    // AI 也找不到，按返回退出
-                    debugLog("gamePlay: AI also failed, pressing back")
-                    service.pressBack()
-                }
+                // 找不到关闭按钮，按返回退出
+                debugLog("gamePlay: no close button found by text, pressing back")
+                service.pressBack()
             }
             handler.postDelayed({
                 if (state == AutomationState.GAME_PLAYING) {
@@ -1856,19 +1793,11 @@ object AutomationController {
             return
         }
 
-        // AI 游戏达人分析画面并操作
-        Log.d(TAG, "gamePlay: AI analyzing game screen (action #${actionCount + 1})")
-        debugLog("gamePlay: AI analyzing (action #${actionCount + 1}, elapsed=${elapsedMs}ms)")
-        val aiAction = service.aiDecideActionForGame("玩游戏升级获取肥料：分析当前游戏画面，决定下一步操作以完成游戏目标")
-        if (aiAction) {
-            debugLog("gamePlay: AI action executed")
-        } else {
-            // AI 未能决策，按返回尝试
-            debugLog("gamePlay: AI no action, pressing back as fallback")
-            service.pressBack()
-        }
+        // 无 AI 决策，按返回尝试
+        debugLog("gamePlay: no AI, pressing back as fallback (action #${actionCount + 1}, elapsed=${elapsedMs}ms)")
+        service.pressBack()
 
-        // 继续下一轮 AI 操作
+        // 继续下一轮操作
         handler.postDelayed({
             if (state == AutomationState.GAME_PLAYING) runGamePlaying(elapsedMs + GAME_ACTION_INTERVAL_MS, actionCount + 1)
         }, GAME_ACTION_INTERVAL_MS)
@@ -2150,33 +2079,8 @@ object AutomationController {
                 }, INTERVAL_PAGE_LOAD_MS)
                 return
             }
-            Log.w(TAG, "processTask: still on farm page after $MAX_TASK_ATTEMPTS attempts, trying AI path planning before skip")
-            debugLog("processTask: still on farm page after $MAX_TASK_ATTEMPTS attempts, trying AI path planning (aiCalls=$aiCallsForTask/$MAX_AI_CALLS_PER_TASK)")
-            // AI 路径规划：点击无效可能是弹窗遮挡/按钮文案变化/需要滑动等
-            // 用户要求：任务执行中页面可能变化，借助 AI 得出任务完成路径直到获取肥料
-            // 反应式规划：AI 分析当前页→返回动作→执行→页面变化→AI 重新分析，最多 MAX_AI_CALLS_PER_TASK 次
-            if (aiCallsForTask < MAX_AI_CALLS_PER_TASK) {
-                aiCallsForTask++
-                debugLog("processTask: AI path planning on farm page (call #$aiCallsForTask/$MAX_AI_CALLS_PER_TASK)")
-                val aiAction = service.aiDecideAction("在芭芭农场页面，目标是看广告获取肥料。分析当前页面状态，规划获取肥料的下一步动作：如果任务按钮点击无效，可能是弹窗遮挡或需要滑动；找到可点击的领取/签到/去完成/确认按钮点击它；如果页面需要向下滑动才能看到任务就 swipe_up；如果是邀请/关注/分享/下载等非广告任务就 back；如果无法判断就 none")
-                debugLog("processTask: AI result on farm page: actionType='${aiAction?.actionType}', x=${aiAction?.x}, y=${aiAction?.y}, desc='${aiAction?.description}'")
-                if (aiAction != null && aiAction.actionType != "none" && aiAction.actionType != "wait") {
-                    val executed = service.executeAiAction(aiAction)
-                    debugLog("processTask: AI executeAiAction returned executed=$executed")
-                    if (executed) {
-                        debugLog("processTask: AI executed '${aiAction.actionType}' on farm page, re-checking (page may have changed)")
-                        handler.postDelayed({
-                            if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt)
-                        }, INTERVAL_PAGE_LOAD_MS)
-                        return
-                    }
-                    debugLog("processTask: AI action not executed, falling through to skip")
-                } else {
-                    debugLog("processTask: AI no actionable result on farm page, skipping task")
-                }
-            } else {
-                debugLog("processTask: AI path planning budget exhausted ($aiCallsForTask/$MAX_AI_CALLS_PER_TASK), skipping task")
-            }
+            Log.w(TAG, "processTask: still on farm page after $MAX_TASK_ATTEMPTS attempts, skipping task")
+            debugLog("processTask: still on farm page after $MAX_TASK_ATTEMPTS attempts, skipping task")
             // 跳过当前任务，继续下一个
             currentTaskIndex++
             noProgressRounds++
@@ -2201,38 +2105,10 @@ object AutomationController {
             }, INTERVAL_PAGE_LOAD_MS)
             return
         }
-        Log.i(TAG, "processTask: unknown page (not farm, not ad), aiCalls=$aiCallsForTask/$MAX_AI_CALLS_PER_TASK, failCount=$currentTaskFailCount/$MAX_TASK_FAILS")
-        debugLog("processTask: unknown page, pkg=${service.getCurrentWindowPackage()}, act=${service.getCurrentActivityName()}, aiCalls=$aiCallsForTask/$MAX_AI_CALLS_PER_TASK, failCount=$currentTaskFailCount/$MAX_TASK_FAILS")
+        Log.i(TAG, "processTask: unknown page (not farm, not ad), failCount=$currentTaskFailCount/$MAX_TASK_FAILS")
+        debugLog("processTask: unknown page, pkg=${service.getCurrentWindowPackage()}, act=${service.getCurrentActivityName()}, failCount=$currentTaskFailCount/$MAX_TASK_FAILS")
 
-        // AI 路径规划（优先于 failCount）：用户要求任务执行中页面变化时借助 AI 得出完成路径直到获取肥料
-        // 反应式规划：AI 分析当前页→返回动作→执行→页面变化→AI 重新分析，最多 MAX_AI_CALLS_PER_TASK 次
-        // 每次 AI 执行 click/swipe 后重新检查页面（页面可能已变化，AI 会基于新页面继续规划）
-        if (aiCallsForTask < MAX_AI_CALLS_PER_TASK) {
-            aiCallsForTask++
-            debugLog("processTask: AI path planning for unknown page (call #$aiCallsForTask/$MAX_AI_CALLS_PER_TASK)")
-            val aiAction = service.aiDecideAction("只看广告获取肥料，绝不产生交易。分析当前页面状态，规划获取肥料的完成路径并返回下一步动作：如果是广告播放中(有倒计时/跳过/查看详情)就 wait；如果是广告结束领取奖励就 click 领取按钮；如果是邀请好友/关注/分享/下载App/开通会员/立即购买/提交订单/去结算/立即支付等非广告或交易任务就 back 跳过；如果是商品浏览页就 swipe_up 继续浏览；如果是付款/收银台/订单确认页就 back；绝对不点击任何购买/支付/下单/提交订单按钮；如果无法判断就 back")
-            debugLog("processTask: AI result for unknown page: actionType='${aiAction?.actionType}', x=${aiAction?.x}, y=${aiAction?.y}, desc='${aiAction?.description}'")
-            if (aiAction != null && aiAction.actionType != "none" && aiAction.actionType != "wait") {
-                val executed = service.executeAiAction(aiAction)
-                debugLog("processTask: AI executeAiAction returned executed=$executed")
-                if (executed && (aiAction.actionType == "click" || aiAction.actionType == "swipe_up" || aiAction.actionType == "swipe_down")) {
-                    // AI 动作已执行，页面可能已变化 → 重新检查任务结果（AI 会基于新页面继续规划路径）
-                    debugLog("processTask: AI '${aiAction.actionType}' executed, re-checking (page may have changed, AI will re-plan if still stuck)")
-                    handler.postDelayed({
-                        if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt)
-                    }, INTERVAL_PAGE_LOAD_MS)
-                    return
-                }
-                // AI 选择了 back 或执行失败 → 继续下面的失败处理
-                debugLog("processTask: AI chose back or action failed, falling through to fail handling")
-            } else {
-                debugLog("processTask: AI returned no actionable result, falling through to fail handling")
-            }
-        } else {
-            debugLog("processTask: AI path planning budget exhausted ($aiCallsForTask/$MAX_AI_CALLS_PER_TASK)")
-        }
-
-        // AI 不可用/已耗尽/选择了 back → 失败计数
+        // 未知页面 → 失败计数
         currentTaskFailCount++
 
         // 失败次数已达上限 → 跳过该任务，避免在无法完成的任务上死循环
@@ -2350,25 +2226,9 @@ object AutomationController {
                         if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 1, retryCount = retryCount + 1)
                     }, INTERVAL_CLICK_MS)
                 } else {
-                    // 多次重试失败，用 AI 视觉辅助
-                    debugLog("forestCollect: claim button not found after retries, trying AI vision")
-                    if (aiCallsForTask < MAX_AI_CALLS_PER_TASK) {
-                        aiCallsForTask++
-                        val aiClicked = service.clickByAiVision("领奖励按钮（可能是橙色或绿色按钮，文字可能是'领奖励'/'领取奖励'/'立即领取'）")
-                        if (aiClicked) {
-                            debugLog("forestCollect: AI clicked claim button, moving to next step")
-                            handler.postDelayed({
-                                if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 2, retryCount = 0)
-                            }, INTERVAL_PAGE_LOAD_MS)
-                        } else {
-                            // AI 也失败，跳过此步直接找"逛农场得落叶肥料"
-                            debugLog("forestCollect: AI failed, skipping to step 2")
-                            runForestCollecting(step = 2, retryCount = 0)
-                        }
-                    } else {
-                        debugLog("forestCollect: AI calls exhausted, skipping to step 2")
-                        runForestCollecting(step = 2, retryCount = 0)
-                    }
+                    // 多次重试失败，跳过此步直接找"逛农场得落叶肥料"
+                    debugLog("forestCollect: claim button not found after retries, skipping to step 2")
+                    runForestCollecting(step = 2, retryCount = 0)
                 }
             }
             2 -> {
@@ -2398,31 +2258,12 @@ object AutomationController {
                         if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 2, retryCount = retryCount + 1)
                     }, INTERVAL_CLICK_MS)
                 } else {
-                    // AI 视觉辅助
-                    debugLog("forestCollect: farm entry not found, trying AI vision")
-                    if (aiCallsForTask < MAX_AI_CALLS_PER_TASK) {
-                        aiCallsForTask++
-                        val aiClicked = service.clickByAiVision("逛农场得落叶肥料入口（可能是卡片或按钮，文字含'逛农场'或'落叶肥料'）")
-                        if (aiClicked) {
-                            debugLog("forestCollect: AI clicked farm entry, waiting for farm page")
-                            handler.postDelayed({
-                                if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 3, retryCount = 0)
-                            }, INTERVAL_PAGE_LOAD_MS)
-                        } else {
-                            // AI 失败，按返回回到农场
-                            debugLog("forestCollect: AI failed, pressing back to return to farm")
-                            service.pressBack()
-                            handler.postDelayed({
-                                if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 3, retryCount = 0)
-                            }, INTERVAL_PAGE_LOAD_MS)
-                        }
-                    } else {
-                        debugLog("forestCollect: AI exhausted, pressing back to return")
-                        service.pressBack()
-                        handler.postDelayed({
-                            if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 3, retryCount = 0)
-                        }, INTERVAL_PAGE_LOAD_MS)
-                    }
+                    // 重试失败，按返回回到农场
+                    debugLog("forestCollect: farm entry not found, pressing back to return to farm")
+                    service.pressBack()
+                    handler.postDelayed({
+                        if (state == AutomationState.FOREST_COLLECTING) runForestCollecting(step = 3, retryCount = 0)
+                    }, INTERVAL_PAGE_LOAD_MS)
                 }
             }
             else -> {
@@ -2470,7 +2311,6 @@ object AutomationController {
         // 进入广告时（首次调用）解析页面时长提示，动态设置最短等待时间
         // 用户要求：有些广告需要指定时间才能领取肥料，保持到规定时间+1秒后再检测退出
         if (elapsedMs == 0L) {
-            aiCalledForAdClose = false  // 重置 AI 领取路径规划标志，本次广告观看可获得 1 次 AI 介入
             deepLinkAppPkg = null       // 重置深链跳转跟踪，等待检测是否进入其他 App
             fasterRewardStage = 0       // 重置"更快拿奖"弹窗处理状态
             fasterRewardAppPkg = null   // 重置新 App 包名记录
@@ -2876,30 +2716,6 @@ object AutomationController {
                 return
             }
 
-            // AI 路径规划：广告结束后页面可能变化（领取弹窗/确认对话框/关闭页）
-            // 让 AI 理解页面并规划获取肥料的领取路径（每次广告观看最多 1 次，避免 API 消耗）
-            if (!aiCalledForAdClose) {
-                aiCalledForAdClose = true
-                debugLog("watchAd: ad finished, trying AI path planning for claim/close (once per ad)")
-                val aiAction = service.aiDecideAction("广告刚刚播放结束，目标是领取肥料奖励。分析当前页面状态并规划下一步：如果有'领取奖励/立即领取/领取/关闭并领取'按钮就 click 它；如果有'×/关闭/跳过'按钮就 click 关闭广告；如果是'放弃奖励离开'对话框就 click 放弃；如果页面显示'任务完成/奖励已发放'就 back 退出；绝不点击购买/支付/下单/提交订单按钮；如果无法判断就 back")
-                debugLog("watchAd: AI result for ad-close: actionType='${aiAction?.actionType}', x=${aiAction?.x}, y=${aiAction?.y}, desc='${aiAction?.description}'")
-                if (aiAction != null && aiAction.actionType == "click") {
-                    val executed = service.executeAiAction(aiAction)
-                    if (executed) {
-                        debugLog("watchAd: AI clicked '${aiAction.description}', re-checking after page change")
-                        handler.postDelayed({
-                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-                        }, INTERVAL_PAGE_LOAD_MS)
-                        return
-                    }
-                    debugLog("watchAd: AI click not executed, falling to CLOSING_AD")
-                } else if (aiAction != null && aiAction.actionType == "back") {
-                    debugLog("watchAd: AI chose back, falling to CLOSING_AD")
-                } else {
-                    debugLog("watchAd: AI no actionable result, falling to CLOSING_AD")
-                }
-            }
-
             Log.i(TAG, "watchAd: ad finished (${elapsedMs}ms), closing")
             moveTo(AutomationState.CLOSING_AD)
             handler.postDelayed({ runClosingAd(strategy = 0) }, INTERVAL_CLICK_MS)
@@ -2980,14 +2796,10 @@ object AutomationController {
                         onFallback = originalAction
                     )
                 } else {
-                    // AI 视觉识别 fallback：用大模型找广告关闭按钮
-                    debugLog("closeAd: node not found, trying AI vision")
-                    val aiClicked = service.clickByAiVision("广告或弹窗右上角的关闭按钮（×图标）")
-                    if (!aiClicked) {
-                        runClosingAd(1)
-                        return
-                    }
-                    debugLog("closeAd: AI vision clicked close button")
+                    // 未找到关闭按钮节点，进入下一策略
+                    debugLog("closeAd: close button node not found, trying next strategy")
+                    runClosingAd(1)
+                    return
                 }
             }
             1 -> {
@@ -3214,30 +3026,6 @@ object AutomationController {
         // 没找到施肥按钮，可能需要滚动或已施肥完毕
         Log.d(TAG, "fertilize: no 施肥 button found (clickCount=$clickCount)")
         if (clickCount <= 2) {
-            // clickCount==2 时用 AI 视觉找施肥按钮（可能是橙色图标/文案变化/H5节点不暴露文本）
-            // 用户要求：任务执行中页面可能变化，借助 AI 得出完成路径直到获取肥料
-            if (clickCount == 2) {
-                debugLog("fertilize: trying AI vision to find 施肥 button")
-                val aiClicked = service.clickByAiVision("施肥按钮（通常是橙色大按钮，文字可能是'施肥'/'继续施肥'/'停止施肥'/'一键施肥'）")
-                if (aiClicked) {
-                    debugLog("fertilize: AI vision clicked 施肥 button, continuing")
-                    handler.postDelayed({
-                        if (state == AutomationState.FERTILIZING) {
-                            val stillHasButton = service.findFertilizeButton()
-                            if (stillHasButton != null) {
-                                Log.d(TAG, "fertilize: AI clicked, still has button, continue")
-                                runFertilizing(clickCount + 1)
-                            } else {
-                                Log.i(TAG, "fertilize: AI clicked, no more button, done")
-                                moveTo(AutomationState.WAITING)
-                                handler.postDelayed({ startNextRound() }, INTERVAL_WAIT_MS)
-                            }
-                        }
-                    }, INTERVAL_CLICK_MS)
-                    return
-                }
-                debugLog("fertilize: AI vision did not find 施肥 button")
-            }
             // 刚开始就没找到，可能是页面还没加载好，重试
             handler.postDelayed({
                 if (state == AutomationState.FERTILIZING) runFertilizing(clickCount + 1)

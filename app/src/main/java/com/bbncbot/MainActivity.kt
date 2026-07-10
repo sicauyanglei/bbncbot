@@ -18,10 +18,8 @@ import android.os.UserHandle
 import android.os.UserManager
 import android.provider.Settings
 import android.util.Log
-import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -46,11 +44,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnOpenFarm: Button
     private lateinit var btnOpenAlipayFarm: Button
     private lateinit var btnOpenTaobaoFarm: Button
-    private lateinit var etApiKey: EditText
-    private lateinit var btnSaveApiKey: Button
-    private lateinit var tvApiKeyStatus: TextView
-    private lateinit var spinnerApiProvider: Spinner
-    private lateinit var tvProviderQuota: TextView
     private lateinit var etGhToken: EditText
     private lateinit var btnSaveGhToken: Button
     private lateinit var tvGhTokenStatus: TextView
@@ -83,70 +76,11 @@ class MainActivity : AppCompatActivity() {
         btnOpenFarm = findViewById(R.id.btnOpenFarm)
         btnOpenAlipayFarm = findViewById(R.id.btnOpenAlipayFarm)
         btnOpenTaobaoFarm = findViewById(R.id.btnOpenTaobaoFarm)
-        etApiKey = findViewById(R.id.etApiKey)
-        btnSaveApiKey = findViewById(R.id.btnSaveApiKey)
-        tvApiKeyStatus = findViewById(R.id.tvApiKeyStatus)
-        spinnerApiProvider = findViewById(R.id.spinnerApiProvider)
-        tvProviderQuota = findViewById(R.id.tvProviderQuota)
         etGhToken = findViewById(R.id.etGhToken)
         btnSaveGhToken = findViewById(R.id.btnSaveGhToken)
         tvGhTokenStatus = findViewById(R.id.tvGhTokenStatus)
         btnTestUpload = findViewById(R.id.btnTestUpload)
         tvUploadResult = findViewById(R.id.tvUploadResult)
-
-        // 初始化 API 提供商下拉选择
-        val providers = com.bbncbot.automation.AiVisionHelper.ApiProvider.displayNames
-        spinnerApiProvider.adapter = ArrayAdapter(
-            this, android.R.layout.simple_spinner_dropdown_item, providers
-        )
-
-        // 加载已保存的配置
-        val prefs = getSharedPreferences("ai_config", Context.MODE_PRIVATE)
-        val savedKey = prefs.getString("api_key", "") ?: ""
-        val savedProviderIndex = prefs.getInt("provider_index", 0)
-
-        spinnerApiProvider.setSelection(savedProviderIndex.coerceIn(0, providers.size - 1))
-        updateProviderInfo(savedProviderIndex)
-
-        if (savedKey.isNotEmpty()) {
-            etApiKey.setText(savedKey)
-            com.bbncbot.automation.AiVisionHelper.apiKey = savedKey
-            com.bbncbot.automation.AiVisionHelper.provider =
-                com.bbncbot.automation.AiVisionHelper.ApiProvider.entries[savedProviderIndex.coerceIn(0, providers.size - 1)]
-            tvApiKeyStatus.text = "AI 视觉识别：已配置 (${com.bbncbot.automation.AiVisionHelper.provider.displayName})"
-        }
-
-        // 提供商切换时更新免费额度说明
-        spinnerApiProvider.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
-                updateProviderInfo(position)
-            }
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-        }
-
-        btnSaveApiKey.setOnClickListener {
-            val key = etApiKey.text.toString().trim()
-            val providerIndex = spinnerApiProvider.selectedItemPosition
-            val selectedProvider = com.bbncbot.automation.AiVisionHelper.ApiProvider.entries[providerIndex]
-
-            if (key.isNotEmpty()) {
-                getSharedPreferences("ai_config", Context.MODE_PRIVATE)
-                    .edit()
-                    .putString("api_key", key)
-                    .putInt("provider_index", providerIndex)
-                    .apply()
-                com.bbncbot.automation.AiVisionHelper.apiKey = key
-                com.bbncbot.automation.AiVisionHelper.provider = selectedProvider
-                tvApiKeyStatus.text = "AI 视觉识别：已配置 (${selectedProvider.displayName})"
-                Toast.makeText(this, "API Key 已保存 (${selectedProvider.displayName})", Toast.LENGTH_SHORT).show()
-            } else {
-                getSharedPreferences("ai_config", Context.MODE_PRIVATE)
-                    .edit().clear().apply()
-                com.bbncbot.automation.AiVisionHelper.apiKey = ""
-                tvApiKeyStatus.text = "AI 视觉识别：未配置"
-                Toast.makeText(this, "API Key 已清除", Toast.LENGTH_SHORT).show()
-            }
-        }
 
         // 加载已保存的 GitHub Token（日志上传用）
         val savedGhToken = com.bbncbot.automation.LogUploader.loadToken(this)
@@ -425,15 +359,6 @@ class MainActivity : AppCompatActivity() {
             val file = java.io.File(getExternalFilesDir(null), "debug.log")
             file.appendText(line)
         } catch (_: Exception) { /* ignore */ }
-    }
-
-    /** 更新选中 API 提供商的免费额度说明 */
-    private fun updateProviderInfo(index: Int) {
-        val providers = com.bbncbot.automation.AiVisionHelper.ApiProvider.entries
-        if (index in providers.indices) {
-            val provider = providers[index]
-            tvProviderQuota.text = "免费额度：${provider.freeQuotaDesc}"
-        }
     }
 
     private fun refreshStatus() {

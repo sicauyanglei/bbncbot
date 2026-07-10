@@ -81,16 +81,7 @@ object TeachCommandParser {
 
         return when (result) {
             is ActionResult.ClickByVision -> {
-                Log.i(TAG, "执行: AI视觉点击 '${result.description}'")
-                // 异步执行，不阻塞浮窗
-                Thread {
-                    try {
-                        val ok = service.clickByAiVision(result.description)
-                        Log.i(TAG, "AI视觉点击结果: $ok")
-                    } catch (e: Exception) {
-                        Log.e(TAG, "AI视觉点击异常", e)
-                    }
-                }.start()
+                Log.w(TAG, "AI视觉已移除，无法执行点击 '${result.description}'")
                 true
             }
             is ActionResult.ClickByCoord -> {
