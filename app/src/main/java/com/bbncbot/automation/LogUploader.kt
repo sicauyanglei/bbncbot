@@ -50,6 +50,11 @@ object LogUploader {
     private val recordingLogFile: File get() = File(logDir, "recording.log")
     private val debugLogFile: File get() = File(logDir, "debug.log")
 
+    /** 上次操作结果（供 UI 测试按钮显示，避免用户看不到失败原因） */
+    @Volatile
+    var lastResult: String = "未执行过上传"
+        private set
+
     /** 保存 GitHub Token（由 MainActivity 调用） */
     fun saveToken(context: Context, token: String) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -74,39 +79,44 @@ object LogUploader {
      *
      * @param context 任意 Context
      * @param tag 文件名前缀标记，如 "session_abc123"
-     * @return 上传成功文件数（0=未配置 token，2=两个文件都成功）
+     * @return 上传成功文件数（0=未配置 token 或全部失败，2=两个文件都成功）
      */
     fun upload(context: Context, tag: String): Int {
         val token = loadToken(context)
         if (token.isEmpty()) {
+            lastResult = "未配置 GitHub Token，跳过上传。请在上方输入框填入 Token 后点保存。"
             Log.d(TAG, "skip upload: token not configured")
             return 0
         }
 
         val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         var success = 0
+        val errors = mutableListOf<String>()
 
         // 上传 recording.log
         if (recordingLogFile.exists() && recordingLogFile.length() > 0) {
             val remotePath = "$REMOTE_DIR/recording_${tag}_${ts}.log"
-            if (uploadFile(token, remotePath, recordingLogFile, "upload recording log ($tag)")) {
-                success++
-            }
+            val (ok, err) = uploadFile(token, remotePath, recordingLogFile, "upload recording log ($tag)")
+            if (ok) success++ else errors.add("recording.log: $err")
         } else {
-            Log.d(TAG, "recording.log missing or empty, skip")
+            errors.add("recording.log: 文件不存在或为空")
         }
 
         // 上传 debug.log
         if (debugLogFile.exists() && debugLogFile.length() > 0) {
             val remotePath = "$REMOTE_DIR/debug_${tag}_${ts}.log"
-            if (uploadFile(token, remotePath, debugLogFile, "upload debug log ($tag)")) {
-                success++
-            }
+            val (ok, err) = uploadFile(token, remotePath, debugLogFile, "upload debug log ($tag)")
+            if (ok) success++ else errors.add("debug.log: $err")
         } else {
-            Log.d(TAG, "debug.log missing or empty, skip")
+            errors.add("debug.log: 文件不存在或为空")
         }
 
-        Log.i(TAG, "upload done: $success files uploaded (tag=$tag)")
+        lastResult = if (errors.isEmpty()) {
+            "上传成功：$success 个文件（tag=$tag）"
+        } else {
+            "成功 $success 个，失败：${errors.joinToString("; ")}"
+        }
+        Log.i(TAG, "upload done: $success files uploaded (tag=$tag), errors=$errors")
         return success
     }
 
@@ -117,14 +127,14 @@ object LogUploader {
      * - 创建或更新文件，每次调用都会产生一个新 commit
      * - 文件内容需 Base64 编码
      *
-     * @return true 表示上传成功
+     * @return (是否成功, 失败原因描述)
      */
     private fun uploadFile(
         token: String,
         remotePath: String,
         localFile: File,
         commitMsg: String
-    ): Boolean {
+    ): Pair<Boolean, String> {
         var conn: java.net.HttpURLConnection? = null
         try {
             val url = java.net.URL(
@@ -163,29 +173,20 @@ object LogUploader {
             return when {
                 code in 200..299 -> {
                     Log.i(TAG, "uploaded: $remotePath (${fileBytes.size} bytes)")
-                    true
+                    Pair(true, "")
                 }
-                code == 401 -> {
-                    Log.e(TAG, "upload failed 401 (token invalid?): $remotePath")
-                    false
-                }
-                code == 403 -> {
-                    Log.e(TAG, "upload failed 403 (token lacks permission or rate limit): $remotePath")
-                    false
-                }
-                code == 404 -> {
-                    Log.e(TAG, "upload failed 404 (repo not found / token can't access): $remotePath")
-                    false
-                }
+                code == 401 -> Pair(false, "401 Token 无效或已过期")
+                code == 403 -> Pair(false, "403 Token 权限不足（需 contents:write）或触发限流")
+                code == 404 -> Pair(false, "404 仓库不存在或 Token 无权访问")
                 else -> {
                     val err = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
                     Log.e(TAG, "upload failed $code: $remotePath\n$err")
-                    false
+                    Pair(false, "HTTP $code: ${err.take(200)}")
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "upload exception: ${e.message}", e)
-            return false
+            return Pair(false, "异常: ${e.javaClass.simpleName}: ${e.message}")
         } finally {
             conn?.disconnect()
         }

@@ -157,5 +157,21 @@
             android:textSize="12sp"
             android:textColor="#888888" />
 
+        <Button
+            android:id="@+id/btnTestUpload"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="立即测试上传日志" />
+
+        <TextView
+            android:id="@+id/tvUploadResult"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="12sp"
+            android:textColor="#888888"
+            android:text="点上面按钮立即上传当前日志，验证 Token 是否有效（无需开录制）" />
+
     </LinearLayout>
 </ScrollView>

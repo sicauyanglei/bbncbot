@@ -54,6 +54,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etGhToken: EditText
     private lateinit var btnSaveGhToken: Button
     private lateinit var tvGhTokenStatus: TextView
+    private lateinit var btnTestUpload: Button
+    private lateinit var tvUploadResult: TextView
 
     /**
      * 待执行的平台快捷方式（来自桌面快捷方式或 shortcut intent）
@@ -89,6 +91,8 @@ class MainActivity : AppCompatActivity() {
         etGhToken = findViewById(R.id.etGhToken)
         btnSaveGhToken = findViewById(R.id.btnSaveGhToken)
         tvGhTokenStatus = findViewById(R.id.tvGhTokenStatus)
+        btnTestUpload = findViewById(R.id.btnTestUpload)
+        tvUploadResult = findViewById(R.id.tvUploadResult)
 
         // 初始化 API 提供商下拉选择
         val providers = com.bbncbot.automation.AiVisionHelper.ApiProvider.displayNames
@@ -164,6 +168,29 @@ class MainActivity : AppCompatActivity() {
                 tvGhTokenStatus.text = "日志上传：未配置"
                 Toast.makeText(this, "GitHub Token 已清除", Toast.LENGTH_SHORT).show()
             }
+        }
+
+        // 立即测试上传：不依赖录制停止，方便用户快速验证 Token/网络/权限是否正常
+        btnTestUpload.setOnClickListener {
+            // 自动保存输入框中的 Token（避免用户填了 Token 但没点保存就测试）
+            val tokenInBox = etGhToken.text.toString().trim()
+            if (tokenInBox.isNotEmpty()) {
+                com.bbncbot.automation.LogUploader.saveToken(this, tokenInBox)
+                tvGhTokenStatus.text = "日志上传：已配置（${tokenInBox.take(4)}...${tokenInBox.takeLast(4)}）"
+            }
+            tvUploadResult.text = "上传中..."
+            // 后台线程执行（含网络 IO），完成后回主线程更新 UI
+            Thread {
+                val n = com.bbncbot.automation.LogUploader.upload(this, "test")
+                val msg = com.bbncbot.automation.LogUploader.lastResult
+                runOnUiThread {
+                    tvUploadResult.text = if (n > 0) {
+                        "✓ $msg\n查看：https://github.com/sicauyanglei/bbncbot/tree/main/logs"
+                    } else {
+                        "✗ $msg"
+                    }
+                }
+            }.start()
         }
 
         btnAccessibility.setOnClickListener {
