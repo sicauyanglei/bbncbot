@@ -37,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnOpenFarm: Button
     private lateinit var btnOpenAlipayFarm: Button
     private lateinit var btnOpenTaobaoFarm: Button
+    private lateinit var btnRuleEditor: Button
     private lateinit var etGhToken: EditText
     private lateinit var btnSaveGhToken: Button
     private lateinit var tvGhTokenStatus: TextView
@@ -80,6 +81,7 @@ class MainActivity : AppCompatActivity() {
         btnOpenFarm = findViewById(R.id.btnOpenFarm)
         btnOpenAlipayFarm = findViewById(R.id.btnOpenAlipayFarm)
         btnOpenTaobaoFarm = findViewById(R.id.btnOpenTaobaoFarm)
+        btnRuleEditor = findViewById(R.id.btnRuleEditor)
         etGhToken = findViewById(R.id.etGhToken)
         btnSaveGhToken = findViewById(R.id.btnSaveGhToken)
         tvGhTokenStatus = findViewById(R.id.tvGhTokenStatus)
@@ -155,6 +157,9 @@ class MainActivity : AppCompatActivity() {
         }
         btnOpenTaobaoFarm.setOnClickListener {
             openApp("com.taobao.taobao", "淘宝")
+        }
+        btnRuleEditor.setOnClickListener {
+            startActivity(Intent(this, RuleEditorActivity::class.java))
         }
 
         // 解析 shortcut intent 中的平台参数

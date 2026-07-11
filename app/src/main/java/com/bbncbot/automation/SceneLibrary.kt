@@ -81,14 +81,18 @@ object SceneLibrary {
     data class SceneCategory(
         val id: String,                 // cat_1, cat_2, ...
         var name: String,               // 用户命名，如"浏览15秒任务"
-        val action: Action,
-        val targetButton: String?,
+        var action: Action,             // 改为 var，支持编辑界面修改
+        var targetButton: String?,      // 改为 var，支持编辑界面修改
         val createdAt: String,
         var hitCount: Int = 0,
         /** 归属的录制会话 ID（旧数据为空字符串，表示独立规则） */
-        val sessionId: String = "",
+        var sessionId: String = "",
         /** 在 session 中的步骤序号（从 0 开始，独立规则为 -1） */
-        val stepIndex: Int = -1
+        var stepIndex: Int = -1,
+        /** 是否启用此规则（false 时 match() 跳过此 category） */
+        var enabled: Boolean = true,
+        /** 任务执行优先级（数值越小越先执行，0=默认，由编辑界面配置） */
+        var priority: Int = 0
     )
 
     /**
@@ -227,7 +231,7 @@ object SceneLibrary {
                 val nextStep = currentStepIndex + 1
                 val nextMapping = mappings.firstOrNull { m ->
                     val cat = categories.firstOrNull { it.id == m.categoryId }
-                    cat != null && cat.sessionId == sessId && cat.stepIndex == nextStep && m.signature == sig
+                    cat != null && cat.enabled && cat.sessionId == sessId && cat.stepIndex == nextStep && m.signature == sig
                 }
                 if (nextMapping != null) {
                     val cat = categories.firstOrNull { it.id == nextMapping.categoryId }!!
@@ -245,7 +249,7 @@ object SceneLibrary {
             val mapping = mappings.firstOrNull { it.signature == sig }
             if (mapping != null) {
                 val cat = categories.firstOrNull { it.id == mapping.categoryId }
-                if (cat != null) {
+                if (cat != null && cat.enabled) {
                     mapping.matchCount++
                     cat.hitCount++
                     // 命中带 sessionId 的规则 → 进入该 session 上下文（流程起点或中断后恢复）
@@ -264,7 +268,7 @@ object SceneLibrary {
             val coreMatch = mappings.firstOrNull { it.coreSignature == coreSig && it.coreSignature.isNotEmpty() }
             if (coreMatch != null) {
                 val cat = categories.firstOrNull { it.id == coreMatch.categoryId }
-                if (cat != null) {
+                if (cat != null && cat.enabled) {
                     // 自动添加新 signature 映射（下次直接走精确匹配，不重复走 coreSignature 路径）
                     val now = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(Date())
                     mappings.add(SignatureMapping(
@@ -542,6 +546,39 @@ object SceneLibrary {
     }
 
     /**
+     * 列出指定 category 的所有 signature 映射（供编辑界面展示匹配条件）
+     */
+    fun listMappingsForCategory(categoryId: String): List<SignatureMapping> {
+        ensureInitialized()
+        return synchronized(lock) { mappings.filter { it.categoryId == categoryId }.toList() }
+    }
+
+    /**
+     * 查询指定平台+任务内容标识对应的规则优先级
+     *
+     * - 用于 AutomationController 在收集任务按钮后按用户配置的 priority 排序执行
+     * - 在 mappings 中查找 signature 同时包含 `p=$platform|` 和 `task=$taskContent` 的映射
+     * - 未匹配到规则 / 规则被禁用时返回 [Int.MAX_VALUE]（排到最后，保持原有视觉顺序）
+     *
+     * @param platform 平台标识（"UC" / "ALIPAY" / "TAOBAO"）
+     * @param taskContent 任务内容标识（如"看严选推荐商品"，由 SceneFeatureExtractor.extractTaskContentText 提取）
+     * @return 规则优先级（数值小的先执行），未匹配返回 Int.MAX_VALUE
+     */
+    fun getPriorityForTask(platform: String, taskContent: String): Int {
+        ensureInitialized()
+        if (taskContent.isEmpty()) return Int.MAX_VALUE
+        synchronized(lock) {
+            for (m in mappings) {
+                if (!m.signature.contains("p=$platform|")) continue
+                if (!m.signature.contains("task=$taskContent")) continue
+                val cat = categories.firstOrNull { it.id == m.categoryId }
+                if (cat != null && cat.enabled) return cat.priority
+            }
+            return Int.MAX_VALUE
+        }
+    }
+
+    /**
      * 删除指定 category（及其所有 signature 映射）
      */
     fun deleteCategory(categoryId: String) {
@@ -555,6 +592,55 @@ object SceneLibrary {
                 Log.i(TAG, "deleteCategory: removed $removed category id=$categoryId")
                 persistAsync()
             }
+        }
+    }
+
+    /**
+     * 更新指定 category 的可编辑字段
+     *
+     * 由规则编辑界面调用，支持修改：name / action / targetButton / enabled / priority
+     * 修改后立即异步持久化。
+     *
+     * @return true 表示更新成功（category 存在），false 表示未找到
+     */
+    fun updateCategory(
+        categoryId: String,
+        name: String? = null,
+        action: Action? = null,
+        targetButton: String? = null,
+        enabled: Boolean? = null,
+        priority: Int? = null
+    ): Boolean {
+        ensureInitialized()
+        synchronized(lock) {
+            val cat = categories.firstOrNull { it.id == categoryId } ?: return false
+            if (name != null) cat.name = name
+            if (action != null) cat.action = action
+            // targetButton 传非 null 才更新；传空字符串表示清空
+            // 注意：此处用 "是否提供了参数" 区分，调用方想清空传 "" 即可
+            if (targetButton != null) cat.targetButton = targetButton.ifEmpty { null }
+            if (enabled != null) cat.enabled = enabled
+            if (priority != null) cat.priority = priority
+            Log.i(TAG, "updateCategory: id=$categoryId name='${cat.name}' action=${cat.action} enabled=${cat.enabled} priority=${cat.priority}")
+            persistAsync()
+            return true
+        }
+    }
+
+    /**
+     * 批量更新 category 的优先级（用于编辑界面拖动排序后保存）
+     *
+     * @param order Map<categoryId, newPriority>
+     */
+    fun updateCategoryPriorities(order: Map<String, Int>) {
+        ensureInitialized()
+        synchronized(lock) {
+            for ((catId, prio) in order) {
+                val cat = categories.firstOrNull { it.id == catId } ?: continue
+                cat.priority = prio
+            }
+            Log.i(TAG, "updateCategoryPriorities: updated ${order.size} priorities")
+            persistAsync()
         }
     }
 
@@ -626,7 +712,10 @@ object SceneLibrary {
                         hitCount = o.optInt("hitCount", 0),
                         // 旧数据没有 sessionId/stepIndex，默认空/-1（独立规则）
                         sessionId = o.optString("sessionId", ""),
-                        stepIndex = o.optInt("stepIndex", -1)
+                        stepIndex = o.optInt("stepIndex", -1),
+                        // 新增字段：旧数据没有 enabled/priority，默认 true/0
+                        enabled = o.optBoolean("enabled", true),
+                        priority = o.optInt("priority", 0)
                     ))
                 }
                 val maps = root.getJSONArray("mappings")
@@ -709,6 +798,8 @@ object SceneLibrary {
                         put("hitCount", c.hitCount)
                         put("sessionId", c.sessionId)
                         put("stepIndex", c.stepIndex)
+                        put("enabled", c.enabled)
+                        put("priority", c.priority)
                     })
                 }
                 val maps = JSONArray()

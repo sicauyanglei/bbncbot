@@ -119,7 +119,7 @@ object SceneFeatureExtractor {
      *
      * @return 任务内容标识（如"看严选推荐商品"），失败返回 ""
      */
-    private fun extractTaskContentText(
+    fun extractTaskContentText(
         service: FarmAccessibilityService,
         taskButton: AccessibilityNodeInfo
     ): String {

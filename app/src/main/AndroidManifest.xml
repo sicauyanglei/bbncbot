@@ -58,6 +58,13 @@
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:launchMode="singleTask" />
 
+        <!-- 场景规则查看与编辑界面 -->
+        <activity
+            android:name=".RuleEditorActivity"
+            android:exported="false"
+            android:label="场景规则编辑"
+            android:parentActivityName=".MainActivity" />
+
         <!-- 悬浮窗前台 Service -->
         <service
             android:name=".service.FloatingWindowService"

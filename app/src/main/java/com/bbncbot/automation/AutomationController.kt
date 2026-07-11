@@ -1007,7 +1007,7 @@ object AutomationController {
                 debugLog("openTaskList: resetting currentTaskIndex to 0 (was $currentTaskIndex)")
                 currentTaskIndex = 0
             }
-            taskButtons = existingButtons
+            taskButtons = sortTaskButtonsByPriority(service, existingButtons)
             taskListCheckAttempt = 0
             moveTo(AutomationState.PROCESSING_TASK)
             handler.postDelayed({ runProcessingTask(attempt = 0) }, INTERVAL_CLICK_MS)
@@ -1079,7 +1079,7 @@ object AutomationController {
                 debugLog("checkTaskListOpened: resetting currentTaskIndex to 0 (was $currentTaskIndex, taskButtons was empty=${taskButtons.isEmpty()})")
                 currentTaskIndex = 0
             }
-            taskButtons = buttons
+            taskButtons = sortTaskButtonsByPriority(service, buttons)
             taskListCheckAttempt = 0
             moveTo(AutomationState.PROCESSING_TASK)
             handler.postDelayed({ runProcessingTask(attempt = 0) }, INTERVAL_CLICK_MS)
@@ -1102,6 +1102,29 @@ object AutomationController {
         handler.postDelayed({
             if (state == AutomationState.OPENING_TASK_LIST) runOpeningTaskList(openingAttempt + 1)
         }, INTERVAL_CLICK_MS)
+    }
+
+    /**
+     * 按用户配置的规则优先级排序任务按钮
+     *
+     * - 对每个"去完成"按钮提取任务内容标识，查 SceneLibrary 中对应规则的 priority
+     * - priority 小的排前面（先执行），未匹配规则的按钮排最后（保持原顺序）
+     * - 稳定排序：相同 priority 的按钮保持原有视觉顺序
+     * - 让用户在规则编辑界面配置的执行顺序在此生效
+     */
+    private fun sortTaskButtonsByPriority(
+        service: FarmAccessibilityService,
+        buttons: List<AccessibilityNodeInfo>
+    ): List<AccessibilityNodeInfo> {
+        if (buttons.size <= 1) return buttons
+        val platform = service.currentPlatform.name
+        if (platform == "UNKNOWN") return buttons
+        return buttons.mapIndexed { idx, btn ->
+            val taskContent = SceneFeatureExtractor.extractTaskContentText(service, btn)
+            val priority = SceneLibrary.getPriorityForTask(platform, taskContent)
+            debugLog("sortTaskButtons: idx=$idx task='$taskContent' priority=$priority")
+            Triple(priority, idx, btn)
+        }.sortedWith(compareBy({ it.first }, { it.second })).map { it.third }
     }
 
     // ============== 阶段3: 处理任务（点击去完成按钮） ==============

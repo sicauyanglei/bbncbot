@@ -71,6 +71,22 @@
             android:layout_marginTop="8dp"
             android:text="淘宝芭芭农场" />
 
+        <!-- 场景规则编辑 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="场景规则"
+            android:textStyle="bold"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btnRuleEditor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="查看 / 编辑已录制规则" />
+
         <!-- 日志上传配置 -->
         <TextView
             android:layout_width="match_parent"
