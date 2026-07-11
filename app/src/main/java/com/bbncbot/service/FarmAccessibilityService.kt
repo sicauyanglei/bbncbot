@@ -174,6 +174,17 @@ class FarmAccessibilityService : AccessibilityService() {
         } catch (_: Exception) { /* ignore */ }
     }
 
+    /** 节流日志：同一 key 在 throttleMs 内只输出一次，避免高频轮询导致日志爆炸 */
+    private val throttleLogTimestamps = HashMap<String, Long>()
+    private fun throttledLog(key: String, msg: String, throttleMs: Long = 3000L) {
+        val now = System.currentTimeMillis()
+        val last = throttleLogTimestamps[key] ?: 0L
+        if (now - last >= throttleMs) {
+            throttleLogTimestamps[key] = now
+            debugLog(msg)
+        }
+    }
+
     /** 判断包名是否与本应用支持的农场 App 相关（含本应用自身） */
     private fun isFarmRelatedPackage(pkg: String): Boolean {
         if (pkg == "com.bbncbot") return true
@@ -468,13 +479,42 @@ class FarmAccessibilityService : AccessibilityService() {
             "提交订单", "确认订单", "立即支付", "去支付", "确认支付",  // 交易确认页（不产生交易，跳过）
             "充值", "话费充值", "流量充值", "充值得", "立即充值",   // 充值类任务（不产生交易，跳过）
             "投资", "理财", "保险", "开户",                        // 金融类任务（不产生交易，跳过）
-            "到店支付", "线下支付", "扫码支付"                     // 到店支付类任务（不产生交易，跳过）
+            "到店支付", "线下支付", "扫码支付",                    // 到店支付类任务（不产生交易，跳过）
+            // 小程序/游戏页面：自动化无法操作小程序游戏，跳过
+            "本小程序服务由", "本小程序由", "小游戏", "开始游戏", "立即开始游戏"
         )
         val matched = allText.any { text ->
             nonAdKeywords.any { kw -> text.contains(kw) }
         }
         if (matched) {
             debugLog("isNonAdTaskPage: YES, matched non-ad task in ${allText.take(8)}")
+        }
+        return matched
+    }
+
+    /**
+     * 检测当前页面是否是小程序/游戏页面（不受 adModeFlag 干扰）
+     *
+     * 用于 WATCHING_AD 状态下的兜底检测：
+     * - 任务跳转到小程序/游戏页面被误判为广告深链任务
+     * - adModeFlag=true 导致 isAdPlaying()=true，但页面实际没有广告特征
+     * - 本方法直接检测页面文本，不受 adModeFlag 影响
+     *
+     * @return true 表示当前页面是小程序/游戏页面（非广告）
+     */
+    fun isMiniProgramOrGamePage(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        val miniProgramKeywords = listOf(
+            "本小程序服务由", "本小程序由",   // 支付宝小程序标识
+            "小游戏", "开始游戏", "立即开始游戏",  // 游戏入口
+            "腾讯小游戏", "微信小游戏"          // 微信小游戏标识
+        )
+        val matched = allText.any { text ->
+            miniProgramKeywords.any { kw -> text.contains(kw) }
+        }
+        if (matched) {
+            debugLog("isMiniProgramOrGamePage: YES, sample=${allText.take(8)}")
         }
         return matched
     }
@@ -1107,7 +1147,7 @@ class FarmAccessibilityService : AccessibilityService() {
             if (match != null) {
                 val seconds = match.groupValues[1].toIntOrNull() ?: 0
                 if (seconds > 0 && seconds <= 300) {  // 合理范围：1-300秒
-                    debugLog("findBrowseRewardCountdownHint: found '$text', seconds=$seconds")
+                    throttledLog("browseCountdown_$seconds", "findBrowseRewardCountdownHint: found '$text', seconds=$seconds")
                     return seconds
                 }
             }
@@ -1609,7 +1649,7 @@ class FarmAccessibilityService : AccessibilityService() {
         for (kw in keywords) {
             val node = findNodeByText(root, kw)
             if (node != null) {
-                debugLog("findRedPacketCloseButton: found '$kw' in red packet popup")
+                throttledLog("redPacket_$kw", "findRedPacketCloseButton: found '$kw' in red packet popup")
                 return node
             }
         }
@@ -2111,7 +2151,7 @@ class FarmAccessibilityService : AccessibilityService() {
         val progressPattern = Regex("每浏览\\s*\\d+\\s*[秒s]")
         for (text in allText) {
             if (progressPattern.containsMatchIn(text)) {
-                debugLog("hasBrowseRewardProgressHint: found progress hint '$text'")
+                throttledLog("browseProgress", "hasBrowseRewardProgressHint: found progress hint '$text'")
                 return true
             }
         }

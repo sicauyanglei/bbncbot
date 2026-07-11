@@ -534,10 +534,13 @@ object AutomationController {
         if (match != null) {
             val completed = match.groupValues[1].toIntOrNull() ?: 0
             val total = match.groupValues[2].toIntOrNull() ?: 0
-            if (total > 0 && completed < total) {
+            if (total > 0 && total <= 20 && completed < total) {
                 val remaining = total - completed
                 debugLog("parseTaskCount: completed=$completed, total=$total, remaining=$remaining")
                 return remaining
+            }
+            if (total > 20) {
+                debugLog("parseTaskCount: skip x/y=$completed/$total (total>20, likely fertilizer progress not replay count)")
             }
         }
         // 匹配 "剩余x次" 格式
@@ -1169,7 +1172,9 @@ object AutomationController {
         // 同时检查按钮文本和任务上下文文本（任务标题在上下文中，不在按钮文本里）
         val skipTaskTexts = listOf(
             "继续玩浪漫餐厅", "继续玩农场分色瓶", "充值", "完成1局对战", "砸蛋5次",
-            "分享", "合种", "到店支付"
+            "分享", "合种", "到店支付",
+            // 试玩/玩游戏类任务：自动化无法玩小程序游戏，跳过
+            "试玩", "新游", "玩游戏", "玩1局", "玩一局", "开局", "对战"
         )
         val taskContextText = service.collectTaskContextText(button)
         val shouldSkip = skipTaskTexts.any { buttonText.contains(it) || taskContextText.contains(it) }
@@ -2669,6 +2674,29 @@ object AutomationController {
             4 -> {
                 // 阶段4：已完成，不重复处理（避免重复点击）
             }
+        }
+
+        // 误入非广告页面兜底检测
+        // 场景：任务跳转到小程序/游戏页面（非广告），被误判为 deep-link ad task 进入 WATCHING_AD
+        // 此时 adModeFlag=true 导致 isAdPlaying()=true，但页面实际没有广告特征
+        // 检测：不是广告 Activity + 没有广告内容 + 有小程序/游戏特征 → 退出
+        if (!service.isAdActivity() && !service.isAdContentShown() &&
+            service.isMiniProgramOrGamePage()) {
+            Log.w(TAG, "watchAd: mini-program/game page detected (non-ad), exiting task")
+            debugLog("watchAd: non-ad page in WATCHING_AD (mini-program/game), clearing adMode and exiting")
+            service.setAdMode(false)
+            service.pressBack()
+            currentTaskIndex++
+            handler.postDelayed({
+                if (!service.isOnFarmPage()) service.pressBack()
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) {
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
         }
 
         // 超时强制关闭
