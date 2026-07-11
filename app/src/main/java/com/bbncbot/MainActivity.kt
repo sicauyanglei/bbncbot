@@ -49,6 +49,12 @@ class MainActivity : AppCompatActivity() {
      */
     private var pendingPlatform: String? = null
 
+    /**
+     * 上次引导申请的权限标识，用于避免 onResume 重复跳同一个设置页
+     * - 值为 "overlay"/"accessibility"/"launcher" 之一，null 表示全部已就绪或未开始引导
+     */
+    private var lastGuidedPermission: String? = null
+
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { /* 结果忽略，仅尝试申请 */ }
@@ -139,7 +145,7 @@ class MainActivity : AppCompatActivity() {
         // 解析 shortcut intent 中的平台参数
         pendingPlatform = intent?.getStringExtra(EXTRA_PLATFORM)
 
-        // Android 13+ 申请通知权限
+        // Android 13+ 申请通知权限（系统对话框，不跳设置页）
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
                 PackageManager.PERMISSION_GRANTED
@@ -147,13 +153,7 @@ class MainActivity : AppCompatActivity() {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
-
-        // 引导设置默认桌面（首次启动或未设置时弹出）
-        // 默认桌面身份是 LauncherApps 枚举/启动桌面快捷方式的前置条件
-        if (!FarmShortcutLauncher.isDefaultLauncher(this)) {
-            Toast.makeText(this, "请将本应用设为默认桌面，以便直接打开芭芭农场", Toast.LENGTH_LONG).show()
-            FarmShortcutLauncher.requestDefaultLauncher(this)
-        }
+        // 其余需要跳系统设置页的权限（悬浮窗/无障碍/默认桌面）在 onResume 串行引导
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -176,8 +176,48 @@ class MainActivity : AppCompatActivity() {
                 "alipay" -> openApp("com.eg.android.AlipayGphone", "支付宝")
                 "taobao" -> openApp("com.taobao.taobao", "淘宝")
             }
-        } else {
-            debugLog("onResume: no pending platform")
+            return
+        }
+        // 无待执行平台时，串行引导缺失权限（悬浮窗 → 无障碍 → 默认桌面）
+        guideNextMissingPermission()
+    }
+
+    /**
+     * 串行引导缺失权限：按优先级找第一个缺失项并跳设置页申请
+     * - 同一个缺失项不重复跳（避免从设置页返回未授权时反复弹）
+     * - 上一项授权后会自动引导下一项（lastGuidedPermission 会随缺失项变化更新）
+     * - 通知权限已在 onCreate 用系统对话框申请，不在此处理
+     */
+    private fun guideNextMissingPermission() {
+        val missing = when {
+            !PermissionUtils.canDrawOverlays(this) -> "overlay"
+            !PermissionUtils.isAccessibilityEnabled(this, FarmAccessibilityService::class.java) -> "accessibility"
+            !FarmShortcutLauncher.isDefaultLauncher(this) -> "launcher"
+            else -> null
+        }
+        if (missing == null) {
+            if (lastGuidedPermission != null) {
+                Toast.makeText(this, "所有权限已就绪", Toast.LENGTH_SHORT).show()
+                lastGuidedPermission = null
+            }
+            return
+        }
+        // 与上次引导的是同一项，不重复跳设置页（用户可能正在设置或已主动返回）
+        if (missing == lastGuidedPermission) return
+        lastGuidedPermission = missing
+        when (missing) {
+            "overlay" -> {
+                Toast.makeText(this, "需要悬浮窗权限以显示控制按钮，请授予", Toast.LENGTH_LONG).show()
+                PermissionUtils.requestOverlayPermission(this)
+            }
+            "accessibility" -> {
+                Toast.makeText(this, "需要开启无障碍服务以自动操作，请开启", Toast.LENGTH_LONG).show()
+                PermissionUtils.openAccessibilitySettings(this)
+            }
+            "launcher" -> {
+                Toast.makeText(this, "请将本应用设为默认桌面，以便直接打开芭芭农场", Toast.LENGTH_LONG).show()
+                FarmShortcutLauncher.requestDefaultLauncher(this)
+            }
         }
     }
 
