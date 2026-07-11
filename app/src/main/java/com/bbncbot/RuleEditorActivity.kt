@@ -227,13 +227,14 @@ class RuleEditorActivity : AppCompatActivity() {
             val view = convertView ?: LayoutInflater.from(this@RuleEditorActivity)
                 .inflate(R.layout.item_rule, parent, false)
             val rule = getItem(position)
-            view.findViewById<TextView>(R.id.tvPriority).text = rule.priority.toString()
+            // 左侧徽章显示规则序号（1, 2, 3...），让每条规则有明显的编号
+            view.findViewById<TextView>(R.id.tvPriority).text = (position + 1).toString()
             view.findViewById<TextView>(R.id.tvName).text = rule.name
             view.findViewById<TextView>(R.id.tvAction).text = "动作：${actionToText(rule.action)}" +
                 (if (rule.targetButton != null) "「${rule.targetButton}」" else "")
             val task = extractTaskFromCategory(rule.id)
             view.findViewById<TextView>(R.id.tvTask).text = if (task.isNotEmpty()) "任务：$task" else "任务：（无）"
-            view.findViewById<TextView>(R.id.tvHits).text = "命中 ${rule.hitCount} 次"
+            view.findViewById<TextView>(R.id.tvHits).text = "命中 ${rule.hitCount} 次  |  优先级 ${rule.priority}"
             val switch = view.findViewById<Switch>(R.id.switchEnabled)
             switch.setOnCheckedChangeListener(null)  // 先解绑，避免回调污染
             switch.isChecked = rule.enabled
