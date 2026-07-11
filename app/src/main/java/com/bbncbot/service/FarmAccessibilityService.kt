@@ -2053,14 +2053,22 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * 检测是否是"肥料已发放"奖励到账提示页
+     * 检测是否是"肥料已发放/已获得肥料"奖励到账提示页
      *
-     * 用户场景：广告观看结束后，页面弹出"肥料已发放"提示（或类似文案），
-     * 表示奖励已到账，应立即回到芭芭农场主页，不要再尝试关闭广告。
+     * 用户场景：
+     * - 广告观看结束后，页面弹出"肥料已发放"提示，表示奖励已到账，应立即回到芭芭农场主页
+     * - 浏览任务完成后，页面显示"已获得肥料"，表示任务完成应退出
+     *
+     * 注意：与 isTaskCompletePage 的区别
+     * - isTaskCompletePage 故意排除了"获得肥料"关键词（进行中页面也会显示"已获得肥料 xxx"）
+     * - 本方法检测"已获得肥料"（纯粹的完成提示，无数字后缀）
+     * - 若文案是"已获得肥料 500"等带数字的进行中状态，不会匹配（contains 只匹配子串，
+     *   但 "已获得肥料" 是 "已获得肥料 500" 的子串，会匹配 → 需调用方结合上下文判断）
      *
      * 识别文本示例：
      * - "肥料已发放" / "肥料已发放到账户" / "肥料已发放成功"
      * - "奖励已发放" / "奖励已到账"
+     * - "已获得肥料"（浏览任务完成提示）
      *
      * @return true 表示当前页面是肥料到账提示页
      */
@@ -2068,8 +2076,12 @@ class FarmAccessibilityService : AccessibilityService() {
         val root = rootInActiveWindowSafe() ?: return false
         val allText = collectAllText(root)
         val granted = allText.any { text ->
+            // "肥料已发放"/"奖励已发放"/"奖励已到账"/"肥料已到账" 是明确的到账提示，直接匹配
             text.contains("肥料已发放") || text.contains("奖励已发放") ||
-                text.contains("奖励已到账") || text.contains("肥料已到账")
+                text.contains("奖励已到账") || text.contains("肥料已到账") ||
+                // "已获得肥料" 需精确匹配：排除"已获得肥料 500"等带数字的进行中状态
+                // 只匹配纯粹的"已获得肥料"（任务完成提示）
+                (text.contains("已获得肥料") && !text.matches(Regex(".*已获得肥料\\s*\\d+.*")))
         }
         if (granted) {
             debugLog("isFertilizerGrantedPage: YES, sample=${allText.take(5)}")

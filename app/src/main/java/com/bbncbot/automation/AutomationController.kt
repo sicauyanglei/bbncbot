@@ -1413,6 +1413,18 @@ object AutomationController {
             return
         }
 
+        // 优先检测：是否显示了"肥料已发放/已获得肥料"等奖励到账提示 → 任务完成，退出
+        // 注意：此检测用 rootInActiveWindowSafe，能覆盖 WebView 内的文案
+        // isTaskCompletePage 故意排除了"获得肥料"关键词（进行中页面也会显示"已获得肥料 xxx"），
+        // 但纯粹的"已获得肥料"（无数字后缀）是任务完成信号，这里单独检测
+        if (service.isFertilizerGrantedPage()) {
+            debugLog("browseTask: fertilizer granted page detected, exiting (swipes=$swipeCount/$browseTaskTargetSwipes)")
+            currentTaskIndex++
+            collectedCount++
+            exitBrowsePage(service, reason = "fertilizer_granted")
+            return
+        }
+
         // 优先检测：是否已显示"任务完成" → 这是浏览任务的真正退出信号
         // UC 极速版等平台：滑动获取肥料，直到显示"任务完成"才退出（倒计时"再逛xx秒"只是过程提示）
         if (service.isTaskCompletePage()) {
@@ -1625,6 +1637,35 @@ object AutomationController {
                 currentTaskIndex++
                 collectedCount++
                 exitBrowsePage(service, reason = "abnormal_in_swipe")
+                return@postDelayed
+            }
+            // 检测是否已完成任务（得到肥料）
+            if (service.isFertilizerGrantedPage()) {
+                debugLog("browseTask: fertilizer granted detected during swipe, exiting")
+                service.dumpScreenshotWithMeta("browse", state.name, browseTaskTargetSwipes, "exit_fertilizer_granted_in_swipe")
+                service.endDumpSession()
+                val closeBtn = service.findAdCloseButton()
+                val backIcon = service.findBackIcon()
+                when {
+                    closeBtn != null -> { debugLog("browseTask: clicking close icon"); service.performClickSafe(closeBtn) }
+                    backIcon != null -> { debugLog("browseTask: clicking back icon"); service.performClickSafe(backIcon) }
+                    else -> { debugLog("browseTask: pressing back"); service.pressBack() }
+                }
+                collectedCount++
+                currentTaskIndex++
+                handler.postDelayed({
+                    if (!service.isOnFarmPage()) {
+                        service.pressBack()
+                    }
+                    handler.postDelayed({
+                        if (state == AutomationState.BROWSING_TASK) {
+                            browseFromSearchBrowse = false
+                            browseFromDirectPopup = false
+                            moveTo(AutomationState.RETURNING)
+                            runReturning(0)
+                        }
+                    }, INTERVAL_PAGE_LOAD_MS)
+                }, INTERVAL_PAGE_LOAD_MS)
                 return@postDelayed
             }
             // 检测是否已完成任务（得到肥料）
