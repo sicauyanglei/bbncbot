@@ -67,7 +67,8 @@ jobs:
           echo "✓ 无分身残留代码"
           echo ""
           echo "=== 检查 shortcuts.xml 仅含 3 个主账号快捷方式 ==="
-          SHORTCUT_COUNT=$(grep -c "<shortcut" app/src/main/res/xml/shortcuts.xml)
+          # 注意：用行尾锚定精确匹配子标签 <shortcut（独占一行），排除根标签 <shortcuts ...>
+          SHORTCUT_COUNT=$(grep -cE "^[[:space:]]*<shortcut[[:space:]]*$" app/src/main/res/xml/shortcuts.xml)
           if [ "$SHORTCUT_COUNT" -ne 3 ]; then
             echo "::error::shortcuts.xml 应仅含 3 个快捷方式，实际 $SHORTCUT_COUNT 个"
             exit 1
