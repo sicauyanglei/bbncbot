@@ -77,10 +77,20 @@ object AutomationController {
     private const val GAME_LOAD_MS = 5000L
     /** 游戏 AI 最大操作次数（防止无限消耗 API 配额） */
     private const val GAME_MAX_ACTIONS = 40
+    /** 浏览任务中连续关闭红包弹窗的最大次数（超过则视为误判，继续滑动） */
+    private const val MAX_RED_PACKET_CLOSE_ATTEMPTS = 3
 
     /** 当前浏览任务的目标滑动次数（根据页面提示动态计算，无提示时用 MAX_BROWSE_SWIPES） */
     @Volatile
     private var browseTaskTargetSwipes: Int = MAX_BROWSE_SWIPES
+
+    /**
+     * 当前浏览任务中连续检测到红包弹窗的次数
+     * - 防止 findRedPacketCloseButton 误判导致死循环：超过阈值后不再当红包弹窗处理，继续滑动
+     * - 每次进入新的浏览任务（swipeCount=0）时重置
+     */
+    @Volatile
+    private var browseRedPacketCloseAttempts: Int = 0
 
     /**
      * 标记当前浏览任务是否从"直接领取弹窗"进入
@@ -1271,6 +1281,8 @@ object AutomationController {
 
         if (swipeCount == 0) {
             logPageSnapshot(service, "browseTask-start")
+            // 重置红包弹窗关闭计数器（新的浏览任务开始）
+            browseRedPacketCloseAttempts = 0
             // 启动采集会话：记录"任务开始→任务结束"全过程截图
             // tag 包含来源（direct/search/browse）+ 任务索引，便于事后筛选
             val sourceTag = when {
@@ -1337,10 +1349,21 @@ object AutomationController {
 
         // 优先检测：是否有红包弹窗 → 先关闭它，才能继续滑动获取肥料
         // 红包弹窗会遮挡页面，不关闭无法滑动；关闭后保持 swipeCount 重新进入
-        val redPacketBtn = service.findRedPacketCloseButton()
+        // 防御：限制连续关闭次数，避免 findRedPacketCloseButton 误判导致死循环
+        val redPacketBtn = if (browseRedPacketCloseAttempts < MAX_RED_PACKET_CLOSE_ATTEMPTS) {
+            service.findRedPacketCloseButton()
+        } else {
+            // 超过阈值仍检测到"红包弹窗"：很可能是误判（如农场主页"钓红包"入口），
+            // 不再当红包弹窗处理，继续走滑动逻辑
+            if (swipeCount == 1 || browseRedPacketCloseAttempts == MAX_RED_PACKET_CLOSE_ATTEMPTS) {
+                debugLog("browseTask: red packet close attempts exceeded ($browseRedPacketCloseAttempts), ignoring red packet detection and continuing swipe")
+            }
+            null
+        }
         if (redPacketBtn != null) {
-            Log.i(TAG, "browseTask: red packet popup detected, closing it first")
-            debugLog("browseTask: closing red packet popup before swiping (swipe #$swipeCount)")
+            browseRedPacketCloseAttempts++
+            Log.i(TAG, "browseTask: red packet popup detected, closing it first (attempt $browseRedPacketCloseAttempts/$MAX_RED_PACKET_CLOSE_ATTEMPTS)")
+            debugLog("browseTask: closing red packet popup before swiping (swipe #$swipeCount, attempt $browseRedPacketCloseAttempts/$MAX_RED_PACKET_CLOSE_ATTEMPTS)")
             service.dumpScreenshotWithMeta("browse", "BROWSING_TASK", swipeCount, "red_packet_popup")
             val scheduleReentry = {
                 // 等待弹窗关闭后重新进入（保持 swipeCount 不变，不消耗滑动次数）
@@ -1629,6 +1652,8 @@ object AutomationController {
      * - 包含中途的搜索推荐页/异常页/任务完成检测
      */
     private fun scheduleNextBrowseCheck(service: FarmAccessibilityService, swipeCount: Int) {
+        // 成功执行一次滑动说明红包弹窗已关闭（或本就无弹窗），重置连续关闭计数器
+        browseRedPacketCloseAttempts = 0
         handler.postDelayed({
             if (state != AutomationState.BROWSING_TASK) return@postDelayed
             // 任务进行中（倒计时或"每浏览x秒"进度提示仍在）时跳过搜索推荐页检测，避免误判提前退出

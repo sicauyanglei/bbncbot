@@ -1665,8 +1665,20 @@ class FarmAccessibilityService : AccessibilityService() {
         val root = getRootInFarmApp() ?: return null
         val allText = collectAllText(root)
         // 1. 必须先确认有红包弹窗（页面文本包含"红包"）
-        val hasRedPacket = allText.any { it.contains("红包") }
-        if (!hasRedPacket) return null
+        // 排除农场主页常驻的"钓红包"按钮：它只是入口，不是弹窗
+        // 真正的红包弹窗会有"立即领取""开心收下""领取红包"等弹窗专属按钮文案
+        val hasRedPacketText = allText.any { it.contains("红包") }
+        if (!hasRedPacketText) return null
+        val hasRedPacketPopupButton = allText.any { text ->
+            // 红包弹窗的领取/关闭按钮文案，"钓红包"入口不在此列
+            text.contains("开心收下") || text.contains("立即领取") ||
+                text.contains("领取红包") || text.contains("继续赚钱") ||
+                text.contains("继续逛") || text.contains("去使用")
+        }
+        if (!hasRedPacketPopupButton) {
+            // 有"红包"字样但无弹窗专属按钮，可能是农场主页"钓红包"入口，不当弹窗处理
+            return null
+        }
         // 2. 查找红包弹窗的关闭/领取按钮
         // 注意："立即领取"放最前：红包弹窗的领取按钮通常是这个文字
         // "×"和"关闭"用于右上角关闭图标
@@ -1698,7 +1710,14 @@ class FarmAccessibilityService : AccessibilityService() {
     fun isRedPacketPopupShown(): Boolean {
         val root = getRootInFarmApp() ?: return false
         val allText = collectAllText(root)
-        return allText.any { it.contains("红包") }
+        // 同 findRedPacketCloseButton：排除农场主页"钓红包"入口
+        val hasRedPacketText = allText.any { it.contains("红包") }
+        if (!hasRedPacketText) return false
+        return allText.any { text ->
+            text.contains("开心收下") || text.contains("立即领取") ||
+                text.contains("领取红包") || text.contains("继续赚钱") ||
+                text.contains("继续逛") || text.contains("去使用")
+        }
     }
 
     /**
