@@ -62,8 +62,10 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        // 清除旧版录制日志，避免旧版本日志混在新版本里导致误判
+        // 清除旧版日志（recording.log 由 RecordingManager 清空，debug/proposals/teachings 由 LogUploader 清空）
+        // 同时清理过期 session 截图目录，避免磁盘占用无限增长
         com.bbncbot.automation.RecordingManager.clearLogOnAppStart(this)
+        com.bbncbot.automation.LogUploader.clearLogsOnAppStart(this)
 
         // 启动 App 时先 kill 所有芭芭农场平台 App（UC/支付宝/淘宝）的老进程
         // 原因：残留旧实例（旧 Activity 栈/缓存的 H5 页面）会导致后续进入农场页时
@@ -124,6 +126,13 @@ class MainActivity : AppCompatActivity() {
                         "✓ $msg\n查看：https://github.com/sicauyanglei/bbncbot/tree/main/logs"
                     } else {
                         "✗ $msg"
+                    }
+                    // 提示用户截图在 sessions/ 子目录
+                    if (n > 0) {
+                        android.widget.Toast.makeText(
+                            this, "日志+截图已上传（logs/ rules/ sessions/ 目录）",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
             }.start()
