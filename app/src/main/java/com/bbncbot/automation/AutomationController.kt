@@ -437,12 +437,14 @@ object AutomationController {
     private inline fun withSceneRuleClick(
         decisionPoint: String,
         actionDesc: String,
+        taskButton: AccessibilityNodeInfo? = null,
         crossinline onClick: () -> Unit
     ) {
         withSceneRule(
             decisionPoint = decisionPoint,
             proposedAction = actionDesc,
             proposedReason = actionDesc,
+            taskButton = taskButton,
             onRuleAction = { rule ->
                 when (rule.action) {
                     SceneLibrary.Action.CLICK_BUTTON -> {
@@ -1257,7 +1259,8 @@ object AutomationController {
         }
         withSceneRuleClick(
             decisionPoint = "processTask_click_go_complete",
-            actionDesc = "点击'去完成'按钮 (text='$buttonText')"
+            actionDesc = "点击'去完成'按钮 (text='$buttonText')",
+            taskButton = button
         ) {
             service.performClickSafe(button)
 

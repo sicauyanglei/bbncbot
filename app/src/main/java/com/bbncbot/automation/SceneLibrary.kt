@@ -374,7 +374,12 @@ object SceneLibrary {
         }
         val parts = mutableListOf<String>()
         parts.add(platform)
-        parts.add(pageType)
+        // 任务内容标识（如"看严选推荐商品"），优先于页面类型展示，更直观
+        if (features.taskContentText.isNotEmpty()) {
+            parts.add(features.taskContentText)
+        } else {
+            parts.add(pageType)
+        }
         if (popup != null) parts.add(popup)
         parts.add(actionDesc)
         return parts.joinToString("-")
@@ -917,6 +922,7 @@ object SceneLibrary {
                 "countdown" -> "倒计时：${if (value == "yes") "有" else "无"}"
                 "progress" -> "进度提示：${if (value == "yes") "有" else "无"}"
                 "btns" -> "按钮集合：$value"
+                "task" -> "任务内容：$value"
                 else -> "$key：$value"
             }
             sb.append("$indent$readable\n")

@@ -20,20 +20,16 @@ import com.bbncbot.service.FarmAccessibilityService
 object SceneFeatureExtractor {
 
     /**
-     * 任务内容关键词提取的停用词（出现即丢弃，不作为关键词）
+     * 任务内容标识提取时需要去掉的按钮文案片段
      *
-     * - 通用按钮文案：去完成 / 领取 / 已完成 / 立即 / 去 / 等等
-     * - 数字相关：纯数字（如任务次数 "1/3"）
-     * - 单字（信息量太低）
+     * 任务行上下文通常是 "[任务描述] [次数] [去完成]" 形式，
+     * 去掉这些通用按钮文案后剩下的就是任务标识。
      */
-    private val TASK_STOPWORDS = setOf(
-        "去完成", "去逛逛", "去浏览", "去下单", "去搜索", "去看", "去试玩",
+    private val TASK_BUTTON_TEXTS = listOf(
+        "去完成", "去逛逛", "去浏览", "去下单", "去搜索", "去看", "去试玩", "去参与",
         "领取", "立即领取", "开心收下", "收下", "知道了", "好的",
         "已完成", "完成", "已领取", "未完成",
-        "立即", "马上", "前往",
-        "任务", "奖励", "肥料", "得", "可得", "可领取",
-        "去", "看", "玩", "得", "了", "的", "和", "与",
-        "1/3", "2/3", "3/3"
+        "立即", "马上", "前往"
     )
 
     /**
@@ -41,8 +37,8 @@ object SceneFeatureExtractor {
      *
      * @param service 无障碍服务实例
      * @param controllerState 当前状态机状态名（如 "BROWSING_TASK"）
-     * @param taskButton 当前任务按钮节点（仅 PROCESSING_TASK 决策点传入，用于提取任务行上下文关键词）
-     *                   传入时会把任务行描述文本提取为关键词，区分不同任务内容的规则
+     * @param taskButton 当前任务按钮节点（仅 PROCESSING_TASK 决策点传入，用于提取任务行上下文文本）
+     *                   传入时会把任务行描述文本清理为任务标识，区分不同任务内容的规则
      */
     fun extract(
         service: FarmAccessibilityService,
@@ -81,8 +77,8 @@ object SceneFeatureExtractor {
         val pageTexts = root?.let { collectTexts(it) } ?: emptyList()
         val clickableButtons = root?.let { collectClickableTexts(it) } ?: emptyList()
 
-        // 任务内容关键词：仅当传入 taskButton 时提取（PROCESSING_TASK 决策点 / 录制点击事件）
-        val taskKeywords = taskButton?.let { extractTaskKeywords(service, it) } ?: emptyList()
+        // 任务内容标识：仅当传入 taskButton 时提取（PROCESSING_TASK 决策点 / 录制点击事件）
+        val taskText = taskButton?.let { extractTaskContentText(service, it) } ?: ""
 
         return SceneFeatures(
             windowPackage = pkg,
@@ -104,43 +100,48 @@ object SceneFeatureExtractor {
             pageTexts = pageTexts.take(30),
             clickableButtons = clickableButtons.distinct().take(20),
             controllerState = controllerState,
-            taskContentKeywords = taskKeywords
+            taskContentText = taskText
         )
     }
 
     /**
-     * 从任务按钮所在行的上下文文本中提取任务内容关键词
+     * 从任务按钮所在行的上下文文本中提取任务内容标识
      *
-     * - 调用 [FarmAccessibilityService.collectTaskContextText] 获取任务行描述
-     * - 按标点/空格切分，过滤停用词 / 纯数字 / 单字
-     * - 取前 5 个关键词（去重，保持出现顺序）
-     * - 失败时返回空列表（不影响 signature）
+     * 任务行结构通常是："[任务描述] [次数] [去完成]"
+     * 例："看严选推荐商品 (1/4) 去完成"
      *
-     * @return 任务内容关键词列表（如 ["浏览", "精选", "好物"]），最多 5 个
+     * 清理规则：
+     * 1. 调用 [FarmAccessibilityService.collectTaskContextText] 获取任务行所有文本
+     * 2. 去掉次数后缀："(1/4)" "（2/4）" "[1/4]" "1/4" 等（任务进度会变，不稳定）
+     * 3. 去掉按钮文案："去完成" "去逛逛" "领取" 等（通用文案，无区分度）
+     * 4. 去掉多余空白，trim
+     * 5. 失败时返回空字符串（不影响 signature）
+     *
+     * @return 任务内容标识（如"看严选推荐商品"），失败返回 ""
      */
-    private fun extractTaskKeywords(
+    private fun extractTaskContentText(
         service: FarmAccessibilityService,
         taskButton: AccessibilityNodeInfo
-    ): List<String> {
+    ): String {
         return try {
             val contextText = service.collectTaskContextText(taskButton)
-            if (contextText.isBlank()) return emptyList()
-            // 按标点 / 空格 / 数字边界切分
-            val tokens = contextText.split(Regex("[\\s,，。.；;、:：!！?？/]+"))
-            val keywords = mutableListOf<String>()
-            for (token in tokens) {
-                val t = token.trim()
-                if (t.isEmpty()) continue
-                if (t in TASK_STOPWORDS) continue
-                if (t.matches(Regex("\\d+"))) continue              // 纯数字
-                if (t.length < 2) continue                           // 单字信息量太低
-                if (t.any { it.isDigit() } && t.length <= 3) continue // "15秒"等数字+单位太具体，不稳定
-                if (t !in keywords) keywords.add(t)
-                if (keywords.size >= 5) break
+            if (contextText.isBlank()) return ""
+            var text = contextText
+            // 1. 去掉次数后缀："(1/4)" "（2/4）" "[1/4]" "1/4" 等
+            //    匹配括号内或独立的 "数字/数字" 形式
+            text = text.replace(Regex("[\\(（\\[]\\s*\\d+\\s*/\\s*\\d+\\s*[\\)）\\]]"), "")
+            text = text.replace(Regex("\\b\\d+\\s*/\\s*\\d+\\b"), "")
+            // 2. 去掉按钮文案（通用文案，无区分度）
+            for (btn in TASK_BUTTON_TEXTS) {
+                text = text.replace(btn, "")
             }
-            keywords
+            // 3. 去掉纯数字片段（如剩余的次数等）
+            text = text.replace(Regex("\\b\\d+\\b"), "")
+            // 4. 合并多余空白，trim
+            text = text.trim().replace(Regex("\\s+"), " ")
+            text
         } catch (e: Exception) {
-            emptyList()
+            ""
         }
     }
 

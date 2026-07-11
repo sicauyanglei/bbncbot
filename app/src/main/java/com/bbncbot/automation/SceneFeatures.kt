@@ -75,14 +75,17 @@ data class SceneFeatures(
     val controllerState: String,
 
     /**
-     * 当前任务的内容关键词（任务列表里任务行的描述关键词）
+     * 当前任务的内容标识（任务列表里任务行的描述文本，已清理）
      *
      * - 仅在 PROCESSING_TASK 状态点击"去完成"按钮时提取（来自任务行上下文文本）
-     * - 用于区分"浏览X商品""看广告""签到"等不同任务内容
-     * - 录制规则时记录，执行规则时只有任务内容相关的规则才命中
-     * - 空列表表示非任务列表场景（如浏览页/农场主页），不影响 signature
+     * - 已去掉次数后缀（如"(1/4)""（2/4）"）和按钮文案（如"去完成"）
+     * - 用于区分"看严选推荐商品""浏览X商品""看广告"等不同任务内容
+     * - 录制规则时记录，执行规则时只有任务内容相同的规则才命中
+     * - 空字符串表示非任务列表场景（如浏览页/农场主页），不影响 signature
+     *
+     * 示例："看严选推荐商品" / "浏览精选好物" / "搜一搜你心仪得宝贝"
      */
-    val taskContentKeywords: List<String> = emptyList()
+    val taskContentText: String = ""
 ) {
     /**
      * 生成场景签名：用于规则匹配的稳定键
@@ -121,9 +124,9 @@ data class SceneFeatures(
         if (clickableButtons.isNotEmpty()) {
             parts.add("btns=${clickableButtons.toSet().toList().sorted().joinToString(",")}")
         }
-        // 任务内容关键词（区分"浏览X商品""看广告"等不同任务，仅 PROCESSING_TASK 阶段有值）
-        if (taskContentKeywords.isNotEmpty()) {
-            parts.add("task=${taskContentKeywords.sorted().joinToString(",")}")
+        // 任务内容标识（区分"看严选推荐商品""浏览X商品"等不同任务，仅 PROCESSING_TASK 阶段有值）
+        if (taskContentText.isNotEmpty()) {
+            parts.add("task=$taskContentText")
         }
         return parts.joinToString("|")
     }
@@ -156,8 +159,8 @@ data class SceneFeatures(
         if (hasBrowseProgressHint) parts.add("progress=yes")
         else parts.add("progress=no")
         // 不含 btns 字段，但保留 task= 字段（任务内容是规则匹配的核心维度，不能被自动归类忽略）
-        if (taskContentKeywords.isNotEmpty()) {
-            parts.add("task=${taskContentKeywords.sorted().joinToString(",")}")
+        if (taskContentText.isNotEmpty()) {
+            parts.add("task=$taskContentText")
         }
         return parts.joinToString("|")
     }
