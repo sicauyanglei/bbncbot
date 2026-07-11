@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.BaseAdapter
+import android.widget.Button
 import android.widget.EditText
 import android.widget.ListView
 import android.widget.Switch
@@ -63,6 +64,26 @@ class RuleEditorActivity : AppCompatActivity() {
         val tabLayout = findViewById<TabLayout>(R.id.tabLayout)
         listView = findViewById(R.id.listView)
         tvEmpty = findViewById(R.id.tvEmpty)
+        val btnDeleteAll = findViewById<Button>(R.id.btnDeleteAll)
+
+        // 删除当前 Tab 平台的全部规则（带二次确认）
+        btnDeleteAll.setOnClickListener {
+            if (currentRules.isEmpty()) {
+                Toast.makeText(this, "当前没有可删除的规则", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val tabLabel = tabs.firstOrNull { it.second == currentPlatformFilter }?.first ?: "全部"
+            AlertDialog.Builder(this)
+                .setTitle("批量删除")
+                .setMessage("确定删除「$tabLabel」Tab 下的全部 ${currentRules.size} 条规则吗？\n删除后不可恢复。")
+                .setPositiveButton("全部删除") { _, _ ->
+                    val removed = SceneLibrary.deleteCategoriesByPlatform(currentPlatformFilter)
+                    Toast.makeText(this, "已删除 $removed 条规则", Toast.LENGTH_SHORT).show()
+                    refreshList()
+                }
+                .setNegativeButton("取消", null)
+                .show()
+        }
 
         // 创建 Tab
         for ((label, _) in tabs) {

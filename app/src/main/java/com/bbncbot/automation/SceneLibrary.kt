@@ -596,6 +596,45 @@ object SceneLibrary {
     }
 
     /**
+     * 批量删除指定平台的全部规则
+     *
+     * - 通过 mappings 中 signature 的 `p=XXX|` 字段判断平台归属
+     * - platform 为 null 时删除全部规则（"全部" Tab）
+     * - 返回删除的规则数量
+     *
+     * @param platform 平台标识（"UC" / "ALIPAY" / "TAOBAO"），null 表示全部
+     * @return 实际删除的 category 数量
+     */
+    fun deleteCategoriesByPlatform(platform: String?): Int {
+        ensureInitialized()
+        synchronized(lock) {
+            // 收集需要删除的 categoryId
+            val idsToRemove = mutableSetOf<String>()
+            if (platform == null) {
+                // 删除全部
+                idsToRemove.addAll(categories.map { it.id })
+            } else {
+                // 按 signature 中的 p= 字段过滤
+                for (m in mappings) {
+                    if (m.signature.contains("p=$platform|")) {
+                        idsToRemove.add(m.categoryId)
+                    }
+                }
+            }
+            if (idsToRemove.isEmpty()) return 0
+            val before = categories.size
+            categories.removeAll { it.id in idsToRemove }
+            mappings.removeAll { it.categoryId in idsToRemove }
+            val removed = before - categories.size
+            if (removed > 0) {
+                Log.i(TAG, "deleteCategoriesByPlatform: platform=$platform removed $removed categories")
+                persistAsync()
+            }
+            return removed
+        }
+    }
+
+    /**
      * 更新指定 category 的可编辑字段
      *
      * 由规则编辑界面调用，支持修改：name / action / targetButton / enabled / priority
