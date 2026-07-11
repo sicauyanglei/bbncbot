@@ -130,7 +130,8 @@ object LogUploader {
             Triple(teachingsLogFile, "teachings", "logs")
         )
         for ((localFile, namePrefix, subDir) in textLogs) {
-            val uploadFile = prepareLogForUpload(localFile) ?: run {
+            val uploadFile = prepareLogForUpload(localFile)
+            if (uploadFile == null) {
                 errors.add("${localFile.name}: 文件不存在或为空")
                 continue
             }
