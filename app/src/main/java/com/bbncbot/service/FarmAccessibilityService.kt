@@ -348,6 +348,39 @@ class FarmAccessibilityService : AccessibilityService() {
         return result
     }
 
+    /**
+     * 获取页面类型（用于诊断日志）
+     * 返回简短的页面类型字符串：farm_home / browse / browse_duration / search_browse /
+     * complete / ad / abnormal / unknown
+     */
+    fun getPageType(): String {
+        val root = rootInActiveWindowSafe() ?: return "unknown(no_root)"
+        if (isAdActivity() || isAdContentShown()) return "ad"
+        if (!isFarmAppInForeground()) return "non_farm"
+        val allText = collectAllText(root)
+        val hasComplete = allText.any { it.contains("全部完成") || it.contains("已完成") }
+        val hasAbnormal = allText.any { it.contains("异常") || it.contains("网络错误") || it.contains("加载失败") }
+        val hasBrowseDurationHint = allText.any { it.contains("滑动浏览") && it.contains("得肥料") }
+        val hasSearchBrowse = allText.any { it.contains("搜索") && it.contains("浏览") }
+        val hasBrowseTask = allText.any { it.contains("浏览") && it.contains("奖励") }
+        val onFarm = isOnFarmPage()
+        return when {
+            hasComplete -> "complete"
+            hasAbnormal -> "abnormal"
+            hasBrowseDurationHint -> "browse_duration"
+            hasSearchBrowse -> "search_browse"
+            hasBrowseTask -> "browse"
+            onFarm -> "farm_home"
+            else -> "unknown"
+        }
+    }
+
+    /** 收集页面所有文本的快照（用于诊断日志），最多 maxCount 条 */
+    fun collectAllTextSnapshot(maxCount: Int = 15): List<String> {
+        val root = rootInActiveWindowSafe() ?: return emptyList()
+        return collectAllText(root).take(maxCount)
+    }
+
     // ---------- 旧 API 兼容（委托到平台通用实现） ----------
 
     /** @deprecated 使用 [getRootInFarmApp] */
@@ -1507,8 +1540,30 @@ class FarmAccessibilityService : AccessibilityService() {
             debugLog("clickFirstProductInList: clicking card at bounds=$rect")
             return performClickSafe(target)
         }
-        debugLog("clickFirstProductInList: no product card found")
+        // 诊断日志：列出页面上所有可点击节点，帮助定位为什么找不到商品卡片
+        val clickableNodes = mutableListOf<String>()
+        collectClickableNodes(root, clickableNodes, maxCount = 15)
+        debugLog("clickFirstProductInList: no product card found, page type=${getPageType()}, clickable nodes: $clickableNodes")
         return false
+    }
+
+    /** 递归收集页面上所有可点击节点及其文本/位置，用于诊断 */
+    private fun collectClickableNodes(node: AccessibilityNodeInfo, out: MutableList<String>, maxCount: Int = 15) {
+        if (out.size >= maxCount) return
+        if (node.isClickable) {
+            val rect = android.graphics.Rect()
+            node.getBoundsInScreen(rect)
+            val text = node.text?.toString().orEmpty()
+            val desc = node.contentDescription?.toString().orEmpty()
+            val label = if (text.isNotEmpty()) text else if (desc.isNotEmpty()) desc else "(no text)"
+            out.add("$label@[$rect.top,$rect.bottom]")
+            if (out.size >= maxCount) return
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            collectClickableNodes(child, out, maxCount)
+            if (out.size >= maxCount) return
+        }
     }
 
     /**

@@ -1317,6 +1317,11 @@ object AutomationController {
             // 等待页面加载后，先点击一个商品再开始滑动
             handler.postDelayed({
                 if (state == AutomationState.BROWSING_TASK) {
+                    // 诊断日志：点击"去完成"后页面到底变成了什么
+                    val pageType = service.getPageType()
+                    val onFarm = service.isOnFarmPage()
+                    val allText = service.collectAllTextSnapshot(maxCount = 15)
+                    debugLog("browseTask: after clicking 'go browse', page type=$pageType, onFarm=$onFarm, texts=$allText")
                     // 检测页面是否有"滑动获取肥料"提示，解析需要滑动的时间
                     val hintSeconds = service.findSwipeForFertilizerHint()
                     if (hintSeconds > 0) {
@@ -1575,7 +1580,11 @@ object AutomationController {
         }
 
         // 未命中规则，直接执行滑动（不询问，滑动是常规动作）
-        debugLog("browseTask: swipe #$swipeCount $dirText ($startY -> $endY)")
+        // 诊断日志：滑动前记录页面状态、倒计时、进度，帮助定位"为什么不如人工操作"
+        val browsePageType = service.getPageType()
+        val browseCountdown = service.findBrowseRewardCountdownHint()
+        val browseProgress = service.hasBrowseRewardProgressHint()
+        debugLog("browseTask: swipe #$swipeCount/$browseTaskTargetSwipes $dirText ($startY -> $endY), pageType=$browsePageType, countdown=${browseCountdown}s, progress=$browseProgress")
         service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
         scheduleNextBrowseCheck(service, swipeCount)
     }
@@ -2817,6 +2826,15 @@ object AutomationController {
         // 最短等待时间未到，继续等待
         // 用户要求：太快退出可能获取不到肥料，必须等够页面提示的规定时间+缓冲
         if (elapsedMs < adMinDurationMs) {
+            // 诊断日志：每 15 秒记录一次广告页面状态，帮助定位"广告是否真的在播放"
+            if (elapsedMs % 15000L < AD_END_CHECK_INTERVAL_MS) {
+                val adPageType = service.getPageType()
+                val adActivity = service.isAdActivity()
+                val adPlaying = service.isAdPlaying()
+                val adContent = service.isAdContentShown()
+                val adTexts = service.collectAllTextSnapshot(maxCount = 8)
+                debugLog("watchAd: waiting ${elapsedMs}ms/${adMinDurationMs}ms (min), pageType=$adPageType, adActivity=$adActivity, adPlaying=$adPlaying, adContent=$adContent, texts=$adTexts")
+            }
             Log.d(TAG, "watchAd: waiting (${elapsedMs}ms/${adMinDurationMs}ms)")
             handler.postDelayed({
                 if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
@@ -2826,6 +2844,13 @@ object AutomationController {
 
         // 最短等待时间已过，检测广告是否结束
         // 广告结束的标志：不再在广告Activity，或出现领取奖励按钮，或任务完成
+        // 诊断日志：记录广告结束检测时的页面状态
+        val adEndedPageType = service.getPageType()
+        val adEndedActivity = service.isAdActivity()
+        val adEndedPlaying = service.isAdPlaying()
+        val adEndedContent = service.isAdContentShown()
+        val adEndedTexts = service.collectAllTextSnapshot(maxCount = 8)
+        debugLog("watchAd: checking ad end (${elapsedMs}ms/${adMaxDurationMs}ms), pageType=$adEndedPageType, adActivity=$adEndedActivity, adPlaying=$adEndedPlaying, adContent=$adEndedContent, texts=$adEndedTexts")
         if (service.isTaskCompletePage()) {
             Log.i(TAG, "watchAd: task complete page detected, exiting")
             debugLog("watchAd: task complete, exiting via close/back icon")
@@ -2923,6 +2948,12 @@ object AutomationController {
         if (state != AutomationState.CLOSING_AD) return
         val service = getService() ?: run { stop(); return }
 
+        // 诊断日志：记录关闭广告时的页面状态，帮助定位"为什么关不掉"
+        if (strategy == 0) {
+            val closePageType = service.getPageType()
+            val closeTexts = service.collectAllTextSnapshot(maxCount = 10)
+            debugLog("closeAd: start closing, pageType=$closePageType, texts=$closeTexts")
+        }
         Log.i(TAG, "closeAd: trying strategy #$strategy")
 
         when (strategy) {
