@@ -526,6 +526,30 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 检测当前页面是否是商品详情页（有"加入购物车"按钮的页面）
+     *
+     * 用户要求：浏览任务不要进入商品详情页，只在商品列表页滑动浏览即可。
+     * - 商品详情页典型特征：同时含"加入购物车"+"立即购买"按钮
+     * - 只匹配单个关键词会误判（如列表页的"立即购买"标签），要求两者同时出现
+     * - 命中后调用方应按返回键退回商品列表页
+     *
+     * @return true 表示当前在商品详情页，应退出
+     */
+    fun isProductDetailPage(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        // 必须同时出现"加入购物车"和"立即购买"才认定为商品详情页
+        // 单独出现"立即购买"可能只是列表页的商品标签，会误判
+        val hasAddToCart = allText.any { it.contains("加入购物车") }
+        val hasBuyNow = allText.any { it.contains("立即购买") }
+        val isDetail = hasAddToCart && hasBuyNow
+        if (isDetail) {
+            debugLog("isProductDetailPage: YES (hasAddToCart=$hasAddToCart, hasBuyNow=$hasBuyNow)")
+        }
+        return isDetail
+    }
+
+    /**
      * 检测当前页面是否是小程序/游戏页面（不受 adModeFlag 干扰）
      *
      * 用于 WATCHING_AD 状态下的兜底检测：

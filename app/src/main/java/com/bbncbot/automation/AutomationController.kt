@@ -1351,11 +1351,11 @@ object AutomationController {
                         browseTaskTargetSwipes = MAX_BROWSE_SWIPES
                         debugLog("browseTask: no swipe hint but has browse reward indicator (countdown=$hasCountdown, progress=$hasProgress, duration=$hasDuration), using default $browseTaskTargetSwipes swipes")
                     }
-                    // 在商品列表页面随便点一个商品（模拟用户浏览行为）
-                    // 注意：点击后可能进入商品详情页，滑动在详情页进行即可
-                    val clicked = service.clickFirstProductInList()
-                    debugLog("browseTask: clicked product in list = $clicked")
-                    // 等待商品详情加载后开始滑动
+                    // 不主动点击商品进入详情页：用户要求浏览任务只在商品列表页滑动，
+                    // 不要进入有"加入购物车"按钮的商品详情页
+                    // （滑动循环中会检测是否意外进入详情页，若是则按返回退回列表页）
+                    debugLog("browseTask: skipping product click, swiping in list page directly")
+                    // 等待页面加载后开始滑动
                     handler.postDelayed({
                         if (state == AutomationState.BROWSING_TASK) runBrowsingTask(1)
                     }, INTERVAL_PAGE_LOAD_MS)
@@ -1521,6 +1521,20 @@ object AutomationController {
             currentTaskIndex++
             collectedCount++
             exitBrowsePage(service, reason = "abnormal_page")
+            return
+        }
+
+        // 滑动前检测：是否在商品详情页（有"加入购物车"按钮）→ 按返回退回商品列表页
+        // 用户要求：不要进入这种页面，只在列表页滑动浏览
+        // 不直接退出任务（详情页可能是误点/平台自动跳转导致），按返回退回列表页继续滑动
+        if (service.isProductDetailPage()) {
+            debugLog("browseTask: product detail page detected, pressing back to list page (swipe #$swipeCount)")
+            service.dumpScreenshotWithMeta("browse", state.name, swipeCount, "product_detail_back")
+            service.pressBack()
+            // 等待返回列表页后，保持 swipeCount 重新进入（不消耗滑动次数）
+            handler.postDelayed({
+                if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount)
+            }, INTERVAL_PAGE_LOAD_MS)
             return
         }
 
