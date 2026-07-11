@@ -37,15 +37,19 @@ object FarmShortcutLauncher {
      * - 通过比对系统默认桌面 ComponentName 与本 App 的 MainActivity 判断
      * - Android 无直接 API 查询"默认桌面"，需通过 resolveActivity 间接判断
      *
+     * @param logger 可选日志回调，默认走 android.util.Log；调用方传 debugLog 可写入 debug.log 文件
      * @return true 本 App 已是默认桌面
      */
-    fun isDefaultLauncher(context: Context): Boolean {
+    fun isDefaultLauncher(
+        context: Context,
+        logger: (String) -> Unit = { Log.d(TAG, it) }
+    ): Boolean {
         val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
         val resolver = context.packageManager.resolveActivity(homeIntent, 0)
         val isDefault = resolver?.activityInfo?.let { info ->
             info.packageName == context.packageName
         } ?: false
-        Log.d(TAG, "isDefaultLauncher: $isDefault (resolver=${resolver?.activityInfo?.packageName})")
+        logger("isDefaultLauncher: $isDefault (resolver=${resolver?.activityInfo?.packageName})")
         return isDefault
     }
 
@@ -80,17 +84,22 @@ object FarmShortcutLauncher {
      *
      * @param context 上下文（建议传 Activity）
      * @param platform 目标平台，用于精确匹配快捷方式
+     * @param logger 日志回调，调用方传 debugLog 可写入 debug.log 文件，便于线上诊断失败原因
      * @return true 已成功发起启动，false 未找到快捷方式或无权限
      */
-    fun startFarmShortcut(context: Context, platform: Platform): Boolean {
-        if (!isDefaultLauncher(context)) {
-            Log.w(TAG, "startFarmShortcut: not default launcher, cannot enumerate shortcuts")
+    fun startFarmShortcut(
+        context: Context,
+        platform: Platform,
+        logger: (String) -> Unit = { Log.d(TAG, it) }
+    ): Boolean {
+        if (!isDefaultLauncher(context, logger)) {
+            logger("startFarmShortcut: not default launcher, cannot enumerate shortcuts")
             return false
         }
 
         val launcherApps = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as? LauncherApps
         if (launcherApps == null) {
-            Log.w(TAG, "startFarmShortcut: LauncherApps service unavailable")
+            logger("startFarmShortcut: LauncherApps service unavailable")
             return false
         }
 
@@ -107,14 +116,14 @@ object FarmShortcutLauncher {
         val allShortcuts: List<ShortcutInfo> = try {
             launcherApps.getShortcuts(query, user) ?: emptyList()
         } catch (e: SecurityException) {
-            Log.w(TAG, "startFarmShortcut: SecurityException - ${e.message}")
+            logger("startFarmShortcut: SecurityException - ${e.message}")
             return false
         } catch (e: Exception) {
-            Log.w(TAG, "startFarmShortcut: getShortcuts failed - ${e.message}")
+            logger("startFarmShortcut: getShortcuts failed - ${e.message}")
             return false
         }
 
-        Log.d(TAG, "startFarmShortcut: found ${allShortcuts.size} shortcuts total")
+        logger("startFarmShortcut: found ${allShortcuts.size} shortcuts total")
 
         // 匹配目标平台的芭芭农场快捷方式
         val platformKeywords = platformKeyword(platform)
@@ -127,29 +136,32 @@ object FarmShortcutLauncher {
                 (platformKeywords.isEmpty() || platformKeywords.any { combined.contains(it) })
         }
 
-        Log.d(TAG, "startFarmShortcut: matched ${matched.size} for platform=$platform")
+        logger("startFarmShortcut: matched ${matched.size} for platform=$platform (keywords=$platformKeywords)")
         for (m in matched) {
-            Log.d(TAG, "  matched: pkg=${m.`package`} id=${m.id} label=${m.shortLabel}")
+            logger("  matched: pkg=${m.`package`} id=${m.id} label=${m.shortLabel}")
         }
 
-        val target = matched.firstOrNull() ?: return false
+        val target = matched.firstOrNull() ?: run {
+            logger("startFarmShortcut: no match for platform=$platform, sample labels=${allShortcuts.take(10).map { it.shortLabel }}")
+            return false
+        }
 
         // 启动快捷方式前先 kill 目标平台的老进程
         // 原因：目标 App 可能残留旧实例（旧 Activity 栈/缓存的 H5 页面），
         // 直接启动快捷方式可能只是把旧实例拉到前台，无法回到干净的农场主页
-        killPlatformApps(context, platform)
+        killPlatformApps(context, platform, logger)
 
         // 启动快捷方式（等同桌面点击）
         return try {
             val sourceBounds = Rect()
             launcherApps.startShortcut(target.`package`, target.id, sourceBounds, null, user)
-            Log.i(TAG, "startFarmShortcut: started shortcut pkg=${target.`package`} id=${target.id}")
+            logger("startFarmShortcut: started shortcut pkg=${target.`package`} id=${target.id}")
             true
         } catch (e: SecurityException) {
-            Log.w(TAG, "startFarmShortcut: startShortcut SecurityException - ${e.message}")
+            logger("startFarmShortcut: startShortcut SecurityException - ${e.message}")
             false
         } catch (e: Exception) {
-            Log.w(TAG, "startFarmShortcut: startShortcut failed - ${e.message}")
+            logger("startFarmShortcut: startShortcut failed - ${e.message}")
             false
         }
     }
@@ -165,7 +177,11 @@ object FarmShortcutLauncher {
      * @param context 上下文
      * @param platform 目标平台
      */
-    private fun killPlatformApps(context: Context, platform: Platform) {
+    private fun killPlatformApps(
+        context: Context,
+        platform: Platform,
+        logger: (String) -> Unit = { Log.d(TAG, it) }
+    ) {
         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return
         // 收集目标平台所有需要 kill 的包名（主包名 + 内部包名前缀对应的所有包）
         // killBackgroundProcesses 需要精确包名，前缀无法直接用，
@@ -174,9 +190,9 @@ object FarmShortcutLauncher {
         for (pkg in packages) {
             try {
                 am.killBackgroundProcesses(pkg)
-                Log.d(TAG, "killPlatformApps: killed $pkg for $platform")
+                logger("killPlatformApps: killed $pkg for $platform")
             } catch (e: Exception) {
-                Log.w(TAG, "killPlatformApps: failed to kill $pkg, ${e.message}")
+                logger("killPlatformApps: failed to kill $pkg, ${e.message}")
             }
         }
     }

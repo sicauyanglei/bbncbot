@@ -898,6 +898,15 @@ class FarmAccessibilityService : AccessibilityService() {
     private var dumpSessionShotIndex: Int = 0
 
     /**
+     * 当前会话截图能力是否已被禁用。
+     * - takeScreenshot 抛出 "Services don't have the capability" 等不可恢复错误时置 true
+     * - 后续 dumpScreenshotWithMeta 直接 return null，避免无效调用刷屏
+     * - endDumpSession 时重置，下个会话重新探测
+     */
+    @Volatile
+    private var dumpSessionScreenshotDisabled: Boolean = false
+
+    /**
      * 开始一个新的采集会话。
      * - 在任务开始时（如 [AutomationController] 进入 BROWSING_TASK 状态）调用一次
      * - 之后每次 [dumpScreenshotWithMeta] 都会把截图写到该会话目录
@@ -930,10 +939,11 @@ class FarmAccessibilityService : AccessibilityService() {
      */
     fun endDumpSession() {
         if (dumpSessionDir == null) return
-        debugLog("dumpSession: ended, shots=${dumpSessionShotIndex}")
+        debugLog("dumpSession: ended, shots=${dumpSessionShotIndex}, screenshotDisabled=$dumpSessionScreenshotDisabled")
         dumpSessionDir = null
         dumpSessionStartMs = 0L
         dumpSessionShotIndex = 0
+        dumpSessionScreenshotDisabled = false
     }
 
     /**
@@ -961,6 +971,8 @@ class FarmAccessibilityService : AccessibilityService() {
     ): String? {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) return null
         val sessionDir = dumpSessionDir ?: return null
+        // 本会话已检测到截图能力不可用，直接跳过避免刷屏
+        if (dumpSessionScreenshotDisabled) return null
 
         val shotIndex = dumpSessionShotIndex++
         val offsetMs = System.currentTimeMillis() - dumpSessionStartMs
@@ -1037,12 +1049,28 @@ class FarmAccessibilityService : AccessibilityService() {
                     }
 
                     override fun onFailure(errorCode: Int) {
-                        debugLog("dumpScreenshot: takeScreenshot failed for $baseName, code=$errorCode")
+                        // ERROR_TAKE_SCREENSHOT_NO_CAPABILITY(3) 等不可恢复错误：禁用本会话截图，避免刷屏
+                        val permanently = errorCode == 3
+                        if (permanently) {
+                            dumpSessionScreenshotDisabled = true
+                            debugLog("dumpScreenshot: takeScreenshot no capability (code=$errorCode), disable session screenshot")
+                        } else {
+                            debugLog("dumpScreenshot: takeScreenshot failed for $baseName, code=$errorCode")
+                        }
                     }
                 }
             )
         } catch (e: Exception) {
-            debugLog("dumpScreenshot: error for $baseName: ${e.message}")
+            // "Services don't have the capability of taking the screenshot." 等异常：禁用本会话截图
+            val msg = e.message.orEmpty()
+            val permanently = msg.contains("capability", ignoreCase = true) ||
+                e is IllegalStateException
+            if (permanently) {
+                dumpSessionScreenshotDisabled = true
+                debugLog("dumpScreenshot: disable session screenshot (${e.javaClass.simpleName}: $msg)")
+            } else {
+                debugLog("dumpScreenshot: error for $baseName: $msg")
+            }
         }
         return baseName
     }
@@ -2737,7 +2765,7 @@ class FarmAccessibilityService : AccessibilityService() {
      */
     fun reopenFarmByDeepLink(targetPlatform: Platform = currentPlatform): Boolean {
         // 1. 优先用桌面快捷方式（等同点击桌面"芭芭农场"组件）
-        if (com.bbncbot.util.FarmShortcutLauncher.startFarmShortcut(this, targetPlatform)) {
+        if (com.bbncbot.util.FarmShortcutLauncher.startFarmShortcut(this, targetPlatform) { msg -> debugLog("FarmShortcut: $msg") }) {
             debugLog("reopenFarmByDeepLink: started shortcut for $targetPlatform")
             if (targetPlatform != currentPlatform) {
                 currentPlatform = Platform.UNKNOWN

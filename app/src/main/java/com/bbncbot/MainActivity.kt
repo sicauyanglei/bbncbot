@@ -239,7 +239,7 @@ class MainActivity : AppCompatActivity() {
     /** 尝试用 UC 浏览器打开芭芭农场页面 */
     private fun openFarmInUcBrowser() {
         // 优先用桌面快捷方式打开（等同点击桌面"芭芭农场"组件）
-        if (FarmShortcutLauncher.startFarmShortcut(this, Platform.UC)) {
+        if (FarmShortcutLauncher.startFarmShortcut(this, Platform.UC) { msg -> debugLog("FarmShortcut: $msg") }) {
             Toast.makeText(this, "已从桌面快捷方式打开 UC 芭芭农场", Toast.LENGTH_SHORT).show()
             return
         }
@@ -281,7 +281,7 @@ class MainActivity : AppCompatActivity() {
     private fun openApp(packageName: String, label: String) {
         val platform = Platform.fromPackage(packageName)
         // 优先用桌面快捷方式打开（等同点击桌面"芭芭农场"组件）
-        if (FarmShortcutLauncher.startFarmShortcut(this, platform)) {
+        if (FarmShortcutLauncher.startFarmShortcut(this, platform) { msg -> debugLog("FarmShortcut: $msg") }) {
             Toast.makeText(this, "已从桌面快捷方式打开 $label 芭芭农场", Toast.LENGTH_SHORT).show()
             return
         }
