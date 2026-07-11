@@ -81,6 +81,17 @@ jobs:
           fi
           echo "✓ 无跨 user 权限"
           echo ""
+          echo "=== 检查桌面快捷方式功能声明齐全 ==="
+          if ! grep -q "android.permission.GET_SHORTCUTS" app/src/main/AndroidManifest.xml; then
+            echo "::error::AndroidManifest 缺少 GET_SHORTCUTS 权限（遍历桌面快捷方式必需）"
+            exit 1
+          fi
+          if ! grep -q "android.intent.category.HOME" app/src/main/AndroidManifest.xml; then
+            echo "::error::AndroidManifest 缺少 CATEGORY_HOME 注册（默认桌面身份必需）"
+            exit 1
+          fi
+          echo "✓ GET_SHORTCUTS 权限 + CATEGORY_HOME 注册齐全"
+          echo ""
           echo "=== 编译前规则检查通过 ==="
 
       - name: Build release APK

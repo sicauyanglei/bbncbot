@@ -19,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.bbncbot.automation.Platform
 import com.bbncbot.service.FarmAccessibilityService
 import com.bbncbot.service.FloatingWindowService
+import com.bbncbot.util.FarmShortcutLauncher
 import com.bbncbot.util.PermissionUtils
 
 class MainActivity : AppCompatActivity() {
@@ -146,6 +147,13 @@ class MainActivity : AppCompatActivity() {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+
+        // 引导设置默认桌面（首次启动或未设置时弹出）
+        // 默认桌面身份是 LauncherApps 枚举/启动桌面快捷方式的前置条件
+        if (!FarmShortcutLauncher.isDefaultLauncher(this)) {
+            Toast.makeText(this, "请将本应用设为默认桌面，以便直接打开芭芭农场", Toast.LENGTH_LONG).show()
+            FarmShortcutLauncher.requestDefaultLauncher(this)
+        }
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -190,6 +198,12 @@ class MainActivity : AppCompatActivity() {
 
     /** 尝试用 UC 浏览器打开芭芭农场页面 */
     private fun openFarmInUcBrowser() {
+        // 优先用桌面快捷方式打开（等同点击桌面"芭芭农场"组件）
+        if (FarmShortcutLauncher.startFarmShortcut(this, Platform.UC)) {
+            Toast.makeText(this, "已从桌面快捷方式打开 UC 芭芭农场", Toast.LENGTH_SHORT).show()
+            return
+        }
+        debugLog("openFarmInUcBrowser: shortcut unavailable, fallback to UC browser")
         val uri = Uri.parse(FARM_URL)
         // 尝试 UC 极速版 / UC 浏览器
         val ucPackages = listOf("com.ucmobile.lite", "com.UCMobile.x86", "com.UCMobile")
@@ -226,6 +240,12 @@ class MainActivity : AppCompatActivity() {
      */
     private fun openApp(packageName: String, label: String) {
         val platform = Platform.fromPackage(packageName)
+        // 优先用桌面快捷方式打开（等同点击桌面"芭芭农场"组件）
+        if (FarmShortcutLauncher.startFarmShortcut(this, platform)) {
+            Toast.makeText(this, "已从桌面快捷方式打开 $label 芭芭农场", Toast.LENGTH_SHORT).show()
+            return
+        }
+        debugLog("openApp: shortcut unavailable for $platform, fallback to deep link / navigation")
         val deepLink = platform.config.farmDeepLink
         // 优先用 deep link 直达农场页（等同从桌面快捷方式进入）
         if (deepLink != null) {

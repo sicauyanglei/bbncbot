@@ -2659,6 +2659,15 @@ class FarmAccessibilityService : AccessibilityService() {
      * @return true 表示已发起打开请求，false 表示无 deep link 或打开失败
      */
     fun reopenFarmByDeepLink(targetPlatform: Platform = currentPlatform): Boolean {
+        // 1. 优先用桌面快捷方式（等同点击桌面"芭芭农场"组件）
+        if (com.bbncbot.util.FarmShortcutLauncher.startFarmShortcut(this, targetPlatform)) {
+            debugLog("reopenFarmByDeepLink: started shortcut for $targetPlatform")
+            if (targetPlatform != currentPlatform) {
+                currentPlatform = Platform.UNKNOWN
+            }
+            return true
+        }
+        // 2. deep link 直达
         val deepLink = targetPlatform.config.farmDeepLink
         if (deepLink.isNullOrEmpty()) {
             debugLog("reopenFarmByDeepLink: no deep link for $targetPlatform, fallback to navigation")
