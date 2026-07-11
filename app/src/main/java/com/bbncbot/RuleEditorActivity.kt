@@ -202,6 +202,18 @@ class RuleEditorActivity : AppCompatActivity() {
                 refreshList()
             }
             .setNegativeButton("取消", null)
+            .setNeutralButton("删除") { _, _ ->
+                AlertDialog.Builder(this)
+                    .setTitle("删除规则")
+                    .setMessage("确定删除规则「${rule.name}」吗？\n删除后不可恢复。")
+                    .setPositiveButton("删除") { _, _ ->
+                        SceneLibrary.deleteCategory(rule.id)
+                        Toast.makeText(this, "已删除「${rule.name}」", Toast.LENGTH_SHORT).show()
+                        refreshList()
+                    }
+                    .setNegativeButton("取消", null)
+                    .show()
+            }
             .show()
     }
 

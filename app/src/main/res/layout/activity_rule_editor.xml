@@ -41,7 +41,7 @@
         android:layout_height="wrap_content"
         android:padding="12dp"
         android:background="#F5F5F5"
-        android:text="提示：点击规则编辑，长按拖动调整执行顺序（数值小的先执行）"
+        android:text="提示：点击规则可编辑或删除，长按规则可快速删除，优先级数值小的先执行"
         android:textColor="#666"
         android:textSize="12sp" />
 
