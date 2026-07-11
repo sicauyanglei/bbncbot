@@ -312,7 +312,7 @@ object RecordingManager {
                 if (skipped > 0) {
                     logToRecordingFile("SKIP残余事件 x$skipped (recording=false)")
                 }
-                val features = SceneFeatureExtractor.extract(service, stateName)
+                val features = SceneFeatureExtractor.extract(service, stateName, taskButton = source)
                 // H5 WebView 上点击触发的事件类型：
                 // - TYPE_VIEW_CLICKED(0x1) 原生点击
                 // - TYPE_WINDOW_STATE_CHANGED(0x20) 页面跳转

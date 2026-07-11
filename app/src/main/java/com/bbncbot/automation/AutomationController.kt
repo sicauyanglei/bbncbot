@@ -383,12 +383,13 @@ object AutomationController {
         decisionPoint: String,
         proposedAction: String,
         proposedReason: String,
+        taskButton: AccessibilityNodeInfo? = null,
         crossinline onRuleAction: (MatchedRule) -> Unit,
         crossinline onFallback: () -> Unit
     ) {
         val service = getService() ?: run { onFallback(); return }
-        // 提取场景特征
-        val features = SceneFeatureExtractor.extract(service, state.name)
+        // 提取场景特征（taskButton 用于提取任务行上下文关键词，区分不同任务内容的规则）
+        val features = SceneFeatureExtractor.extract(service, state.name, taskButton = taskButton)
         debugLog("$decisionPoint: scene sig=${features.signature()}")
         // 查规则库
         val rule = SceneLibrary.match(features).toMatchedRuleOrNull()

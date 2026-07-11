@@ -20,12 +20,35 @@ import com.bbncbot.service.FarmAccessibilityService
 object SceneFeatureExtractor {
 
     /**
+     * 任务内容关键词提取的停用词（出现即丢弃，不作为关键词）
+     *
+     * - 通用按钮文案：去完成 / 领取 / 已完成 / 立即 / 去 / 等等
+     * - 数字相关：纯数字（如任务次数 "1/3"）
+     * - 单字（信息量太低）
+     */
+    private val TASK_STOPWORDS = setOf(
+        "去完成", "去逛逛", "去浏览", "去下单", "去搜索", "去看", "去试玩",
+        "领取", "立即领取", "开心收下", "收下", "知道了", "好的",
+        "已完成", "完成", "已领取", "未完成",
+        "立即", "马上", "前往",
+        "任务", "奖励", "肥料", "得", "可得", "可领取",
+        "去", "看", "玩", "得", "了", "的", "和", "与",
+        "1/3", "2/3", "3/3"
+    )
+
+    /**
      * 提取当前页面场景特征
      *
      * @param service 无障碍服务实例
      * @param controllerState 当前状态机状态名（如 "BROWSING_TASK"）
+     * @param taskButton 当前任务按钮节点（仅 PROCESSING_TASK 决策点传入，用于提取任务行上下文关键词）
+     *                   传入时会把任务行描述文本提取为关键词，区分不同任务内容的规则
      */
-    fun extract(service: FarmAccessibilityService, controllerState: String): SceneFeatures {
+    fun extract(
+        service: FarmAccessibilityService,
+        controllerState: String,
+        taskButton: AccessibilityNodeInfo? = null
+    ): SceneFeatures {
         // 页面定位
         val pkg = service.getCurrentWindowPackage() ?: "null"
         val activity = service.getCurrentActivityName() ?: "null"
@@ -58,6 +81,9 @@ object SceneFeatureExtractor {
         val pageTexts = root?.let { collectTexts(it) } ?: emptyList()
         val clickableButtons = root?.let { collectClickableTexts(it) } ?: emptyList()
 
+        // 任务内容关键词：仅当传入 taskButton 时提取（PROCESSING_TASK 决策点 / 录制点击事件）
+        val taskKeywords = taskButton?.let { extractTaskKeywords(service, it) } ?: emptyList()
+
         return SceneFeatures(
             windowPackage = pkg,
             windowActivity = activity,
@@ -77,8 +103,45 @@ object SceneFeatureExtractor {
             hasRewardUpgradePopup = hasRewardUpgrade,
             pageTexts = pageTexts.take(30),
             clickableButtons = clickableButtons.distinct().take(20),
-            controllerState = controllerState
+            controllerState = controllerState,
+            taskContentKeywords = taskKeywords
         )
+    }
+
+    /**
+     * 从任务按钮所在行的上下文文本中提取任务内容关键词
+     *
+     * - 调用 [FarmAccessibilityService.collectTaskContextText] 获取任务行描述
+     * - 按标点/空格切分，过滤停用词 / 纯数字 / 单字
+     * - 取前 5 个关键词（去重，保持出现顺序）
+     * - 失败时返回空列表（不影响 signature）
+     *
+     * @return 任务内容关键词列表（如 ["浏览", "精选", "好物"]），最多 5 个
+     */
+    private fun extractTaskKeywords(
+        service: FarmAccessibilityService,
+        taskButton: AccessibilityNodeInfo
+    ): List<String> {
+        return try {
+            val contextText = service.collectTaskContextText(taskButton)
+            if (contextText.isBlank()) return emptyList()
+            // 按标点 / 空格 / 数字边界切分
+            val tokens = contextText.split(Regex("[\\s,，。.；;、:：!！?？/]+"))
+            val keywords = mutableListOf<String>()
+            for (token in tokens) {
+                val t = token.trim()
+                if (t.isEmpty()) continue
+                if (t in TASK_STOPWORDS) continue
+                if (t.matches(Regex("\\d+"))) continue              // 纯数字
+                if (t.length < 2) continue                           // 单字信息量太低
+                if (t.any { it.isDigit() } && t.length <= 3) continue // "15秒"等数字+单位太具体，不稳定
+                if (t !in keywords) keywords.add(t)
+                if (keywords.size >= 5) break
+            }
+            keywords
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     /** 递归收集节点树所有文本（同 [FarmAccessibilityService.collectAllText]，避免改可见性） */

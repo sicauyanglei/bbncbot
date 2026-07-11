@@ -72,7 +72,17 @@ data class SceneFeatures(
     val clickableButtons: List<String>,
 
     /** 当前状态机状态名（如 BROWSING_TASK / PROCESSING_TASK） */
-    val controllerState: String
+    val controllerState: String,
+
+    /**
+     * 当前任务的内容关键词（任务列表里任务行的描述关键词）
+     *
+     * - 仅在 PROCESSING_TASK 状态点击"去完成"按钮时提取（来自任务行上下文文本）
+     * - 用于区分"浏览X商品""看广告""签到"等不同任务内容
+     * - 录制规则时记录，执行规则时只有任务内容相关的规则才命中
+     * - 空列表表示非任务列表场景（如浏览页/农场主页），不影响 signature
+     */
+    val taskContentKeywords: List<String> = emptyList()
 ) {
     /**
      * 生成场景签名：用于规则匹配的稳定键
@@ -111,6 +121,10 @@ data class SceneFeatures(
         if (clickableButtons.isNotEmpty()) {
             parts.add("btns=${clickableButtons.toSet().toList().sorted().joinToString(",")}")
         }
+        // 任务内容关键词（区分"浏览X商品""看广告"等不同任务，仅 PROCESSING_TASK 阶段有值）
+        if (taskContentKeywords.isNotEmpty()) {
+            parts.add("task=${taskContentKeywords.sorted().joinToString(",")}")
+        }
         return parts.joinToString("|")
     }
 
@@ -141,7 +155,10 @@ data class SceneFeatures(
         else parts.add("countdown=no")
         if (hasBrowseProgressHint) parts.add("progress=yes")
         else parts.add("progress=no")
-        // 不含 btns 字段
+        // 不含 btns 字段，但保留 task= 字段（任务内容是规则匹配的核心维度，不能被自动归类忽略）
+        if (taskContentKeywords.isNotEmpty()) {
+            parts.add("task=${taskContentKeywords.sorted().joinToString(",")}")
+        }
         return parts.joinToString("|")
     }
 
