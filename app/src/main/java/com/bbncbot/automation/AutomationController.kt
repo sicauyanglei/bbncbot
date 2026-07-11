@@ -2935,6 +2935,18 @@ object AutomationController {
     private fun checkAdClosed(service: FarmAccessibilityService, lastStrategy: Int) {
         if (state != AutomationState.CLOSING_AD) return
 
+        // 优先检测"肥料已发放"提示页：广告结束后弹出的奖励到账提示
+        // 出现此提示说明广告已结束、肥料已到账，直接回芭芭农场主页
+        if (service.isFertilizerGrantedPage()) {
+            Log.i(TAG, "closeAd: fertilizer granted page detected, ad finished")
+            service.setAdMode(false)
+            collectedCount++
+            Log.i(TAG, "=== FERTILIZER COLLECTED! (total: $collectedCount) ===")
+            moveTo(AutomationState.RETURNING)
+            handler.postDelayed({ runReturning(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
         // 广告已关闭
         if (!service.isAdActivity() && !service.isAdPlaying()) {
             Log.i(TAG, "closeAd: ad closed successfully (strategy #$lastStrategy)")

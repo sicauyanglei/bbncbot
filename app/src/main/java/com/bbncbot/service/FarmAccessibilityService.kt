@@ -2053,6 +2053,31 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 检测是否是"肥料已发放"奖励到账提示页
+     *
+     * 用户场景：广告观看结束后，页面弹出"肥料已发放"提示（或类似文案），
+     * 表示奖励已到账，应立即回到芭芭农场主页，不要再尝试关闭广告。
+     *
+     * 识别文本示例：
+     * - "肥料已发放" / "肥料已发放到账户" / "肥料已发放成功"
+     * - "奖励已发放" / "奖励已到账"
+     *
+     * @return true 表示当前页面是肥料到账提示页
+     */
+    fun isFertilizerGrantedPage(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        val granted = allText.any { text ->
+            text.contains("肥料已发放") || text.contains("奖励已发放") ||
+                text.contains("奖励已到账") || text.contains("肥料已到账")
+        }
+        if (granted) {
+            debugLog("isFertilizerGrantedPage: YES, sample=${allText.take(5)}")
+        }
+        return granted
+    }
+
+    /**
      * 检测浏览任务页面是否有"每浏览x秒获得一次奖励"进度提示
      *
      * 用户场景：浏览任务页面会显示"每浏览15秒获得一次奖励"等进度提示，
