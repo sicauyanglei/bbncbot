@@ -1418,15 +1418,22 @@ object AutomationController {
             return
         }
 
-        // 优先检测：是否显示了"肥料已发放/已获得肥料"等奖励到账提示 → 任务完成，退出
+        // 优先检测：是否显示了"肥料已发放/已获得肥料"等奖励到账提示 → 任务完成，直接回农场主页
         // 注意：此检测用 rootInActiveWindowSafe，能覆盖 WebView 内的文案
         // isTaskCompletePage 故意排除了"获得肥料"关键词（进行中页面也会显示"已获得肥料 xxx"），
         // 但纯粹的"已获得肥料"（无数字后缀）是任务完成信号，这里单独检测
+        // 直接走 RETURNING：reopenFarmByDeepLink 会 kill 目标 App + 用桌面快捷方式重开农场页，
+        // 不依赖返回键（WebView 里返回键不可靠）
         if (service.isFertilizerGrantedPage()) {
-            debugLog("browseTask: fertilizer granted page detected, exiting (swipes=$swipeCount/$browseTaskTargetSwipes)")
+            debugLog("browseTask: fertilizer granted page detected, exiting via RETURNING (swipes=$swipeCount/$browseTaskTargetSwipes)")
+            service.dumpScreenshotWithMeta("browse", state.name, browseTaskTargetSwipes, "exit_fertilizer_granted")
+            service.endDumpSession()
             currentTaskIndex++
             collectedCount++
-            exitBrowsePage(service, reason = "fertilizer_granted")
+            browseFromSearchBrowse = false
+            browseFromDirectPopup = false
+            moveTo(AutomationState.RETURNING)
+            handler.postDelayed({ runReturning(0) }, INTERVAL_CLICK_MS)
             return
         }
 
@@ -1646,31 +1653,17 @@ object AutomationController {
             }
             // 检测是否已完成任务（得到肥料）
             if (service.isFertilizerGrantedPage()) {
-                debugLog("browseTask: fertilizer granted detected during swipe, exiting")
+                debugLog("browseTask: fertilizer granted detected during swipe, exiting via RETURNING")
                 service.dumpScreenshotWithMeta("browse", state.name, browseTaskTargetSwipes, "exit_fertilizer_granted_in_swipe")
                 service.endDumpSession()
-                val closeBtn = service.findAdCloseButton()
-                val backIcon = service.findBackIcon()
-                when {
-                    closeBtn != null -> { debugLog("browseTask: clicking close icon"); service.performClickSafe(closeBtn) }
-                    backIcon != null -> { debugLog("browseTask: clicking back icon"); service.performClickSafe(backIcon) }
-                    else -> { debugLog("browseTask: pressing back"); service.pressBack() }
-                }
                 collectedCount++
                 currentTaskIndex++
-                handler.postDelayed({
-                    if (!service.isOnFarmPage()) {
-                        service.pressBack()
-                    }
-                    handler.postDelayed({
-                        if (state == AutomationState.BROWSING_TASK) {
-                            browseFromSearchBrowse = false
-                            browseFromDirectPopup = false
-                            moveTo(AutomationState.RETURNING)
-                            runReturning(0)
-                        }
-                    }, INTERVAL_PAGE_LOAD_MS)
-                }, INTERVAL_PAGE_LOAD_MS)
+                // 直接走 RETURNING：reopenFarmByDeepLink 会 kill 目标 App 老进程 +
+                // 用桌面快捷方式/deep link 重新打开农场页，不依赖返回键（WebView 里返回键不可靠）
+                browseFromSearchBrowse = false
+                browseFromDirectPopup = false
+                moveTo(AutomationState.RETURNING)
+                handler.postDelayed({ runReturning(0) }, INTERVAL_CLICK_MS)
                 return@postDelayed
             }
             // 检测是否已完成任务（得到肥料）
