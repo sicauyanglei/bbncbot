@@ -141,17 +141,16 @@ object LogUploader {
             if (uploadFile !== localFile) uploadFile.delete()
         }
 
-        // 2. 规则数据
+        // 2. 规则数据：用 Pair<本地文件, 远端路径> 直接拼好，避免 Triple 3 元组不够用
         val ruleFiles = listOf(
-            Triple(sceneRulesFile, "scene_rules", "rules", "json"),
-            Triple(rulesExplanationFile, "rules_explanation", "rules", "txt")
+            sceneRulesFile to "rules/scene_rules_${tag}_${ts}.json",
+            rulesExplanationFile to "rules/rules_explanation_${tag}_${ts}.txt"
         )
-        for ((localFile, namePrefix, subDir, ext) in ruleFiles) {
+        for ((localFile, remotePath) in ruleFiles) {
             if (!localFile.exists() || localFile.length() == 0L) {
                 errors.add("${localFile.name}: 文件不存在或为空")
                 continue
             }
-            val remotePath = "$subDir/${namePrefix}_${tag}_${ts}.$ext"
             val (ok, err) = uploadFile(token, remotePath, localFile, "upload ${localFile.name} ($tag)")
             if (ok) success++ else errors.add("${localFile.name}: $err")
         }
