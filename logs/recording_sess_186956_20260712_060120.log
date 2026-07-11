@@ -1,0 +1,281 @@
+=== recording.log cleared on app start (version=2.1/12, time=05:52:22.676) ===
+05:55:45.218 === 录制开始 session=sess_1783806945217 name='流程5215' ===
+05:55:45.262 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 芭芭农场,种果树得水果，助农增收) → 尝试 OCR 兜底
+05:55:45.266 [start] FERTILIZER_READ_FAIL reason=exception:Services don't have the capability of taking the screenshot.
+05:55:55.025 === 录制开始 session=sess_1783806955025 name='流程5024' ===
+05:55:56.336 CLICK_H5 type=0x800 target='已领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,得1000肥 三国冰河,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+05:55:56.338 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:55:59.284 CLICK_H5 type=0x20 target='签到成功！每天来芭芭农场，更快1分钱领水果~' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|btns=任务列表,关闭做任务集肥料弹窗,农场乐园入口,切换摇钱树,前往手机淘宝-芭芭农场,去分享,去喂鸡,去完成,去逛逛,向僵尸开炮,得1000肥 三国冰河,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,连续签到任务规则,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,向僵尸开炮,关闭做任务集肥料弹窗,连续签到任务规则,去完成,去逛逛,去喂鸡,去分享,前往手机淘宝-芭芭农场,返回,支付宝·芭芭农场,更多]
+05:55:59.285 MATCHED name='支付宝-浏览任务-点击滑动浏览14秒得肥料' action=CLICK_BUTTON
+05:55:59.547 CLICK_H5 type=0x800 target='已领取' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|btns=任务列表,关闭做任务集肥料弹窗,农场乐园入口,切换摇钱树,前往手机淘宝-芭芭农场,去分享,去喂鸡,去完成,去逛逛,向僵尸开炮,得1000肥 三国冰河,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,连续签到任务规则,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,向僵尸开炮,关闭做任务集肥料弹窗,连续签到任务规则,去完成,去逛逛,去喂鸡,去分享,前往手机淘宝-芭芭农场,返回,支付宝·芭芭农场,更多]
+05:55:59.548 MATCHED name='支付宝-浏览任务-点击滑动浏览14秒得肥料' action=CLICK_BUTTON
+05:56:00.474 CLICK_H5 type=0x800 target='关闭做任务集肥料弹窗' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=返回' btns=[返回]
+05:56:00.475 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+05:56:01.142 CLICK_H5 type=0x800 target='“抢”青海农货得6万肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=返回' btns=[返回]
+05:56:01.144 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:56:01.490 CLICK_H5 type=0x800 target='囤高原特产，得6万肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=返回' btns=[返回]
+05:56:01.494 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:56:01.828 CLICK_H5 type=0x800 target='农货百款 等你来“挑”' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=返回' btns=[返回]
+05:56:01.830 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:56:14.109 CLICK_H5 type=0x800 target='青海好农货正热销！' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=返回' btns=[返回]
+05:56:14.110 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:56:38.563 CLICK_H5 type=0x800 target='青海好农货正热销！' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=返回' btns=[返回]
+05:56:38.567 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:56:39.304 CLICK_H5 type=0x800 target='“抢”高原鲜货 得6万肥' sig='p=ALIPAY|farm=true|type=complete|countdown=no|progress=no|btns=返回' btns=[返回]
+05:56:39.305 MATCHED name='支付宝-任务完成-点击立即签到' action=CLICK_BUTTON
+05:56:42.183 CLICK_H5 type=0x800 target='任务列表' sig='p=ALIPAY|farm=true|type=browse|popup=red_packet|countdown=no|progress=yes|btns=任务列表,关闭做任务集肥料弹窗,农场乐园入口,切换摇钱树,前往手机淘宝-芭芭农场,去分享,去喂鸡,去完成,去逛逛,向僵尸开炮,得1000肥 三国冰河,我的收获,支付宝·芭芭农场,灵画师,继续逛,返回,还差3次领肥料,连续签到任务规则,逛农货,钓红包|task=任务列表 农场乐园入口 切换摇钱树 逛农货 我的收获' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,向僵尸开炮,关闭做任务集肥料弹窗,连续签到任务规则,去完成,继续逛,去逛逛,去喂鸡,去分享,前往手机淘宝-芭芭农场,返回,支付宝·芭芭农场]
+05:56:42.185 RECORD sig='p=ALIPAY|farm=true|type=browse|popup=red_packet|countdown=no|progress=yes|btns=任务列表,关闭做任务集肥料弹窗,农场乐园入口,切换摇钱树,前往手机淘宝-芭芭农场,去分享,去喂鸡,去完成,去逛逛,向僵尸开炮,得1000肥 三国冰河,我的收获,支付宝·芭芭农场,灵画师,继续逛,返回,还差3次领肥料,连续签到任务规则,逛农货,钓红包|task=任务列表 农场乐园入口 切换摇钱树 逛农货 我的收获' category='支付宝-任务列表 农场乐园入口 切换摇钱树 逛农货 我的收获-红包弹窗-点击任务列表' action=CLICK_BUTTON target='任务列表' state=IDLE btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,向僵尸开炮,关闭做任务集肥料弹窗,连续签到任务规则,去完成,继续逛,去逛逛,去喂鸡,去分享,前往手机淘宝-芭芭农场,返回,支付宝·芭芭农场]
+05:56:42.186 AUTO_CREATE name='支付宝-任务列表 农场乐园入口 切换摇钱树 逛农货 我的收获-红包弹窗-点击任务列表' action=CLICK_BUTTON session=sess_1783806945217 step=10 sig='p=ALIPAY|farm=true|type=browse|popup=red_packet|countdown=no|progress=yes|btns=任务列表,关闭做任务集肥料弹窗,农场乐园入口,切换摇钱树,前往手机淘宝-芭芭农场,去分享,去喂鸡,去完成,去逛逛,向僵尸开炮,得1000肥 三国冰河,我的收获,支付宝·芭芭农场,灵画师,继续逛,返回,还差3次领肥料,连续签到任务规则,逛农货,钓红包|task=任务列表 农场乐园入口 切换摇钱树 逛农货 我的收获'
+05:56:42.731 CLICK_H5 type=0x800 target='大额' sig='p=ALIPAY|farm=true|type=browse|popup=red_packet|countdown=no|progress=yes|btns=任务列表,关闭做任务集肥料弹窗,农场乐园入口,切换摇钱树,前往手机淘宝-芭芭农场,去分享,去喂鸡,去完成,去逛逛,向僵尸开炮,得1000肥 三国冰河,我的收获,支付宝·芭芭农场,灵画师,继续逛,返回,还差3次领肥料,连续签到任务规则,逛农货,钓红包|task=任务列表' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,向僵尸开炮,关闭做任务集肥料弹窗,连续签到任务规则,去完成,继续逛,去逛逛,去喂鸡,去分享,前往手机淘宝-芭芭农场,返回,支付宝·芭芭农场]
+05:56:42.732 RECORD sig='p=ALIPAY|farm=true|type=browse|popup=red_packet|countdown=no|progress=yes|btns=任务列表,关闭做任务集肥料弹窗,农场乐园入口,切换摇钱树,前往手机淘宝-芭芭农场,去分享,去喂鸡,去完成,去逛逛,向僵尸开炮,得1000肥 三国冰河,我的收获,支付宝·芭芭农场,灵画师,继续逛,返回,还差3次领肥料,连续签到任务规则,逛农货,钓红包|task=任务列表' category='支付宝-任务列表-红包弹窗-点击大额' action=CLICK_BUTTON target='大额' state=IDLE btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,向僵尸开炮,关闭做任务集肥料弹窗,连续签到任务规则,去完成,继续逛,去逛逛,去喂鸡,去分享,前往手机淘宝-芭芭农场,返回,支付宝·芭芭农场]
+05:56:42.733 AUTO_CREATE name='支付宝-任务列表-红包弹窗-点击大额' action=CLICK_BUTTON session=sess_1783806945217 step=11 sig='p=ALIPAY|farm=true|type=browse|popup=red_packet|countdown=no|progress=yes|btns=任务列表,关闭做任务集肥料弹窗,农场乐园入口,切换摇钱树,前往手机淘宝-芭芭农场,去分享,去喂鸡,去完成,去逛逛,向僵尸开炮,得1000肥 三国冰河,我的收获,支付宝·芭芭农场,灵画师,继续逛,返回,还差3次领肥料,连续签到任务规则,逛农货,钓红包|task=任务列表'
+05:56:42.983 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=parse_failed (找到施肥按钮但自身/父节点/子树/整页均无'肥料XXXX'格式；text=' 合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥' desc=''；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 芭芭农场,种果树得水果，助农增收) → 尝试 OCR 兜底
+05:56:42.986 [stop] FERTILIZER_READ_FAIL reason=exception:Services don't have the capability of taking the screenshot.
+05:56:42.988 === 录制结束 session=sess_1783806945217 DISCARD reason=肥料读取失败且无步骤(initial=-1 final=-1)，未录制任何操作 steps=0 ===
+05:56:53.441 LOG_UPLOAD_RESULT n=6 tag=sess_945217 detail=上传成功：6 个文件（tag=sess_945217，含 0 张截图）
+05:56:53.919 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 芭芭农场,种果树得水果，助农增收) → 尝试 OCR 兜底
+05:56:53.921 [start] FERTILIZER_READ_FAIL reason=exception:Services don't have the capability of taking the screenshot.
+05:56:57.029 CLICK_H5 type=0x800 target='已领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,得1000肥 三国冰河,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+05:56:57.033 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:56:58.210 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,得1000肥 三国冰河,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+05:56:58.211 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:00.098 === 录制开始 session=sess_1783807020098 name='流程97' ===
+05:57:10.634 CLICK_H5 type=0x800 target='14s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:10.636 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:13.214 CLICK_H5 type=0x800 target='13s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:13.215 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:14.783 CLICK_H5 type=0x800 target='12s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:14.784 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:16.404 CLICK_H5 type=0x800 target='11s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:16.405 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:19.022 CLICK_H5 type=0x800 target='10s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:19.024 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:21.814 CLICK_H5 type=0x800 target='9s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:21.814 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:24.348 CLICK_H5 type=0x800 target='8s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:24.357 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:26.526 CLICK_H5 type=0x800 target='7s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:26.528 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:28.220 CLICK_H5 type=0x800 target='6s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:28.221 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:29.709 CLICK_H5 type=0x800 target='5s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:29.710 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:31.051 CLICK_H5 type=0x800 target='4s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:31.052 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:32.573 CLICK_H5 type=0x800 target='3s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:32.573 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:34.313 CLICK_H5 type=0x800 target='2s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:34.314 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:36.354 CLICK_H5 type=0x800 target='1s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:36.357 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:38.271 CLICK_H5 type=0x800 target='0s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:38.273 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:39.059 CLICK_H5 type=0x800 target='已领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:39.063 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:39.211 CLICK_H5 type=0x800 target='15s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:39.215 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:40.779 CLICK_H5 type=0x800 target='14s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:40.780 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:42.176 CLICK_H5 type=0x800 target='13s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:42.179 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:44.502 CLICK_H5 type=0x800 target='12s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:44.502 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:46.271 CLICK_H5 type=0x800 target='11s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:46.273 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:48.546 CLICK_H5 type=0x800 target='10s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:48.548 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:50.262 CLICK_H5 type=0x800 target='9s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:50.262 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:51.841 CLICK_H5 type=0x800 target='8s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:51.842 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:54.629 CLICK_H5 type=0x800 target='7s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:54.630 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:56.238 CLICK_H5 type=0x800 target='6s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:56.238 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:57.858 CLICK_H5 type=0x800 target='5s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:57.860 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:57:59.469 CLICK_H5 type=0x800 target='4s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:57:59.470 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:01.018 CLICK_H5 type=0x800 target='3s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:01.020 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:02.549 CLICK_H5 type=0x800 target='2s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:02.549 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:04.119 CLICK_H5 type=0x800 target='1s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:04.120 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:05.464 CLICK_H5 type=0x800 target='0s后领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:05.466 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:05.584 CLICK_H5 type=0x800 target='已领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:05.585 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:06.193 CLICK_H5 type=0x800 target='已领取全部奖励' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:06.194 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:29.152 === 录制开始 session=sess_1783807109152 name='流程9151' ===
+05:58:38.775 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:38.778 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:38.843 CLICK_H5 type=0x800 target='逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:38.844 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:38.904 CLICK_H5 type=0x800 target='继续逛' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:38.904 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:39.043 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 更多 |  | 关闭 |  | https://render.alipa | Smallfish App | 玩60秒 | 得肥料) → 尝试 OCR 兜底
+05:58:39.045 [stop] FERTILIZER_READ_FAIL reason=exception:Services don't have the capability of taking the screenshot.
+05:58:39.046 === 录制结束 session=sess_1783806955025 KEEP reason=肥料读取失败(initial=-1 final=-1)，但已录制 12 步，保留规则 steps=12 ===
+05:58:49.998 LOG_UPLOAD_RESULT n=6 tag=sess_955025 detail=上传成功：6 个文件（tag=sess_955025，含 0 张截图）
+05:58:50.012 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 更多 |  | 关闭 |  | https://render.alipa | Smallfish App | 玩60秒 | 得肥料) → 尝试 OCR 兜底
+05:58:50.016 [start] FERTILIZER_READ_FAIL reason=exception:Services don't have the capability of taking the screenshot.
+05:58:50.079 CLICK_H5 type=0x800 target='得1000肥 三国冰河' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:50.079 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:50.370 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:50.373 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:50.598 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:50.599 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:50.754 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:50.756 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:51.493 CLICK_H5 type=0x800 target='Smallfish App' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:51.495 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:52.659 CLICK_H5 type=0x800 target='肥料奖励' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:52.660 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:52.799 CLICK_H5 type=0x800 target='已发放' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:52.801 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:53.242 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:53.243 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:53.417 CLICK_H5 type=0x800 target='“抢”青海农货得6万肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:53.421 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:53.546 CLICK_H5 type=0x800 target='农货百款 等你来“挑”' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:53.547 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:53.670 CLICK_H5 type=0x800 target='囤高原特产，得6万肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:53.671 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:53.829 CLICK_H5 type=0x800 target='“抢”高原鲜货 得6万肥' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:53.830 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:54.070 CLICK_H5 type=0x800 target='每日最高120300肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:54.072 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:54.160 CLICK_H5 type=0x800 target='三国冰河' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:54.161 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:54.242 CLICK_H5 type=0x800 target='得1000肥 灵画师' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:54.244 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:54.926 CLICK_H5 type=0x800 target='更多游戏' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:54.927 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:56.098 CLICK_H5 type=0x800 target='关闭农场乐园弹窗' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:56.101 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:56.543 CLICK_H5 type=0x800 target='囤高原特产，得6万肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:56.544 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:56.743 CLICK_H5 type=0x800 target='青海好农货正热销！' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:56.744 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:56.874 CLICK_H5 type=0x800 target='“抢”高原鲜货 得6万肥' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:56.875 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:56.984 CLICK_H5 type=0x800 target='“抢”青海农货得6万肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:56.985 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:57.161 CLICK_H5 type=0x800 target='每日最高120300肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:57.162 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:57.244 CLICK_H5 type=0x800 target='农货百款 等你来“挑”' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:58:57.246 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:58:57.255 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 更多 |  | 关闭 |  | https://render.alipa | Smallfish App | 玩60秒 | 得肥料) → 尝试 OCR 兜底
+05:58:57.258 [stop] FERTILIZER_READ_FAIL reason=exception:Services don't have the capability of taking the screenshot.
+05:58:57.259 === 录制结束 session=sess_1783807020098 KEEP reason=肥料读取失败(initial=-1 final=-1)，但已录制 34 步，保留规则 steps=34 ===
+05:59:08.734 LOG_UPLOAD_RESULT n=6 tag=sess_020098 detail=上传成功：6 个文件（tag=sess_020098，含 0 张截图）
+05:59:08.761 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 更多 |  | 关闭 |  | https://render.alipa | Smallfish App | 玩60秒 | 得肥料) → 尝试 OCR 兜底
+05:59:08.767 [start] FERTILIZER_READ_FAIL reason=exception:Services don't have the capability of taking the screenshot.
+05:59:08.853 CLICK_H5 type=0x800 target='得1000肥 灵画师' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:59:08.856 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:59:09.161 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:59:09.162 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:59:09.469 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:59:09.471 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:59:09.591 CLICK_H5 type=0x800 target='灵画师' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:59:09.592 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:59:10.202 CLICK_H5 type=0x800 target='Smallfish App' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多|task=https://render.alipay.com/p/c//index.html?caprMode=sync Smallfish App' btns=[更多,关闭]
+05:59:10.206 RECORD sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多|task=https://render.alipay.com/p/c//index.html?caprMode=sync Smallfish App' category='支付宝-https://render.alipay.com/p/c//index.html?caprMode=sync Smallfish App-点击Smallfish App' action=CLICK_BUTTON target='Smallfish App' state=IDLE btns=[更多,关闭]
+05:59:10.207 AUTO_CREATE name='支付宝-https://render.alipay.com/p/c//index.html?caprMode=sync Smallfish App-点击Smallfish App' action=CLICK_BUTTON session=sess_1783807109152 step=30 sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多|task=https://render.alipay.com/p/c//index.html?caprMode=sync Smallfish App'
+05:59:35.338 CLICK_H5 type=0x800 target='肥料奖励' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=关闭,更多|task=肥料奖励 已发放' btns=[更多,关闭]
+05:59:35.340 RECORD sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=关闭,更多|task=肥料奖励 已发放' category='支付宝-肥料奖励 已发放-点击肥料奖励' action=CLICK_BUTTON target='肥料奖励' state=IDLE btns=[更多,关闭]
+05:59:35.342 AUTO_CREATE name='支付宝-肥料奖励 已发放-点击肥料奖励' action=CLICK_BUTTON session=sess_1783807109152 step=31 sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=关闭,更多|task=肥料奖励 已发放'
+05:59:35.514 CLICK_H5 type=0x800 target='已发放' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=关闭,更多|task=肥料奖励 已发放' btns=[更多,关闭]
+05:59:35.515 MATCHED name='支付宝-肥料奖励 已发放-点击肥料奖励' action=CLICK_BUTTON
+05:59:35.700 CLICK_H5 type=0x800 target='Smallfish App' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=关闭,更多|task=https://render.alipay.com/p/c//index.html?caprMode=sync Smallfish App' btns=[更多,关闭]
+05:59:35.701 RECORD sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=关闭,更多|task=https://render.alipay.com/p/c//index.html?caprMode=sync Smallfish App' category='支付宝-https://render.alipay.com/p/c//index.html?caprMode=sync Smallfish App-点击Smallfish App' action=CLICK_BUTTON target='Smallfish App' state=IDLE btns=[更多,关闭]
+05:59:35.702 AUTO_CREATE name='支付宝-https://render.alipay.com/p/c//index.html?caprMode=sync Smallfish App-点击Smallfish App' action=CLICK_BUTTON session=sess_1783807109152 step=33 sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=关闭,更多|task=https://render.alipay.com/p/c//index.html?caprMode=sync Smallfish App'
+05:59:41.984 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,得1000肥 向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+05:59:41.985 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:59:43.933 CLICK_H5 type=0x800 target='农货百款 等你来“挑”' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 青海好农货正热销！ “抢”高原鲜货 得6万肥 农货百款 等你来“挑” “抢”青海农货得6万肥料 囤高原特产，得6万肥料 每日最高120300肥料 每日最高120300肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,得1000肥 向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+05:59:43.934 RECORD sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 青海好农货正热销！ “抢”高原鲜货 得6万肥 农货百款 等你来“挑” “抢”青海农货得6万肥料 囤高原特产，得6万肥料 每日最高120300肥料 每日最高120300肥料' category='支付宝-农货百款 等你来“挑” 青海好农货正热销！ “抢”高原鲜货 得6万肥 农货百款 等你来“挑” “抢”青海农货得6万肥料 囤高原特产，得6万肥料 每日最高120300肥料 每日最高120300肥料-点击农货百款 等你来“挑”' action=CLICK_BUTTON target='农货百款 等你来“挑”' state=IDLE btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,得1000肥 向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+05:59:43.935 AUTO_CREATE name='支付宝-农货百款 等你来“挑” 青海好农货正热销！ “抢”高原鲜货 得6万肥 农货百款 等你来“挑” “抢”青海农货得6万肥料 囤高原特产，得6万肥料 每日最高120300肥料 每日最高120300肥料-点击农货百款 等你来“挑”' action=CLICK_BUTTON session=sess_1783807109152 step=35 sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 青海好农货正热销！ “抢”高原鲜货 得6万肥 农货百款 等你来“挑” “抢”青海农货得6万肥料 囤高原特产，得6万肥料 每日最高120300肥料 每日最高120300肥料'
+05:59:44.374 CLICK_H5 type=0x800 target='“抢”高原鲜货 得6万肥' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 青海好农货正热销！ “抢”高原鲜货 得6万肥 农货百款 等你来“挑” “抢”青海农货得6万肥料 囤高原特产，得6万肥料 每日最高120300肥料 每日最高120300肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,得1000肥 向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+05:59:44.376 MATCHED name='支付宝-农货百款 等你来“挑” 青海好农货正热销！ “抢”高原鲜货 得6万肥 农货百款 等你来“挑” “抢”青海农货得6万肥料 囤高原特产，得6万肥料 每日最高120300肥料 每日最高120300肥料-点击农货百款 等你来“挑”' action=CLICK_BUTTON
+05:59:44.858 CLICK_H5 type=0x800 target='每日最高120300肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 青海好农货正热销！ “抢”高原鲜货 得6万肥 农货百款 等你来“挑” “抢”青海农货得6万肥料 囤高原特产，得6万肥料 每日最高120300肥料 每日最高120300肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,得1000肥 向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+05:59:44.861 MATCHED name='支付宝-农货百款 等你来“挑” 青海好农货正热销！ “抢”高原鲜货 得6万肥 农货百款 等你来“挑” “抢”青海农货得6万肥料 囤高原特产，得6万肥料 每日最高120300肥料 每日最高120300肥料-点击农货百款 等你来“挑”' action=CLICK_BUTTON
+05:59:45.349 CLICK_H5 type=0x800 target='青海好农货正热销！' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 青海好农货正热销！ “抢”高原鲜货 得6万肥 农货百款 等你来“挑” “抢”青海农货得6万肥料 囤高原特产，得6万肥料 每日最高120300肥料 每日最高120300肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,得1000肥 向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+05:59:45.350 MATCHED name='支付宝-农货百款 等你来“挑” 青海好农货正热销！ “抢”高原鲜货 得6万肥 农货百款 等你来“挑” “抢”青海农货得6万肥料 囤高原特产，得6万肥料 每日最高120300肥料 每日最高120300肥料-点击农货百款 等你来“挑”' action=CLICK_BUTTON
+05:59:45.689 CLICK_H5 type=0x800 target='囤高原特产，得6万肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 青海好农货正热销！ “抢”高原鲜货 得6万肥 农货百款 等你来“挑” “抢”青海农货得6万肥料 囤高原特产，得6万肥料 每日最高120300肥料 每日最高120300肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,得1000肥 向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+05:59:45.692 MATCHED name='支付宝-农货百款 等你来“挑” 青海好农货正热销！ “抢”高原鲜货 得6万肥 农货百款 等你来“挑” “抢”青海农货得6万肥料 囤高原特产，得6万肥料 每日最高120300肥料 每日最高120300肥料-点击农货百款 等你来“挑”' action=CLICK_BUTTON
+05:59:46.080 CLICK_H5 type=0x800 target='灵画师' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=钓红包 亲友树 发起合种 三国冰河 灵画师 得1000肥 向僵尸开炮' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,得1000肥 向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+05:59:46.082 RECORD sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=钓红包 亲友树 发起合种 三国冰河 灵画师 得1000肥 向僵尸开炮' category='支付宝-钓红包 亲友树 发起合种 三国冰河 灵画师 得1000肥 向僵尸开炮-点击灵画师' action=CLICK_BUTTON target='灵画师' state=IDLE btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,得1000肥 向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+05:59:46.083 AUTO_CREATE name='支付宝-钓红包 亲友树 发起合种 三国冰河 灵画师 得1000肥 向僵尸开炮-点击灵画师' action=CLICK_BUTTON session=sess_1783807109152 step=40 sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=钓红包 亲友树 发起合种 三国冰河 灵画师 得1000肥 向僵尸开炮'
+05:59:46.246 CLICK_H5 type=0x800 target='得1000肥 向僵尸开炮' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=钓红包 亲友树 发起合种 三国冰河 灵画师 得1000肥 向僵尸开炮' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,得1000肥 向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+05:59:46.248 MATCHED name='支付宝-钓红包 亲友树 发起合种 三国冰河 灵画师 得1000肥 向僵尸开炮-点击灵画师' action=CLICK_BUTTON
+05:59:46.957 === 录制开始 session=sess_1783807186956 name='流程6955' ===
+05:59:47.143 CLICK_H5 type=0x800 target='关闭农场乐园弹窗' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,得1000肥 向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+05:59:47.143 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:59:49.016 CLICK_H5 type=0x800 target='青海好农货正热销！' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,得1000肥 向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 青海好农货正热销！ “抢”高原鲜货 得6万肥 农货百款 等你来“挑” “抢”青海农货得6万肥料 囤高原特产，得6万肥料 每日最高120300肥料 每日最高120300肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,得1000肥 向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+05:59:49.018 MATCHED name='支付宝-农货百款 等你来“挑” 青海好农货正热销！ “抢”高原鲜货 得6万肥 农货百款 等你来“挑” “抢”青海农货得6万肥料 囤高原特产，得6万肥料 每日最高120300肥料 每日最高120300肥料-点击农货百款 等你来“挑”' action=CLICK_BUTTON
+05:59:51.666 CLICK_H5 type=0x800 target='青海好农货正热销！' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:59:51.667 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+05:59:51.970 CLICK_H5 type=0x800 target='农货百款 等你来“挑”' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:59:51.970 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+05:59:52.249 CLICK_H5 type=0x800 target='囤高原特产，得6万肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:59:52.250 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+05:59:52.570 CLICK_H5 type=0x800 target='每日最高120300肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+05:59:52.572 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+05:59:52.710 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 正在加载资源(首次加载请耐心等待) | 更多 |  | 关闭 |  | https://render.alipa | Smallfish App | 玩60秒) → 尝试 OCR 兜底
+05:59:52.712 [stop] FERTILIZER_READ_FAIL reason=exception:Services don't have the capability of taking the screenshot.
+05:59:52.713 === 录制结束 session=sess_1783807109152 KEEP reason=肥料读取失败(initial=-1 final=-1)，但已录制 35 步，保留规则 steps=35 ===
+06:00:02.955 LOG_UPLOAD_RESULT n=6 tag=sess_109152 detail=上传成功：6 个文件（tag=sess_109152，含 0 张截图）
+06:00:03.052 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 更多 |  | 关闭 |  | https://render.alipa | Smallfish App | 玩60秒 | 得肥料) → 尝试 OCR 兜底
+06:00:03.057 [start] FERTILIZER_READ_FAIL reason=exception:Services don't have the capability of taking the screenshot.
+06:00:03.258 CLICK_H5 type=0x800 target='得1000肥 向僵尸开炮' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+06:00:03.259 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+06:00:03.585 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+06:00:03.586 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+06:00:03.760 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+06:00:03.760 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+06:00:03.832 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+06:00:03.832 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+06:00:04.304 CLICK_H5 type=0x800 target='Smallfish App' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多|task=https://render.alipay.com/p/c//index.html?caprMode=sync Smallfish App' btns=[更多,关闭]
+06:00:04.305 MATCHED name='支付宝-https://render.alipay.com/p/c//index.html?caprMode=sync Smallfish App-点击Smallfish App' action=CLICK_BUTTON
+06:00:04.456 CLICK_H5 type=0x800 target='初始化中' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+06:00:04.457 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+06:00:07.524 CLICK_H5 type=0x20 target='向僵尸开炮 申请 获取你剪切板的内容 用于粘贴组队邀请码、福利兑换码  拒绝 允许 总是保持以上选择，不再询问' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=了解详情,允许,勾选框,拒绝,用于粘贴组队邀请码、福利兑换码' btns=[用于粘贴组队邀请码、福利兑换码,了解详情,拒绝,允许,勾选框]
+06:00:07.524 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+06:01:00.620 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=关闭,更多' btns=[更多,关闭]
+06:01:00.622 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+06:01:04.466 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,三国冰河时代,任务列表,关闭农场乐园弹窗,农场乐园入口,农场分色瓶,农场对对碰,切换摇钱树,向僵尸开炮,向往的生活,我的收获,浪漫餐厅,灵画师,王者之弈,纸牌塔,花园世界,还差3次领肥料,逛农货,钓红包,青云诀' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,关闭农场乐园弹窗,三国冰河时代,花园世界,青云诀,纸牌塔,农场分色瓶,王者之弈,农场对对碰,向往的生活,浪漫餐厅]
+06:01:04.468 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+06:01:09.219 CLICK_H5 type=0x800 target='农货百款 等你来“挑”' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:09.220 RECORD sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料' category='支付宝-农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料-点击农货百款 等你来“挑”' action=CLICK_BUTTON target='农货百款 等你来“挑”' state=IDLE btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:09.220 AUTO_CREATE name='支付宝-农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料-点击农货百款 等你来“挑”' action=CLICK_BUTTON session=sess_1783807186956 step=15 sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料'
+06:01:09.714 CLICK_H5 type=0x800 target='每日最高120300肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:09.717 MATCHED name='支付宝-农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料-点击农货百款 等你来“挑”' action=CLICK_BUTTON
+06:01:10.169 CLICK_H5 type=0x800 target='“抢”高原鲜货 得6万肥' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:10.170 MATCHED name='支付宝-农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料-点击农货百款 等你来“挑”' action=CLICK_BUTTON
+06:01:10.616 CLICK_H5 type=0x800 target='囤高原特产，得6万肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:10.617 RECORD sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料' category='支付宝-农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料-点击囤高原特产，得6万肥料' action=CLICK_BUTTON target='囤高原特产，得6万肥料' state=IDLE btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:10.617 AUTO_CREATE name='支付宝-农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料-点击囤高原特产，得6万肥料' action=CLICK_BUTTON session=sess_1783807186956 step=18 sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料'
+06:01:11.284 CLICK_H5 type=0x800 target='向僵尸开炮' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=钓红包 亲友树 发起合种 三国冰河 灵画师 向僵尸开炮' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:11.285 RECORD sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=钓红包 亲友树 发起合种 三国冰河 灵画师 向僵尸开炮' category='支付宝-钓红包 亲友树 发起合种 三国冰河 灵画师 向僵尸开炮-点击向僵尸开炮' action=CLICK_BUTTON target='向僵尸开炮' state=IDLE btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:11.286 AUTO_CREATE name='支付宝-钓红包 亲友树 发起合种 三国冰河 灵画师 向僵尸开炮-点击向僵尸开炮' action=CLICK_BUTTON session=sess_1783807186956 step=19 sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=钓红包 亲友树 发起合种 三国冰河 灵画师 向僵尸开炮'
+06:01:13.247 CLICK_H5 type=0x800 target='Lazy Placement' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:13.250 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+06:01:13.779 CLICK_H5 type=0x800 target='更多游戏' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:13.781 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+06:01:15.520 CLICK_H5 type=0x20 target='玩游戏可获得砸蛋机会哦' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:15.523 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+06:01:16.460 CLICK_H5 type=0x800 target='关闭农场乐园弹窗' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:16.463 MATCHED name='支付宝-农场主页-点击支付宝' action=CLICK_BUTTON
+06:01:18.736 CLICK_H5 type=0x800 target='农货百款 等你来“挑”' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:18.739 MATCHED name='支付宝-农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料-点击囤高原特产，得6万肥料' action=CLICK_BUTTON
+06:01:19.175 CLICK_H5 type=0x800 target='囤高原特产，得6万肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:19.176 MATCHED name='支付宝-农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料-点击囤高原特产，得6万肥料' action=CLICK_BUTTON
+06:01:19.610 CLICK_H5 type=0x800 target='青海好农货正热销！' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:19.611 MATCHED name='支付宝-农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料-点击囤高原特产，得6万肥料' action=CLICK_BUTTON
+06:01:20.025 CLICK_H5 type=0x800 target='“抢”青海农货得6万肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=三国冰河,任务列表,关闭,农场乐园入口,切换摇钱树,向僵尸开炮,我的收获,支付宝·芭芭农场,更多,灵画师,返回,还差3次领肥料,逛农货,钓红包|task=农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:01:20.026 MATCHED name='支付宝-农货百款 等你来“挑” 农货百款 等你来“挑” 囤高原特产，得6万肥料 每日最高120300肥料 青海好农货正热销！ “抢”高原鲜货 得6万肥 “抢”青海农货得6万肥料 每日最高120300肥料-点击囤高原特产，得6万肥料' action=CLICK_BUTTON
+06:01:20.240 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 芭芭农场,种果树得水果，助农增收) → 尝试 OCR 兜底
+06:01:20.245 [stop] FERTILIZER_READ_FAIL reason=exception:Services don't have the capability of taking the screenshot.
+06:01:20.245 === 录制结束 session=sess_1783807186956 KEEP reason=肥料读取失败(initial=-1 final=-1)，但已录制 15 步，保留规则 steps=15 ===
