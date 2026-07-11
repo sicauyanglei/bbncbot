@@ -1,5 +1,6 @@
 package com.bbncbot.util
 
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
@@ -133,6 +134,11 @@ object FarmShortcutLauncher {
 
         val target = matched.firstOrNull() ?: return false
 
+        // 启动快捷方式前先 kill 目标平台的老进程
+        // 原因：目标 App 可能残留旧实例（旧 Activity 栈/缓存的 H5 页面），
+        // 直接启动快捷方式可能只是把旧实例拉到前台，无法回到干净的农场主页
+        killPlatformApps(context, platform)
+
         // 启动快捷方式（等同桌面点击）
         return try {
             val sourceBounds = Rect()
@@ -145,6 +151,33 @@ object FarmShortcutLauncher {
         } catch (e: Exception) {
             Log.w(TAG, "startFarmShortcut: startShortcut failed - ${e.message}")
             false
+        }
+    }
+
+    /**
+     * kill 指定平台的所有后台进程
+     *
+     * - 用 [ActivityManager.killBackgroundProcesses] 结束目标平台 App 的后台进程
+     * - killBackgroundProcesses 只能 kill 后台进程；若目标 App 在前台，需调用方确保已退到后台
+     *   （本 App 是默认桌面，startShortcut 前本 App 在前台，目标 App 通常在后台）
+     * - 普通 App 无 FORCE_STOP_PACKAGES 权限，这是可用最强手段
+     *
+     * @param context 上下文
+     * @param platform 目标平台
+     */
+    private fun killPlatformApps(context: Context, platform: Platform) {
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return
+        // 收集目标平台所有需要 kill 的包名（主包名 + 内部包名前缀对应的所有包）
+        // killBackgroundProcesses 需要精确包名，前缀无法直接用，
+        // 但主包名 kill 后，同进程组的内部 WebView 子包通常会被一起回收
+        val packages = platform.config.packageNames
+        for (pkg in packages) {
+            try {
+                am.killBackgroundProcesses(pkg)
+                Log.d(TAG, "killPlatformApps: killed $pkg for $platform")
+            } catch (e: Exception) {
+                Log.w(TAG, "killPlatformApps: failed to kill $pkg, ${e.message}")
+            }
         }
     }
 

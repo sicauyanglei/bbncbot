@@ -2698,6 +2698,11 @@ class FarmAccessibilityService : AccessibilityService() {
             debugLog("reopenFarmByDeepLink: no deep link for $targetPlatform, fallback to navigation")
             return false
         }
+        // 启动 deep link 前先 kill 目标平台老进程，确保回到干净的农场主页
+        // （避免旧实例残留 Activity 栈，deep link 只是把旧实例拉到前台）
+        for (pkg in targetPlatform.config.packageNames) {
+            forceKillApp(pkg, pressBackFirst = false)
+        }
         return try {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

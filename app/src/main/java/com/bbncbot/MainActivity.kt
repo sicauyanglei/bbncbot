@@ -286,6 +286,9 @@ class MainActivity : AppCompatActivity() {
             return
         }
         debugLog("openApp: shortcut unavailable for $platform, fallback to deep link / navigation")
+        // 快捷方式失败（未设默认桌面/未找到快捷方式），走 deep link / 启动 App 前
+        // 也先 kill 目标平台老进程，确保进入干净的农场主页
+        killPlatformApps(platform)
         val deepLink = platform.config.farmDeepLink
         // 优先用 deep link 直达农场页（等同从桌面快捷方式进入）
         if (deepLink != null) {
@@ -339,6 +342,24 @@ class MainActivity : AppCompatActivity() {
                 ).show()
             }
         }, 2000L)
+    }
+
+    /**
+     * kill 指定平台的所有后台进程
+     * - 通过 [android.app.ActivityManager.killBackgroundProcesses] 结束目标 App 后台进程
+     * - 启动农场前先 kill 老进程，确保回到干净的农场主页（避免旧 Activity 栈残留）
+     * - 普通 App 无 FORCE_STOP_PACKAGES 权限，killBackgroundProcesses 是可用最强手段
+     */
+    private fun killPlatformApps(platform: Platform) {
+        val am = getSystemService(ACTIVITY_SERVICE) as? android.app.ActivityManager ?: return
+        for (pkg in platform.config.packageNames) {
+            try {
+                am.killBackgroundProcesses(pkg)
+                debugLog("killPlatformApps: killed $pkg for $platform")
+            } catch (e: Exception) {
+                debugLog("killPlatformApps: failed to kill $pkg, ${e.message}")
+            }
+        }
     }
 
     /** 调试日志写到外部存储文件（华为 logcat 加密，用文件替代） */
