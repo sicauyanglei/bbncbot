@@ -65,6 +65,12 @@ class MainActivity : AppCompatActivity() {
         // 清除旧版录制日志，避免旧版本日志混在新版本里导致误判
         com.bbncbot.automation.RecordingManager.clearLogOnAppStart(this)
 
+        // 启动 App 时先 kill 所有芭芭农场平台 App（UC/支付宝/淘宝）的老进程
+        // 原因：残留旧实例（旧 Activity 栈/缓存的 H5 页面）会导致后续进入农场页时
+        // 只是拉起旧实例，无法回到干净的农场主页
+        // MainActivity 被拉到前台时，农场 App 已被推到后台，killBackgroundProcesses 可生效
+        killPlatformApps()
+
         tvStatus = findViewById(R.id.tvStatus)
         btnAccessibility = findViewById(R.id.btnOpenAccessibility)
         btnOverlay = findViewById(R.id.btnRequestOverlay)
@@ -350,14 +356,18 @@ class MainActivity : AppCompatActivity() {
      * - 启动农场前先 kill 老进程，确保回到干净的农场主页（避免旧 Activity 栈残留）
      * - 普通 App 无 FORCE_STOP_PACKAGES 权限，killBackgroundProcesses 是可用最强手段
      */
-    private fun killPlatformApps(platform: Platform) {
+    private fun killPlatformApps(platform: Platform? = null) {
         val am = getSystemService(ACTIVITY_SERVICE) as? android.app.ActivityManager ?: return
-        for (pkg in platform.config.packageNames) {
-            try {
-                am.killBackgroundProcesses(pkg)
-                debugLog("killPlatformApps: killed $pkg for $platform")
-            } catch (e: Exception) {
-                debugLog("killPlatformApps: failed to kill $pkg, ${e.message}")
+        // platform 为 null 时 kill 所有支持的农场平台（UC/支付宝/淘宝）
+        val platforms = if (platform != null) listOf(platform) else listOf(Platform.UC, Platform.ALIPAY, Platform.TAOBAO)
+        for (p in platforms) {
+            for (pkg in p.config.packageNames) {
+                try {
+                    am.killBackgroundProcesses(pkg)
+                    debugLog("killPlatformApps: killed $pkg for $p")
+                } catch (e: Exception) {
+                    debugLog("killPlatformApps: failed to kill $pkg, ${e.message}")
+                }
             }
         }
     }
