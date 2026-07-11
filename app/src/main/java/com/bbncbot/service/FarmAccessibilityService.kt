@@ -2764,7 +2764,7 @@ class FarmAccessibilityService : AccessibilityService() {
      * @return true 表示已发起打开请求，false 表示无 deep link 或打开失败
      */
     fun reopenFarmByDeepLink(targetPlatform: Platform = currentPlatform): Boolean {
-        // 1. 优先用桌面快捷方式（等同点击桌面"芭芭农场"组件）
+        // 1. 优先用桌面快捷方式（等同点击桌面"芭芭农场"组件，内部含 kill 老进程）
         if (com.bbncbot.util.FarmShortcutLauncher.startFarmShortcut(this, targetPlatform) { msg -> debugLog("FarmShortcut: $msg") }) {
             debugLog("reopenFarmByDeepLink: started shortcut for $targetPlatform")
             if (targetPlatform != currentPlatform) {
@@ -2772,33 +2772,55 @@ class FarmAccessibilityService : AccessibilityService() {
             }
             return true
         }
-        // 2. deep link 直达
-        val deepLink = targetPlatform.config.farmDeepLink
-        if (deepLink.isNullOrEmpty()) {
-            debugLog("reopenFarmByDeepLink: no deep link for $targetPlatform, fallback to navigation")
-            return false
-        }
-        // 启动 deep link 前先 kill 目标平台老进程，确保回到干净的农场主页
-        // （避免旧实例残留 Activity 栈，deep link 只是把旧实例拉到前台）
+        // 2. kill 目标平台老进程后重开（deep link 直达 或 启动 App + 导航）
+        // 任务完成时目标 App 在前台，killBackgroundProcesses 只能 kill 后台进程，
+        // 所以先按 HOME 键把目标 App 退到后台，再 kill
+        debugLog("reopenFarmByDeepLink: pressing HOME to background $targetPlatform before kill")
+        performGlobalAction(GLOBAL_ACTION_HOME)
+        // 等待 HOME 切换生效后再 kill（无延迟，killBackgroundProcesses 会异步生效）
         for (pkg in targetPlatform.config.packageNames) {
             forceKillApp(pkg, pressBackFirst = false)
         }
-        return try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        // 2a. deep link 直达农场页
+        val deepLink = targetPlatform.config.farmDeepLink
+        if (!deepLink.isNullOrEmpty()) {
+            return try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(intent)
+                debugLog("reopenFarmByDeepLink: opened $deepLink for $targetPlatform")
+                if (targetPlatform != currentPlatform) {
+                    currentPlatform = Platform.UNKNOWN
+                }
+                true
+            } catch (e: ActivityNotFoundException) {
+                debugLog("reopenFarmByDeepLink: no app handles $deepLink (${e.message})")
+                false
+            } catch (e: Exception) {
+                debugLog("reopenFarmByDeepLink: failed $deepLink (${e.javaClass.simpleName}: ${e.message})")
+                false
             }
+        }
+        // 2b. 无 deep link：kill 后启动 App 主 Activity，由无障碍服务自动导航到芭芭农场
+        debugLog("reopenFarmByDeepLink: no deep link for $targetPlatform, killed + relaunch app, will navigate")
+        val pkg = targetPlatform.config.packageNames.firstOrNull() ?: return false
+        return try {
+            val intent = packageManager.getLaunchIntentForPackage(pkg)
+            if (intent == null) {
+                debugLog("reopenFarmByDeepLink: no launch intent for $targetPlatform ($pkg)")
+                return false
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(intent)
-            debugLog("reopenFarmByDeepLink: opened $deepLink for $targetPlatform")
-            // 切换平台后重置检测状态，等待新平台 H5 加载后被自动识别
+            // 重置平台，等待新平台 H5 加载后被自动识别
             if (targetPlatform != currentPlatform) {
                 currentPlatform = Platform.UNKNOWN
             }
+            debugLog("reopenFarmByDeepLink: relaunched $targetPlatform ($pkg)")
             true
-        } catch (e: ActivityNotFoundException) {
-            debugLog("reopenFarmByDeepLink: no app handles $deepLink (${e.message})")
-            false
         } catch (e: Exception) {
-            debugLog("reopenFarmByDeepLink: failed $deepLink (${e.javaClass.simpleName}: ${e.message})")
+            debugLog("reopenFarmByDeepLink: relaunch failed for $targetPlatform (${e.javaClass.simpleName}: ${e.message})")
             false
         }
     }
