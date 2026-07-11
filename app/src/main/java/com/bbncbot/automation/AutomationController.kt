@@ -1331,8 +1331,21 @@ object AutomationController {
                         browseTaskTargetSwipes = requiredSwipes.coerceAtLeast(3).coerceAtMost(30)
                         debugLog("browseTask: target swipes = $browseTaskTargetSwipes (hint=$hintSeconds seconds)")
                     } else {
+                        // 没有找到"滑动浏览得肥料"提示：再检查其他浏览奖励指标
+                        // （倒计时"再逛xx秒"、进度"每浏览x秒"、停留"浏览x分钟"）
+                        // 若都没有，说明此任务被 isBrowseTask 误判为滑动任务，实际不是滑动任务 → 直接退出，不滑动
+                        val hasCountdown = service.findBrowseRewardCountdownHint() > 0
+                        val hasProgress = service.hasBrowseRewardProgressHint()
+                        val hasDuration = service.findBrowseDurationRewardHint() > 0
+                        if (!hasCountdown && !hasProgress && !hasDuration) {
+                            debugLog("browseTask: no swipe hint and no browse reward indicator (countdown=$hasCountdown, progress=$hasProgress, duration=$hasDuration), not a browse task, exiting without swiping")
+                            currentTaskIndex++
+                            collectedCount++
+                            exitBrowsePage(service, reason = "not_browse_task")
+                            return@postDelayed
+                        }
                         browseTaskTargetSwipes = MAX_BROWSE_SWIPES
-                        debugLog("browseTask: no swipe hint, using default $browseTaskTargetSwipes swipes")
+                        debugLog("browseTask: no swipe hint but has browse reward indicator (countdown=$hasCountdown, progress=$hasProgress, duration=$hasDuration), using default $browseTaskTargetSwipes swipes")
                     }
                     // 在商品列表页面随便点一个商品（模拟用户浏览行为）
                     // 注意：点击后可能进入商品详情页，滑动在详情页进行即可
