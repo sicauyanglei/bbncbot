@@ -1,0 +1,10 @@
+=== recording.log cleared on app start (version=2.1/12, time=13:04:23.217) ===
+13:22:44.653 === 录制开始 session=sess_1783747364646 name='流程4642' ===
+13:22:44.916 [start] FERTILIZER_READ_OK amount=100 (source=accessibility)
+13:22:48.120 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=返回' btns=[返回]
+13:22:48.125 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+13:22:49.189 CLICK_H5 type=0x800 target='浏览或查看商品领肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=浏览或查看商品领肥料,返回' btns=[返回,浏览或查看商品领肥料]
+13:22:49.192 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+13:23:11.189 CLICK_H5 type=0x800 target='icon' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=任务列表,关闭,农场乐园入口,几何王国,切换摇钱树,得1000肥 青云诀,我的收获,支付宝·芭芭农场,施肥5次,更多,浪漫餐厅,返回,还差3次领肥料,逛农货,邀请,钓红包' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,施肥5次,邀请,钓红包,得1000肥 青云诀,浪漫餐厅,几何王国,返回,支付宝·芭芭农场,更多,关闭]
+13:23:11.192 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+13:23:29.087 === 录制开始 session=sess_1783747409086 name='流程9085' ===
