@@ -1,0 +1,136 @@
+=== cleared on app start (version=2.1, time=06:52:52) ===
+06:52:52.974 killPlatformApps: killed com.ucmobile.lite for UC
+06:52:52.976 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+06:52:52.977 killPlatformApps: killed com.taobao.taobao for TAOBAO
+07:00:37.993 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+07:00:37.998 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+07:00:37.999 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+07:00:38.000 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+07:00:42.173 navigateAlipay: found 芭芭农场 entry at [484,941][716,1161], clicking
+07:00:42.175 performClickSafe: text='' desc='' bounds=[484,941][716,1161] clickable=true
+07:00:42.229 performClickSafe: ACTION_CLICK success at depth=0
+07:01:02.341 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+07:01:02.612 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+07:01:02.713 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+07:01:03.212 collectTaskContextText: result='', buttonText='', containerFound=true
+07:01:04.259 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.GridView text='' desc=''
+07:01:04.368 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.GridView text='' desc=''
+07:01:05.222 collectTaskContextText: result='玩60秒保卫向日葵 肥料 +1000 玩游戏 妮维雅洗面奶男士专用洁面乳清爽控油祛痘去黑头男官方旗舰店正品 先用后付 正品保证 七天退换 ￥ 25 .8 热卖6万+件 肥料 +60000 去下单 加厚加粗衣架家用挂衣防滑无痕衣撑架子宿舍用学生衣服挂架晾衣架 先用后付 正品保证 七天退换 ￥ 15 .8 热卖6万+件 肥料 +60000 去下单 沂蒙山楂干｜无核纯正｜酸甜浓郁 先用后付 正品保证 七天退换 ￥ 24 .63 热卖5万+件 肥料 +60000 去下单 好闻哭了！多芬沐浴露持久留香细腻柔滑 先用后付 正品保证 七天退换 ￥ 27 .63 热卖4万+件 肥料 +60000 去下单 玩60秒几何王国 肥料 +1000 玩游戏 植护茉莉花香除菌香水洗衣液家用整箱正品官方旗舰店持久留香袋装 先用后付 正品保证 七天退换 ￥ 18 .66 热卖1万+件 肥料 +60000 去下单 天呐！这湖盐太鲜了！青海湖盐天然无碘盐 先用后付 正品保证 七天退换 ￥ 37 .65 热卖3万+件 肥料 +70000 去下单 豪士｜咸蛋黄肉松面包纯正鸡肉松不掺豆粉 先用后付 正品保证 送货入户 七天退换 ￥ 19 .9 热卖10万+件 肥料 +60000 去下单 草本清火｜冷酸灵抑火抗敏牙膏 先用后付 七天退换 ￥ 10 .9 热卖7000+件 肥料 +50000 去下单 【海福盛】非油炸冻干粥营养早餐代餐 先用后付 正品保证 七天退换 ￥ 19 .71 热卖5万+件 肥料 +60000 去下单 一次性独立包装！科万鸿酒精棉片旅行清洁 先用后付 七天退换 ￥ 5 .17 热卖2万+件 肥料 +40000 去下单 【早餐健康】伊可唯小口袋面包多口味可选 先用后付 正品保证 七天退换 ￥ 34 .9 热卖8000+件 肥料 +70000 去下单 【正宗柳州味】嘻螺会广西特产酸辣螺蛳粉 先用后付 正品保证 七天退换 ￥ 19 .89 热卖2万+件 肥料 +60000 去下单 玩60秒四季物语 肥料 +1000 玩游戏 【青海藜麦】高原原产籽粒饱满粗杂粮 先用后付 公益宝贝 七天退换 ￥ 16 .88 热卖6万+件 肥料 +60000 去下单 ', buttonText='', containerFound=true
+07:01:05.885 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:01:06.419 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:01:06.447 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+07:01:06.461 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.alipay.mobile.liteprocess.LiteProcessActivity$LiteProcessActivity5 text='' desc=''
+07:01:06.659 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:01:06.704 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:01:06.718 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite5 text='' desc=''
+07:01:06.861 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:01:06.915 collectTaskContextText: result='', buttonText='', containerFound=false
+07:01:06.965 isOnFarmPage: no farm content, sample=[更多, , 更多, 关闭, , 关闭, 保卫向日葵, 本小程序服务
+由北海聚贤信息科技有限公司提供
+如有相关问题请向其咨询]
+07:01:06.970 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:01:06.992 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite5 text='' desc=''
+07:01:07.049 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:01:07.129 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:07.478 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:07.731 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:01:07.832 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:01:07.915 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='正在加载资源(首次加载请耐心等待)' desc=''
+07:01:08.038 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:01:08.133 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+07:01:08.138 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+07:01:08.141 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+07:01:08.147 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='Smallfish App' desc=''
+07:01:08.255 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:08.369 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:08.476 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:08.568 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:08.649 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:08.756 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:08.898 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:09.006 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:09.131 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+07:01:09.149 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:09.184 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='Smallfish App' desc=''
+07:01:09.217 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+07:01:09.266 collectTaskContextText: result='初始化中 ', buttonText='正在加载资源(首次加载请耐心等待)', containerFound=true
+07:01:09.391 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:09.462 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='初始化中' desc=''
+07:01:09.535 collectTaskContextText: result='https://render.alipay.com/p/c/180020570000060569/index.html?caprMode=sync Smallfish App ', buttonText='null', containerFound=true
+07:01:09.673 collectTaskContextText: result='https://render.alipay.com/p/c/180020570000060569/index.html?caprMode=sync Smallfish App ', buttonText='null', containerFound=true
+07:01:09.849 collectTaskContextText: result='https://render.alipay.com/p/c/180020570000060569/index.html?caprMode=sync Smallfish App ', buttonText='null', containerFound=true
+07:01:09.958 collectTaskContextText: result='https://render.alipay.com/p/c/180020570000060569/index.html?caprMode=sync Smallfish App ', buttonText='Smallfish App', containerFound=true
+07:01:10.080 collectTaskContextText: result='玩60秒 得肥料 ', buttonText='', containerFound=true
+07:01:10.184 collectTaskContextText: result='https://render.alipay.com/p/c/180020570000060569/index.html?caprMode=sync Smallfish App ', buttonText='Smallfish App', containerFound=true
+07:01:10.356 collectTaskContextText: result='玩60秒 得肥料 ', buttonText='', containerFound=true
+07:01:10.471 collectTaskContextText: result='开始游戏 ', buttonText='初始化中', containerFound=true
+07:01:10.698 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+07:01:10.893 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:01:10.996 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:01:11.105 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:01:11.272 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:11.334 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:11.425 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:11.923 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:01:12.021 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:01:12.058 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:12.115 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:01:12.282 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+07:01:12.337 collectTaskContextText: result='https://render.alipay.com/p/yuyan/180020010001260977/gameTaskSuspend.html?caprMode=sync ', buttonText='null', containerFound=true
+07:01:18.436 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+07:01:18.472 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='Smallfish App' desc=''
+07:01:18.537 collectTaskContextText: result='玩60秒 得肥料 ', buttonText='', containerFound=true
+07:01:18.540 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+07:01:18.625 collectTaskContextText: result='https://render.alipay.com/p/c/180020570000060569/index.html?caprMode=sync Smallfish App ', buttonText='Smallfish App', containerFound=true
+07:01:18.739 collectTaskContextText: result='玩60秒 得肥料 ', buttonText='', containerFound=true
+07:02:09.523 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='肥料奖励' desc=''
+07:02:09.536 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='肥料奖励' desc=''
+07:02:09.540 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='已发放' desc=''
+07:02:09.545 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='已发放' desc=''
+07:02:09.549 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+07:02:09.552 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='Smallfish App' desc=''
+07:02:09.586 isOnFarmPage: no farm content, sample=[更多, , 关闭, , https://render.alipay.com/p/c/180020570000060569/index.html?caprMode=sync, Smallfish App, 肥料奖励, 已发放]
+07:02:09.620 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='已发放' desc=''
+07:02:09.654 collectTaskContextText: result='肥料奖励 已发放 ', buttonText='肥料奖励', containerFound=true
+07:02:09.752 collectTaskContextText: result='肥料奖励 已发放 ', buttonText='肥料奖励', containerFound=true
+07:02:09.810 collectTaskContextText: result='肥料奖励 已发放 ', buttonText='已发放', containerFound=true
+07:02:09.878 collectTaskContextText: result='肥料奖励 已发放 ', buttonText='已发放', containerFound=true
+07:02:09.928 collectTaskContextText: result='肥料奖励 已发放 ', buttonText='', containerFound=true
+07:02:09.977 collectTaskContextText: result='https://render.alipay.com/p/c/180020570000060569/index.html?caprMode=sync Smallfish App ', buttonText='Smallfish App', containerFound=true
+07:02:10.043 collectTaskContextText: result='肥料奖励 已发放 ', buttonText='已发放', containerFound=true
+07:02:14.831 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:02:15.081 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+07:02:15.179 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+07:02:15.246 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.eg.android.AlipayGphone.AlipayLogin text='' desc=''
+07:02:15.261 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+07:02:15.389 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+07:02:15.701 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+07:02:15.713 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+07:02:15.819 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+07:02:16.036 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+07:02:16.142 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+07:02:16.250 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+07:02:16.733 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc='首页'
+07:02:16.946 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+07:02:17.069 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+07:02:17.165 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+07:02:17.280 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+07:02:18.648 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:02:18.693 isOnFarmPage: no farm content, sample=[松开刷新, 深圳, 高温预警, 搜索框, 搜索, 泰和新材, 更多操作, ]
+07:02:18.909 collectTaskContextText: result='', buttonText='null', containerFound=true
+07:02:19.206 collectTaskContextText: result='', buttonText='null', containerFound=true
+07:02:19.478 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:02:19.759 collectTaskContextText: result='', buttonText='null', containerFound=true
+07:02:20.016 collectTaskContextText: result='', buttonText='null', containerFound=true
+07:02:20.247 collectTaskContextText: result='', buttonText='null', containerFound=true
+07:02:20.615 collectTaskContextText: result='', buttonText='null', containerFound=true
+07:02:20.855 collectTaskContextText: result='', buttonText='null', containerFound=true
+07:02:21.110 collectTaskContextText: result='全部 ', buttonText='null', containerFound=true
+07:02:21.343 collectTaskContextText: result='', buttonText='null', containerFound=true
+07:02:21.651 collectTaskContextText: result='', buttonText='null', containerFound=true
+07:02:21.704 isOnFarmPage: no farm content, sample=[松开刷新, 深圳, 高温预警, 搜索框, 搜索, 泰和新材, 更多操作, ]
+07:02:21.988 collectTaskContextText: result='首页 理财 视频 62 消息 我的 ', buttonText='null', containerFound=true
+07:02:22.270 collectTaskContextText: result='', buttonText='null', containerFound=true
+07:02:23.300 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:02:23.370 collectTaskContextText: result='', buttonText='null', containerFound=false
+07:02:24.058 collectTaskContextText: result='', buttonText='null', containerFound=false
