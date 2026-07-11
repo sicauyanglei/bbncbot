@@ -150,6 +150,14 @@ class RuleEditorActivity : AppCompatActivity() {
 
             override fun isLongPressDragEnabled(): Boolean = true  // 长按拖动排序
             override fun isItemViewSwipeEnabled(): Boolean = true  // 左滑删除
+
+            // 降低滑动触发阈值：滑动超过 item 宽度的 25% 即触发 onSwiped
+            // 默认 0.5 太高，用户需要滑很远才触发，松手就回弹了看不到删除按钮
+            override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float = 0.25f
+            // 降低滑动逃逸速度阈值：轻滑也能触发
+            override fun getSwipeEscapeVelocity(defaultValue: Float): Float = defaultValue / 2
+            // 松手后滑动速度低于此值会回弹到原位（保持默认），高于则触发 onSwiped
+            override fun getSwipeVelocityThreshold(defaultValue: Float): Float = defaultValue / 2
         })
         touchHelper.attachToRecyclerView(recyclerView)
 
