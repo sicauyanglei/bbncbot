@@ -49,6 +49,10 @@ object LogUploader {
     }
     private val recordingLogFile: File get() = File(logDir, "recording.log")
     private val debugLogFile: File get() = File(logDir, "debug.log")
+    private val proposalsLogFile: File get() = File(logDir, "proposals.log")
+    private val teachingsLogFile: File get() = File(logDir, "teachings.log")
+    private val sceneRulesFile: File get() = File(logDir, "scene_rules.json")
+    private val rulesExplanationFile: File get() = File(logDir, "rules_explanation.txt")
 
     /** 上次操作结果（供 UI 测试按钮显示，避免用户看不到失败原因） */
     @Volatile
@@ -70,16 +74,22 @@ object LogUploader {
     }
 
     /**
-     * 上传日志到 GitHub
+     * 上传所有日志到 GitHub
      *
-     * 上传 [recording.log] 和 [debug.log]（若存在）到仓库 `logs/` 目录，
-     * 文件名带时间戳避免覆盖。
+     * 上传日志目录下的所有日志文件（若存在且非空）到仓库 `logs/` 目录，
+     * 文件名带时间戳避免覆盖。包含：
+     * - recording.log（录制日志）
+     * - debug.log（调试日志）
+     * - proposals.log（动作提议日志）
+     * - teachings.log（教学指令日志）
+     * - scene_rules.json（场景规则库）
+     * - rules_explanation.txt（规则判断依据）
      *
      * 必须在后台线程调用（含网络 IO）。
      *
      * @param context 任意 Context
      * @param tag 文件名前缀标记，如 "session_abc123"
-     * @return 上传成功文件数（0=未配置 token 或全部失败，2=两个文件都成功）
+     * @return 上传成功文件数（0=未配置 token 或全部失败）
      */
     fun upload(context: Context, tag: String): Int {
         val token = loadToken(context)
@@ -93,22 +103,26 @@ object LogUploader {
         var success = 0
         val errors = mutableListOf<String>()
 
-        // 上传 recording.log
-        if (recordingLogFile.exists() && recordingLogFile.length() > 0) {
-            val remotePath = "$REMOTE_DIR/recording_${tag}_${ts}.log"
-            val (ok, err) = uploadFile(token, remotePath, recordingLogFile, "upload recording log ($tag)")
-            if (ok) success++ else errors.add("recording.log: $err")
-        } else {
-            errors.add("recording.log: 文件不存在或为空")
-        }
+        // 待上传文件列表：(本地文件, 远端文件名后缀, 远端子目录)
+        // 子目录按文件类型分组，便于在 GitHub 上查看
+        val filesToUpload = listOf(
+            Triple(recordingLogFile, "recording", "logs"),
+            Triple(debugLogFile, "debug", "logs"),
+            Triple(proposalsLogFile, "proposals", "logs"),
+            Triple(teachingsLogFile, "teachings", "logs"),
+            Triple(sceneRulesFile, "scene_rules", "rules"),
+            Triple(rulesExplanationFile, "rules_explanation", "rules")
+        )
 
-        // 上传 debug.log
-        if (debugLogFile.exists() && debugLogFile.length() > 0) {
-            val remotePath = "$REMOTE_DIR/debug_${tag}_${ts}.log"
-            val (ok, err) = uploadFile(token, remotePath, debugLogFile, "upload debug log ($tag)")
-            if (ok) success++ else errors.add("debug.log: $err")
-        } else {
-            errors.add("debug.log: 文件不存在或为空")
+        for ((localFile, namePrefix, subDir) in filesToUpload) {
+            if (!localFile.exists() || localFile.length() == 0L) {
+                errors.add("${localFile.name}: 文件不存在或为空")
+                continue
+            }
+            val ext = localFile.extension.ifEmpty { "log" }
+            val remotePath = "$subDir/${namePrefix}_${tag}_${ts}.$ext"
+            val (ok, err) = uploadFile(token, remotePath, localFile, "upload ${localFile.name} ($tag)")
+            if (ok) success++ else errors.add("${localFile.name}: $err")
         }
 
         lastResult = if (errors.isEmpty()) {
