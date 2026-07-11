@@ -2012,6 +2012,35 @@ object AutomationController {
             return
         }
 
+        // 优先检测：是否显示"肥料已发放/奖励已到账"提示 → 肥料已到账，直接退出
+        // 与 isTaskCompletePage 的区别：isTaskCompletePage 匹配"任务完成"等关键词，
+        // 而签到/直接领取类任务弹出的是"肥料奖励已发放""奖励已到账"提示，不含"任务完成"字样，
+        // 需单独检测，否则 bot 不识别为完成、不退出。
+        if (service.isFertilizerGrantedPage()) {
+            Log.i(TAG, "processTask: fertilizer granted page detected, exiting")
+            debugLog("processTask: fertilizer granted, exiting via close/back icon")
+            val closeBtn = service.findAdCloseButton()
+            val backIcon = service.findBackIcon()
+            when {
+                closeBtn != null -> { debugLog("processTask: clicking close icon (fertilizer granted)"); service.performClickSafe(closeBtn) }
+                backIcon != null -> { debugLog("processTask: clicking back icon (fertilizer granted)"); service.performClickSafe(backIcon) }
+                else -> { debugLog("processTask: pressing back (fertilizer granted)"); service.pressBack() }
+            }
+            collectedCount++
+            advanceTaskIndex()
+            handler.postDelayed({
+                if (service.isOnFarmPage()) {
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                } else {
+                    debugLog("processTask: not on farm page after fertilizer granted, re-navigating")
+                    moveTo(AutomationState.NAVIGATING)
+                    handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
         // 优先检测：是否有红包弹窗 → 先关闭它，才能继续处理
         // 红包弹窗会遮挡页面，不关闭会干扰后续检测
         val redPacketBtn = service.findRedPacketCloseButton()
