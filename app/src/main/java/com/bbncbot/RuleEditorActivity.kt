@@ -155,8 +155,8 @@ class RuleEditorActivity : AppCompatActivity() {
 
         // 点击规则项 → 编辑（适配器内设置点击监听，避免与拖动冲突）
         adapter.onItemClick = { position ->
-            val rule = currentRules.getOrNull(position) ?: return@set
-            showEditDialog(rule)
+            val rule = currentRules.getOrNull(position)
+            if (rule != null) showEditDialog(rule)
         }
 
         // 删除当前 Tab 平台的全部规则（带二次确认）
