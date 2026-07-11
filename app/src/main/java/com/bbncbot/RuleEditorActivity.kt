@@ -1,22 +1,24 @@
 package com.bbncbot
 
 import android.app.AlertDialog
+import android.graphics.Canvas
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.BaseAdapter
 import android.widget.Button
 import android.widget.EditText
-import android.widget.ListView
 import android.widget.Switch
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.bbncbot.automation.SceneLibrary
 import com.bbncbot.automation.SceneLibrary.Action
 import com.bbncbot.automation.SceneLibrary.SceneCategory
@@ -28,8 +30,8 @@ import com.google.android.material.tabs.TabLayout
  * - 按"平台 + 任务内容"分组展示已录制的规则
  * - 支持启用/禁用单条规则（Switch 开关）
  * - 点击规则项弹出编辑对话框：修改名称、动作、目标按钮、优先级
- * - 长按规则项删除
- * - 优先级数值小的先执行（由 AutomationController 在任务调度时读取）
+ * - 左滑规则项显示删除按钮（再点删除按钮删除）
+ * - 长按规则项拖动调整执行顺序（拖动后自动更新 priority）
  */
 class RuleEditorActivity : AppCompatActivity() {
 
@@ -44,10 +46,10 @@ class RuleEditorActivity : AppCompatActivity() {
     /** 当前选中的 platform 过滤值 */
     private var currentPlatformFilter: String? = null
 
-    /** 当前展示的规则列表（已按 priority 升序排序） */
-    private var currentRules: List<SceneCategory> = emptyList()
+    /** 当前展示的规则列表（已按 priority 升序排序，拖动后实时调整顺序） */
+    private val currentRules: MutableList<SceneCategory> = mutableListOf()
 
-    private lateinit var listView: ListView
+    private lateinit var recyclerView: RecyclerView
     private lateinit var tvEmpty: TextView
     private lateinit var adapter: RuleAdapter
 
@@ -62,9 +64,100 @@ class RuleEditorActivity : AppCompatActivity() {
         toolbar.setNavigationOnClickListener { finish() }
 
         val tabLayout = findViewById<TabLayout>(R.id.tabLayout)
-        listView = findViewById(R.id.listView)
+        recyclerView = findViewById(R.id.recyclerView)
         tvEmpty = findViewById(R.id.tvEmpty)
         val btnDeleteAll = findViewById<Button>(R.id.btnDeleteAll)
+
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        adapter = RuleAdapter()
+        recyclerView.adapter = adapter
+
+        // ItemTouchHelper：左滑删除 + 长按拖动排序
+        val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN,  // 拖动方向
+            ItemTouchHelper.LEFT  // 滑动方向（只允许左滑显示删除）
+        ) {
+            /** 拖动开始时记录是否长按触发的（避免点击误触发拖动） */
+            private var isDragging = false
+
+            override fun onMove(
+                rv: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                val from = viewHolder.bindingAdapterPosition
+                val to = target.bindingAdapterPosition
+                if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) return false
+                // 交换列表中的位置
+                java.util.Collections.swap(currentRules, from, to)
+                adapter.notifyItemMoved(from, to)
+                return true
+            }
+
+            override fun onMoved(
+                rv: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                fromPos: Int,
+                target: RecyclerView.ViewHolder,
+                toPos: Int,
+                x: Int,
+                y: Int
+            ) {
+                super.onMoved(rv, viewHolder, fromPos, target, toPos, x, y)
+                // 拖动结束后，按新顺序重新分配 priority 并持久化
+                persistOrderAfterDrag()
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                // 左滑到阈值后直接触发删除
+                val pos = viewHolder.bindingAdapterPosition
+                if (pos == RecyclerView.NO_POSITION) return
+                val rule = currentRules.getOrNull(pos) ?: return
+                showDeleteConfirm(rule, pos)
+            }
+
+            override fun onChildDraw(
+                c: Canvas,
+                rv: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                dX: Float,
+                dY: Float,
+                actionState: Int,
+                isCurrentlyActive: Boolean
+            ) {
+                // 左滑时显示红色删除背景
+                val foreground = (viewHolder as RuleAdapter.RuleViewHolder).foreground
+                val background = viewHolder.deleteBackground
+                if (dX < 0) {
+                    background.visibility = View.VISIBLE
+                } else {
+                    background.visibility = View.GONE
+                }
+                // 限制左滑最多到删除按钮宽度（约 200px）
+                val maxSwipe = -200f
+                val clampedDx = if (dX < maxSwipe) maxSwipe else dX
+                getDefaultUIUtil().onDraw(
+                    c, rv, foreground, clampedDx, dY, actionState, isCurrentlyActive
+                )
+            }
+
+            override fun clearView(rv: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(rv, viewHolder)
+                val foreground = (viewHolder as RuleAdapter.RuleViewHolder).foreground
+                getDefaultUIUtil().clearView(foreground)
+                viewHolder.deleteBackground.visibility = View.GONE
+            }
+
+            override fun isLongPressDragEnabled(): Boolean = true  // 长按拖动排序
+            override fun isItemViewSwipeEnabled(): Boolean = true  // 左滑删除
+        })
+        touchHelper.attachToRecyclerView(recyclerView)
+
+        // 点击规则项 → 编辑（适配器内设置点击监听，避免与拖动冲突）
+        adapter.onItemClick = { position ->
+            val rule = currentRules.getOrNull(position) ?: return@set
+            showEditDialog(rule)
+        }
 
         // 删除当前 Tab 平台的全部规则（带二次确认）
         btnDeleteAll.setOnClickListener {
@@ -98,31 +191,6 @@ class RuleEditorActivity : AppCompatActivity() {
             override fun onTabReselected(tab: TabLayout.Tab) {}
         })
 
-        adapter = RuleAdapter()
-        listView.adapter = adapter
-
-        // 点击规则项 → 编辑
-        listView.setOnItemClickListener { _, _, position, _ ->
-            val rule = currentRules.getOrNull(position) ?: return@setOnItemClickListener
-            showEditDialog(rule)
-        }
-
-        // 长按规则项 → 删除确认
-        listView.setOnItemLongClickListener { _, _, position, _ ->
-            val rule = currentRules.getOrNull(position) ?: return@setOnItemLongClickListener true
-            AlertDialog.Builder(this)
-                .setTitle("删除规则")
-                .setMessage("确定删除规则「${rule.name}」吗？\n删除后不可恢复。")
-                .setPositiveButton("删除") { _, _ ->
-                    SceneLibrary.deleteCategory(rule.id)
-                    Toast.makeText(this, "已删除「${rule.name}」", Toast.LENGTH_SHORT).show()
-                    refreshList()
-                }
-                .setNegativeButton("取消", null)
-                .show()
-            true
-        }
-
         refreshList()
     }
 
@@ -134,14 +202,57 @@ class RuleEditorActivity : AppCompatActivity() {
     /** 重新加载规则列表并按 platform 过滤 + priority 排序 */
     private fun refreshList() {
         val allRules = SceneLibrary.listCategories()
-        // 过滤平台：signature 中 p=XXX 段匹配
-        currentRules = allRules.filter { cat ->
-            // 通过 category 关联的 mappings 拿 signature 来判断平台
+        currentRules.clear()
+        currentRules.addAll(allRules.filter { cat ->
             val platform = extractPlatformFromCategory(cat.id)
             if (currentPlatformFilter == null) true else platform == currentPlatformFilter
-        }.sortedWith(compareBy({ it.priority }, { it.name }))
+        }.sortedWith(compareBy({ it.priority }, { it.name })))
         adapter.notifyDataSetChanged()
         tvEmpty.visibility = if (currentRules.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    /**
+     * 拖动结束后，按列表新顺序重新分配 priority 并持久化
+     * - 第 0 位 priority=0，第 1 位 priority=10，依次递增（间隔 10 方便后续插入）
+     * - 调用 SceneLibrary.updateCategory 批量更新
+     */
+    private fun persistOrderAfterDrag() {
+        for ((idx, rule) in currentRules.withIndex()) {
+            val newPriority = idx * 10
+            if (rule.priority != newPriority) {
+                SceneLibrary.updateCategory(rule.id, priority = newPriority)
+                rule.priority = newPriority
+            }
+        }
+        // 更新序号显示
+        adapter.notifyDataSetChanged()
+    }
+
+    /**
+     * 左滑删除确认对话框
+     * @param rule 要删除的规则
+     * @param position 在列表中的位置（删除失败时恢复显示）
+     */
+    private fun showDeleteConfirm(rule: SceneCategory, position: Int) {
+        AlertDialog.Builder(this)
+            .setTitle("删除规则")
+            .setMessage("确定删除规则「${rule.name}」吗？\n删除后不可恢复。")
+            .setPositiveButton("删除") { _, _ ->
+                SceneLibrary.deleteCategory(rule.id)
+                currentRules.removeAt(position)
+                adapter.notifyItemRemoved(position)
+                // 更新后续项的序号显示
+                adapter.notifyItemRangeChanged(position, currentRules.size - position)
+                tvEmpty.visibility = if (currentRules.isEmpty()) View.VISIBLE else View.GONE
+                Toast.makeText(this, "已删除「${rule.name}」", Toast.LENGTH_SHORT).show()
+                // 删除后重新分配 priority
+                persistOrderAfterDrag()
+            }
+            .setNegativeButton("取消") { _, _ ->
+                // 取消则恢复原位
+                adapter.notifyItemChanged(position)
+            }
+            .show()
     }
 
     /**
@@ -238,28 +349,49 @@ class RuleEditorActivity : AppCompatActivity() {
             .show()
     }
 
-    /** ListView 适配器 */
-    private inner class RuleAdapter : BaseAdapter() {
-        override fun getCount(): Int = currentRules.size
-        override fun getItem(position: Int): SceneCategory = currentRules[position]
-        override fun getItemId(position: Int): Long = position.toLong()
+    /** RecyclerView 适配器 */
+    private inner class RuleAdapter : RecyclerView.Adapter<RuleAdapter.RuleViewHolder>() {
 
-        override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
-            val view = convertView ?: LayoutInflater.from(this@RuleEditorActivity)
-                .inflate(R.layout.item_rule, parent, false)
-            val rule = getItem(position)
-            // 左侧徽章显示规则序号（1, 2, 3...），让每条规则有明显的编号
-            view.findViewById<TextView>(R.id.tvPriority).text = (position + 1).toString()
-            view.findViewById<TextView>(R.id.tvName).text = rule.name
-            view.findViewById<TextView>(R.id.tvAction).text = "动作：${actionToText(rule.action)}" +
+        /** 点击规则项回调（外部设置，避免与拖动冲突） */
+        var onItemClick: ((Int) -> Unit)? = null
+
+        inner class RuleViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val foreground: View = view.findViewById(R.id.foreground)
+            val deleteBackground: View = view.findViewById(R.id.deleteBackground)
+            val tvPriority: TextView = view.findViewById(R.id.tvPriority)
+            val tvName: TextView = view.findViewById(R.id.tvName)
+            val tvAction: TextView = view.findViewById(R.id.tvAction)
+            val tvTask: TextView = view.findViewById(R.id.tvTask)
+            val tvHits: TextView = view.findViewById(R.id.tvHits)
+            val switchEnabled: Switch = view.findViewById(R.id.switchEnabled)
+
+            init {
+                view.setOnClickListener {
+                    val pos = bindingAdapterPosition
+                    if (pos != RecyclerView.NO_POSITION) onItemClick?.invoke(pos)
+                }
+            }
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RuleViewHolder {
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_rule, parent, false)
+            return RuleViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: RuleViewHolder, position: Int) {
+            val rule = currentRules[position]
+            // 左侧徽章显示规则序号（1, 2, 3...）
+            holder.tvPriority.text = (position + 1).toString()
+            holder.tvName.text = rule.name
+            holder.tvAction.text = "动作：${actionToText(rule.action)}" +
                 (if (rule.targetButton != null) "「${rule.targetButton}」" else "")
             val task = extractTaskFromCategory(rule.id)
-            view.findViewById<TextView>(R.id.tvTask).text = if (task.isNotEmpty()) "任务：$task" else "任务：（无）"
-            view.findViewById<TextView>(R.id.tvHits).text = "命中 ${rule.hitCount} 次  |  优先级 ${rule.priority}"
-            val switch = view.findViewById<Switch>(R.id.switchEnabled)
-            switch.setOnCheckedChangeListener(null)  // 先解绑，避免回调污染
-            switch.isChecked = rule.enabled
-            switch.setOnCheckedChangeListener { _, isChecked ->
+            holder.tvTask.text = if (task.isNotEmpty()) "任务：$task" else "任务：（无）"
+            holder.tvHits.text = "命中 ${rule.hitCount} 次  |  优先级 ${rule.priority}"
+            // 先解绑 listener，避免回收复用时的回调污染
+            holder.switchEnabled.setOnCheckedChangeListener(null)
+            holder.switchEnabled.isChecked = rule.enabled
+            holder.switchEnabled.setOnCheckedChangeListener { _, isChecked ->
                 SceneLibrary.updateCategory(rule.id, enabled = isChecked)
                 Toast.makeText(
                     this@RuleEditorActivity,
@@ -267,7 +399,11 @@ class RuleEditorActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
             }
-            return view
+            // 重置滑动状态（回收的 ViewHolder 可能有残留的偏移）
+            holder.deleteBackground.visibility = View.GONE
+            holder.foreground.translationX = 0f
         }
+
+        override fun getItemCount(): Int = currentRules.size
     }
 }

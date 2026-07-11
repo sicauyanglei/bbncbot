@@ -1,76 +1,105 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:padding="12dp"
-    android:gravity="center_vertical"
-    android:descendantFocusability="blocksDescendants">
+    android:layout_height="wrap_content">
 
-    <TextView
-        android:id="@+id/tvPriority"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:background="#E3F2FD"
-        android:gravity="center"
-        android:text="0"
-        android:textColor="#1976D2"
-        android:textSize="13sp"
-        android:textStyle="bold" />
-
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:layout_marginStart="12dp"
-        android:orientation="vertical">
+    <!-- 底层：删除按钮（左滑后显露） -->
+    <FrameLayout
+        android:id="@+id/deleteBackground"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#F44336"
+        android:visibility="gone">
 
         <TextView
-            android:id="@+id/tvName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="规则名称"
-            android:textColor="#222"
+            android:layout_gravity="center_vertical|end"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:text="删除"
+            android:textColor="#FFFFFF"
             android:textSize="15sp"
-            android:textStyle="bold"
-            android:singleLine="true"
-            android:ellipsize="end" />
+            android:textStyle="bold" />
+    </FrameLayout>
+
+    <!-- 前景：规则内容（可滑动） -->
+    <LinearLayout
+        android:id="@+id/foreground"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical"
+        android:background="#FFFFFF"
+        android:descendantFocusability="blocksDescendants">
 
         <TextView
-            android:id="@+id/tvAction"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="动作：滑动"
-            android:textColor="#666"
-            android:textSize="12sp" />
+            android:id="@+id/tvPriority"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="#E3F2FD"
+            android:gravity="center"
+            android:text="1"
+            android:textColor="#1976D2"
+            android:textSize="13sp"
+            android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/tvTask"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="任务：看严选推荐商品"
-            android:textColor="#888"
-            android:textSize="11sp"
-            android:singleLine="true"
-            android:ellipsize="end" />
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tvHits"
+            <TextView
+                android:id="@+id/tvName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="规则名称"
+                android:textColor="#222"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/tvAction"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="动作：滑动"
+                android:textColor="#666"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvTask"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="任务：看严选推荐商品"
+                android:textColor="#888"
+                android:textSize="11sp"
+                android:singleLine="true"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/tvHits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="命中 3 次  |  优先级 0"
+                android:textColor="#AAA"
+                android:textSize="11sp" />
+
+        </LinearLayout>
+
+        <Switch
+            android:id="@+id/switchEnabled"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="命中 3 次"
-            android:textColor="#AAA"
-            android:textSize="11sp" />
+            android:checked="true" />
 
     </LinearLayout>
 
-    <Switch
-        android:id="@+id/switchEnabled"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:checked="true" />
-
-</LinearLayout>
+</FrameLayout>

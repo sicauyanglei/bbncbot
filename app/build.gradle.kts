@@ -71,6 +71,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
     // ML Kit 中文文本识别（bundled 模型，不依赖 Play Services，国产 ROM 友好）
     // 用于录制时 OCR 读取农场主页肥料总数（无障碍节点树在 H5 页读不到）
     implementation("com.google.mlkit:text-recognition-chinese:16.0.0")

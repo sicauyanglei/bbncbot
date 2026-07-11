@@ -29,13 +29,12 @@
         android:textColor="#C62828"
         android:textSize="13sp" />
 
-    <ListView
-        android:id="@+id/listView"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:divider="#E0E0E0"
-        android:dividerHeight="1dp" />
+        android:scrollbars="vertical" />
 
     <TextView
         android:id="@+id/tvEmpty"
@@ -54,7 +53,7 @@
         android:layout_height="wrap_content"
         android:padding="12dp"
         android:background="#F5F5F5"
-        android:text="提示：点击规则可编辑或删除，长按规则可快速删除，优先级数值小的先执行"
+        android:text="提示：点击规则编辑，左滑规则显示删除按钮，长按拖动调整执行顺序"
         android:textColor="#666"
         android:textSize="12sp" />
 
