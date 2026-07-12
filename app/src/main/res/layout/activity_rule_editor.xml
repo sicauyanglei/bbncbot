@@ -53,7 +53,7 @@
         android:layout_height="wrap_content"
         android:padding="12dp"
         android:background="#F5F5F5"
-        android:text="提示：点击规则编辑，左滑规则显示删除按钮，长按拖动调整执行顺序"
+        android:text="提示：点击规则编辑，左滑显示删除按钮（点删除按钮删除，右滑取消），长按拖动调整执行顺序"
         android:textColor="#666"
         android:textSize="12sp" />
 
