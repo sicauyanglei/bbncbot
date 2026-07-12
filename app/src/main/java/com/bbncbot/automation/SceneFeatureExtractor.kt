@@ -84,6 +84,10 @@ object SceneFeatureExtractor {
         // 同一肥料任务的不同轮次商品可能不同，但任务描述（如"看精选商品得肥料"）稳定
         val fertTaskDesc = extractFertilizerTaskDesc(pageTexts)
 
+        // 肥料卡片结构签名：记录肥料元素所在容器的子节点类型序列
+        // 用于"结构极度相似的页面归为一类"——商品名/数字变化但卡片布局不变则归为同类
+        val fertStructSig = root?.let { extractFertStructSig(it, pageTexts) } ?: ""
+
         return SceneFeatures(
             windowPackage = pkg,
             windowActivity = activity,
@@ -105,7 +109,8 @@ object SceneFeatureExtractor {
             clickableButtons = clickableButtons.distinct().take(20),
             controllerState = controllerState,
             taskContentText = taskText,
-            fertilizerTaskDesc = fertTaskDesc
+            fertilizerTaskDesc = fertTaskDesc,
+            fertStructSig = fertStructSig
         )
     }
 
@@ -217,6 +222,195 @@ object SceneFeatureExtractor {
             }
         }
         return ""
+    }
+
+    /**
+     * 提取肥料卡片结构签名
+     *
+     * 算法：
+     * 1. 遍历节点树，找到文本匹配 [FERTILIZER_DESC_PATTERNS] 的节点（肥料文本节点）
+     * 2. 从该节点向上找最近的"卡片容器"（childCount >= 2 的祖先，或 Layout/RecyclerView 的直接子项）
+     * 3. 记录容器的结构指纹：容器类型简写 + 子节点数量 + 子节点类型序列
+     *
+     * 为什么这样设计：
+     * - 同一肥料任务的不同轮次，商品名/数字变化但卡片布局结构不变
+     * - 结构签名只看节点类型（TextView/Button/ImageView 等），不看具体文本内容
+     * - 广告元素不在肥料节点附近，自然被忽略
+     * - 格式紧凑（如 "c=Lin|n=3|ch=TV,Btn,TV"），便于模糊比较
+     *
+     * @param root 页面根节点
+     * @param pageTexts 页面文本列表（用于快速判断是否有肥料元素）
+     * @return 结构签名，无肥料元素返回 ""
+     */
+    fun extractFertStructSig(root: AccessibilityNodeInfo, pageTexts: List<String>): String {
+        // 快速判断：页面无肥料文本则不提取结构
+        val hasFertText = pageTexts.any { text ->
+            FERTILIZER_DESC_PATTERNS.any { p -> p.containsMatchIn(text) } ||
+                FERTILIZER_KEYWORDS.any { text.contains(it) || text.contains("肥") }
+        }
+        if (!hasFertText) return ""
+
+        // 找到第一个肥料文本节点
+        val fertNode = findFirstFertilizerNode(root) ?: return ""
+        // 向上找卡片容器
+        val container = findCardContainer(fertNode) ?: fertNode
+        // 生成结构签名
+        return buildStructSig(container)
+    }
+
+    /**
+     * 递归查找第一个文本匹配肥料模式的节点
+     */
+    private fun findFirstFertilizerNode(node: AccessibilityNodeInfo, depth: Int = 0): AccessibilityNodeInfo? {
+        if (depth > 30) return null
+        val text = node.text?.toString() ?: node.contentDescription?.toString() ?: ""
+        if (text.isNotEmpty() && FERTILIZER_DESC_PATTERNS.any { it.containsMatchIn(text) }) {
+            return node
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val found = findFirstFertilizerNode(child, depth + 1)
+            if (found != null) return found
+        }
+        return null
+    }
+
+    /**
+     * 从肥料节点向上找最近的"卡片容器"
+     *
+     * 卡片容器定义：
+     * - childCount >= 2（有多个子节点，是布局容器而非叶子）
+     * - 或 className 含 "Layout"/"RecyclerView"/"CardView"
+     * - 最多向上找 5 层，避免走到整个页面根节点
+     *
+     * @return 卡片容器节点，找不到返回原节点
+     */
+    private fun findCardContainer(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        var current: AccessibilityNodeInfo? = node
+        var steps = 0
+        while (current != null && steps < 5) {
+            val parent = current.parent ?: break
+            val cls = parent.className?.toString() ?: ""
+            // 容器判定：子节点数 >= 2 或是布局类
+            if (parent.childCount >= 2 || cls.contains("Layout") || cls.contains("RecyclerView") || cls.contains("CardView")) {
+                return parent
+            }
+            current = parent
+            steps++
+        }
+        return null
+    }
+
+    /**
+     * 构建容器的结构签名
+     *
+     * 格式：`c=<容器简写>|n=<子节点数>|ch=<子节点类型序列>`
+     * 例：`c=Lin|n=3|ch=TV,Btn,TV`
+     *
+     * - 容器简写：LinearLayout→Lin, RelativeLayout→Rel, FrameLayout→FL, RecyclerView→RV, TextView→TV, Button→Btn, ImageView→Img, WebView→Web, 其他取类名末段
+     * - 子节点类型序列：直接子节点的简写列表，逗号分隔
+     */
+    private fun buildStructSig(container: AccessibilityNodeInfo): String {
+        val containerShort = classNameToShort(container.className?.toString())
+        val childCount = container.childCount
+        val childTypes = mutableListOf<String>()
+        for (i in 0 until childCount) {
+            val child = container.getChild(i) ?: continue
+            childTypes.add(classNameToShort(child.className?.toString()))
+        }
+        return "c=$containerShort|n=$childCount|ch=${childTypes.joinToString(",")}"
+    }
+
+    /**
+     * className 转简写（用于结构签名，紧凑且稳定）
+     *
+     * 映射常见 Android 视图类到 2-3 字母简写：
+     * - android.widget.LinearLayout → Lin
+     * - android.widget.RelativeLayout → Rel
+     * - android.widget.FrameLayout → FL
+     * - android.widget.TextView → TV
+     * - android.widget.Button → Btn
+     * - android.widget.ImageView → Img
+     * - android.view.View → V
+     * - android.webkit.WebView → Web
+     * - androidx.recyclerview.widget.RecyclerView → RV
+     * - 其他 → 取类名末段（最后一个 `.` 后的部分），限 6 字符
+     */
+    private fun classNameToShort(className: String?): String {
+        if (className.isNullOrEmpty()) return "?"
+        val simple = className.substringAfterLast(".")
+        return when (simple) {
+            "LinearLayout" -> "Lin"
+            "RelativeLayout" -> "Rel"
+            "FrameLayout" -> "FL"
+            "TextView" -> "TV"
+            "Button" -> "Btn"
+            "ImageView" -> "Img"
+            "View" -> "V"
+            "WebView" -> "Web"
+            "RecyclerView" -> "RV"
+            "CardView" -> "CV"
+            "EditText" -> "ET"
+            "CheckBox" -> "CB"
+            "ImageButton" -> "ImgBtn"
+            else -> simple.take(6)
+        }
+    }
+
+    /**
+     * 比较两个结构签名的相似度（模糊匹配）
+     *
+     * 判定"极度相似"的条件（全部满足）：
+     * 1. 容器类型相同（c= 相同）
+     * 2. 子节点数量差异 ≤ 1（|n1 - n2| ≤ 1）
+     * 3. 子节点类型序列的编辑距离 ≤ 1（允许增删1个节点类型）
+     *
+     * @return true 表示结构极度相似，可归为同一类
+     */
+    fun isStructSimilar(sig1: String, sig2: String): Boolean {
+        if (sig1.isEmpty() || sig2.isEmpty()) return false
+        if (sig1 == sig2) return true
+        val p1 = parseStructSig(sig1) ?: return false
+        val p2 = parseStructSig(sig2) ?: return false
+        // 1. 容器类型相同
+        if (p1.first != p2.first) return false
+        // 2. 子节点数量差异 <= 1
+        if (kotlin.math.abs(p1.second - p2.second) > 1) return false
+        // 3. 子节点类型序列编辑距离 <= 1
+        val dist = editDistance(p1.third, p2.third)
+        return dist <= 1
+    }
+
+    /** 解析结构签名为 (容器类型, 子节点数, 子节点类型列表) */
+    private fun parseStructSig(sig: String): Triple<String, Int, List<String>>? {
+        // 格式：c=Lin|n=3|ch=TV,Btn,TV
+        val cMatch = Regex("c=([^|]+)").find(sig)?.groupValues?.getOrNull(1) ?: return null
+        val nMatch = Regex("n=(\\d+)").find(sig)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: return null
+        val chMatch = Regex("ch=([^|]*)").find(sig)?.groupValues?.getOrNull(1) ?: return null
+        val chList = if (chMatch.isEmpty()) emptyList() else chMatch.split(",")
+        return Triple(cMatch, nMatch, chList)
+    }
+
+    /** 计算两个列表的编辑距离（Levenshtein） */
+    private fun editDistance(a: List<String>, b: List<String>): Int {
+        val m = a.size
+        val n = b.size
+        if (m == 0) return n
+        if (n == 0) return m
+        val dp = Array(m + 1) { IntArray(n + 1) }
+        for (i in 0..m) dp[i][0] = i
+        for (j in 0..n) dp[0][j] = j
+        for (i in 1..m) {
+            for (j in 1..n) {
+                val cost = if (a[i - 1] == b[j - 1]) 0 else 1
+                dp[i][j] = minOf(
+                    dp[i - 1][j] + 1,      // 删除
+                    dp[i][j - 1] + 1,      // 插入
+                    dp[i - 1][j - 1] + cost // 替换
+                )
+            }
+        }
+        return dp[m][n]
     }
 
     /** 递归收集节点树所有文本（同 [FarmAccessibilityService.collectAllText]，避免改可见性） */

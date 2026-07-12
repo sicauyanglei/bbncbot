@@ -105,7 +105,27 @@ data class SceneFeatures(
      * - "立即领肥" / "还差4次领肥料" / "100肥料已发放"
      * - 空字符串表示当前页面无肥料任务描述
      */
-    val fertilizerTaskDesc: String = ""
+    val fertilizerTaskDesc: String = "",
+
+    /**
+     * 肥料卡片结构签名（记录肥料元素所在容器的子节点类型序列）
+     *
+     * 格式：`c=<容器简写>|n=<子节点数>|ch=<子节点类型序列>`
+     * 例：`c=Lin|n=3|ch=TV,Btn,TV`
+     *
+     * 提取规则（[SceneFeatureExtractor.extractFertStructSig]）：
+     * 1. 找到页面中文本匹配肥料模式的节点
+     * 2. 向上找最近的卡片容器（childCount >= 2 或 Layout/RecyclerView）
+     * 3. 记录容器的 className 简写 + 子节点数量 + 子节点类型序列
+     *
+     * 为什么需要这个字段：
+     * - fertTaskDesc 是文本标识，但同一种肥料任务在不同平台/不同版本可能文案略有差异
+     * - 结构签名记录的是页面布局结构（节点类型序列），不依赖文本内容
+     * - 结构极度相似（[SceneFeatureExtractor.isStructSimilar]）的页面归为同一类规则
+     * - 广告元素不在肥料节点附近，自然被忽略
+     * - 空字符串表示当前页面无肥料元素或无法提取结构
+     */
+    val fertStructSig: String = ""
 ) {
     /**
      * 生成场景签名：用于规则匹配的稳定键
@@ -144,6 +164,11 @@ data class SceneFeatures(
         // 有 fertTask 时不再用 btns=（商品名易变）和 task=（整页文本易变）做匹配键
         if (fertilizerTaskDesc.isNotEmpty()) {
             parts.add("fertTask=$fertilizerTaskDesc")
+            // 肥料结构签名：附加在 fertTask 后，作为结构维度的辅助标识
+            // 结构签名相同/相似的页面归为同一类（即使 fertTask 文案略有差异）
+            if (fertStructSig.isNotEmpty()) {
+                parts.add("fertStruct=$fertStructSig")
+            }
         } else {
             // 无肥料任务描述时退回原逻辑：用 btns 和 task 做辅助信号
             if (clickableButtons.isNotEmpty()) {

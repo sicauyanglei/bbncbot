@@ -109,7 +109,16 @@ object SceneLibrary {
          * - 回放时调用方据此自动跳转到对应平台的芭芭农场
          * - 空字符串表示旧数据/未知平台，回放时不自动跳转
          */
-        var platform: String = ""
+        var platform: String = "",
+        /**
+         * 肥料卡片结构签名（录制时从 [SceneFeatures.fertStructSig] 提取）
+         *
+         * - 格式：`c=<容器简写>|n=<子节点数>|ch=<子节点类型序列>`
+         * - 执行时用 [SceneFeatureExtractor.isStructSimilar] 做模糊匹配
+         *   结构极度相似的页面归为同一类规则（即使商品名/数字不同）
+         * - 空字符串表示旧数据/无肥料元素，匹配时跳过结构比较
+         */
+        var fertStructSig: String = ""
     )
 
     /**
@@ -327,8 +336,45 @@ object SceneLibrary {
                     return MatchResult.Matched(cat)
                 }
             }
-            // 3. coreSignature 自动归类（明显相同场景，不弹窗）
+            // 2.5 肥料结构模糊匹配（结构极度相似的页面归为同一类规则）
+            // 当前页面有肥料结构签名时，与所有规则的 fertStructSig 做模糊比较
+            // 结构相似（容器类型相同 + 子节点数差≤1 + 子节点类型编辑距离≤1）→ 归为同类
+            // 这样同一肥料任务的不同轮次（商品名/数字变化但卡片布局不变）自动复用规则
+            val curStructSig = features.fertStructSig
             val coreSig = features.coreSignature()
+            if (curStructSig.isNotEmpty() && (filter == null || features.fertilizerTaskDesc == filter)) {
+                val structMatch = categories.firstOrNull { cat ->
+                    cat.enabled && cat.fertStructSig.isNotEmpty() &&
+                        SceneFeatureExtractor.isStructSimilar(curStructSig, cat.fertStructSig) &&
+                        (filter == null || cat.fertTask == filter)
+                }
+                if (structMatch != null) {
+                    // 自动添加新 signature 映射（下次直接走精确匹配）
+                    val now = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(Date())
+                    mappings.add(SignatureMapping(
+                        signature = sig,
+                        categoryId = structMatch.id,
+                        firstSeen = now,
+                        matchCount = 1,
+                        coreSignature = coreSig
+                    ))
+                    structMatch.hitCount++
+                    // 补充 fertTask（旧规则可能没有）
+                    if (structMatch.fertTask.isEmpty() && features.fertilizerTaskDesc.isNotEmpty()) {
+                        structMatch.fertTask = features.fertilizerTaskDesc
+                    }
+                    // 进入 session 上下文
+                    if (structMatch.sessionId.isNotEmpty() && structMatch.sessionId != sessId) {
+                        currentSessionId = structMatch.sessionId
+                        currentStepIndex = structMatch.stepIndex
+                        Log.i(TAG, "entered session context by struct: session=${structMatch.sessionId} step=${structMatch.stepIndex}")
+                    }
+                    Log.i(TAG, "struct matched: cur='$curStructSig' -> category='${structMatch.name}' stored='${structMatch.fertStructSig}'")
+                    persistAsync()
+                    return MatchResult.Matched(structMatch)
+                }
+            }
+            // 3. coreSignature 自动归类（明显相同场景，不弹窗）
             val coreMatch = mappings.firstOrNull { m ->
                 m.coreSignature == coreSig && m.coreSignature.isNotEmpty() &&
                     // fertTask 过滤：如果开启过滤，只匹配 fertTask 相同的规则
@@ -531,7 +577,9 @@ object SceneLibrary {
                 // 记录这条规则属于哪个肥料任务（执行时按 fertTask 分组回放）
                 fertTask = features.fertilizerTaskDesc,
                 // 记录这条规则针对哪个平台（回放时据此自动跳转到对应平台芭芭农场）
-                platform = features.platform
+                platform = features.platform,
+                // 肥料卡片结构签名（执行时用模糊匹配归类同类页面）
+                fertStructSig = features.fertStructSig
             )
             categories.add(cat)
             mappings.add(SignatureMapping(
@@ -881,7 +929,9 @@ object SceneLibrary {
                         // 肥料任务描述：旧数据没有，默认空
                         fertTask = o.optString("fertTask", ""),
                         // 平台：旧数据没有，默认空；mappings 加载完后向后兼容补全
-                        platform = o.optString("platform", "")
+                        platform = o.optString("platform", ""),
+                        // 肥料结构签名：旧数据没有，默认空
+                        fertStructSig = o.optString("fertStructSig", "")
                     ))
                 }
                 val maps = root.getJSONArray("mappings")
@@ -978,6 +1028,7 @@ object SceneLibrary {
                         put("priority", c.priority)
                         put("fertTask", c.fertTask)
                         put("platform", c.platform)
+                        put("fertStructSig", c.fertStructSig)
                     })
                 }
                 val maps = JSONArray()
@@ -1287,6 +1338,11 @@ object SceneLibrary {
                     if (cat.platform.isEmpty() && features.platform.isNotEmpty()) {
                         cat.platform = features.platform
                         Log.i(TAG, "recordRule: updated platform='${cat.platform}' for category '${cat.name}'")
+                    }
+                    // 补充 fertStructSig（旧规则可能没有，录制时补上）
+                    if (cat.fertStructSig.isEmpty() && features.fertStructSig.isNotEmpty()) {
+                        cat.fertStructSig = features.fertStructSig
+                        Log.i(TAG, "recordRule: updated fertStructSig='${cat.fertStructSig}' for category '${cat.name}'")
                     }
                     Log.i(TAG, "recordRule: reinforced existing category '${cat.name}' hits=${cat.hitCount}")
                     persistAsync()
