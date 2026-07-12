@@ -369,20 +369,6 @@ class RuleEditorActivity : AppCompatActivity() {
         return taskPart.substringAfter("task=").trim()
     }
 
-    /**
-     * 解析 signature 中的 fertTask= 字段（肥料任务描述）
-     *
-     * 肥料任务描述是稳定的标识（如"看精选商品得肥料""逛好物最高得1500肥料"），
-     * 同一肥料任务的不同轮次商品可能不同，但 fertTask 不变。
-     * 优先于 task= 展示，让用户一眼看到这条规则是关于哪个肥料任务的。
-     */
-    private fun extractFertTaskFromCategory(categoryId: String): String {
-        val mappings = SceneLibrary.listMappingsForCategory(categoryId)
-        val firstSig = mappings.firstOrNull()?.signature ?: return ""
-        val fertPart = firstSig.split("|").firstOrNull { it.startsWith("fertTask=") } ?: return ""
-        return fertPart.substringAfter("fertTask=").trim()
-    }
-
     /** 获取 category 的第一条 signature（用于编辑界面只读展示） */
     private fun getFirstSignature(categoryId: String): String {
         return SceneLibrary.listMappingsForCategory(categoryId).firstOrNull()?.signature ?: ""
@@ -509,7 +495,7 @@ class RuleEditorActivity : AppCompatActivity() {
             // 左侧徽章显示规则序号（1, 2, 3...）
             holder.tvPriority.text = (position + 1).toString()
             // 规则名：优先用肥料任务描述（稳定有意义），其次用 category name
-            val fertTask = extractFertTaskFromCategory(rule.id)
+            val fertTask = rule.fertTask
             holder.tvName.text = if (fertTask.isNotEmpty()) fertTask else rule.name
             holder.tvAction.text = "动作：${actionToText(rule.action)}" +
                 (if (rule.targetButton != null) "「${rule.targetButton}」" else "")

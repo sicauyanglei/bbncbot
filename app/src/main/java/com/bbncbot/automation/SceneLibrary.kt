@@ -85,14 +85,23 @@ object SceneLibrary {
         var targetButton: String?,      // 改为 var，支持编辑界面修改
         val createdAt: String,
         var hitCount: Int = 0,
-        /** 归属的录制会话 ID（旧数据为空字符串，表示独立规则） */
+        /** 录属的录制会话 ID（旧数据为空字符串，表示独立规则） */
         var sessionId: String = "",
         /** 在 session 中的步骤序号（从 0 开始，独立规则为 -1） */
         var stepIndex: Int = -1,
         /** 是否启用此规则（false 时 match() 跳过此 category） */
         var enabled: Boolean = true,
         /** 任务执行优先级（数值越小越先执行，0=默认，由编辑界面配置） */
-        var priority: Int = 0
+        var priority: Int = 0,
+        /**
+         * 这条规则属于哪个肥料任务（如"看精选商品得肥料""逛好物最高得1500肥料"）
+         *
+         * - 录制时从 [SceneFeatures.fertilizerTaskDesc] 提取，写入此字段
+         * - 执行时按 fertTask 分组回放：bot 优先执行与当前场景 fertTask 相同的 session 步骤
+         * - 这样 bot 像人一样——"先做完看精选商品任务的所有步骤，再做下一个肥料任务"
+         * - 空字符串表示非肥料任务规则（如农场主页通用操作）
+         */
+        var fertTask: String = ""
     )
 
     /**
@@ -244,6 +253,30 @@ object SceneLibrary {
                 }
                 // session 下一步场景不匹配 → 不强制流程，回退全局匹配（混合模式）
                 Log.d(TAG, "session next step not matched, fallback to global (session=$sessId expectedStep=$nextStep)")
+            }
+            // 1.5 fertTask 上下文匹配（核心改进：像人一样按肥料任务分组回放）
+            // 当前场景有 fertTask 时，优先匹配同一 fertTask 的规则（不管 session 是否匹配）
+            // 这样 bot 在做"看精选商品得肥料"任务时，优先执行该任务的步骤，不会被其他任务干扰
+            val curFertTask = features.fertilizerTaskDesc
+            if (curFertTask.isNotEmpty()) {
+                val fertMatch = mappings.firstOrNull { m ->
+                    val cat = categories.firstOrNull { it.id == m.categoryId }
+                    cat != null && cat.enabled && cat.fertTask == curFertTask && m.signature == sig
+                }
+                if (fertMatch != null) {
+                    val cat = categories.firstOrNull { it.id == fertMatch.categoryId }!!
+                    fertMatch.matchCount++
+                    cat.hitCount++
+                    // 进入该规则所属的 session 上下文（按 fertTask 分组回放）
+                    if (cat.sessionId.isNotEmpty() && cat.sessionId != sessId) {
+                        currentSessionId = cat.sessionId
+                        currentStepIndex = cat.stepIndex
+                        Log.i(TAG, "entered session context by fertTask: session=${cat.sessionId} step=${cat.stepIndex} fertTask='$curFertTask'")
+                    }
+                    Log.i(TAG, "fertTask matched: fertTask='$curFertTask' -> category='${cat.name}' action=${cat.action}")
+                    persistAsync()
+                    return MatchResult.Matched(cat)
+                }
             }
             // 2. signature 精确匹配 → 找到所属 category
             val mapping = mappings.firstOrNull { it.signature == sig }
@@ -420,7 +453,9 @@ object SceneLibrary {
                 createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(Date()),
                 hitCount = 1,
                 sessionId = sessionId,
-                stepIndex = stepIndex
+                stepIndex = stepIndex,
+                // 记录这条规则属于哪个肥料任务（执行时按 fertTask 分组回放）
+                fertTask = features.fertilizerTaskDesc
             )
             categories.add(cat)
             mappings.add(SignatureMapping(
@@ -430,7 +465,7 @@ object SceneLibrary {
                 matchCount = 1,
                 coreSignature = coreSig
             ))
-            Log.i(TAG, "createCategory: name='$categoryName' action=$action sig=$sig coreSig=$coreSig session=$sessionId step=$stepIndex")
+            Log.i(TAG, "createCategory: name='$categoryName' action=$action sig=$sig coreSig=$coreSig session=$sessionId step=$stepIndex fertTask='${features.fertilizerTaskDesc}'")
             logRecording(features, action, targetButton, categoryName)
             persistAsync()
             return cat
@@ -754,7 +789,9 @@ object SceneLibrary {
                         stepIndex = o.optInt("stepIndex", -1),
                         // 新增字段：旧数据没有 enabled/priority，默认 true/0
                         enabled = o.optBoolean("enabled", true),
-                        priority = o.optInt("priority", 0)
+                        priority = o.optInt("priority", 0),
+                        // 肥料任务描述：旧数据没有，默认空
+                        fertTask = o.optString("fertTask", "")
                     ))
                 }
                 val maps = root.getJSONArray("mappings")
@@ -839,6 +876,7 @@ object SceneLibrary {
                         put("stepIndex", c.stepIndex)
                         put("enabled", c.enabled)
                         put("priority", c.priority)
+                        put("fertTask", c.fertTask)
                     })
                 }
                 val maps = JSONArray()
@@ -1126,6 +1164,11 @@ object SceneLibrary {
                 if (cat != null) {
                     cat.hitCount++
                     existing.matchCount++
+                    // 补充 fertTask（旧规则可能没有，录制时补上）
+                    if (cat.fertTask.isEmpty() && features.fertilizerTaskDesc.isNotEmpty()) {
+                        cat.fertTask = features.fertilizerTaskDesc
+                        Log.i(TAG, "recordRule: updated fertTask='${cat.fertTask}' for category '${cat.name}'")
+                    }
                     Log.i(TAG, "recordRule: reinforced existing category '${cat.name}' hits=${cat.hitCount}")
                     persistAsync()
                     return
