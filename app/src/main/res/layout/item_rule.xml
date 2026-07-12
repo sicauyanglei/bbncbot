@@ -3,27 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-    <!-- 底层：删除按钮（左滑后显露） -->
-    <FrameLayout
-        android:id="@+id/deleteBackground"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#F44336"
-        android:visibility="gone">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical|end"
-            android:paddingStart="24dp"
-            android:paddingEnd="24dp"
-            android:text="删除"
-            android:textColor="#FFFFFF"
-            android:textSize="15sp"
-            android:textStyle="bold" />
-    </FrameLayout>
-
-    <!-- 前景：规则内容（可滑动） -->
+    <!-- 底层：规则内容（可滑动） -->
     <LinearLayout
         android:id="@+id/foreground"
         android:layout_width="match_parent"
@@ -101,5 +81,26 @@
             android:checked="true" />
 
     </LinearLayout>
+
+    <!-- 上层：删除按钮（左滑后显露，位于前景之上以接收点击） -->
+    <FrameLayout
+        android:id="@+id/deleteBackground"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="end|center_vertical"
+        android:background="#F44336"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:text="删除"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </FrameLayout>
 
 </FrameLayout>
