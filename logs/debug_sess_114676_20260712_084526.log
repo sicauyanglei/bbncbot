@@ -1,0 +1,36 @@
+=== cleared on app start (version=2.1, time=08:39:56) ===
+08:39:56.301 killPlatformApps: killed com.ucmobile.lite for UC
+08:39:56.302 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+08:39:56.303 killPlatformApps: killed com.taobao.taobao for TAOBAO
+08:44:46.007 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+08:44:46.010 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+08:44:46.010 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+08:44:46.012 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+08:44:49.572 navigateAlipay: 芭芭农场 entry invalid (searchNode=false, bounds=[-621,1097][369,1239]), fallback to search
+08:44:49.589 navigateAlipay: no search or farm entry found, retry=0
+08:44:51.603 navigateAlipay: 芭芭农场 entry invalid (searchNode=false, bounds=[52,1072][1148,1229]), fallback to search
+08:44:51.610 navigateAlipay: no search or farm entry found, retry=1
+08:44:53.632 navigateAlipay: 芭芭农场 entry invalid (searchNode=false, bounds=[52,1072][1148,1229]), fallback to search
+08:44:53.639 navigateAlipay: no search or farm entry found, retry=2
+08:44:55.717 navigateAlipay: 芭芭农场 entry invalid (searchNode=false, bounds=[0,1592][1200,1908]), fallback to search
+08:44:55.731 navigateAlipay: no search or farm entry found, retry=3
+08:44:57.760 navigateAlipay: no search or farm entry found, retry=4
+08:44:59.813 navigateAlipay: no search or farm entry found, retry=5
+08:45:02.292 navigateAlipay: found 芭芭农场 entry at [600,909][829,1172], clicking
+08:45:02.292 performClickSafe: text='芭芭农场机器人' desc='芭芭农场机器人' bounds=[600,909][829,1172] clickable=true
+08:45:02.308 performClickSafe: ACTION_CLICK success at depth=0
+08:45:04.107 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+08:45:04.111 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+08:45:04.112 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+08:45:04.113 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+08:45:08.564 navigateAlipay: found 芭芭农场 entry at [942,1494][1171,1682], clicking
+08:45:08.564 performClickSafe: text='' desc='' bounds=[942,1494][1171,1682] clickable=true
+08:45:08.599 performClickSafe: ACTION_CLICK success at depth=0
+08:45:14.988 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+08:45:15.092 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+08:45:17.784 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:45:18.046 collectTaskContextText: result='', buttonText='', containerFound=true
+08:45:21.129 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:45:21.384 collectTaskContextText: result='', buttonText='', containerFound=true
+08:45:24.478 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:45:24.732 collectTaskContextText: result='', buttonText='', containerFound=true
