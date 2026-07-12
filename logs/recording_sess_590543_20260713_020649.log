@@ -1,0 +1,34 @@
+=== recording.log cleared on app start (version=2.1/12, time=02:05:53.980) ===
+02:06:30.544 === 录制开始 session=sess_1783879590543 name='流程533' ===
+02:06:30.815 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 芭芭农场,种果树得水果，助农增收) → 尝试 OCR 兜底
+02:06:31.350 [start] FERTILIZER_READ_OK amount=520 (source=ocr)
+02:06:41.540 CLICK_H5 type=0x800 target='还差3次领肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,保卫向日葵,返回,支付宝·芭芭农场,更多,关闭]
+02:06:41.541 RECORD sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料' category='支付宝-农场主页-点击还差3次领肥料' action=CLICK_BUTTON target='还差3次领肥料' state=IDLE btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,保卫向日葵,返回,支付宝·芭芭农场,更多,关闭]
+02:06:41.543 AUTO_CREATE name='支付宝-农场主页-点击还差3次领肥料' action=CLICK_BUTTON session=sess_1783879590543 step=0 sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料'
+02:06:42.550 CLICK_H5 type=0x800 target='还差3次领肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,保卫向日葵,返回,支付宝·芭芭农场,更多,关闭]
+02:06:42.552 MATCHED name='支付宝-农场主页-点击还差3次领肥料' action=CLICK_BUTTON
+02:06:43.018 CLICK_H5 type=0x800 target='还差3次领肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,保卫向日葵,返回,支付宝·芭芭农场,更多,关闭]
+02:06:43.019 MATCHED name='支付宝-农场主页-点击还差3次领肥料' action=CLICK_BUTTON
+02:06:43.396 CLICK_H5 type=0x20 target='还差3次领肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,保卫向日葵,返回,支付宝·芭芭农场,更多,关闭]
+02:06:43.398 MATCHED name='支付宝-农场主页-点击还差3次领肥料' action=CLICK_BUTTON
+02:06:44.448 CLICK_H5 type=0x800 target='关闭做任务集肥料弹窗' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,保卫向日葵,返回,支付宝·芭芭农场,更多,关闭]
+02:06:44.449 MATCHED name='支付宝-农场主页-点击还差3次领肥料' action=CLICK_BUTTON
+02:06:45.961 CLICK_H5 type=0x800 target='还差3次领肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,保卫向日葵,返回,支付宝·芭芭农场,更多,关闭]
+02:06:45.962 MATCHED name='支付宝-农场主页-点击还差3次领肥料' action=CLICK_BUTTON
+02:06:46.459 CLICK_H5 type=0x800 target='“抢”青海农货得6万肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,保卫向日葵,返回,支付宝·芭芭农场,更多,关闭]
+02:06:46.462 MATCHED name='支付宝-农场主页-点击还差3次领肥料' action=CLICK_BUTTON
+02:06:46.942 CLICK_H5 type=0x800 target='还差3次领肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,保卫向日葵,返回,支付宝·芭芭农场,更多,关闭]
+02:06:46.943 MATCHED name='支付宝-农场主页-点击还差3次领肥料' action=CLICK_BUTTON
+02:06:47.459 CLICK_H5 type=0x800 target='还差3次领肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,保卫向日葵,返回,支付宝·芭芭农场,更多,关闭]
+02:06:47.460 MATCHED name='支付宝-农场主页-点击还差3次领肥料' action=CLICK_BUTTON
+02:06:48.117 CLICK_H5 type=0x800 target='每日最高120300肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,保卫向日葵,返回,支付宝·芭芭农场,更多,关闭]
+02:06:48.121 MATCHED name='支付宝-农场主页-点击还差3次领肥料' action=CLICK_BUTTON
+02:06:48.358 CLICK_H5 type=0x800 target='囤高原特产，得6万肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,保卫向日葵,返回,支付宝·芭芭农场,更多,关闭]
+02:06:48.359 MATCHED name='支付宝-农场主页-点击还差3次领肥料' action=CLICK_BUTTON
+02:06:48.572 CLICK_H5 type=0x800 target='还差3次领肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,保卫向日葵,返回,支付宝·芭芭农场,更多,关闭]
+02:06:48.573 MATCHED name='支付宝-农场主页-点击还差3次领肥料' action=CLICK_BUTTON
+02:06:48.840 CLICK_H5 type=0x800 target='还差3次领肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,钓红包,得1000肥 三国冰河,灵画师,保卫向日葵,返回,支付宝·芭芭农场,更多,关闭]
+02:06:48.845 MATCHED name='支付宝-农场主页-点击还差3次领肥料' action=CLICK_BUTTON
+02:06:49.452 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 芭芭农场,种果树得水果，助农增收) → 尝试 OCR 兜底
+02:06:49.798 [stop] FERTILIZER_READ_OK amount=1120 (source=ocr)
+02:06:49.805 === 录制结束 session=sess_1783879590543 DISCARD reason=未录制任何操作(steps=0) steps=0 ===
