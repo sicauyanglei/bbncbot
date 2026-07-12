@@ -1,0 +1,43 @@
+=== cleared on app start (version=2.1, time=08:57:23) ===
+08:57:23.582 killPlatformApps: killed com.ucmobile.lite for UC
+08:57:23.586 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+08:57:23.588 killPlatformApps: killed com.taobao.taobao for TAOBAO
+08:57:32.446 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+08:57:32.447 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+08:57:32.448 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+08:57:32.449 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+08:57:36.124 navigateAlipay: found 芭芭农场 entry at [252,978][484,1198], clicking
+08:57:36.126 performClickSafe: text='' desc='' bounds=[252,978][484,1198] clickable=true
+08:57:36.145 performClickSafe: ACTION_CLICK success at depth=0
+08:57:42.481 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+08:57:42.580 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+08:57:44.454 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Image text='' desc=''
+08:57:44.569 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Image text='' desc=''
+08:57:44.708 collectTaskContextText: result='任务列表 农场乐园入口 切换摇钱树 逛农货 我的收获 ', buttonText='', containerFound=true
+08:57:44.873 collectTaskContextText: result='任务列表 农场乐园入口 切换摇钱树 逛农货 我的收获 ', buttonText='', containerFound=true
+08:57:45.052 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:57:45.310 collectTaskContextText: result='', buttonText='', containerFound=true
+08:57:46.268 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:57:46.373 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:57:46.451 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:57:46.456 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+08:57:46.618 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:57:46.622 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:57:47.153 collectTaskContextText: result='', buttonText='', containerFound=true
+08:57:47.370 collectTaskContextText: result='', buttonText='', containerFound=true
+08:57:47.571 collectTaskContextText: result='', buttonText='', containerFound=true
+08:57:47.768 collectTaskContextText: result='钓红包 ', buttonText='', containerFound=true
+08:57:47.918 collectTaskContextText: result='关闭 ', buttonText='', containerFound=true
+08:57:48.085 collectTaskContextText: result='关闭 ', buttonText='', containerFound=true
+08:57:48.116 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='关闭' desc=''
+08:57:48.123 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:57:48.138 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:57:48.214 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='' desc=''
+08:57:48.381 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+08:57:48.434 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:57:48.438 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+08:57:48.896 collectTaskContextText: result='', buttonText='关闭', containerFound=false
+08:57:49.195 collectTaskContextText: result='', buttonText='', containerFound=false
+08:57:49.821 collectTaskContextText: result='', buttonText='', containerFound=true
+08:57:50.015 collectTaskContextText: result='', buttonText='', containerFound=true
+08:57:50.257 collectTaskContextText: result='钓红包 ', buttonText='', containerFound=true
