@@ -79,7 +79,9 @@ class RuleEditorActivity : AppCompatActivity() {
         ) {
             /** 删除按钮宽度（px），左滑停留时的偏移量 */
             private val deleteWidthPx = 200f
-            /** 记录每个 viewHolder 最后一次滑动时的 dX（松手时 clearView 里 translationX 已被重置，用此判断） */
+            /** 记录每个 viewHolder 滑动状态：是否正在由用户拖动 */
+            private val swipeActive = mutableMapOf<RecyclerView.ViewHolder, Boolean>()
+            /** 记录每个 viewHolder 最后一次滑动时的 dX（用于松手判断停留/回弹） */
             private val lastSwipeDx = mutableMapOf<RecyclerView.ViewHolder, Float>()
 
             override fun onMove(
@@ -90,7 +92,6 @@ class RuleEditorActivity : AppCompatActivity() {
                 val from = viewHolder.bindingAdapterPosition
                 val to = target.bindingAdapterPosition
                 if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) return false
-                // 交换列表中的位置
                 java.util.Collections.swap(currentRules, from, to)
                 adapter.notifyItemMoved(from, to)
                 return true
@@ -106,13 +107,11 @@ class RuleEditorActivity : AppCompatActivity() {
                 y: Int
             ) {
                 super.onMoved(rv, viewHolder, fromPos, target, toPos, x, y)
-                // 拖动结束后，按新顺序重新分配 priority 并持久化
                 persistOrderAfterDrag()
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                // 不在此触发删除，由点击删除按钮触发
-                // getSwipeThreshold=MAX_VALUE 时不应被调用，防御性处理
+                android.util.Log.w("RuleEditor", "onSwiped called unexpectedly dir=$direction pos=${viewHolder.bindingAdapterPosition}")
             }
 
             override fun onChildDraw(
@@ -124,51 +123,71 @@ class RuleEditorActivity : AppCompatActivity() {
                 actionState: Int,
                 isCurrentlyActive: Boolean
             ) {
+                if (actionState != ItemTouchHelper.ACTION_STATE_SWIPE) {
+                    super.onChildDraw(c, rv, viewHolder, dX, dY, actionState, isCurrentlyActive)
+                    return
+                }
                 val foreground = (viewHolder as RuleAdapter.RuleViewHolder).foreground
                 val background = viewHolder.deleteBackground
-                if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
-                    // 限制左滑最多到删除按钮宽度，右滑限制为 0（不能向右滑出屏幕）
-                    val clampedDx = when {
-                        dX < -deleteWidthPx -> -deleteWidthPx
-                        dX > 0 -> 0f  // 右滑不允许超出原位
-                        else -> dX
+                // 限制左滑最多到删除按钮宽度，右滑限制为 0
+                val clampedDx = when {
+                    dX < -deleteWidthPx -> -deleteWidthPx
+                    dX > 0 -> 0f
+                    else -> dX
+                }
+                val wasActive = swipeActive[viewHolder] ?: false
+                swipeActive[viewHolder] = isCurrentlyActive
+                lastSwipeDx[viewHolder] = clampedDx
+
+                // 左滑时显示红色删除背景
+                background.visibility = if (clampedDx < 0) View.VISIBLE else View.GONE
+                foreground.translationX = clampedDx
+
+                // 关键：检测用户松手（isCurrentlyActive 从 true→false）
+                // 此时立即决定停留/回弹，不依赖 clearView（clearView 行为不可控）
+                if (wasActive && !isCurrentlyActive) {
+                    android.util.Log.i("RuleEditor", "swipe released: lastDx=$clampedDx threshold=${-deleteWidthPx/2} pos=${viewHolder.bindingAdapterPosition}")
+                    if (clampedDx < -deleteWidthPx / 2) {
+                        // 左滑超过一半 → 停留显示删除按钮
+                        android.util.Log.i("RuleEditor", "swipe STAY OPEN: animating to $(-deleteWidthPx)")
+                        background.visibility = View.VISIBLE
+                        foreground.animate()
+                            .translationX(-deleteWidthPx)
+                            .setDuration(150)
+                            .start()
+                    } else {
+                        // 不够一半 → 回弹隐藏
+                        android.util.Log.i("RuleEditor", "swipe SPRING BACK: animating to 0")
+                        foreground.animate()
+                            .translationX(0f)
+                            .setDuration(150)
+                            .withEndAction { background.visibility = View.GONE }
+                            .start()
                     }
-                    // 记录当前滑动偏移（松手时 clearView 里读 translationX 可能已被重置）
-                    lastSwipeDx[viewHolder] = clampedDx
-                    // 左滑时显示红色删除背景
-                    background.visibility = if (clampedDx < 0) View.VISIBLE else View.GONE
-                    // 直接用 translationX 控制前景位置（不用 getDefaultUIUtil，避免它重置状态）
-                    foreground.translationX = clampedDx
-                } else {
-                    super.onChildDraw(c, rv, viewHolder, dX, dY, actionState, isCurrentlyActive)
                 }
             }
 
             override fun clearView(rv: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                 super.clearView(rv, viewHolder)
                 val foreground = (viewHolder as RuleAdapter.RuleViewHolder).foreground
-                // 用记录的 dX 判断松手位置（clearView 被调用时 translationX 可能已被 ItemTouchHelper 重置）
+                val background = viewHolder.deleteBackground
                 val lastDx = lastSwipeDx[viewHolder] ?: 0f
+                swipeActive.remove(viewHolder)
                 lastSwipeDx.remove(viewHolder)
-                // 松手后根据松手前的偏移决定停留位置（带动画）：
-                // - 左滑超过一半删除按钮宽度 → 停留在删除按钮可见状态
-                // - 否则动画回弹隐藏
-                if (lastDx < -deleteWidthPx / 2) {
-                    viewHolder.deleteBackground.visibility = View.VISIBLE
+                android.util.Log.i("RuleEditor", "clearView: lastDx=$lastDx currentTx=${foreground.translationX} bgVis=${background.visibility}")
+                // clearView 是松手后的最终回调，确保状态与松手决策一致
+                // 如果 onChildDraw 已经处理了停留（translationX 已是 -deleteWidthPx），这里不重复处理
+                // 只处理 onChildDraw 未捕获到的边界情况（如直接调用 ItemTouchHelper.stopSwipe）
+                if (foreground.translationX == 0f && lastDx < -deleteWidthPx / 2) {
+                    android.util.Log.w("RuleEditor", "clearView FIXUP: tx was 0 but lastDx indicates stay-open, re-animating")
+                    background.visibility = View.VISIBLE
                     foreground.animate().translationX(-deleteWidthPx).setDuration(150).start()
-                } else {
-                    foreground.animate()
-                        .translationX(0f)
-                        .setDuration(150)
-                        .withEndAction { viewHolder.deleteBackground.visibility = View.GONE }
-                        .start()
                 }
             }
 
-            override fun isLongPressDragEnabled(): Boolean = true  // 长按拖动排序
-            override fun isItemViewSwipeEnabled(): Boolean = true  // 左滑/右滑
+            override fun isLongPressDragEnabled(): Boolean = true
+            override fun isItemViewSwipeEnabled(): Boolean = true
 
-            // 设为 MAX_VALUE 让 onSwiped 永不自动触发（我们自己管理停留状态）
             override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float = Float.MAX_VALUE
             override fun getSwipeEscapeVelocity(defaultValue: Float): Float = Float.MAX_VALUE
             override fun getSwipeVelocityThreshold(defaultValue: Float): Float = Float.MAX_VALUE
@@ -182,8 +201,14 @@ class RuleEditorActivity : AppCompatActivity() {
         }
         // 点击左滑出现的删除按钮 → 弹删除确认
         adapter.onDeleteClick = { position ->
+            android.util.Log.i("RuleEditor", "onDeleteClick callback: position=$position rulesSize=${currentRules.size}")
             val rule = currentRules.getOrNull(position)
-            if (rule != null) showDeleteConfirm(rule, position)
+            if (rule != null) {
+                android.util.Log.i("RuleEditor", "onDeleteClick showing confirm for rule='${rule.name}' id=${rule.id}")
+                showDeleteConfirm(rule, position)
+            } else {
+                android.util.Log.w("RuleEditor", "onDeleteClick: rule null at position=$position")
+            }
         }
 
         // 删除当前 Tab 平台的全部规则（带二次确认）
@@ -398,6 +423,7 @@ class RuleEditorActivity : AppCompatActivity() {
                 // 点击前景区域：如果删除按钮已展开则先收起，否则触发编辑
                 foreground.setOnClickListener {
                     val pos = bindingAdapterPosition
+                    android.util.Log.i("RuleEditor", "foreground click: pos=$pos tx=${foreground.translationX} bgVis=${deleteBackground.visibility}")
                     if (pos == RecyclerView.NO_POSITION) return@setOnClickListener
                     if (foreground.translationX != 0f) {
                         // 删除按钮展开状态，点击前景收起删除按钮
@@ -410,6 +436,7 @@ class RuleEditorActivity : AppCompatActivity() {
                 // 点击删除按钮触发删除
                 deleteBackground.setOnClickListener {
                     val pos = bindingAdapterPosition
+                    android.util.Log.i("RuleEditor", "delete button click: pos=$pos tx=${foreground.translationX} bgVis=${deleteBackground.visibility}")
                     if (pos != RecyclerView.NO_POSITION) onDeleteClick?.invoke(pos)
                 }
             }
