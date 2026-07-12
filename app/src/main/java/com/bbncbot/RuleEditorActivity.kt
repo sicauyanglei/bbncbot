@@ -147,17 +147,22 @@ class RuleEditorActivity : AppCompatActivity() {
             override fun clearView(rv: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                 super.clearView(rv, viewHolder)
                 val foreground = (viewHolder as RuleAdapter.RuleViewHolder).foreground
-                getDefaultUIUtil().clearView(foreground)
-                // 松手后根据当前偏移决定停留位置：
-                // - 左滑超过一半删除按钮宽度 → 停留在删除按钮可见状态
-                // - 否则回弹隐藏
+                // 注意：必须在 getDefaultUIUtil().clearView() 之前读取偏移量，
+                // 因为 clearView() 会立即把 translationX 重置为 0
                 val currentDx = foreground.translationX
+                getDefaultUIUtil().clearView(foreground)
+                // 松手后根据当前偏移决定停留位置（带动画）：
+                // - 左滑超过一半删除按钮宽度 → 停留在删除按钮可见状态
+                // - 否则动画回弹隐藏
                 if (currentDx < -deleteWidthPx / 2) {
-                    foreground.translationX = -deleteWidthPx
                     viewHolder.deleteBackground.visibility = View.VISIBLE
+                    foreground.animate().translationX(-deleteWidthPx).setDuration(150).start()
                 } else {
-                    foreground.translationX = 0f
-                    viewHolder.deleteBackground.visibility = View.GONE
+                    foreground.animate()
+                        .translationX(0f)
+                        .setDuration(150)
+                        .withEndAction { viewHolder.deleteBackground.visibility = View.GONE }
+                        .start()
                 }
             }
 
