@@ -79,12 +79,27 @@ class RuleEditorActivity : AppCompatActivity() {
             ItemTouchHelper.UP or ItemTouchHelper.DOWN,  // 拖动方向
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT  // 左滑显示删除，右滑隐藏
         ) {
-            /** 删除按钮宽度（px），左滑停留时的偏移量 */
-            private val deleteWidthPx = 200f
             /** 记录每个 viewHolder 滑动状态：是否正在由用户拖动 */
             private val swipeActive = mutableMapOf<RecyclerView.ViewHolder, Boolean>()
             /** 记录每个 viewHolder 最后一次滑动时的 dX（用于松手判断停留/回弹） */
             private val lastSwipeDx = mutableMapOf<RecyclerView.ViewHolder, Float>()
+
+            /**
+             * 获取删除按钮的实际宽度（px）
+             * - deleteBackground 在 XML 中是 wrap_content，宽度取决于"删除"文字 + padding
+             * - 不能硬编码，否则不同屏幕密度下前景偏移量与删除按钮宽度不匹配
+             * - 第一次调用时测量 deleteBackground 的实际宽度并缓存
+             */
+            private fun getDeleteWidth(viewHolder: RecyclerView.ViewHolder): Float {
+                val bg = (viewHolder as RuleAdapter.RuleViewHolder).deleteBackground
+                if (bg.width > 0) return bg.width.toFloat()
+                // View 尚未布局完成，手动测量
+                val wSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                val hSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                bg.measure(wSpec, hSpec)
+                val w = bg.measuredWidth.toFloat()
+                return if (w > 0) w else 200f  // 兜底默认值
+            }
 
             override fun onMove(
                 rv: RecyclerView,
@@ -141,6 +156,7 @@ class RuleEditorActivity : AppCompatActivity() {
                     return
                 }
                 val background = viewHolder.deleteBackground
+                val deleteWidthPx = getDeleteWidth(viewHolder)
                 // 限制左滑最多到删除按钮宽度，右滑限制为 0
                 val clampedDx = when {
                     dX < -deleteWidthPx -> -deleteWidthPx
@@ -184,6 +200,7 @@ class RuleEditorActivity : AppCompatActivity() {
                 val foreground = (viewHolder as RuleAdapter.RuleViewHolder).foreground
                 val background = viewHolder.deleteBackground
                 val lastDx = lastSwipeDx[viewHolder] ?: 0f
+                val deleteWidthPx = getDeleteWidth(viewHolder)
                 swipeActive.remove(viewHolder)
                 lastSwipeDx.remove(viewHolder)
                 android.util.Log.i("RuleEditor", "clearView: lastDx=$lastDx currentTx=${foreground.translationX} bgVis=${background.visibility}")
