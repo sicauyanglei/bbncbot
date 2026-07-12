@@ -67,6 +67,42 @@ object RecordingManager {
     /** 0x800 (WINDOW_CONTENT_CHANGED) 事件节流：dedupKey -> last click time ms */
     private val lastClickSigTime = HashMap<String, Long>()
 
+    /**
+     * 肥料相关关键字（target 文本或页面文本含这些字样视为肥料关键路径）
+     *
+     * - 领取类：立即领肥/领取/已发放/领取成功
+     * - 提示类：还差X次领肥料/肥料 +XXX/得XXX肥料/肥料奖励
+     * - 操作类：施肥/去施肥/做任务集肥料/领肥
+     */
+    private val FERTILIZER_KEYWORDS = listOf(
+        "肥料", "领肥", "施肥", "已发放", "领取成功", "做任务集肥料"
+    )
+
+    /**
+     * 判断当前操作是否与肥料相关（录制关键路径过滤）
+     *
+     * 判定规则（任一命中即视为相关）：
+     * 1. target 按钮文本含肥料关键字（如"立即领肥""领取"）
+     * 2. 页面可见文本含肥料领取/发放提示（如"100肥料已发放""还差4次领肥料"）
+     *
+     * 不相关示例：纯数字（"09""14"）、商品名、搜索框、"支付宝"等导航点击
+     *
+     * @param target 目标按钮文本（可 null）
+     * @param pageTexts 页面可见文本列表
+     * @return true 表示与肥料相关，应记录；false 表示噪音，丢弃
+     */
+    private fun isFertilizerRelevant(target: String?, pageTexts: List<String>): Boolean {
+        // 1. target 含肥料关键字
+        if (target != null && FERTILIZER_KEYWORDS.any { target.contains(it) }) {
+            return true
+        }
+        // 2. 页面文本含肥料领取/发放/提示关键字
+        //    （用户在肥料领取流程中点击，即使 target 本身不含"肥料"也算关键路径）
+        return pageTexts.any { pageText ->
+            FERTILIZER_KEYWORDS.any { pageText.contains(it) }
+        }
+    }
+
     /** 当录制状态变化时通知浮窗更新 UI */
     @Volatile
     var onRecordingChanged: ((Boolean) -> Unit)? = null
@@ -352,6 +388,12 @@ object RecordingManager {
                                 return@execute
                             }
                             lastClickSigTime[dedupKey] = now
+                        }
+                        // 关键路径过滤：只录制与肥料相关的操作，丢弃无关噪音（商品名/数字/搜索框等）
+                        // 肥料相关信号：target 文本含肥料关键字，或页面可见文本含肥料领取/发放提示
+                        if (!isFertilizerRelevant(targetButton, features.pageTexts)) {
+                            logToRecordingFile("SKIP_NO_FERTILIZER target='$targetButton' (非肥料相关，丢弃)")
+                            return@execute
                         }
                         // WINDOW_STATE_CHANGED 无 source 时，跳过（避免误把页面跳转记成点击）
                         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
