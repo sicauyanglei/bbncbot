@@ -69,6 +69,7 @@ class RuleEditorActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.recyclerView)
         tvEmpty = findViewById(R.id.tvEmpty)
         val btnDeleteAll = findViewById<Button>(R.id.btnDeleteAll)
+        val btnReplayTask = findViewById<Button>(R.id.btnReplayTask)
 
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = RuleAdapter()
@@ -254,6 +255,38 @@ class RuleEditorActivity : AppCompatActivity() {
                     val removed = SceneLibrary.deleteCategoriesByPlatform(currentPlatformFilter)
                     Toast.makeText(this, "已删除 $removed 条规则", Toast.LENGTH_SHORT).show()
                     refreshList()
+                }
+                .setNegativeButton("取消", null)
+                .show()
+        }
+
+        // 按肥料任务回放：弹出已录制的肥料任务列表，选择后 bot 只执行该任务的规则
+        btnReplayTask.setOnClickListener {
+            val fertTasks = SceneLibrary.listFertTasks()
+            if (fertTasks.isEmpty()) {
+                Toast.makeText(this, "暂无肥料任务规则，请先录制", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val currentFilter = SceneLibrary.getFertTaskFilter()
+            // 选项：所有肥料任务 + "清除过滤（执行全部规则）"
+            val labels = fertTasks.toMutableList()
+            if (currentFilter != null) labels.add(0, "✗ 清除过滤（执行全部规则）")
+            val checkedItem = if (currentFilter != null) {
+                val idx = fertTasks.indexOf(currentFilter)
+                if (idx >= 0) idx + 1 else 0  // +1 因为加了"清除过滤"项
+            } else -1
+            AlertDialog.Builder(this)
+                .setTitle(if (currentFilter != null) "当前过滤：$currentFilter\n选择要回放的任务" else "选择要回放的肥料任务")
+                .setSingleChoiceItems(labels.toTypedArray(), checkedItem) { dialog, which ->
+                    val selected = labels[which]
+                    if (selected.startsWith("✗")) {
+                        SceneLibrary.clearFertTaskFilter()
+                        Toast.makeText(this, "已清除任务过滤，bot 将执行全部规则", Toast.LENGTH_SHORT).show()
+                    } else {
+                        SceneLibrary.setFertTaskFilter(selected)
+                        Toast.makeText(this, "已设置只回放任务：$selected\n\n点击浮窗\"开始\"启动自动化", Toast.LENGTH_LONG).show()
+                    }
+                    dialog.dismiss()
                 }
                 .setNegativeButton("取消", null)
                 .show()

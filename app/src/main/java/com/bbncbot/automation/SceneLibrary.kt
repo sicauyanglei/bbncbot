@@ -172,6 +172,18 @@ object SceneLibrary {
     @Volatile private var currentSessionId: String? = null
     @Volatile private var currentStepIndex: Int = -1
 
+    /**
+     * fertTask 过滤模式（运行时状态，不持久化）
+     *
+     * - 非空时，[match] 只返回 fertTask 等于此值的规则（其他规则被暂时屏蔽）
+     * - 用户在规则编辑界面选择"只回放某个肥料任务"时设置
+     * - 调用 [resetSessionContext] 或 [clearFertTaskFilter] 清除
+     *
+     * 使用场景：用户只想执行"看精选商品得肥料"这一个任务的所有步骤，
+     * 不希望 bot 跑去执行其他肥料任务。
+     */
+    @Volatile private var fertTaskFilter: String? = null
+
     /** 内置默认规则（按 signature 通配匹配） */
     private data class DefaultRule(val signaturePattern: String, val action: Action, val targetButton: String?)
     private val defaultRules: List<DefaultRule> = listOf(
@@ -226,6 +238,9 @@ object SceneLibrary {
         ensureInitialized()
         val sig = features.signature()
         synchronized(lock) {
+            // fertTask 过滤模式：只匹配指定 fertTask 的规则
+            // 用户选择"只回放某个肥料任务"时启用，其他规则的 mapping 被暂时跳过
+            val filter = fertTaskFilter
             // 任务完成/异常页 → 自动结束 session 上下文（流程闭环）
             if (features.isTaskComplete || features.isAbnormalPage) {
                 if (currentSessionId != null) {
@@ -240,7 +255,9 @@ object SceneLibrary {
                 val nextStep = currentStepIndex + 1
                 val nextMapping = mappings.firstOrNull { m ->
                     val cat = categories.firstOrNull { it.id == m.categoryId }
-                    cat != null && cat.enabled && cat.sessionId == sessId && cat.stepIndex == nextStep && m.signature == sig
+                    cat != null && cat.enabled && cat.sessionId == sessId && cat.stepIndex == nextStep && m.signature == sig &&
+                        // fertTask 过滤：如果开启过滤，只匹配 fertTask 相同的规则
+                        (filter == null || cat.fertTask == filter)
                 }
                 if (nextMapping != null) {
                     val cat = categories.firstOrNull { it.id == nextMapping.categoryId }!!
@@ -257,8 +274,9 @@ object SceneLibrary {
             // 1.5 fertTask 上下文匹配（核心改进：像人一样按肥料任务分组回放）
             // 当前场景有 fertTask 时，优先匹配同一 fertTask 的规则（不管 session 是否匹配）
             // 这样 bot 在做"看精选商品得肥料"任务时，优先执行该任务的步骤，不会被其他任务干扰
+            // 注意：如果开启 fertTask 过滤，则 curFertTask 必须等于 filter 才匹配
             val curFertTask = features.fertilizerTaskDesc
-            if (curFertTask.isNotEmpty()) {
+            if (curFertTask.isNotEmpty() && (filter == null || curFertTask == filter)) {
                 val fertMatch = mappings.firstOrNull { m ->
                     val cat = categories.firstOrNull { it.id == m.categoryId }
                     cat != null && cat.enabled && cat.fertTask == curFertTask && m.signature == sig
@@ -279,7 +297,12 @@ object SceneLibrary {
                 }
             }
             // 2. signature 精确匹配 → 找到所属 category
-            val mapping = mappings.firstOrNull { it.signature == sig }
+            val mapping = mappings.firstOrNull { m ->
+                m.signature == sig && (filter == null || run {
+                    val cat = categories.firstOrNull { it.id == m.categoryId }
+                    cat != null && cat.fertTask == filter
+                })
+            }
             if (mapping != null) {
                 val cat = categories.firstOrNull { it.id == mapping.categoryId }
                 if (cat != null && cat.enabled) {
@@ -298,7 +321,14 @@ object SceneLibrary {
             }
             // 3. coreSignature 自动归类（明显相同场景，不弹窗）
             val coreSig = features.coreSignature()
-            val coreMatch = mappings.firstOrNull { it.coreSignature == coreSig && it.coreSignature.isNotEmpty() }
+            val coreMatch = mappings.firstOrNull { m ->
+                m.coreSignature == coreSig && m.coreSignature.isNotEmpty() &&
+                    // fertTask 过滤：如果开启过滤，只匹配 fertTask 相同的规则
+                    (filter == null || run {
+                        val cat = categories.firstOrNull { it.id == m.categoryId }
+                        cat != null && cat.fertTask == filter
+                    })
+            }
             if (coreMatch != null) {
                 val cat = categories.firstOrNull { it.id == coreMatch.categoryId }
                 if (cat != null && cat.enabled) {
@@ -346,6 +376,8 @@ object SceneLibrary {
 
     /**
      * 重置当前 session 执行上下文（手动停止 / 用户中断时调用）
+     *
+     * 同时清除 fertTask 过滤（如果开启），恢复全局匹配模式。
      */
     fun resetSessionContext() {
         synchronized(lock) {
@@ -354,8 +386,42 @@ object SceneLibrary {
             }
             currentSessionId = null
             currentStepIndex = -1
+            if (fertTaskFilter != null) {
+                Log.i(TAG, "fertTask filter cleared (was '$fertTaskFilter')")
+                fertTaskFilter = null
+            }
         }
     }
+
+    /**
+     * 设置 fertTask 过滤：bot 只执行指定肥料任务的规则
+     *
+     * 使用场景：用户在规则编辑界面选择"只回放某个肥料任务"，
+     * bot 开启自动化后只执行该任务的步骤，不会跑去做其他任务。
+     *
+     * 调用 [AutomationController.start] 前设置，bot 执行过程中生效，
+     * 直到调用 [resetSessionContext] 或 [clearFertTaskFilter] 清除。
+     *
+     * @param fertTask 要回放的肥料任务描述（如"看精选商品得肥料"），传空字符串或 null 清除过滤
+     */
+    fun setFertTaskFilter(fertTask: String?) {
+        synchronized(lock) {
+            val newFilter = if (fertTask.isNullOrEmpty()) null else fertTask
+            if (newFilter != fertTaskFilter) {
+                Log.i(TAG, "fertTask filter set: '$newFilter' (was '$fertTaskFilter')")
+                fertTaskFilter = newFilter
+                // 切换过滤模式时重置 session 上下文，避免残留的 session 干扰新过滤模式
+                currentSessionId = null
+                currentStepIndex = -1
+            }
+        }
+    }
+
+    /** 清除 fertTask 过滤，恢复全局匹配模式 */
+    fun clearFertTaskFilter() = setFertTaskFilter(null)
+
+    /** 获取当前 fertTask 过滤（null 表示未开启过滤） */
+    fun getFertTaskFilter(): String? = fertTaskFilter
 
     /**
      * 根据场景特征自动生成场景名
@@ -578,6 +644,18 @@ object SceneLibrary {
     fun listCategories(): List<SceneCategory> {
         ensureInitialized()
         return synchronized(lock) { categories.toList() }
+    }
+
+    /**
+     * 列出所有已录制规则中存在的肥料任务（去重，用于规则编辑界面的"按 fertTask 回放"选择列表）
+     *
+     * @return 肥料任务描述列表（如["看精选商品得肥料", "逛好物最高得1500肥料"]），按名称排序
+     */
+    fun listFertTasks(): List<String> {
+        ensureInitialized()
+        return synchronized(lock) {
+            categories.map { it.fertTask }.filter { it.isNotEmpty() }.toSet().sorted()
+        }
     }
 
     /**
