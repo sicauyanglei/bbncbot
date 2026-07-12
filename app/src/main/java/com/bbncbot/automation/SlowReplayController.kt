@@ -57,6 +57,8 @@ object SlowReplayController {
     @Volatile private var activeRuleName: String = ""
     /** 当前回放对应的 sessionId（独立规则为空） */
     @Volatile private var activeSessionId: String = ""
+    /** 当前回放规则的平台（用于跳转芭芭农场，"UC"/"ALIPAY"/"TAOBAO"，空=未知不跳转） */
+    @Volatile private var activePlatform: String = ""
 
     private val handler = Handler(Looper.getMainLooper())
     private val lock = Any()
@@ -78,6 +80,7 @@ object SlowReplayController {
     val playlistSize: Int get() = playlist.size
     val isRunning: Boolean get() = state != State.IDLE
     val activeName: String get() = activeRuleName
+    val activePlatformName: String get() = activePlatform
     val autoDelayMs: Long get() = autoStepDelayMs
 
     /**
@@ -117,10 +120,14 @@ object SlowReplayController {
 
             activeSessionId = sessionId
             activeRuleName = sess?.name ?: sessionId
+            // 取第一步的平台作为整条规则的平台（同一 session 的子步平台一致）
+            activePlatform = playlist.firstOrNull()?.platform ?: ""
             currentIndex = 0
             moveTo(State.PAUSED)
-            Log.i(TAG, "slow replay started: session=$sessionId name='${activeRuleName}' ${playlist.size} steps")
+            Log.i(TAG, "slow replay started: session=$sessionId name='${activeRuleName}' platform='$activePlatform' ${playlist.size} steps")
             notifyStepChanged()
+            // 自动跳转到该平台的芭芭农场
+            launchPlatformOf(activePlatform)
             return playlist.size
         }
     }
@@ -153,10 +160,13 @@ object SlowReplayController {
             playlist = listOf(rule)
             activeSessionId = ""
             activeRuleName = rule.name
+            activePlatform = rule.platform
             currentIndex = 0
             moveTo(State.PAUSED)
-            Log.i(TAG, "slow replay started: single rule='${rule.name}'")
+            Log.i(TAG, "slow replay started: single rule='${rule.name}' platform='$activePlatform'")
             notifyStepChanged()
+            // 自动跳转到该平台的芭芭农场
+            launchPlatformOf(activePlatform)
             return 1
         }
     }
@@ -190,6 +200,7 @@ object SlowReplayController {
                 currentIndex = -1
                 activeRuleName = ""
                 activeSessionId = ""
+                activePlatform = ""
                 onFinished?.invoke()
                 return
             }
@@ -261,6 +272,7 @@ object SlowReplayController {
             currentIndex = -1
             activeRuleName = ""
             activeSessionId = ""
+            activePlatform = ""
             Log.i(TAG, "slow replay stopped")
             if (wasRunning) onFinished?.invoke()
         }
@@ -305,6 +317,43 @@ object SlowReplayController {
     fun setAutoStepDelay(ms: Long) {
         autoStepDelayMs = ms.coerceAtLeast(1000L)
         Log.i(TAG, "auto step delay set to ${autoStepDelayMs}ms")
+    }
+
+    /**
+     * 跳转到指定平台的芭芭农场页面
+     *
+     * 复用 [FarmAccessibilityService.launchPlatformApp]：先试桌面快捷方式，
+     * 再试 deep link（仅 UC），最后 fallback 到 packageManager 启动 + 无障碍服务导航。
+     *
+     * - 平台为空或 UNKNOWN：不跳转，让用户自己切到目标 App
+     * - 平台有效：异步调用 launchPlatformApp，跳转后无障碍服务会自动导航到农场页
+     *
+     * 注意：此方法在主线程调用（launchPlatformApp 内部用 navHandler.postDelayed），
+     * 不阻塞回放流程——回放面板已显示，用户可在等待跳转完成时操作面板。
+     */
+    private fun launchPlatformOf(platformStr: String) {
+        if (platformStr.isEmpty() || platformStr == "UNKNOWN") {
+            Log.i(TAG, "launchPlatformOf: platform empty/unknown, skip navigation")
+            return
+        }
+        val service = FarmAccessibilityService.getInstance() ?: run {
+            Log.w(TAG, "launchPlatformOf: accessibility service null")
+            return
+        }
+        val platform = try {
+            Platform.valueOf(platformStr)
+        } catch (e: IllegalArgumentException) {
+            Log.w(TAG, "launchPlatformOf: unknown platform '$platformStr'")
+            return
+        }
+        // 异步跳转：launchPlatformApp 内部会用 navHandler.postDelayed 调度导航步骤
+        val ok = try {
+            service.launchPlatformApp(platform)
+        } catch (e: Exception) {
+            Log.e(TAG, "launchPlatformOf: launchPlatformApp failed", e)
+            false
+        }
+        Log.i(TAG, "launchPlatformOf: platform=$platform launched=$ok")
     }
 
     // ---- 内部实现 ----

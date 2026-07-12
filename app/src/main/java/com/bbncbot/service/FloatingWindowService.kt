@@ -498,9 +498,11 @@ class FloatingWindowService : Service() {
             return
         }
         showSlowReplayPanel()
+        val platform = SlowReplayController.activePlatformName
+        val platformPart = if (platform.isNotEmpty() && platform != "UNKNOWN") "（正在跳转$platform 芭芭农场…）\n" else ""
         Toast.makeText(
             this,
-            "规则回放开始：${SlowReplayController.activeName} 共 $count 步\n▶ 自动播放 / ⏭ 单步（慢放）/ ✎ 编辑",
+            "${platformPart}规则回放开始：${SlowReplayController.activeName} 共 $count 步\n▶ 自动播放 / ⏭ 单步（慢放）/ ✎ 编辑",
             Toast.LENGTH_LONG
         ).show()
         updateButtonUi(AutomationController.currentState)
@@ -519,9 +521,11 @@ class FloatingWindowService : Service() {
             return
         }
         showSlowReplayPanel()
+        val platform = SlowReplayController.activePlatformName
+        val platformPart = if (platform.isNotEmpty() && platform != "UNKNOWN") "（正在跳转$platform 芭芭农场…）\n" else ""
         Toast.makeText(
             this,
-            "规则回放开始：${SlowReplayController.activeName}\n▶ 自动播放 / ⏭ 单步（慢放）/ ✎ 编辑",
+            "${platformPart}规则回放开始：${SlowReplayController.activeName}\n▶ 自动播放 / ⏭ 单步（慢放）/ ✎ 编辑",
             Toast.LENGTH_LONG
         ).show()
         updateButtonUi(AutomationController.currentState)
@@ -568,7 +572,7 @@ class FloatingWindowService : Service() {
         }
     }
 
-    /** 更新步数信息文本（显示规则名 + 当前步 + 动作） */
+    /** 更新步数信息文本（显示平台 + 规则名 + 当前步 + 动作） */
     private fun updateSlowReplayStepText(
         idx: Int,
         total: Int,
@@ -577,14 +581,16 @@ class FloatingWindowService : Service() {
         val tv = slowReplayStepTv ?: return
         val displayIdx = if (total == 0) 0 else idx + 1
         val ruleName = SlowReplayController.activeName
+        val platform = SlowReplayController.activePlatformName
+        val platformTag = if (platform.isNotEmpty() && platform != "UNKNOWN") "[$platform] " else ""
         val rulePart = if (rule != null) {
             val actionLabel = actionToTextShort(rule.action)
             val targetPart = if (rule.action == com.bbncbot.automation.SceneLibrary.Action.CLICK_BUTTON && !rule.targetButton.isNullOrEmpty()) {
                 "• ${rule.targetButton}"
             } else ""
-            "$ruleName\n$displayIdx/$total • $actionLabel $targetPart"
+            "$platformTag$ruleName\n$displayIdx/$total • $actionLabel $targetPart"
         } else {
-            "$ruleName\n$displayIdx/$total"
+            "$platformTag$ruleName\n$displayIdx/$total"
         }
         tv.text = rulePart
     }

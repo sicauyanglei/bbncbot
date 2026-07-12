@@ -310,14 +310,16 @@ class RuleEditorActivity : AppCompatActivity() {
             val actions = mutableListOf<() -> Unit>()
             // 录制流程（session）
             for (sess in sessions) {
-                val stepCount = allRules.count { it.sessionId == sess.id && it.enabled }
-                if (stepCount == 0) continue
-                labels.add("流程：${sess.name}（$stepCount 步）")
+                val stepRules = allRules.filter { it.sessionId == sess.id && it.enabled }
+                if (stepRules.isEmpty()) continue
+                val platformLabel = platformToText(stepRules.firstOrNull()?.platform)
+                labels.add("[$platformLabel] 流程：${sess.name}（${stepRules.size} 步）")
                 actions.add { startSlowReplayBySession(sess.id) }
             }
             // 独立规则
             for (rule in standaloneRules.filter { it.enabled }) {
-                labels.add("规则：${rule.name}（单步）")
+                val platformLabel = platformToText(rule.platform)
+                labels.add("[$platformLabel] 规则：${rule.name}（单步）")
                 actions.add { startSlowReplaySingle(rule.id) }
             }
             if (labels.isEmpty()) {
@@ -325,7 +327,7 @@ class RuleEditorActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             AlertDialog.Builder(this)
-                .setTitle("慢放回放：选择要回放的规则")
+                .setTitle("回放规则：选择要回放的规则\n（自动跳转到对应平台芭芭农场）")
                 .setItems(labels.toTypedArray()) { dialog, which ->
                     dialog.dismiss()
                     actions[which].invoke()
@@ -459,6 +461,15 @@ class RuleEditorActivity : AppCompatActivity() {
         Action.CLICK_BUTTON -> "点击按钮"
         Action.STOP_AUTOMATION -> "停止自动化"
         Action.UNKNOWN -> "未知"
+    }
+
+    /** 平台枚举名转中文显示（用于规则列表/选择器） */
+    private fun platformToText(platform: String?): String = when (platform ?: "") {
+        "UC" -> "UC"
+        "ALIPAY" -> "支付宝"
+        "TAOBAO" -> "淘宝"
+        "UNKNOWN" -> "未知"
+        else -> "通用"
     }
 
     /** 显示编辑对话框 */

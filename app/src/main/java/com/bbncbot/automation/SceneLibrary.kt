@@ -101,7 +101,15 @@ object SceneLibrary {
          * - 这样 bot 像人一样——"先做完看精选商品任务的所有步骤，再做下一个肥料任务"
          * - 空字符串表示非肥料任务规则（如农场主页通用操作）
          */
-        var fertTask: String = ""
+        var fertTask: String = "",
+        /**
+         * 这条规则针对哪个平台（"UC" / "ALIPAY" / "TAOBAO" / "UNKNOWN" / ""）
+         *
+         * - 录制时从 [SceneFeatures.platform] 提取，写入此字段
+         * - 回放时调用方据此自动跳转到对应平台的芭芭农场
+         * - 空字符串表示旧数据/未知平台，回放时不自动跳转
+         */
+        var platform: String = ""
     )
 
     /**
@@ -521,7 +529,9 @@ object SceneLibrary {
                 sessionId = sessionId,
                 stepIndex = stepIndex,
                 // 记录这条规则属于哪个肥料任务（执行时按 fertTask 分组回放）
-                fertTask = features.fertilizerTaskDesc
+                fertTask = features.fertilizerTaskDesc,
+                // 记录这条规则针对哪个平台（回放时据此自动跳转到对应平台芭芭农场）
+                platform = features.platform
             )
             categories.add(cat)
             mappings.add(SignatureMapping(
@@ -869,7 +879,9 @@ object SceneLibrary {
                         enabled = o.optBoolean("enabled", true),
                         priority = o.optInt("priority", 0),
                         // 肥料任务描述：旧数据没有，默认空
-                        fertTask = o.optString("fertTask", "")
+                        fertTask = o.optString("fertTask", ""),
+                        // 平台：旧数据没有，默认空；mappings 加载完后向后兼容补全
+                        platform = o.optString("platform", "")
                     ))
                 }
                 val maps = root.getJSONArray("mappings")
@@ -896,6 +908,16 @@ object SceneLibrary {
                             stepCount = o.optInt("stepCount", 0),
                             status = o.optString("status", "COMPLETED")
                         ))
+                    }
+                }
+                // 向后兼容：为 platform 为空的旧规则从其 signature 的 p= 段解析平台
+                for (cat in categories) {
+                    if (cat.platform.isNotEmpty()) continue
+                    val sig = mappings.firstOrNull { it.categoryId == cat.id }?.signature ?: continue
+                    val parsed = parsePlatformFromSignature(sig)
+                    if (parsed.isNotEmpty()) {
+                        cat.platform = parsed
+                        Log.i(TAG, "backcompat: parsed platform='${cat.platform}' for category '${cat.name}' from signature")
                     }
                 }
                 Log.i(TAG, "loaded new format: ${categories.size} categories, ${mappings.size} mappings, ${sessions.size} sessions")
@@ -955,6 +977,7 @@ object SceneLibrary {
                         put("enabled", c.enabled)
                         put("priority", c.priority)
                         put("fertTask", c.fertTask)
+                        put("platform", c.platform)
                     })
                 }
                 val maps = JSONArray()
@@ -1151,6 +1174,19 @@ object SceneLibrary {
         else -> status
     }
 
+    /**
+     * 从 signature 字符串解析平台（signature 格式如 "p=UC|farm=false|..."）
+     *
+     * @return 平台名（"UC"/"ALIPAY"/"TAOBAO"），无法解析返回空字符串
+     */
+    private fun parsePlatformFromSignature(sig: String): String {
+        // 匹配 "p=XXX|" 或 "p=XXX" 在字符串结尾
+        val regex = Regex("""p=([A-Z_]+)""")
+        return regex.find(sig)?.groupValues?.getOrNull(1)?.let { p ->
+            if (p == "UC" || p == "ALIPAY" || p == "TAOBAO") p else ""
+        } ?: ""
+    }
+
     /** 把 signature 字符串解析成中文可读字段列表 */
     private fun parseSignatureReadable(sig: String, indent: String): String {
         val sb = StringBuilder()
@@ -1246,6 +1282,11 @@ object SceneLibrary {
                     if (cat.fertTask.isEmpty() && features.fertilizerTaskDesc.isNotEmpty()) {
                         cat.fertTask = features.fertilizerTaskDesc
                         Log.i(TAG, "recordRule: updated fertTask='${cat.fertTask}' for category '${cat.name}'")
+                    }
+                    // 补充 platform（旧规则可能没有，录制时补上）
+                    if (cat.platform.isEmpty() && features.platform.isNotEmpty()) {
+                        cat.platform = features.platform
+                        Log.i(TAG, "recordRule: updated platform='${cat.platform}' for category '${cat.name}'")
                     }
                     Log.i(TAG, "recordRule: reinforced existing category '${cat.name}' hits=${cat.hitCount}")
                     persistAsync()
