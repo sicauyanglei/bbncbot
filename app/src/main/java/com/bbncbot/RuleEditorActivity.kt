@@ -79,6 +79,8 @@ class RuleEditorActivity : AppCompatActivity() {
         ) {
             /** 删除按钮宽度（px），左滑停留时的偏移量 */
             private val deleteWidthPx = 200f
+            /** 记录每个 viewHolder 最后一次滑动时的 dX（松手时 clearView 里 translationX 已被重置，用此判断） */
+            private val lastSwipeDx = mutableMapOf<RecyclerView.ViewHolder, Float>()
 
             override fun onMove(
                 rv: RecyclerView,
@@ -110,11 +112,7 @@ class RuleEditorActivity : AppCompatActivity() {
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 // 不在此触发删除，由点击删除按钮触发
-                // onSwiped 不应被调用（getSwipeThreshold=MAX_VALUE），但防御性恢复原位
-                // 注意：不能调用 notifyItemChanged，否则会触发 onBindViewHolder 重置停留状态
-                val foreground = (viewHolder as RuleAdapter.RuleViewHolder).foreground
-                foreground.translationX = 0f
-                viewHolder.deleteBackground.visibility = View.GONE
+                // getSwipeThreshold=MAX_VALUE 时不应被调用，防御性处理
             }
 
             override fun onChildDraw(
@@ -135,11 +133,12 @@ class RuleEditorActivity : AppCompatActivity() {
                         dX > 0 -> 0f  // 右滑不允许超出原位
                         else -> dX
                     }
+                    // 记录当前滑动偏移（松手时 clearView 里读 translationX 可能已被重置）
+                    lastSwipeDx[viewHolder] = clampedDx
                     // 左滑时显示红色删除背景
                     background.visibility = if (clampedDx < 0) View.VISIBLE else View.GONE
-                    getDefaultUIUtil().onDraw(
-                        c, rv, foreground, clampedDx, dY, actionState, isCurrentlyActive
-                    )
+                    // 直接用 translationX 控制前景位置（不用 getDefaultUIUtil，避免它重置状态）
+                    foreground.translationX = clampedDx
                 } else {
                     super.onChildDraw(c, rv, viewHolder, dX, dY, actionState, isCurrentlyActive)
                 }
@@ -148,14 +147,13 @@ class RuleEditorActivity : AppCompatActivity() {
             override fun clearView(rv: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                 super.clearView(rv, viewHolder)
                 val foreground = (viewHolder as RuleAdapter.RuleViewHolder).foreground
-                // 注意：必须在 getDefaultUIUtil().clearView() 之前读取偏移量，
-                // 因为 clearView() 会立即把 translationX 重置为 0
-                val currentDx = foreground.translationX
-                getDefaultUIUtil().clearView(foreground)
-                // 松手后根据当前偏移决定停留位置（带动画）：
+                // 用记录的 dX 判断松手位置（clearView 被调用时 translationX 可能已被 ItemTouchHelper 重置）
+                val lastDx = lastSwipeDx[viewHolder] ?: 0f
+                lastSwipeDx.remove(viewHolder)
+                // 松手后根据松手前的偏移决定停留位置（带动画）：
                 // - 左滑超过一半删除按钮宽度 → 停留在删除按钮可见状态
                 // - 否则动画回弹隐藏
-                if (currentDx < -deleteWidthPx / 2) {
+                if (lastDx < -deleteWidthPx / 2) {
                     viewHolder.deleteBackground.visibility = View.VISIBLE
                     foreground.animate().translationX(-deleteWidthPx).setDuration(150).start()
                 } else {
