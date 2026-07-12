@@ -110,10 +110,11 @@ class RuleEditorActivity : AppCompatActivity() {
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 // 不在此触发删除，由点击删除按钮触发
-                // onSwiped 仍会被调用（因为 ItemTouchHelper 的机制），这里直接恢复原位
-                viewHolder.bindingAdapterPosition.let {
-                    if (it != RecyclerView.NO_POSITION) adapter.notifyItemChanged(it)
-                }
+                // onSwiped 不应被调用（getSwipeThreshold=MAX_VALUE），但防御性恢复原位
+                // 注意：不能调用 notifyItemChanged，否则会触发 onBindViewHolder 重置停留状态
+                val foreground = (viewHolder as RuleAdapter.RuleViewHolder).foreground
+                foreground.translationX = 0f
+                viewHolder.deleteBackground.visibility = View.GONE
             }
 
             override fun onChildDraw(
@@ -169,8 +170,8 @@ class RuleEditorActivity : AppCompatActivity() {
             override fun isLongPressDragEnabled(): Boolean = true  // 长按拖动排序
             override fun isItemViewSwipeEnabled(): Boolean = true  // 左滑/右滑
 
-            // 设为 1f 让 onSwiped 永不自动触发（我们自己管理停留状态）
-            override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float = 1f
+            // 设为 MAX_VALUE 让 onSwiped 永不自动触发（我们自己管理停留状态）
+            override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float = Float.MAX_VALUE
             override fun getSwipeEscapeVelocity(defaultValue: Float): Float = Float.MAX_VALUE
             override fun getSwipeVelocityThreshold(defaultValue: Float): Float = Float.MAX_VALUE
         })
