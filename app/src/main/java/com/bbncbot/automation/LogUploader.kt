@@ -261,7 +261,7 @@ object LogUploader {
      *
      * - recording.log 由 RecordingManager.clearLogOnAppStart 清空
      * - debug.log / proposals.log / teachings.log 在此清空（写入版本标识）
-     * - 同时清理过期 session 目录
+     * - 删除全部 session 截图目录（app 启动前清空所有旧日志）
      *
      * @param context 用于读取版本号
      */
@@ -284,8 +284,27 @@ object LogUploader {
         }
         Log.i(TAG, "logs cleared on app start: debug.log, proposals.log, teachings.log")
 
-        // 清理过期 session 截图目录
-        cleanupOldSessions()
+        // app 启动前删除全部 session 截图目录（用户要求清空所有旧日志）
+        deleteAllSessions()
+    }
+
+    /**
+     * 删除全部 session 截图目录
+     *
+     * - app 启动时调用，清空所有旧的采集会话截图
+     * - 与 [cleanupOldSessions] 不同，此方法不保留任何 session 目录
+     */
+    private fun deleteAllSessions() {
+        try {
+            if (!sessionsDir.exists()) return
+            val sessionDirs = sessionsDir.listFiles()?.filter { it.isDirectory } ?: return
+            for (dir in sessionDirs) {
+                dir.deleteRecursively()
+            }
+            Log.i(TAG, "deleteAllSessions: removed ${sessionDirs.size} session dirs")
+        } catch (e: Exception) {
+            Log.w(TAG, "deleteAllSessions failed: ${e.message}")
+        }
     }
 
     /**
