@@ -1,0 +1,106 @@
+=== recording.log cleared on app start (version=2.1/12, time=16:20:03.059) ===
+16:20:54.568 === 录制开始 session=sess_1783844454566 name='流程4554' ===
+16:20:54.919 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 切换摇钱树 | 逛农货 | 我的收获 | 芭芭农场,种果树得水果，助农增收 | 农货百款 等你来“挑”) → 尝试 OCR 兜底
+16:20:55.561 [start] FERTILIZER_READ_OK amount=5000 (source=ocr)
+16:21:52.154 CLICK_H5 type=0x800 target='120300肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=玩游戏得肥' btns=[任务列表,农场乐园入口,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+16:21:52.159 RECORD sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=玩游戏得肥' category='支付宝-农场主页-点击120300肥料' action=CLICK_BUTTON target='120300肥料' state=IDLE btns=[任务列表,农场乐园入口,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+16:21:52.159 AUTO_CREATE name='支付宝-农场主页-点击120300肥料' action=CLICK_BUTTON session=sess_1783844454566 step=0 sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=玩游戏得肥'
+16:21:53.954 CLICK_H5 type=0x20 target='120300肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|fertTask=玩游戏得肥' btns=[任务列表,农场乐园入口,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+16:21:53.954 RECORD sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|fertTask=玩游戏得肥' category='支付宝-未知页-点击120300肥料' action=CLICK_BUTTON target='120300肥料' state=IDLE btns=[任务列表,农场乐园入口,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+16:21:53.955 AUTO_CREATE name='支付宝-未知页-点击120300肥料' action=CLICK_BUTTON session=sess_1783844454566 step=1 sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|fertTask=玩游戏得肥'
+16:21:56.119 CLICK_H5 type=0x800 target='120300肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|fertTask=玩游戏得肥' btns=[任务列表,农场乐园入口,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+16:21:56.120 MATCHED name='支付宝-未知页-点击120300肥料' action=CLICK_BUTTON
+16:22:01.220 SKIP_NO_FERTILIZER target='14s后领取' (非肥料相关，丢弃)
+16:22:02.587 SKIP_NO_FERTILIZER target='13s后领取' (非肥料相关，丢弃)
+16:22:03.532 SKIP_NO_FERTILIZER target='12s后领取' (非肥料相关，丢弃)
+16:22:05.097 SKIP_NO_FERTILIZER target='11s后领取' (非肥料相关，丢弃)
+16:22:06.092 SKIP_NO_FERTILIZER target='10s后领取' (非肥料相关，丢弃)
+16:22:07.287 SKIP_NO_FERTILIZER target='9s后领取' (非肥料相关，丢弃)
+16:22:08.318 SKIP_NO_FERTILIZER target='8s后领取' (非肥料相关，丢弃)
+16:22:09.154 SKIP_NO_FERTILIZER target='7s后领取' (非肥料相关，丢弃)
+16:22:10.044 SKIP_NO_FERTILIZER target='6s后领取' (非肥料相关，丢弃)
+16:22:10.855 SKIP_NO_FERTILIZER target='5s后领取' (非肥料相关，丢弃)
+16:22:11.797 SKIP_NO_FERTILIZER target='4s后领取' (非肥料相关，丢弃)
+16:22:13.365 SKIP_NO_FERTILIZER target='3s后领取' (非肥料相关，丢弃)
+16:22:14.708 SKIP_NO_FERTILIZER target='2s后领取' (非肥料相关，丢弃)
+16:22:16.721 SKIP_NO_FERTILIZER target='1s后领取' (非肥料相关，丢弃)
+16:22:18.552 SKIP_NO_FERTILIZER target='0s后领取' (非肥料相关，丢弃)
+16:22:19.177 SKIP_NO_FERTILIZER target='已领取' (非肥料相关，丢弃)
+16:22:19.273 SKIP_NO_FERTILIZER target='30s后领取' (非肥料相关，丢弃)
+16:22:19.370 SKIP_NO_FERTILIZER target='每浏览30秒可得1次奖励' (非肥料相关，丢弃)
+16:22:22.192 SKIP_NO_FERTILIZER target='29s后领取' (非肥料相关，丢弃)
+16:22:24.007 SKIP_NO_FERTILIZER target='28s后领取' (非肥料相关，丢弃)
+16:22:25.923 SKIP_NO_FERTILIZER target='27s后领取' (非肥料相关，丢弃)
+16:22:28.018 SKIP_NO_FERTILIZER target='26s后领取' (非肥料相关，丢弃)
+16:22:29.362 SKIP_NO_FERTILIZER target='25s后领取' (非肥料相关，丢弃)
+16:22:30.194 SKIP_NO_FERTILIZER target='24s后领取' (非肥料相关，丢弃)
+16:22:31.174 SKIP_NO_FERTILIZER target='23s后领取' (非肥料相关，丢弃)
+16:22:32.164 CLICK_H5 type=0x800 target='120300肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|fertTask=玩游戏得肥' btns=[任务列表,农场乐园入口,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+16:22:32.166 MATCHED name='支付宝-未知页-点击120300肥料' action=CLICK_BUTTON
+16:22:39.761 SKIP_NO_FERTILIZER target='22s后领取' (非肥料相关，丢弃)
+16:22:49.223 SKIP_NO_FERTILIZER target='21s后领取' (非肥料相关，丢弃)
+16:22:51.556 SKIP_NO_FERTILIZER target='21s后领取' (非肥料相关，丢弃)
+16:22:57.346 SKIP_NO_FERTILIZER target='20s后领取' (非肥料相关，丢弃)
+16:23:07.193 CLICK_H5 type=0x800 target='120300肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|fertTask=玩游戏得肥' btns=[任务列表,农场乐园入口,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+16:23:07.194 MATCHED name='支付宝-未知页-点击120300肥料' action=CLICK_BUTTON
+16:23:17.535 SKIP_NO_FERTILIZER target='18s后领取' (非肥料相关，丢弃)
+16:23:17.711 SKIP_NO_FERTILIZER target='18s后领取' (非肥料相关，丢弃)
+16:23:20.839 SKIP_NO_FERTILIZER target='17s后领取' (非肥料相关，丢弃)
+16:23:22.492 SKIP_NO_FERTILIZER target='16s后领取' (非肥料相关，丢弃)
+16:23:24.229 SKIP_NO_FERTILIZER target='15s后领取' (非肥料相关，丢弃)
+16:23:26.449 SKIP_NO_FERTILIZER target='14s后领取' (非肥料相关，丢弃)
+16:23:30.734 CLICK_H5 type=0x800 target='120300肥料' sig='p=ALIPAY|farm=true|type=browse|popup=red_packet|countdown=no|progress=yes|fertTask=玩游戏得肥' btns=[任务列表,农场乐园入口,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,关闭做任务集肥料弹窗,连续签到任务规则,去完成,继续逛,去逛逛,去喂鸡,去分享,已领取,前往手机淘宝-芭芭农场,返回,支付宝·芭芭农场]
+16:23:30.735 RECORD sig='p=ALIPAY|farm=true|type=browse|popup=red_packet|countdown=no|progress=yes|fertTask=玩游戏得肥' category='支付宝-浏览任务-红包弹窗-点击120300肥料' action=CLICK_BUTTON target='120300肥料' state=IDLE btns=[任务列表,农场乐园入口,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,关闭做任务集肥料弹窗,连续签到任务规则,去完成,继续逛,去逛逛,去喂鸡,去分享,已领取,前往手机淘宝-芭芭农场,返回,支付宝·芭芭农场]
+16:23:30.736 AUTO_CREATE name='支付宝-浏览任务-红包弹窗-点击120300肥料' action=CLICK_BUTTON session=sess_1783844454566 step=5 sig='p=ALIPAY|farm=true|type=browse|popup=red_packet|countdown=no|progress=yes|fertTask=玩游戏得肥'
+16:23:36.814 CLICK_H5 type=0x800 target='120300肥料' sig='p=ALIPAY|farm=true|type=browse|popup=red_packet|countdown=no|progress=yes|fertTask=玩游戏得肥' btns=[任务列表,农场乐园入口,切换摇钱树,逛农货,我的收获,钓红包,三国冰河,灵画师,向僵尸开炮,关闭做任务集肥料弹窗,连续签到任务规则,去完成,继续逛,去逛逛,去喂鸡,去分享,已领取,前往手机淘宝-芭芭农场,返回,支付宝·芭芭农场]
+16:23:36.815 MATCHED name='支付宝-浏览任务-红包弹窗-点击120300肥料' action=CLICK_BUTTON
+16:23:45.948 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:23:45.949 RECORD sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' category='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON target='滑动浏览或查看商品得肥料' state=IDLE btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:23:45.949 AUTO_CREATE name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON session=sess_1783844454566 step=7 sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料'
+16:23:52.944 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:23:52.945 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:24:01.657 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:24:01.658 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:24:10.122 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:24:10.123 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:24:17.602 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:24:17.603 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:24:24.977 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:24:24.978 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:24:32.021 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:24:32.022 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:24:40.919 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:24:40.920 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:24:49.097 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:24:49.098 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:24:56.994 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:24:56.994 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:25:05.384 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:25:05.385 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:25:11.473 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:25:11.474 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:25:15.109 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:25:15.109 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:25:15.620 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:25:15.621 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:25:27.966 CLICK_H5 type=0x20 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:25:27.968 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:25:28.185 CLICK_H5 type=0x800 target='看精选商品得肥料当前进度2，总进度3 每浏览15s最高得2000肥' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:25:28.187 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:25:28.951 CLICK_H5 type=0x800 target='关闭做任务集肥料弹窗' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:25:28.952 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:25:29.745 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:25:29.747 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:25:30.312 CLICK_H5 type=0x800 target='每日最高120300肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:25:30.315 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:25:30.978 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:25:30.979 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:25:31.382 CLICK_H5 type=0x800 target='滑动浏览或查看商品得肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:25:31.383 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:25:32.006 CLICK_H5 type=0x800 target='“抢”青海农货得6万肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:25:32.006 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:25:32.316 CLICK_H5 type=0x800 target='囤高原特产，得6万肥料' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=滑动浏览或查看商品得肥料' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+16:25:32.318 MATCHED name='支付宝-浏览任务-点击滑动浏览或查看商品得肥料' action=CLICK_BUTTON
+16:25:32.368 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 浏览得奖励 | 500 | 15s后领取 | 1000 | 第2次 | 浏览得奖励 | 滑动浏览或查看商品得肥料) → 尝试 OCR 兜底
+16:25:32.821 [stop] FERTILIZER_READ_OK amount=1000 (source=ocr)
+16:25:32.823 === 录制结束 session=sess_1783844454566 DISCARD reason=未录制任何操作(steps=0) steps=0 ===
