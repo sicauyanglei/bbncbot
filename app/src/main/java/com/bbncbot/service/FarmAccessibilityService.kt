@@ -106,8 +106,10 @@ class FarmAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         instance = this
         AutomationController.bindService(this)
+        // 服务重新连接时重置截图能力标志（用户可能在系统设置中重新开启了服务）
+        screenshotCapabilityDisabled = false
         Log.i(TAG, "FarmAccessibilityService connected, bound to AutomationController")
-        debugLog("FarmAccessibilityService connected")
+        debugLog("FarmAccessibilityService connected, API=${android.os.Build.VERSION.SDK_INT}")
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -2516,9 +2518,18 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 截图能力是否已确认不可用（避免重复抛异常刷屏）。
+     * - takeScreenshot 抛出 "Services don't have the capability" 时置 true
+     * - 修复方式：用户需在系统设置中关闭再重新开启无障碍服务（config 变更后能力缓存不会自动刷新）
+     */
+    @Volatile
+    private var screenshotCapabilityDisabled: Boolean = false
+
+    /**
      * 截取当前屏幕并返回 software Bitmap（ARGB_8888），供 OCR 等需要 software bitmap 的场景使用
      *
      * - API < 30 不支持 takeScreenshot，返回 null
+     * - 截图能力不可用时返回 null（见 [screenshotCapabilityDisabled]）
      * - 同步等待最多 5s，在后台线程调用（不可在主线程）
      * - 调用方负责 [Bitmap.recycle]
      *
@@ -2529,43 +2540,67 @@ class FarmAccessibilityService : AccessibilityService() {
             debugLog("takeScreenshotBitmap: API < 30, not supported")
             return null
         }
+        if (screenshotCapabilityDisabled) {
+            debugLog("takeScreenshotBitmap: skipped (capability disabled, re-enable accessibility service to retry)")
+            return null
+        }
         val latch = java.util.concurrent.CountDownLatch(1)
         var resultSwBitmap: android.graphics.Bitmap? = null
-        takeScreenshot(
-            android.os.Build.VERSION.SDK_INT,
-            java.util.concurrent.Executor { it.run() },
-            object : AccessibilityService.TakeScreenshotCallback {
-                override fun onSuccess(result: AccessibilityService.ScreenshotResult) {
-                    try {
-                        val hardwareBuffer = result.hardwareBuffer
-                        val hwBitmap = android.graphics.Bitmap.wrapHardwareBuffer(hardwareBuffer, result.colorSpace)
-                        hardwareBuffer.close()
-                        if (hwBitmap == null) {
-                            debugLog("takeScreenshotBitmap: hwBitmap null")
-                            return
-                        }
-                        // hardware bitmap 不能用于部分操作，copy 成 software bitmap
-                        resultSwBitmap = try {
-                            hwBitmap.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
+        try {
+            takeScreenshot(
+                android.os.Build.VERSION.SDK_INT,
+                java.util.concurrent.Executor { it.run() },
+                object : AccessibilityService.TakeScreenshotCallback {
+                    override fun onSuccess(result: AccessibilityService.ScreenshotResult) {
+                        try {
+                            val hardwareBuffer = result.hardwareBuffer
+                            val hwBitmap = android.graphics.Bitmap.wrapHardwareBuffer(hardwareBuffer, result.colorSpace)
+                            hardwareBuffer.close()
+                            if (hwBitmap == null) {
+                                debugLog("takeScreenshotBitmap: hwBitmap null")
+                                return
+                            }
+                            // hardware bitmap 不能用于部分操作，copy 成 software bitmap
+                            resultSwBitmap = try {
+                                hwBitmap.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
+                            } finally {
+                                hwBitmap.recycle()
+                            }
+                            if (resultSwBitmap == null) {
+                                debugLog("takeScreenshotBitmap: copy to software bitmap failed")
+                            }
+                        } catch (e: Exception) {
+                            debugLog("takeScreenshotBitmap: process failed: ${e.message}")
                         } finally {
-                            hwBitmap.recycle()
+                            latch.countDown()
                         }
-                        if (resultSwBitmap == null) {
-                            debugLog("takeScreenshotBitmap: copy to software bitmap failed")
+                    }
+
+                    override fun onFailure(errorCode: Int) {
+                        // ERROR_TAKE_SCREENSHOT_NO_CAPABILITY(3)：服务无截图能力
+                        if (errorCode == 3) {
+                            screenshotCapabilityDisabled = true
+                            debugLog("takeScreenshotBitmap: NO_CAPABILITY(code=3) API=${android.os.Build.VERSION.SDK_INT} — 请在系统设置中关闭再重新开启无障碍服务")
+                        } else {
+                            debugLog("takeScreenshotBitmap: takeScreenshot failed, errorCode=$errorCode")
                         }
-                    } catch (e: Exception) {
-                        debugLog("takeScreenshotBitmap: process failed: ${e.message}")
-                    } finally {
                         latch.countDown()
                     }
                 }
-
-                override fun onFailure(errorCode: Int) {
-                    debugLog("takeScreenshotBitmap: takeScreenshot failed, errorCode=$errorCode")
-                    latch.countDown()
-                }
+            )
+        } catch (e: Exception) {
+            // takeScreenshot() 抛 IllegalStateException: "Services don't have the capability..."
+            // 常见原因：API 34+ 在 accessibility_service_config.xml 加了 canTakeScreenshot=true 后，
+            //           未在系统设置中关闭再重新开启无障碍服务（能力缓存未刷新）
+            val msg = e.message.orEmpty()
+            if (msg.contains("capability", ignoreCase = true)) {
+                screenshotCapabilityDisabled = true
+                debugLog("takeScreenshotBitmap: CAPABILITY_DISABLED API=${android.os.Build.VERSION.SDK_INT} — ${e.javaClass.simpleName}: $msg — 修复：系统设置→无障碍→bbncbot→关闭→重新开启")
+            } else {
+                debugLog("takeScreenshotBitmap: takeScreenshot threw ${e.javaClass.simpleName}: $msg")
             }
-        )
+            latch.countDown()
+        }
         latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
         return resultSwBitmap
     }

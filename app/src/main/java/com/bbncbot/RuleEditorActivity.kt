@@ -52,6 +52,8 @@ class RuleEditorActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var tvEmpty: TextView
     private lateinit var adapter: RuleAdapter
+    /** 记录每个 viewHolder 是否已进入"停留显示删除按钮"状态（松手后跳过 ItemTouchHelper 回弹帧的覆写） */
+    private val stayOpen = mutableMapOf<RecyclerView.ViewHolder, Boolean>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -127,7 +129,17 @@ class RuleEditorActivity : AppCompatActivity() {
                     super.onChildDraw(c, rv, viewHolder, dX, dY, actionState, isCurrentlyActive)
                     return
                 }
+                // 用户开始新的滑动 → 清除停留状态，允许重新滑动
                 val foreground = (viewHolder as RuleAdapter.RuleViewHolder).foreground
+                if (isCurrentlyActive && stayOpen[viewHolder] == true) {
+                    stayOpen[viewHolder] = false
+                    foreground.animate().cancel()
+                }
+                // 已进入停留状态且非用户主动滑动 → 跳过 ItemTouchHelper 回弹帧的覆写
+                // （松手后 ItemTouchHelper 会跑回弹动画持续回调 onChildDraw，会覆盖我们的停留状态）
+                if (stayOpen[viewHolder] == true && !isCurrentlyActive) {
+                    return
+                }
                 val background = viewHolder.deleteBackground
                 // 限制左滑最多到删除按钮宽度，右滑限制为 0
                 val clampedDx = when {
@@ -144,12 +156,12 @@ class RuleEditorActivity : AppCompatActivity() {
                 foreground.translationX = clampedDx
 
                 // 关键：检测用户松手（isCurrentlyActive 从 true→false）
-                // 此时立即决定停留/回弹，不依赖 clearView（clearView 行为不可控）
                 if (wasActive && !isCurrentlyActive) {
                     android.util.Log.i("RuleEditor", "swipe released: lastDx=$clampedDx threshold=${-deleteWidthPx/2} pos=${viewHolder.bindingAdapterPosition}")
                     if (clampedDx < -deleteWidthPx / 2) {
-                        // 左滑超过一半 → 停留显示删除按钮
+                        // 左滑超过一半 → 停留显示删除按钮，标记 stayOpen 阻止后续回弹帧覆写
                         android.util.Log.i("RuleEditor", "swipe STAY OPEN: animating to $(-deleteWidthPx)")
+                        stayOpen[viewHolder] = true
                         background.visibility = View.VISIBLE
                         foreground.animate()
                             .translationX(-deleteWidthPx)
@@ -427,6 +439,7 @@ class RuleEditorActivity : AppCompatActivity() {
                     if (pos == RecyclerView.NO_POSITION) return@setOnClickListener
                     if (foreground.translationX != 0f) {
                         // 删除按钮展开状态，点击前景收起删除按钮
+                        this@RuleEditorActivity.stayOpen[this@RuleViewHolder] = false
                         foreground.animate().translationX(0f).setDuration(150).start()
                         deleteBackground.visibility = View.GONE
                     } else {
@@ -468,7 +481,8 @@ class RuleEditorActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
             }
-            // 重置滑动状态（回收的 ViewHolder 可能有残留的偏移）
+            // 重置滑动状态（回收的 ViewHolder 可能有残留的偏移和停留标记）
+            this@RuleEditorActivity.stayOpen.remove(holder)
             holder.deleteBackground.visibility = View.GONE
             holder.foreground.translationX = 0f
         }
