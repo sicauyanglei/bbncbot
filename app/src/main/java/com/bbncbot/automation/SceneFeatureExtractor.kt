@@ -139,7 +139,14 @@ object SceneFeatureExtractor {
             text = text.replace(Regex("\\b\\d+\\b"), "")
             // 4. 合并多余空白，trim
             text = text.trim().replace(Regex("\\s+"), " ")
-            text
+            // 5. 长度限制：超过 40 字符视为噪音（H5 页面 collectTaskContextText 向上 2 层
+            //    parent 可能收集到整页广告横幅文本，非真实任务行）
+            //    真实任务内容如"看严选推荐商品""浏览精选好物"通常 5-15 字
+            if (text.length > 40) {
+                ""
+            } else {
+                text
+            }
         } catch (e: Exception) {
             ""
         }

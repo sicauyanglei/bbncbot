@@ -2547,8 +2547,11 @@ class FarmAccessibilityService : AccessibilityService() {
         val latch = java.util.concurrent.CountDownLatch(1)
         var resultSwBitmap: android.graphics.Bitmap? = null
         try {
+            // takeScreenshot(displayId, executor, callback)
+            // displayId 必须是 Display.DEFAULT_DISPLAY(0)，不是 SDK_INT
+            // 之前错误传 SDK_INT(如34) 导致 errorCode=4 InvalidDisplay
             takeScreenshot(
-                android.os.Build.VERSION.SDK_INT,
+                android.view.Display.DEFAULT_DISPLAY,
                 java.util.concurrent.Executor { it.run() },
                 object : AccessibilityService.TakeScreenshotCallback {
                     override fun onSuccess(result: AccessibilityService.ScreenshotResult) {
