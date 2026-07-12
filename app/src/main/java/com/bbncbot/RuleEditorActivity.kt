@@ -1,6 +1,7 @@
 package com.bbncbot
 
 import android.app.AlertDialog
+import android.content.Intent
 import android.graphics.Canvas
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
@@ -70,6 +71,7 @@ class RuleEditorActivity : AppCompatActivity() {
         tvEmpty = findViewById(R.id.tvEmpty)
         val btnDeleteAll = findViewById<Button>(R.id.btnDeleteAll)
         val btnReplayTask = findViewById<Button>(R.id.btnReplayTask)
+        val btnSlowReplay = findViewById<Button>(R.id.btnSlowReplay)
 
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = RuleAdapter()
@@ -292,6 +294,31 @@ class RuleEditorActivity : AppCompatActivity() {
                 .show()
         }
 
+        // 慢放回放：弹出任务选择，选择后启动慢放模式（可暂停/回退/编辑规则）
+        btnSlowReplay.setOnClickListener {
+            val allRules = SceneLibrary.listCategories()
+            if (allRules.isEmpty()) {
+                Toast.makeText(this, "暂无规则，请先录制", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val fertTasks = SceneLibrary.listFertTasks()
+            // 选项：全部规则 + 各肥料任务（非肥料任务规则也归入"全部规则"）
+            val labels = mutableListOf("全部规则（${allRules.size} 条）")
+            labels.addAll(fertTasks.map { task ->
+                val n = allRules.count { it.fertTask == task }
+                "$task（$n 条）"
+            })
+            AlertDialog.Builder(this)
+                .setTitle("慢放回放：选择要回放的任务")
+                .setSingleChoiceItems(labels.toTypedArray(), 0) { dialog, which ->
+                    dialog.dismiss()
+                    val fertTask = if (which == 0) null else fertTasks[which - 1]
+                    startSlowReplay(fertTask)
+                }
+                .setNegativeButton("取消", null)
+                .show()
+        }
+
         // 创建 Tab
         for ((label, _) in tabs) {
             tabLayout.addTab(tabLayout.newTab().setText(label))
@@ -474,6 +501,36 @@ class RuleEditorActivity : AppCompatActivity() {
                     .show()
             }
             .show()
+    }
+
+    /**
+     * 启动慢放回放
+     *
+     * 通过 startService 通知 [com.bbncbot.service.FloatingWindowService] 启动慢放模式
+     * （用 startService 而非 sendBroadcast，确保服务未运行时也能被拉起）。
+     * 服务会在悬浮窗显示慢放控制面板（◀ 回退 / ▶⏸ 播放暂停 / ⏭ 单步 / ✎ 编辑 / ⏹ 停止）。
+     * 启动后用户需切到目标 App（如支付宝）观察每步执行效果。
+     *
+     * @param fertTask 肥料任务过滤（null = 回放全部启用规则）
+     */
+    private fun startSlowReplay(fertTask: String?) {
+        val intent = Intent(this, com.bbncbot.service.FloatingWindowService::class.java).apply {
+            action = "com.bbncbot.START_SLOW_REPLAY"
+            if (fertTask != null) putExtra("fertTask", fertTask)
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+        val label = fertTask ?: "全部规则"
+        Toast.makeText(
+            this,
+            "已启动慢放回放：$label\n\n请切到目标 App，用悬浮窗面板控制：\n▶ 自动播放 / ⏭ 单步 / ◀ 回退 / ✎ 编辑 / ⏹ 停止",
+            Toast.LENGTH_LONG
+        ).show()
+        // 返回主界面，让用户能看到悬浮窗并切换到目标 App
+        finish()
     }
 
     /** RecyclerView 适配器 */

@@ -65,6 +65,13 @@
             android:label="场景规则编辑"
             android:parentActivityName=".MainActivity" />
 
+        <!-- 慢放回放中的规则编辑界面（对话框风格，从悬浮窗✎按钮启动） -->
+        <activity
+            android:name=".SlowReplayEditActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.Dialog"
+            android:label="编辑当前规则" />
+
         <!-- 悬浮窗前台 Service -->
         <service
             android:name=".service.FloatingWindowService"
@@ -79,6 +86,8 @@
                 <action android:name="com.bbncbot.TOGGLE_RECORDING" />
                 <action android:name="com.bbncbot.INTERRUPT" />
                 <action android:name="com.bbncbot.DUMP_RULES" />
+                <action android:name="com.bbncbot.START_SLOW_REPLAY" />
+                <action android:name="com.bbncbot.STOP_SLOW_REPLAY" />
             </intent-filter>
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"

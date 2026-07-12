@@ -25,6 +25,7 @@ import com.bbncbot.automation.AutomationController
 import com.bbncbot.automation.AutomationState
 import com.bbncbot.automation.RecordingManager
 import com.bbncbot.automation.SceneLibrary
+import com.bbncbot.automation.SlowReplayController
 import com.bbncbot.service.FarmAccessibilityService
 import kotlin.math.abs
 
@@ -61,6 +62,11 @@ class FloatingWindowService : Service() {
     private var recordToggleButton: Button? = null
     /** 中断小图标（与主按钮同窗口），立即停止 bot + 删除当前场景规则 */
     private var interruptButton: Button? = null
+
+    /** 慢放回放控制面板（独立悬浮窗，慢放启动时显示） */
+    private var slowReplayView: View? = null
+    private var slowReplayStepTv: TextView? = null
+    private var slowReplayPlayPauseBtn: Button? = null
 
     private val layoutParams: WindowManager.LayoutParams by lazy {
         WindowManager.LayoutParams().apply {
@@ -99,6 +105,24 @@ class FloatingWindowService : Service() {
         }
     }
 
+    /** 慢放回放面板的 LayoutParams（底部居中，可点击按钮） */
+    private val slowReplayLayoutParams: WindowManager.LayoutParams by lazy {
+        WindowManager.LayoutParams().apply {
+            type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            } else {
+                @Suppress("DEPRECATION")
+                WindowManager.LayoutParams.TYPE_PHONE
+            }
+            format = PixelFormat.RGBA_8888
+            flags = WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+            width = WindowManager.LayoutParams.WRAP_CONTENT
+            height = WindowManager.LayoutParams.WRAP_CONTENT
+            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            y = 120
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -106,6 +130,7 @@ class FloatingWindowService : Service() {
         startForeground(NOTIFICATION_ID, buildNotification())
         setupFloatingWindow()
         setupProposalWindow()
+        setupSlowReplayPanel()
         setupSceneAutoCreatedCallback()
         AutomationController.onStateChanged = { state ->
             updateButtonUi(state)
@@ -113,6 +138,31 @@ class FloatingWindowService : Service() {
         // 监听提议变化：有提议显示浮窗，无提议隐藏
         ActionProposer.onProposalChanged = { proposal ->
             if (proposal != null) showProposal(proposal) else hideProposal()
+        }
+        // 慢放回放：状态变化 → 更新播放/暂停按钮；步变化 → 更新步数文本；
+        // 执行结果 → Toast；结束 → 隐藏面板
+        SlowReplayController.onStateChanged = { st ->
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                updateSlowReplayPlayPauseBtn(st)
+            }
+        }
+        SlowReplayController.onStepChanged = { idx, total, rule ->
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                updateSlowReplayStepText(idx, total, rule)
+            }
+        }
+        SlowReplayController.onStepExecuted = { rule, success, message ->
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                val icon = if (success) "✓" else "✗"
+                Toast.makeText(this, "$icon ${rule.name}: $message", Toast.LENGTH_SHORT).show()
+            }
+        }
+        SlowReplayController.onFinished = {
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                hideSlowReplayPanel()
+                Toast.makeText(this, "慢放回放已结束", Toast.LENGTH_SHORT).show()
+                updateButtonUi(AutomationController.currentState)
+            }
         }
         // 初始化按钮显示
         updateButtonUi(AutomationController.currentState)
@@ -153,6 +203,14 @@ class FloatingWindowService : Service() {
             val text = SceneLibrary.dumpRulesExplanationToFile()
             Log.i(TAG, "规则判断依据：\n$text")
             Toast.makeText(this, "规则依据已写入文件并打印到 logcat", Toast.LENGTH_LONG).show()
+        } else if (intent?.action == "com.bbncbot.START_SLOW_REPLAY") {
+            // 从规则编辑界面启动慢放回放，extra fertTask 为过滤值（可空=全部）
+            Log.i(TAG, "Received START_SLOW_REPLAY broadcast")
+            val fertTask = intent.getStringExtra("fertTask")
+            startSlowReplay(fertTask)
+        } else if (intent?.action == "com.bbncbot.STOP_SLOW_REPLAY") {
+            Log.i(TAG, "Received STOP_SLOW_REPLAY broadcast")
+            SlowReplayController.stop()
         }
         return START_STICKY
     }
@@ -162,8 +220,13 @@ class FloatingWindowService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         AutomationController.stop()
+        SlowReplayController.stop()
         AutomationController.onStateChanged = null
         ActionProposer.onProposalChanged = null
+        SlowReplayController.onStateChanged = null
+        SlowReplayController.onStepChanged = null
+        SlowReplayController.onStepExecuted = null
+        SlowReplayController.onFinished = null
         RecordingManager.onRecordingChanged = null
         RecordingManager.onSceneAutoCreated = null
         RecordingManager.onRecordingStopped = null
@@ -172,6 +235,13 @@ class FloatingWindowService : Service() {
                 windowManager.removeView(it)
             } catch (e: Exception) {
                 Log.w(TAG, "removeView proposal failed: ${e.message}")
+            }
+        }
+        slowReplayView?.let {
+            try {
+                windowManager.removeView(it)
+            } catch (e: Exception) {
+                Log.w(TAG, "removeView slowReplay failed: ${e.message}")
             }
         }
         floatingView?.let {
@@ -186,6 +256,9 @@ class FloatingWindowService : Service() {
         recordToggleButton = null
         interruptButton = null
         proposalView = null
+        slowReplayView = null
+        slowReplayStepTv = null
+        slowReplayPlayPauseBtn = null
         Log.i(TAG, "FloatingWindowService destroyed")
     }
 
@@ -349,6 +422,154 @@ class FloatingWindowService : Service() {
         } catch (e: Exception) {
             // 未添加，忽略
         }
+    }
+
+    // ===== 慢放回放面板 =====
+
+    /** 初始化慢放回放控制面板（默认不添加到 WindowManager，慢放启动时才显示） */
+    private fun setupSlowReplayPanel() {
+        val inflater = LayoutInflater.from(this)
+        val view = inflater.inflate(R.layout.view_slow_replay_panel, null, false)
+        slowReplayStepTv = view.findViewById(R.id.tvStepInfo)
+        slowReplayPlayPauseBtn = view.findViewById(R.id.btnPlayPause)
+
+        view.findViewById<Button>(R.id.btnBack).setOnClickListener {
+            SlowReplayController.stepBackward()
+        }
+        view.findViewById<Button>(R.id.btnPlayPause).setOnClickListener {
+            when (SlowReplayController.currentState) {
+                SlowReplayController.State.PLAYING -> SlowReplayController.pause()
+                SlowReplayController.State.PAUSED -> SlowReplayController.play()
+                SlowReplayController.State.IDLE -> { /* 不应发生 */ }
+            }
+        }
+        view.findViewById<Button>(R.id.btnStepFwd).setOnClickListener {
+            // 单步前进：先确保暂停，再执行一步
+            if (SlowReplayController.currentState == SlowReplayController.State.PLAYING) {
+                SlowReplayController.pause()
+            }
+            SlowReplayController.stepForward()
+        }
+        view.findViewById<Button>(R.id.btnEdit).setOnClickListener {
+            // 编辑当前规则：启动对话框风格的编辑界面
+            if (SlowReplayController.getCurrentRule() == null) {
+                Toast.makeText(this, "无当前规则可编辑", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            // 编辑前先暂停自动播放
+            if (SlowReplayController.currentState == SlowReplayController.State.PLAYING) {
+                SlowReplayController.pause()
+            }
+            try {
+                val intent = Intent(this, com.bbncbot.SlowReplayEditActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(intent)
+            } catch (e: Exception) {
+                Log.w(TAG, "start SlowReplayEditActivity failed: ${e.message}")
+                Toast.makeText(this, "打开编辑界面失败", Toast.LENGTH_SHORT).show()
+            }
+        }
+        view.findViewById<Button>(R.id.btnStop).setOnClickListener {
+            SlowReplayController.stop()
+        }
+        slowReplayView = view
+    }
+
+    /** 启动慢放回放（从规则编辑界面或广播触发） */
+    private fun startSlowReplay(fertTaskFilter: String?) {
+        if (FarmAccessibilityService.getInstance() == null) {
+            Toast.makeText(this, "无障碍服务未开启，无法慢放", Toast.LENGTH_LONG).show()
+            Log.w(TAG, "startSlowReplay: accessibility service not bound")
+            return
+        }
+        val count = SlowReplayController.start(fertTaskFilter)
+        if (count == 0) {
+            val label = fertTaskFilter ?: "全部"
+            Toast.makeText(this, "没有可回放的规则（$label）", Toast.LENGTH_SHORT).show()
+            return
+        }
+        showSlowReplayPanel()
+        val label = fertTaskFilter ?: "全部规则"
+        Toast.makeText(
+            this,
+            "慢放开始：$label 共 $count 步\n点击 ▶ 自动播放 / ⏭ 单步 / ✎ 编辑",
+            Toast.LENGTH_LONG
+        ).show()
+        updateButtonUi(AutomationController.currentState)
+    }
+
+    /** 显示慢放回放面板 */
+    private fun showSlowReplayPanel() {
+        val view = slowReplayView ?: return
+        try {
+            windowManager.removeView(view)
+        } catch (e: Exception) {
+            // 未添加过，忽略
+        }
+        try {
+            windowManager.addView(view, slowReplayLayoutParams)
+        } catch (e: Exception) {
+            Log.w(TAG, "showSlowReplayPanel addView failed: ${e.message}")
+        }
+        updateSlowReplayPlayPauseBtn(SlowReplayController.currentState)
+        updateSlowReplayStepText(
+            SlowReplayController.currentStepIndex,
+            SlowReplayController.playlistSize,
+            SlowReplayController.getCurrentRule()
+        )
+    }
+
+    /** 隐藏慢放回放面板 */
+    private fun hideSlowReplayPanel() {
+        val view = slowReplayView ?: return
+        try {
+            windowManager.removeView(view)
+        } catch (e: Exception) {
+            // 未添加，忽略
+        }
+    }
+
+    /** 更新播放/暂停按钮文本 */
+    private fun updateSlowReplayPlayPauseBtn(st: SlowReplayController.State) {
+        val btn = slowReplayPlayPauseBtn ?: return
+        btn.text = when (st) {
+            SlowReplayController.State.PLAYING -> "⏸"
+            SlowReplayController.State.PAUSED -> "▶"
+            SlowReplayController.State.IDLE -> "▶"
+        }
+    }
+
+    /** 更新步数信息文本 */
+    private fun updateSlowReplayStepText(
+        idx: Int,
+        total: Int,
+        rule: com.bbncbot.automation.SceneLibrary.SceneCategory?
+    ) {
+        val tv = slowReplayStepTv ?: return
+        val displayIdx = if (total == 0) 0 else idx + 1
+        val rulePart = if (rule != null) {
+            val actionLabel = actionToTextShort(rule.action)
+            val targetPart = if (rule.action == com.bbncbot.automation.SceneLibrary.Action.CLICK_BUTTON && !rule.targetButton.isNullOrEmpty()) {
+                "• ${rule.targetButton}"
+            } else ""
+            "$displayIdx/$total • ${rule.name} • $actionLabel $targetPart"
+        } else {
+            "$displayIdx/$total"
+        }
+        tv.text = "慢放：$rulePart"
+    }
+
+    /** 动作转简短中文（用于面板显示） */
+    private fun actionToTextShort(action: com.bbncbot.automation.SceneLibrary.Action): String = when (action) {
+        com.bbncbot.automation.SceneLibrary.Action.SWIPE_UP -> "上滑"
+        com.bbncbot.automation.SceneLibrary.Action.SWIPE_DOWN -> "下滑"
+        com.bbncbot.automation.SceneLibrary.Action.BACK -> "返回"
+        com.bbncbot.automation.SceneLibrary.Action.EXIT_TASK -> "退出任务"
+        com.bbncbot.automation.SceneLibrary.Action.WAIT -> "等待"
+        com.bbncbot.automation.SceneLibrary.Action.CLICK_BUTTON -> "点击"
+        com.bbncbot.automation.SceneLibrary.Action.STOP_AUTOMATION -> "停止"
+        com.bbncbot.automation.SceneLibrary.Action.UNKNOWN -> "未知"
     }
 
     /**
