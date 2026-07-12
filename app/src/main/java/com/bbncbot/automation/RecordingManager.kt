@@ -132,29 +132,27 @@ object RecordingManager {
                 val gained = if (initial >= 0 && finalFertilizer >= 0) finalFertilizer - initial else null
 
                 if (sessId != null) {
-                    if (gained != null && gained > 0) {
-                        // 肥料有增加 → 保存录制为规则
+                    if (steps > 0) {
+                        // 有录制步骤 → 保存录制为规则（不管肥料是否增加）
+                        // 用户要求：录制的是操作流程，即使没拿到肥料也要保留规则
                         SceneLibrary.endSession(sessId, steps)
-                        Log.i(TAG, "=== 录制结束 session=$sessId 肥料 $initial → $finalFertilizer (+$gained)，保存规则 ===")
-                        logToRecordingFile("=== 录制结束 session=$sessId 肥料 $initial → $finalFertilizer (+$gained)，保存规则 ===")
-                        onRecordingStopped?.invoke(true, initial, finalFertilizer, steps)
-                    } else if (gained == null && steps > 0) {
-                        // 肥料读取失败但有录制步骤 → 仍保存（用户已操作，可能确实在任务列表等非主页场景录制的）
-                        // 避免误丢弃用户花时间录制的任务流程
-                        SceneLibrary.endSession(sessId, steps)
-                        val msg = "肥料读取失败(initial=$initial final=$finalFertilizer)，但已录制 $steps 步，保留规则"
-                        Log.w(TAG, "=== 录制结束 session=$sessId $msg ===")
-                        logToRecordingFile("=== 录制结束 session=$sessId KEEP reason=$msg steps=$steps ===")
+                        if (gained != null && gained > 0) {
+                            Log.i(TAG, "=== 录制结束 session=$sessId 肥料 $initial → $finalFertilizer (+$gained)，保存规则 ===")
+                            logToRecordingFile("=== 录制结束 session=$sessId 肥料 $initial → $finalFertilizer (+$gained)，保存规则 ===")
+                        } else {
+                            val reason = when {
+                                gained == null -> "肥料读取失败(initial=$initial final=$finalFertilizer)，但已录制 $steps 步，保留规则"
+                                gained == 0 -> "肥料无变化($initial → $finalFertilizer)，但已录制 $steps 步，保留规则"
+                                else -> "肥料减少($initial → $finalFertilizer)，但已录制 $steps 步，保留规则"
+                            }
+                            Log.w(TAG, "=== 录制结束 session=$sessId $reason ===")
+                            logToRecordingFile("=== 录制结束 session=$sessId KEEP reason=$reason steps=$steps ===")
+                        }
                         onRecordingStopped?.invoke(true, initial, finalFertilizer, steps)
                     } else {
-                        // 肥料没增加（或读取失败且无步骤）→ 删除本次录制（不保存为规则）
+                        // 没有录制任何步骤 → 删除空 session
                         SceneLibrary.deleteSession(sessId)
-                        val reason = when {
-                            gained == null && steps == 0 -> "肥料读取失败且无步骤(initial=$initial final=$finalFertilizer)，未录制任何操作"
-                            gained == null -> "肥料数值读取失败(initial=$initial final=$finalFertilizer)，详见上方 FERTILIZER_READ_FAIL"
-                            gained == 0 -> "肥料无变化($initial → $finalFertilizer)"
-                            else -> "肥料减少($initial → $finalFertilizer)"
-                        }
+                        val reason = "未录制任何操作(steps=0)"
                         Log.w(TAG, "=== 录制结束 session=$sessId $reason，丢弃本次录制 ===")
                         logToRecordingFile("=== 录制结束 session=$sessId DISCARD reason=$reason steps=$steps ===")
                         onRecordingStopped?.invoke(false, initial, finalFertilizer, steps)
