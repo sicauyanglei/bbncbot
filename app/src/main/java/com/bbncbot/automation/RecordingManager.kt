@@ -103,6 +103,65 @@ object RecordingManager {
         }
     }
 
+    /**
+     * 肥料任务描述匹配模式（用于从页面文本中提取肥料相关任务描述作为 target）
+     *
+     * 匹配形如：
+     * - "浏览15s得300肥料" / "每浏览15s最高得2000肥"
+     * - "看精选商品得肥料" / "逛好物最高得1500肥料"
+     * - "30个居民订单必得3000肥"
+     * - "还差4次领肥料" / "立即领肥"
+     * - "100肥料已发放" / "肥料奖励"
+     */
+    private val FERTILIZER_DESC_PATTERNS = listOf(
+        // 得X肥料 / 得肥料 / 最高得X肥
+        Regex("[^\\n]{0,20}(?:得|领|获)\\s*\\d*\\s*肥[肥料料]?[^\\n]{0,15}"),
+        // X肥料已发放 / 肥料奖励
+        Regex("\\d+\\s*肥料?[^\\n]{0,10}"),
+        // 还差X次领肥料 / 立即领肥 / 做任务集肥料
+        Regex("(?:还差\\d+次领肥料|立即领肥|做任务集肥料|领取|施肥)[^\\n]{0,15}")
+    )
+
+    /**
+     * 重写 target 为肥料任务描述（用户不关心商品名，只关心肥料描述）
+     *
+     * 策略：
+     * 1. target 本身含肥料关键字 → 直接返回原 target（如"立即领肥"）
+     * 2. target 是商品名/数字等非肥料文本 → 从 pageTexts 提取含肥料的任务描述
+     *    - 优先取含"得X肥料""领X肥料"等明确奖励数额的描述
+     *    - 找不到则返回通用"肥料任务"
+     *
+     * 示例：
+     * - target="青海藜麦..." pageTexts含"浏览15s得300肥料" → "浏览15s得300肥料"
+     * - target="立即领肥" → "立即领肥"（原样返回）
+     * - target="09" pageTexts含"还差4次领肥料" → "还差4次领肥料"
+     *
+     * @param rawTarget 原始 target（可能是商品名/数字/肥料按钮）
+     * @param pageTexts 页面可见文本列表
+     * @return 肥料任务描述（作为规则记录的 target）
+     */
+    private fun rewriteFertilizerTarget(rawTarget: String?, pageTexts: List<String>): String? {
+        // 1. target 本身含肥料关键字 → 原样返回
+        if (rawTarget != null && FERTILIZER_KEYWORDS.any { rawTarget.contains(it) }) {
+            return rawTarget
+        }
+        // 2. 从页面文本提取肥料任务描述
+        for (pattern in FERTILIZER_DESC_PATTERNS) {
+            for (pageText in pageTexts) {
+                val match = pattern.find(pageText)
+                if (match != null) {
+                    val desc = match.value.trim()
+                    if (desc.isNotEmpty()) {
+                        return desc
+                    }
+                }
+            }
+        }
+        // 3. 兜底：页面确实含肥料关键字（isFertilizerRelevant 已保证），但没匹配到具体描述
+        //    返回通用标识，避免记录商品名
+        return "肥料任务"
+    }
+
     /** 当录制状态变化时通知浮窗更新 UI */
     @Volatile
     var onRecordingChanged: ((Boolean) -> Unit)? = null
@@ -366,7 +425,7 @@ object RecordingManager {
                     isClickLikeEvent -> {
                         // 从事件 source 提取目标按钮信息（text/desc），用于规则匹配和命名
                         val text = eventText ?: classNameStr
-                        val targetButton = when {
+                        val rawTarget = when {
                             !nodeText.isNullOrEmpty() -> nodeText
                             !desc.isNullOrEmpty() -> desc
                             text.isNotEmpty() -> text
@@ -376,12 +435,12 @@ object RecordingManager {
                         // 用 signature + targetButton 做节流：同一场景同一目标 1.5 秒内只录一次
                         if (eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
                             // 无可识别 target 的 0x800 直接丢弃（噪音）
-                            if (targetButton == null) {
+                            if (rawTarget == null) {
                                 return@execute
                             }
                             val now = System.currentTimeMillis()
                             val sig = features.signature()
-                            val dedupKey = "$sig|$targetButton"
+                            val dedupKey = "$sig|$rawTarget"
                             val lastTime = lastClickSigTime[dedupKey] ?: 0L
                             if (now - lastTime < 1500L) {
                                 // 1.5 秒内重复，静默丢弃
@@ -391,10 +450,14 @@ object RecordingManager {
                         }
                         // 关键路径过滤：只录制与肥料相关的操作，丢弃无关噪音（商品名/数字/搜索框等）
                         // 肥料相关信号：target 文本含肥料关键字，或页面可见文本含肥料领取/发放提示
-                        if (!isFertilizerRelevant(targetButton, features.pageTexts)) {
-                            logToRecordingFile("SKIP_NO_FERTILIZER target='$targetButton' (非肥料相关，丢弃)")
+                        if (!isFertilizerRelevant(rawTarget, features.pageTexts)) {
+                            logToRecordingFile("SKIP_NO_FERTILIZER target='$rawTarget' (非肥料相关，丢弃)")
                             return@execute
                         }
+                        // 关键路径重写：用户不关心点击的商品名，只关心肥料描述
+                        // 当 target 是商品名/数字等非肥料文本时，从页面文本中提取肥料任务描述作为 target
+                        // 例如：点击"青海藜麦..."商品 → target 改为"浏览15秒得300肥料"
+                        val targetButton = rewriteFertilizerTarget(rawTarget, features.pageTexts)
                         // WINDOW_STATE_CHANGED 无 source 时，跳过（避免误把页面跳转记成点击）
                         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
                             nodeText.isNullOrEmpty() && desc.isNullOrEmpty() && eventText.isNullOrEmpty()) {
