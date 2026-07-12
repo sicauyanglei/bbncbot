@@ -80,6 +80,10 @@ object SceneFeatureExtractor {
         // 任务内容标识：仅当传入 taskButton 时提取（PROCESSING_TASK 决策点 / 录制点击事件）
         val taskText = taskButton?.let { extractTaskContentText(service, it) } ?: ""
 
+        // 肥料任务描述：从页面文本提取稳定的肥料任务标识（用于智能匹配同类任务）
+        // 同一肥料任务的不同轮次商品可能不同，但任务描述（如"看精选商品得肥料"）稳定
+        val fertTaskDesc = extractFertilizerTaskDesc(pageTexts)
+
         return SceneFeatures(
             windowPackage = pkg,
             windowActivity = activity,
@@ -100,7 +104,8 @@ object SceneFeatureExtractor {
             pageTexts = pageTexts.take(30),
             clickableButtons = clickableButtons.distinct().take(20),
             controllerState = controllerState,
-            taskContentText = taskText
+            taskContentText = taskText,
+            fertilizerTaskDesc = fertTaskDesc
         )
     }
 
@@ -150,6 +155,68 @@ object SceneFeatureExtractor {
         } catch (e: Exception) {
             ""
         }
+    }
+
+    /**
+     * 肥料任务描述匹配模式（从页面文本提取稳定的肥料任务标识）
+     *
+     * 匹配形如：
+     * - "浏览15s得300肥料" / "每浏览15s最高得2000肥"
+     * - "看精选商品得肥料" / "逛好物最高得1500肥料"
+     * - "30个居民订单必得3000肥"
+     * - "还差4次领肥料" / "立即领肥" / "做任务集肥料"
+     * - "100肥料已发放" / "肥料奖励"
+     *
+     * 这些描述是稳定的（同一任务的不同轮次不会变），适合作为 signature 核心标识。
+     * 商品名/数字/搜索词等易变文本不会被这些模式匹配。
+     */
+    private val FERTILIZER_DESC_PATTERNS = listOf(
+        // 得X肥料 / 得肥料 / 最高得X肥 / 领X肥料 / 获X肥
+        Regex("[^\\n]{0,20}(?:得|领|获)\\s*\\d*\\s*肥[肥料料]?[^\\n]{0,15}"),
+        // X肥料已发放 / 肥料奖励 / X肥料
+        Regex("\\d+\\s*肥料?[^\\n]{0,10}"),
+        // 还差X次领肥料 / 立即领肥 / 做任务集肥料 / 领取 / 施肥
+        Regex("(?:还差\\d+次领肥料|立即领肥|做任务集肥料|领取|施肥)[^\\n]{0,15}")
+    )
+
+    /**
+     * 肥料关键字（用于判断页面是否含肥料相关信息）
+     */
+    private val FERTILIZER_KEYWORDS = listOf(
+        "肥料", "领肥", "施肥", "已发放", "领取成功", "做任务集肥料"
+    )
+
+    /**
+     * 从页面文本中提取肥料任务描述（稳定的肥料任务标识）
+     *
+     * 提取策略：
+     * 1. 遍历 [pageTexts]，用 [FERTILIZER_DESC_PATTERNS] 匹配含肥料的任务描述
+     * 2. 优先返回含明确奖励数额的描述（如"得300肥料""最高得2000肥"）
+     * 3. 清理多余空白，限制长度（避免整页文本污染）
+     *
+     * 为什么这样提取：
+     * - 同一肥料任务（如"看精选商品得肥料"）的不同轮次，页面展示的商品可能不同
+     * - 但任务描述"看精选商品得肥料"是稳定的，可作为 signature 核心标识
+     * - 这样同一任务的不同页面自动归为同一类规则，实现智能匹配
+     *
+     * @param pageTexts 页面可见文本列表
+     * @return 肥料任务描述（如"看精选商品得肥料"），无匹配返回 ""
+     */
+    fun extractFertilizerTaskDesc(pageTexts: List<String>): String {
+        for (pattern in FERTILIZER_DESC_PATTERNS) {
+            for (pageText in pageTexts) {
+                val match = pattern.find(pageText)
+                if (match != null) {
+                    val desc = match.value.trim()
+                        .replace(Regex("\\s+"), " ")
+                        .take(30)  // 限制长度，避免整页文本
+                    if (desc.isNotEmpty() && FERTILIZER_KEYWORDS.any { desc.contains(it) || desc.contains("肥") }) {
+                        return desc
+                    }
+                }
+            }
+        }
+        return ""
     }
 
     /** 递归收集节点树所有文本（同 [FarmAccessibilityService.collectAllText]，避免改可见性） */

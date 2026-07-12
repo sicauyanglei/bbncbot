@@ -85,7 +85,27 @@ data class SceneFeatures(
      *
      * 示例："看严选推荐商品" / "浏览精选好物" / "搜一搜你心仪得宝贝"
      */
-    val taskContentText: String = ""
+    val taskContentText: String = "",
+
+    /**
+     * 肥料任务描述（从页面文本提取的稳定标识，用于智能匹配同类任务）
+     *
+     * 提取规则（[SceneFeatureExtractor.extractFertilizerTaskDesc]）：
+     * - 从 [pageTexts] 中匹配含"得X肥料""领X肥料""立即领肥""做任务集肥料"等模式的文本
+     * - 商品名/数字/搜索词等易变文本不会进入此字段
+     *
+     * 为什么需要这个字段：
+     * - 同一肥料任务（如"看精选商品得肥料 0/3"）的不同轮次，页面展示的商品可能不同
+     * - 如果 signature 用 [clickableButtons]（商品名）或 [taskContentText]（整页文本）做匹配键，
+     *   同一任务的不同轮次会被误判为不同场景，导致规则无法复用
+     * - 用稳定的肥料任务描述作为 signature 核心，同一任务的不同页面自动归为同一类规则
+     *
+     * 示例：
+     * - "看精选商品得肥料" / "逛好物最高得1500肥料" / "每浏览15s最高得2000肥"
+     * - "立即领肥" / "还差4次领肥料" / "100肥料已发放"
+     * - 空字符串表示当前页面无肥料任务描述
+     */
+    val fertilizerTaskDesc: String = ""
 ) {
     /**
      * 生成场景签名：用于规则匹配的稳定键
@@ -120,13 +140,18 @@ data class SceneFeatures(
         else parts.add("countdown=no")
         if (hasBrowseProgressHint) parts.add("progress=yes")
         else parts.add("progress=no")
-        // 可点按钮集合（粗粒度，作为辅助信号）
-        if (clickableButtons.isNotEmpty()) {
-            parts.add("btns=${clickableButtons.toSet().toList().sorted().joinToString(",")}")
-        }
-        // 任务内容标识（区分"看严选推荐商品""浏览X商品"等不同任务，仅 PROCESSING_TASK 阶段有值）
-        if (taskContentText.isNotEmpty()) {
-            parts.add("task=$taskContentText")
+        // 肥料任务描述（优先级最高）：稳定的肥料任务标识，同一任务的不同商品页面自动归为同一类规则
+        // 有 fertTask 时不再用 btns=（商品名易变）和 task=（整页文本易变）做匹配键
+        if (fertilizerTaskDesc.isNotEmpty()) {
+            parts.add("fertTask=$fertilizerTaskDesc")
+        } else {
+            // 无肥料任务描述时退回原逻辑：用 btns 和 task 做辅助信号
+            if (clickableButtons.isNotEmpty()) {
+                parts.add("btns=${clickableButtons.toSet().toList().sorted().joinToString(",")}")
+            }
+            if (taskContentText.isNotEmpty()) {
+                parts.add("task=$taskContentText")
+            }
         }
         return parts.joinToString("|")
     }
@@ -158,8 +183,11 @@ data class SceneFeatures(
         else parts.add("countdown=no")
         if (hasBrowseProgressHint) parts.add("progress=yes")
         else parts.add("progress=no")
-        // 不含 btns 字段，但保留 task= 字段（任务内容是规则匹配的核心维度，不能被自动归类忽略）
-        if (taskContentText.isNotEmpty()) {
+        // 肥料任务描述是规则匹配的核心维度，优先级高于 task=
+        // 有 fertTask 时只用 fertTask（稳定），不用 task=（易变）
+        if (fertilizerTaskDesc.isNotEmpty()) {
+            parts.add("fertTask=$fertilizerTaskDesc")
+        } else if (taskContentText.isNotEmpty()) {
             parts.add("task=$taskContentText")
         }
         return parts.joinToString("|")

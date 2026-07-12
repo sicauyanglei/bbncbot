@@ -104,30 +104,12 @@ object RecordingManager {
     }
 
     /**
-     * 肥料任务描述匹配模式（用于从页面文本中提取肥料相关任务描述作为 target）
-     *
-     * 匹配形如：
-     * - "浏览15s得300肥料" / "每浏览15s最高得2000肥"
-     * - "看精选商品得肥料" / "逛好物最高得1500肥料"
-     * - "30个居民订单必得3000肥"
-     * - "还差4次领肥料" / "立即领肥"
-     * - "100肥料已发放" / "肥料奖励"
-     */
-    private val FERTILIZER_DESC_PATTERNS = listOf(
-        // 得X肥料 / 得肥料 / 最高得X肥
-        Regex("[^\\n]{0,20}(?:得|领|获)\\s*\\d*\\s*肥[肥料料]?[^\\n]{0,15}"),
-        // X肥料已发放 / 肥料奖励
-        Regex("\\d+\\s*肥料?[^\\n]{0,10}"),
-        // 还差X次领肥料 / 立即领肥 / 做任务集肥料
-        Regex("(?:还差\\d+次领肥料|立即领肥|做任务集肥料|领取|施肥)[^\\n]{0,15}")
-    )
-
-    /**
      * 重写 target 为肥料任务描述（用户不关心商品名，只关心肥料描述）
      *
      * 策略：
      * 1. target 本身含肥料关键字 → 直接返回原 target（如"立即领肥"）
-     * 2. target 是商品名/数字等非肥料文本 → 从 pageTexts 提取含肥料的任务描述
+     * 2. target 是商品名/数字等非肥料文本 → 复用 [SceneFeatureExtractor.extractFertilizerTaskDesc]
+     *    从 pageTexts 提取含肥料的任务描述
      *    - 优先取含"得X肥料""领X肥料"等明确奖励数额的描述
      *    - 找不到则返回通用"肥料任务"
      *
@@ -145,17 +127,10 @@ object RecordingManager {
         if (rawTarget != null && FERTILIZER_KEYWORDS.any { rawTarget.contains(it) }) {
             return rawTarget
         }
-        // 2. 从页面文本提取肥料任务描述
-        for (pattern in FERTILIZER_DESC_PATTERNS) {
-            for (pageText in pageTexts) {
-                val match = pattern.find(pageText)
-                if (match != null) {
-                    val desc = match.value.trim()
-                    if (desc.isNotEmpty()) {
-                        return desc
-                    }
-                }
-            }
+        // 2. 复用 SceneFeatureExtractor 的肥料任务描述提取逻辑（保证录制和执行用同一套提取规则）
+        val desc = SceneFeatureExtractor.extractFertilizerTaskDesc(pageTexts)
+        if (desc.isNotEmpty()) {
+            return desc
         }
         // 3. 兜底：页面确实含肥料关键字（isFertilizerRelevant 已保证），但没匹配到具体描述
         //    返回通用标识，避免记录商品名
