@@ -279,6 +279,10 @@ class RuleEditorActivity : AppCompatActivity() {
      * 拖动结束后，按列表新顺序重新分配 priority 并持久化
      * - 第 0 位 priority=0，第 1 位 priority=10，依次递增（间隔 10 方便后续插入）
      * - 调用 SceneLibrary.updateCategory 批量更新
+     *
+     * 注意：不调用 notifyDataSetChanged，否则会触发 onBindViewHolder 重置所有 ViewHolder
+     * 的滑动状态（translationX/visibility/stayOpen），导致拖动前展开的删除按钮被收起。
+     * 这里改为遍历可见 ViewHolder 直接更新序号文本。
      */
     private fun persistOrderAfterDrag() {
         for ((idx, rule) in currentRules.withIndex()) {
@@ -288,8 +292,17 @@ class RuleEditorActivity : AppCompatActivity() {
                 rule.priority = newPriority
             }
         }
-        // 更新序号显示
-        adapter.notifyDataSetChanged()
+        // 只更新序号显示，不重新绑定（避免重置滑动状态）
+        for (i in 0 until recyclerView.childCount) {
+            val child = recyclerView.getChildAt(i) ?: continue
+            val holder = recyclerView.getChildViewHolder(child)
+            if (holder is RuleAdapter.RuleViewHolder) {
+                val pos = holder.bindingAdapterPosition
+                if (pos != RecyclerView.NO_POSITION) {
+                    holder.tvPriority.text = (pos + 1).toString()
+                }
+            }
+        }
     }
 
     /**
