@@ -1,0 +1,8 @@
+=== recording.log cleared on app start (version=2.1/12, time=08:39:56.293) ===
+08:45:14.677 === 录制开始 session=sess_1783817114676 name='流程4676' ===
+08:45:14.807 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 芭芭农场,种果树得水果，助农增收) → 尝试 OCR 兜底
+08:45:14.810 [start] FERTILIZER_READ_FAIL reason=exception:Services don't have the capability of taking the screenshot.
+08:45:25.894 === 用户中断 ===
+08:45:26.227 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 芭芭农场,种果树得水果，助农增收) → 尝试 OCR 兜底
+08:45:26.229 [stop] FERTILIZER_READ_FAIL reason=exception:Services don't have the capability of taking the screenshot.
+08:45:26.229 === 录制结束 session=sess_1783817114676 DISCARD reason=肥料读取失败且无步骤(initial=-1 final=-1)，未录制任何操作 steps=0 ===
