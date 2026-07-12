@@ -5,6 +5,7 @@
     android:accessibilityFlags="flagDefault|flagIncludeNotImportantViews|flagReportViewIds|flagRequestEnhancedWebAccessibility|flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="true"
     android:canPerformGestures="true"
+    android:canTakeScreenshot="true"
     android:description="@string/accessibility_service_description"
     android:notificationTimeout="300"
     android:packageNames="com.bbncbot,com.ucmobile.lite,com.UCMobile.x86,com.UCMobile,com.eg.android.AlipayGphone,com.alipay.mobile,com.taobao.taobao,com.hihonor.android.internal.app" />
