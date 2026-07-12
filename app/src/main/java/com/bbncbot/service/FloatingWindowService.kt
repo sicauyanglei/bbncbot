@@ -204,10 +204,19 @@ class FloatingWindowService : Service() {
             Log.i(TAG, "规则判断依据：\n$text")
             Toast.makeText(this, "规则依据已写入文件并打印到 logcat", Toast.LENGTH_LONG).show()
         } else if (intent?.action == "com.bbncbot.START_SLOW_REPLAY") {
-            // 从规则编辑界面启动慢放回放，extra fertTask 为过滤值（可空=全部）
+            // 从规则编辑界面启动慢放回放
+            // mode=session → 回放该 session 的所有子步；mode=single → 回放单条独立规则
             Log.i(TAG, "Received START_SLOW_REPLAY broadcast")
-            val fertTask = intent.getStringExtra("fertTask")
-            startSlowReplay(fertTask)
+            val mode = intent.getStringExtra("mode") ?: "session"
+            if (mode == "single") {
+                val categoryId = intent.getStringExtra("categoryId")
+                if (categoryId != null) startSlowReplaySingle(categoryId)
+                else Toast.makeText(this, "缺少规则 ID", Toast.LENGTH_SHORT).show()
+            } else {
+                val sessionId = intent.getStringExtra("sessionId")
+                if (sessionId != null) startSlowReplay(sessionId)
+                else Toast.makeText(this, "缺少会话 ID", Toast.LENGTH_SHORT).show()
+            }
         } else if (intent?.action == "com.bbncbot.STOP_SLOW_REPLAY") {
             Log.i(TAG, "Received STOP_SLOW_REPLAY broadcast")
             SlowReplayController.stop()
@@ -476,24 +485,43 @@ class FloatingWindowService : Service() {
         slowReplayView = view
     }
 
-    /** 启动慢放回放（从规则编辑界面或广播触发） */
-    private fun startSlowReplay(fertTaskFilter: String?) {
+    /** 启动单条规则（session 流程）的慢放回放 */
+    private fun startSlowReplay(sessionId: String) {
         if (FarmAccessibilityService.getInstance() == null) {
-            Toast.makeText(this, "无障碍服务未开启，无法慢放", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "无障碍服务未开启，无法回放", Toast.LENGTH_LONG).show()
             Log.w(TAG, "startSlowReplay: accessibility service not bound")
             return
         }
-        val count = SlowReplayController.start(fertTaskFilter)
+        val count = SlowReplayController.start(sessionId)
         if (count == 0) {
-            val label = fertTaskFilter ?: "全部"
-            Toast.makeText(this, "没有可回放的规则（$label）", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "该规则没有可回放的子步", Toast.LENGTH_SHORT).show()
             return
         }
         showSlowReplayPanel()
-        val label = fertTaskFilter ?: "全部规则"
         Toast.makeText(
             this,
-            "慢放开始：$label 共 $count 步\n点击 ▶ 自动播放 / ⏭ 单步 / ✎ 编辑",
+            "规则回放开始：${SlowReplayController.activeName} 共 $count 步\n▶ 自动播放 / ⏭ 单步（慢放）/ ✎ 编辑",
+            Toast.LENGTH_LONG
+        ).show()
+        updateButtonUi(AutomationController.currentState)
+    }
+
+    /** 启动单条独立规则的慢放回放 */
+    private fun startSlowReplaySingle(categoryId: String) {
+        if (FarmAccessibilityService.getInstance() == null) {
+            Toast.makeText(this, "无障碍服务未开启，无法回放", Toast.LENGTH_LONG).show()
+            Log.w(TAG, "startSlowReplaySingle: accessibility service not bound")
+            return
+        }
+        val count = SlowReplayController.startSingle(categoryId)
+        if (count == 0) {
+            Toast.makeText(this, "该规则不可回放", Toast.LENGTH_SHORT).show()
+            return
+        }
+        showSlowReplayPanel()
+        Toast.makeText(
+            this,
+            "规则回放开始：${SlowReplayController.activeName}\n▶ 自动播放 / ⏭ 单步（慢放）/ ✎ 编辑",
             Toast.LENGTH_LONG
         ).show()
         updateButtonUi(AutomationController.currentState)
@@ -540,7 +568,7 @@ class FloatingWindowService : Service() {
         }
     }
 
-    /** 更新步数信息文本 */
+    /** 更新步数信息文本（显示规则名 + 当前步 + 动作） */
     private fun updateSlowReplayStepText(
         idx: Int,
         total: Int,
@@ -548,16 +576,17 @@ class FloatingWindowService : Service() {
     ) {
         val tv = slowReplayStepTv ?: return
         val displayIdx = if (total == 0) 0 else idx + 1
+        val ruleName = SlowReplayController.activeName
         val rulePart = if (rule != null) {
             val actionLabel = actionToTextShort(rule.action)
             val targetPart = if (rule.action == com.bbncbot.automation.SceneLibrary.Action.CLICK_BUTTON && !rule.targetButton.isNullOrEmpty()) {
                 "• ${rule.targetButton}"
             } else ""
-            "$displayIdx/$total • ${rule.name} • $actionLabel $targetPart"
+            "$ruleName\n$displayIdx/$total • $actionLabel $targetPart"
         } else {
-            "$displayIdx/$total"
+            "$ruleName\n$displayIdx/$total"
         }
-        tv.text = "慢放：$rulePart"
+        tv.text = rulePart
     }
 
     /** 动作转简短中文（用于面板显示） */

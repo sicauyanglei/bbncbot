@@ -53,7 +53,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:background="#BBDEFB"
-            android:text="慢放回放"
+            android:text="回放规则"
             android:textColor="#1565C0"
             android:textSize="12sp" />
 

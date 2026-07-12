@@ -294,26 +294,41 @@ class RuleEditorActivity : AppCompatActivity() {
                 .show()
         }
 
-        // 慢放回放：弹出任务选择，选择后启动慢放模式（可暂停/回退/编辑规则）
+        // 慢放回放：针对单条规则回放，回放中可慢放/暂停
+        // 弹出规则选择列表：录制流程（session）+ 独立规则（无 session）
         btnSlowReplay.setOnClickListener {
             val allRules = SceneLibrary.listCategories()
             if (allRules.isEmpty()) {
                 Toast.makeText(this, "暂无规则，请先录制", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val fertTasks = SceneLibrary.listFertTasks()
-            // 选项：全部规则 + 各肥料任务（非肥料任务规则也归入"全部规则"）
-            val labels = mutableListOf("全部规则（${allRules.size} 条）")
-            labels.addAll(fertTasks.map { task ->
-                val n = allRules.count { it.fertTask == task }
-                "$task（$n 条）"
-            })
+            val sessions = SceneLibrary.listSessions().filter { it.status == "COMPLETED" }
+            // 独立规则 = 没有归属任何 session 的规则
+            val standaloneRules = allRules.filter { it.sessionId.isEmpty() }
+
+            val labels = mutableListOf<String>()
+            val actions = mutableListOf<() -> Unit>()
+            // 录制流程（session）
+            for (sess in sessions) {
+                val stepCount = allRules.count { it.sessionId == sess.id && it.enabled }
+                if (stepCount == 0) continue
+                labels.add("流程：${sess.name}（$stepCount 步）")
+                actions.add { startSlowReplayBySession(sess.id) }
+            }
+            // 独立规则
+            for (rule in standaloneRules.filter { it.enabled }) {
+                labels.add("规则：${rule.name}（单步）")
+                actions.add { startSlowReplaySingle(rule.id) }
+            }
+            if (labels.isEmpty()) {
+                Toast.makeText(this, "没有可回放的启用规则", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             AlertDialog.Builder(this)
-                .setTitle("慢放回放：选择要回放的任务")
-                .setSingleChoiceItems(labels.toTypedArray(), 0) { dialog, which ->
+                .setTitle("慢放回放：选择要回放的规则")
+                .setItems(labels.toTypedArray()) { dialog, which ->
                     dialog.dismiss()
-                    val fertTask = if (which == 0) null else fertTasks[which - 1]
-                    startSlowReplay(fertTask)
+                    actions[which].invoke()
                 }
                 .setNegativeButton("取消", null)
                 .show()
@@ -504,32 +519,53 @@ class RuleEditorActivity : AppCompatActivity() {
     }
 
     /**
-     * 启动慢放回放
+     * 启动单条规则（session 流程）的慢放回放
      *
-     * 通过 startService 通知 [com.bbncbot.service.FloatingWindowService] 启动慢放模式
-     * （用 startService 而非 sendBroadcast，确保服务未运行时也能被拉起）。
-     * 服务会在悬浮窗显示慢放控制面板（◀ 回退 / ▶⏸ 播放暂停 / ⏭ 单步 / ✎ 编辑 / ⏹ 停止）。
-     * 启动后用户需切到目标 App（如支付宝）观察每步执行效果。
+     * 通过 startService 通知 [com.bbncbot.service.FloatingWindowService] 启动慢放模式，
+     * 回放该 session 的所有子步。服务在悬浮窗显示控制面板。
      *
-     * @param fertTask 肥料任务过滤（null = 回放全部启用规则）
+     * @param sessionId 录制会话 ID
      */
-    private fun startSlowReplay(fertTask: String?) {
+    private fun startSlowReplayBySession(sessionId: String) {
         val intent = Intent(this, com.bbncbot.service.FloatingWindowService::class.java).apply {
             action = "com.bbncbot.START_SLOW_REPLAY"
-            if (fertTask != null) putExtra("fertTask", fertTask)
+            putExtra("mode", "session")
+            putExtra("sessionId", sessionId)
         }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             startForegroundService(intent)
         } else {
             startService(intent)
         }
-        val label = fertTask ?: "全部规则"
         Toast.makeText(
             this,
-            "已启动慢放回放：$label\n\n请切到目标 App，用悬浮窗面板控制：\n▶ 自动播放 / ⏭ 单步 / ◀ 回退 / ✎ 编辑 / ⏹ 停止",
+            "已启动规则回放\n\n请切到目标 App，用悬浮窗面板控制：\n▶ 自动播放 / ⏭ 单步（慢放）/ ◀ 回退 / ✎ 编辑 / ⏹ 停止",
             Toast.LENGTH_LONG
         ).show()
-        // 返回主界面，让用户能看到悬浮窗并切换到目标 App
+        finish()
+    }
+
+    /**
+     * 启动单条独立规则（无 session）的慢放回放
+     *
+     * @param categoryId 规则 ID
+     */
+    private fun startSlowReplaySingle(categoryId: String) {
+        val intent = Intent(this, com.bbncbot.service.FloatingWindowService::class.java).apply {
+            action = "com.bbncbot.START_SLOW_REPLAY"
+            putExtra("mode", "single")
+            putExtra("categoryId", categoryId)
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+        Toast.makeText(
+            this,
+            "已启动规则回放\n\n请切到目标 App，用悬浮窗面板控制：\n▶ 自动播放 / ⏭ 单步（慢放）/ ◀ 回退 / ✎ 编辑 / ⏹ 停止",
+            Toast.LENGTH_LONG
+        ).show()
         finish()
     }
 

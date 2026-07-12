@@ -8,27 +8,29 @@ import com.bbncbot.service.FarmAccessibilityService
 /**
  * 慢放回放控制器
  *
- * 按规则列表顺序逐步回放，像调试器一样支持：
- * - **慢放**：每步之间自动等待 [autoStepDelayMs]，让用户观察效果
- * - **暂停**：随时暂停，停留在当前步骤（光标位置）
- * - **回退**：光标回退一步，可重新执行上一步（用于重试/修改后重跑）
- * - **动态修改**：暂停时编辑当前规则，保存后立即生效，下一步按新规则执行
+ * **针对单条规则回放**，慢放发生在回放过程中。
+ *
+ * 一条规则 = 一次录制流程（[SceneLibrary.RecordingSession]），包含多个有序子步
+ * （[SceneLibrary.SceneCategory]，每步一个动作如点击/滑动/返回）。
+ *
+ * 回放流程：
+ * 1. 用户在规则编辑界面选一条规则（session 或独立规则）
+ * 2. [start] / [startSingle] 构建播放列表（该 session 的所有子步，按 stepIndex 排序）
+ * 3. 默认暂停在第一步（PAUSED），用户可选择：
+ *    - ▶ **自动播放**（正常回放）：每 [autoStepDelayMs] 执行一步，连续跑完
+ *    - ⏭ **单步**（慢放）：每点一次执行一步，停在下一步观察效果
+ *    - ⏸ **暂停**：随时暂停自动播放，光标不动
+ *    - ◀ **回退**：光标回退一步，可重新执行上一步（用于重试/修改后重跑）
+ *    - ✎ **编辑**：暂停时编辑当前子步规则，保存后立即生效
+ *    - ⏹ **停止**：结束回放
  *
  * 心智模型（与调试器一致）：
- * - [currentIndex] = "光标位置" = 下一步要执行的规则
- * - [stepForward]：执行 [currentIndex] 处的规则，光标后移一位
- * - [stepBackward]：光标前移一位（回到上一步，可重新执行）
- * - [play]：自动播放，每 [autoStepDelayMs] 执行一次 [stepForward]
- * - [pause]：停止自动播放，光标不动
- * - [updateCurrentRule]：编辑 [currentIndex] 处的规则，立即生效
+ * - [currentIndex] = "光标位置" = 下一步要执行的子步
+ * - [stepForward]：执行 [currentIndex] 处的子步，光标后移一位
+ * - [play]：自动播放（正常回放速度），每 [autoStepDelayMs] 执行一次 [stepForward]
+ * - [pause]：暂停自动播放
  *
- * 与 [AutomationController] 互斥：慢放启动时自动停止 AutomationController 和录制。
- *
- * 使用流程：
- * 1. 用户在规则编辑界面点"慢放回放" + 选择肥料任务（或全部）
- * 2. [start] 构建播放列表（按 fertTask 过滤，按 priority/stepIndex 排序）
- * 3. 浮窗显示慢放控制面板：◀ 回退  ▶/⏸ 播放/暂停  ⏭ 单步  ✎ 编辑  ⏹ 停止
- * 4. 每步执行规则动作（点击/滑动/返回），用户观察效果
+ * 与 [AutomationController] 互斥：回放启动时自动停止 AutomationController 和录制。
  */
 object SlowReplayController {
 
@@ -51,8 +53,10 @@ object SlowReplayController {
     @Volatile private var currentIndex: Int = -1
     @Volatile private var state: State = State.IDLE
     @Volatile private var autoStepDelayMs: Long = DEFAULT_AUTO_STEP_DELAY_MS
-    /** 启动时使用的 fertTask 过滤（用于 UI 显示） */
-    @Volatile private var activeFilter: String? = null
+    /** 当前回放的规则名（session 名或独立规则名，用于 UI 显示） */
+    @Volatile private var activeRuleName: String = ""
+    /** 当前回放对应的 sessionId（独立规则为空） */
+    @Volatile private var activeSessionId: String = ""
 
     private val handler = Handler(Looper.getMainLooper())
     private val lock = Any()
@@ -73,29 +77,33 @@ object SlowReplayController {
     val currentStepIndex: Int get() = currentIndex
     val playlistSize: Int get() = playlist.size
     val isRunning: Boolean get() = state != State.IDLE
-    val activeFertTaskFilter: String? get() = activeFilter
+    val activeName: String get() = activeRuleName
     val autoDelayMs: Long get() = autoStepDelayMs
 
     /**
-     * 启动慢放回放
+     * 启动单条规则的慢放回放（针对一个 session 流程的所有子步）
      *
-     * @param fertTaskFilter 肥料任务过滤（null = 回放全部启用规则）
-     * @return 播放列表大小，0 表示无规则可回放
+     * 回放针对"一条规则"——即一次录制流程（session），包含多个有序子步（SceneCategory）。
+     * 慢放发生在回放过程中：默认暂停在第一步，用户可选择 ▶ 自动播放（正常回放）或 ⏭ 单步（慢放）。
+     *
+     * @param sessionId 录制会话 ID
+     * @return 播放列表大小（子步数），0 表示无规则可回放
      */
-    fun start(fertTaskFilter: String?): Int {
+    fun start(sessionId: String): Int {
         synchronized(lock) {
             if (state != State.IDLE) {
                 Log.w(TAG, "start called but state=$state, ignoring")
                 return 0
             }
-            // 构建播放列表：启用的规则，按 fertTask 过滤，按 priority/stepIndex/createdAt 排序
+            // 构建播放列表：该 session 的所有子步，按 stepIndex 排序
             val allRules = SceneLibrary.listCategories()
+            val sess = SceneLibrary.listSessions().firstOrNull { it.id == sessionId }
             playlist = allRules
-                .filter { it.enabled && (fertTaskFilter == null || it.fertTask == fertTaskFilter) }
-                .sortedWith(compareBy({ it.priority }, { it.sessionId }, { it.stepIndex }, { it.createdAt }))
+                .filter { it.enabled && it.sessionId == sessionId }
+                .sortedBy { it.stepIndex }
 
             if (playlist.isEmpty()) {
-                Log.w(TAG, "no rules to replay (filter=$fertTaskFilter)")
+                Log.w(TAG, "no rules to replay (session=$sessionId)")
                 return 0
             }
 
@@ -107,12 +115,49 @@ object SlowReplayController {
                 RecordingManager.stop()
             }
 
-            activeFilter = fertTaskFilter
+            activeSessionId = sessionId
+            activeRuleName = sess?.name ?: sessionId
             currentIndex = 0
             moveTo(State.PAUSED)
-            Log.i(TAG, "slow replay started: ${playlist.size} rules, filter=$fertTaskFilter")
+            Log.i(TAG, "slow replay started: session=$sessionId name='${activeRuleName}' ${playlist.size} steps")
             notifyStepChanged()
             return playlist.size
+        }
+    }
+
+    /**
+     * 启动单条独立规则的慢放回放（无 session 的规则，播放列表只含自身一步）
+     *
+     * @param categoryId 规则 ID
+     * @return 播放列表大小（1 或 0）
+     */
+    fun startSingle(categoryId: String): Int {
+        synchronized(lock) {
+            if (state != State.IDLE) {
+                Log.w(TAG, "startSingle called but state=$state, ignoring")
+                return 0
+            }
+            val rule = SceneLibrary.listCategories().firstOrNull { it.id == categoryId && it.enabled }
+            if (rule == null) {
+                Log.w(TAG, "no rule to replay (categoryId=$categoryId)")
+                return 0
+            }
+
+            if (AutomationController.isRunning) {
+                AutomationController.stop()
+            }
+            if (RecordingManager.recording) {
+                RecordingManager.stop()
+            }
+
+            playlist = listOf(rule)
+            activeSessionId = ""
+            activeRuleName = rule.name
+            currentIndex = 0
+            moveTo(State.PAUSED)
+            Log.i(TAG, "slow replay started: single rule='${rule.name}'")
+            notifyStepChanged()
+            return 1
         }
     }
 
@@ -140,11 +185,11 @@ object SlowReplayController {
                 // 播放结束
                 handler.removeCallbacks(autoStepRunnable)
                 Log.i(TAG, "slow replay finished (reached end)")
-                val total = playlist.size
                 moveTo(State.IDLE)
                 playlist = emptyList()
                 currentIndex = -1
-                activeFilter = null
+                activeRuleName = ""
+                activeSessionId = ""
                 onFinished?.invoke()
                 return
             }
@@ -214,7 +259,8 @@ object SlowReplayController {
             moveTo(State.IDLE)
             playlist = emptyList()
             currentIndex = -1
-            activeFilter = null
+            activeRuleName = ""
+            activeSessionId = ""
             Log.i(TAG, "slow replay stopped")
             if (wasRunning) onFinished?.invoke()
         }
