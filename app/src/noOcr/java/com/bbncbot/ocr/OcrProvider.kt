@@ -204,7 +204,26 @@ object OcrProvider {
      * 同步等待 Service 连接 + 远程调用完成（超时 15s = bind 5s + recognize 10s）
      */
     private fun callOcrRemote(context: Context, jpegData: ByteArray): Int {
-        val intent = Intent(OCR_ACTION).apply { setPackage(OCR_PACKAGE) }
+        // 诊断 1：用 queryIntentServices 确认系统能否解析到 OCR Service
+        val resolveIntent = Intent(OCR_ACTION).apply { setPackage(OCR_PACKAGE) }
+        val resolved = context.packageManager.queryIntentServices(resolveIntent, 0)
+        val diagServices = if (resolved.isEmpty()) "none" else resolved.joinToString(";") {
+            "${it.serviceInfo.packageName}/${it.serviceInfo.name} exported=${it.serviceInfo.exported} perm=${it.serviceInfo.permission ?: "null"}"
+        }
+
+        // 诊断 2：确认 OCR APK 版本和签名
+        var diagOcrPkg = "not_found"
+        try {
+            val pkgInfo = context.packageManager.getPackageInfo(OCR_PACKAGE, 0)
+            diagOcrPkg = "v${pkgInfo.versionName}(${pkgInfo.versionCode}) firstInstall=${pkgInfo.firstInstallTime}"
+        } catch (_: Exception) {}
+
+        Log.i(TAG, "callOcrRemote: services=[$diagServices] ocrPkg=$diagOcrPkg")
+
+        // 用显式 ComponentName 绑定（比 action+package 更可靠，不依赖 intent-filter 解析）
+        val intent = Intent().apply {
+            component = ComponentName(OCR_PACKAGE, "$OCR_PACKAGE.OcrService")
+        }
         val latch = CountDownLatch(1)
         var result = -1
         var bound = false
@@ -235,7 +254,7 @@ object OcrProvider {
             }
 
             override fun onNullBinding(name: ComponentName?) {
-                lastError = "null_binding (权限不匹配或 Service 拒绝绑定)"
+                lastError = "null_binding (onBind返回null，可能包名检查被拒)"
                 Log.d(TAG, "OCR null binding")
                 latch.countDown()
             }
@@ -244,8 +263,8 @@ object OcrProvider {
         try {
             bound = context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
             if (!bound) {
-                lastError = "bind_service_false (权限被拒/Service未导出/包不可见)"
-                Log.d(TAG, "bindService returned false (OCR APK not installed or Service not exported)")
+                lastError = "bind_service_false (services=$diagServices ocrPkg=$diagOcrPkg)"
+                Log.e(TAG, "bindService returned false. services=[$diagServices] ocrPkg=$diagOcrPkg")
                 return -1
             }
             // 等待 onServiceConnected + 远程调用完成（超时 15s）
