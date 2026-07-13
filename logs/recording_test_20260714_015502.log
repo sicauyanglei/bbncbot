@@ -1,0 +1,25 @@
+=== recording.log cleared on app start (version=2.1/12, time=01:53:48.981) ===
+01:54:38.193 === 录制开始 session=sess_1783965278192 name='流程8191' ===
+01:54:38.407 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=parse_failed (找到施肥按钮但自身/父节点/子树/整页均无'肥料XXXX'格式；text='施肥0次' desc=''；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 施肥0次) → 尝试 OCR 兜底
+01:54:38.489 [start] FERTILIZER_READ_FAIL reason=ocr_fail (无障碍和OCR均未识别到肥料总数)
+01:54:45.907 CLICK_H5 type=0x800 target='还差3次领肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|fertTask=还差3次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,施肥0次,邀请,钓红包,得1000肥 三国冰河,浪漫餐厅,几何王国,返回,支付宝·芭芭农场,更多,关闭]
+01:54:45.908 RECORD sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|fertTask=还差3次领肥料|fertStruct=c=V|n=2|ch=V,TV' category='支付宝-未知页-点击还差3次领肥料' action=CLICK_BUTTON target='还差3次领肥料' state=IDLE btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,施肥0次,邀请,钓红包,得1000肥 三国冰河,浪漫餐厅,几何王国,返回,支付宝·芭芭农场,更多,关闭]
+01:54:45.909 AUTO_CREATE name='支付宝-未知页-点击还差3次领肥料' action=CLICK_BUTTON session=sess_1783965278192 step=0 sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|fertTask=还差3次领肥料|fertStruct=c=V|n=2|ch=V,TV'
+01:54:46.675 CLICK_H5 type=0x800 target='还差3次领肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|fertTask=还差3次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,施肥0次,邀请,钓红包,得1000肥 三国冰河,浪漫餐厅,几何王国,返回,支付宝·芭芭农场,更多,关闭]
+01:54:46.676 MATCHED name='支付宝-未知页-点击还差3次领肥料' action=CLICK_BUTTON
+01:54:47.157 CLICK_H5 type=0x800 target='还差3次领肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|fertTask=还差3次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,施肥0次,邀请,钓红包,得1000肥 三国冰河,浪漫餐厅,几何王国,返回,支付宝·芭芭农场,更多,关闭]
+01:54:47.158 MATCHED name='支付宝-未知页-点击还差3次领肥料' action=CLICK_BUTTON
+01:54:47.665 CLICK_H5 type=0x20 target='还差3次领肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,施肥0次,邀请,钓红包,得1000肥 三国冰河,浪漫餐厅,几何王国,返回,支付宝·芭芭农场,更多,关闭]
+01:54:47.667 MATCHED name='支付宝-未知页-点击还差3次领肥料' action=CLICK_BUTTON
+01:54:47.903 CLICK_H5 type=0x800 target='还差3次领肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,施肥0次,邀请,钓红包,得1000肥 三国冰河,浪漫餐厅,几何王国,返回,支付宝·芭芭农场,更多,关闭]
+01:54:47.905 MATCHED name='支付宝-未知页-点击还差3次领肥料' action=CLICK_BUTTON
+01:54:48.573 CLICK_H5 type=0x800 target='关闭做任务集肥料弹窗' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,施肥0次,邀请,钓红包,得1000肥 三国冰河,浪漫餐厅,几何王国,返回,支付宝·芭芭农场,更多,关闭]
+01:54:48.574 MATCHED name='支付宝-未知页-点击还差3次领肥料' action=CLICK_BUTTON
+01:54:49.470 CLICK_H5 type=0x800 target='还差3次领肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,施肥0次,邀请,钓红包,得1000肥 三国冰河,浪漫餐厅,几何王国,返回,支付宝·芭芭农场,更多,关闭]
+01:54:49.472 MATCHED name='支付宝-未知页-点击还差3次领肥料' action=CLICK_BUTTON
+01:54:49.720 CLICK_H5 type=0x800 target='还差3次领肥料' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差3次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,施肥0次,邀请,钓红包,得1000肥 三国冰河,浪漫餐厅,几何王国,返回,支付宝·芭芭农场,更多,关闭]
+01:54:49.721 MATCHED name='支付宝-未知页-点击还差3次领肥料' action=CLICK_BUTTON
+01:54:50.543 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=parse_failed (找到施肥按钮但自身/父节点/子树/整页均无'肥料XXXX'格式；text='施肥0次' desc=''；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 施肥0次) → 尝试 OCR 兜底
+01:54:50.691 [stop] FERTILIZER_READ_FAIL reason=ocr_fail (无障碍和OCR均未识别到肥料总数)
+01:54:50.694 === 录制结束 session=sess_1783965278192 DISCARD reason=未录制任何操作(steps=0) steps=0 autoStop=false ===
+01:55:01.063 LOG_UPLOAD_RESULT n=6 tag=sess_278192 detail=上传成功：6 个文件（tag=sess_278192，含 0 张截图）
