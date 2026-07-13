@@ -396,7 +396,7 @@ object RecordingManager {
                 logToRecordingFile("[$tag] FERTILIZER_READ_OK amount=$ocrAmount (source=ocr)")
                 return ocrAmount
             }
-            logToRecordingFile("[$tag] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=$ocrApkInstalled (无障碍和OCR均未识别到肥料总数)")
+            logToRecordingFile("[$tag] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=$ocrApkInstalled ocrError='${com.bbncbot.ocr.OcrProvider.lastError}' (无障碍和OCR均未识别到肥料总数)")
             -1
         } catch (e: Exception) {
             logToRecordingFile("[$tag] FERTILIZER_READ_FAIL reason=exception:${e.message}")

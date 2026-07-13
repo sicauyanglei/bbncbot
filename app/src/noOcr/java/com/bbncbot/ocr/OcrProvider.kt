@@ -49,6 +49,25 @@ object OcrProvider {
     private const val JPEG_QUALITY = 85
 
     /**
+     * 上次操作的详细失败原因（供上层 RecordingManager 记录到 recording.log 诊断）
+     *
+     * 区分以下失败场景：
+     * - "ocr_apk_not_installed"：OCR APK 未安装
+     * - "screenshot_failed"：截图失败
+     * - "jpeg_compress_failed"：JPEG 压缩失败
+     * - "bind_service_false"：bindService 返回 false（权限被拒/Service 未导出/包不可见）
+     * - "null_binding"：onNullBinding（Service 返回 null，可能权限不匹配）
+     * - "binding_died"：onBindingDied（绑定异常断开）
+     * - "timeout_15s"：15 秒超时未连接
+     * - "remote_call_exception:xxx"：AIDL 调用异常
+     * - "recognize_failed"：远程识别返回 -1
+     * - ""：成功或未调用
+     */
+    @Volatile
+    var lastError: String = ""
+        private set
+
+    /**
      * 肥料区域上下扩展的 padding（像素）
      *
      * 节点 bounds 可能只包含文本本身，扩展 padding 避免数字边缘被裁。
@@ -69,14 +88,17 @@ object OcrProvider {
      * @return 肥料数值；-1 表示 OCR APK 未安装/连接失败/识别失败
      */
     fun findCurrentFertilizerAmount(service: FarmAccessibilityService): Int {
+        lastError = ""
         // 1. 检查 OCR APK 是否已安装
         if (!isOcrAppInstalled(service)) {
+            lastError = "ocr_apk_not_installed"
             Log.d(TAG, "OCR fertilizer: $OCR_PACKAGE not installed, skip")
             return -1
         }
 
         // 2. 截全屏 Bitmap
         val fullBitmap = service.takeScreenshotBitmap() ?: run {
+            lastError = "screenshot_failed"
             Log.d(TAG, "OCR fertilizer: screenshot failed")
             return -1
         }
@@ -90,12 +112,17 @@ object OcrProvider {
         cropBitmap.recycle()
         if (isCropped) fullBitmap.recycle()  // 裁剪成功时回收全屏，否则 cropBitmap==fullBitmap 已回收
         if (jpegData == null || jpegData.isEmpty()) {
+            lastError = "jpeg_compress_failed"
             Log.d(TAG, "OCR fertilizer: jpeg compress failed (cropped=$isCropped)")
             return -1
         }
 
         Log.d(TAG, "OCR fertilizer: cropped=$isCropped jpegSize=${jpegData.size} bytes")
-        return callOcrRemote(service, jpegData)
+        val result = callOcrRemote(service, jpegData)
+        if (result < 0 && lastError.isEmpty()) {
+            lastError = "recognize_failed"
+        }
+        return result
     }
 
     /**
@@ -189,6 +216,7 @@ object OcrProvider {
                     result = ocr.recognizeFertilizerAmount(jpegData)
                     Log.d(TAG, "OCR remote call success: amount=$result")
                 } catch (e: Exception) {
+                    lastError = "remote_call_exception:${e.message}"
                     Log.d(TAG, "OCR remote call failed: ${e.message}")
                     result = -1
                 } finally {
@@ -201,11 +229,13 @@ object OcrProvider {
             }
 
             override fun onBindingDied(name: ComponentName?) {
+                lastError = "binding_died"
                 Log.d(TAG, "OCR binding died")
                 latch.countDown()
             }
 
             override fun onNullBinding(name: ComponentName?) {
+                lastError = "null_binding (权限不匹配或 Service 拒绝绑定)"
                 Log.d(TAG, "OCR null binding")
                 latch.countDown()
             }
@@ -214,12 +244,14 @@ object OcrProvider {
         try {
             bound = context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
             if (!bound) {
+                lastError = "bind_service_false (权限被拒/Service未导出/包不可见)"
                 Log.d(TAG, "bindService returned false (OCR APK not installed or Service not exported)")
                 return -1
             }
             // 等待 onServiceConnected + 远程调用完成（超时 15s）
             latch.await(15, TimeUnit.SECONDS)
             if (latch.count > 0) {
+                lastError = "timeout_15s"
                 Log.d(TAG, "OCR call timeout (15s)")
             }
         } catch (e: Exception) {

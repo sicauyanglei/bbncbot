@@ -31,6 +31,18 @@ object OcrProvider {
     private const val TAG = "OcrProvider"
 
     /**
+     * 上次操作的详细失败原因（供上层 RecordingManager 记录到 recording.log 诊断）
+     * - "screenshot_failed"：截图失败
+     * - "recognize_timeout"：识别超时
+     * - "recognize_failed:xxx"：识别失败
+     * - "no_fertilizer_in_text"：识别成功但文本中无肥料数字
+     * - ""：成功或未调用
+     */
+    @Volatile
+    var lastError: String = ""
+        private set
+
+    /**
      * 肥料区域上下扩展的 padding（像素）
      *
      * 节点 bounds 可能只包含文本本身，扩展 padding 避免数字边缘被裁。
@@ -51,7 +63,9 @@ object OcrProvider {
      * @return 肥料数值；-1 表示截图失败/识别超时/未提取到
      */
     fun findCurrentFertilizerAmount(service: FarmAccessibilityService): Int {
+        lastError = ""
         val fullBitmap = service.takeScreenshotBitmap() ?: run {
+            lastError = "screenshot_failed"
             Log.d(TAG, "OCR fertilizer: screenshot failed")
             return -1
         }
@@ -66,21 +80,26 @@ object OcrProvider {
                 .getClient(com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions.Builder().build())
             val latch = java.util.concurrent.CountDownLatch(1)
             var ocrText: com.google.mlkit.vision.text.Text? = null
+            var recognizeError: String? = null
             recognizer.process(image)
                 .addOnSuccessListener { ocrText = it; latch.countDown() }
                 .addOnFailureListener { e ->
+                    recognizeError = e.message
                     Log.d(TAG, "OCR fertilizer: recognize failed: ${e.message}")
                     latch.countDown()
                 }
             latch.await(10, java.util.concurrent.TimeUnit.SECONDS)
             val text = ocrText ?: run {
+                lastError = if (recognizeError != null) "recognize_failed:$recognizeError" else "recognize_timeout"
                 Log.d(TAG, "OCR fertilizer: recognize timeout or null (cropped=$isCropped)")
                 return -1
             }
             val amount = extractFertilizerFromOcrText(text)
             Log.d(TAG, "OCR fertilizer: amount=$amount cropped=$isCropped size=${cropBitmap.width}x${cropBitmap.height} (lines=${text.textBlocks.sumOf { it.lines.size }})")
+            if (amount < 0) lastError = "no_fertilizer_in_text"
             return amount
         } catch (e: Exception) {
+            lastError = "exception:${e.message}"
             Log.d(TAG, "OCR fertilizer: exception: ${e.message}")
             return -1
         } finally {
