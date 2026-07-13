@@ -1,0 +1,8 @@
+=== recording.log cleared on app start (version=2.1/12, time=21:41:30.843) ===
+21:41:32.032 SKIP_NO_FERTILIZER target='2s后领取' (非肥料相关，丢弃)
+21:41:32.674 SKIP_NO_FERTILIZER target='1s后领取' (非肥料相关，丢弃)
+21:41:33.791 SKIP_NO_FERTILIZER target='0s后领取' (非肥料相关，丢弃)
+21:41:33.828 SKIP_NO_FERTILIZER target='已领取' (非肥料相关，丢弃)
+21:41:34.304 SKIP_NO_FERTILIZER target='15s后领取' (非肥料相关，丢弃)
+21:41:35.176 SKIP_NO_FERTILIZER target='14s后领取' (非肥料相关，丢弃)
+21:41:36.457 SKIP_NO_FERTILIZER target='13s后领取' (非肥料相关，丢弃)
