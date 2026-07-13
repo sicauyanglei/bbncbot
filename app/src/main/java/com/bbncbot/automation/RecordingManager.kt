@@ -457,7 +457,11 @@ object RecordingManager {
         recordExecutor.execute {
             try {
                 // 停录后排队的残余事件直接跳过（合并打一行汇总，避免刷屏）
-                if (!recording && sessIdAtEnqueue == null) {
+                // 注意：只检查 recording 即可，不检查 sessIdAtEnqueue
+                // （stop() 会先置 recording=false 再置 currentSessionId=null，
+                //  排队事件持有的 sessIdAtEnqueue 是入队时的副本，仍非空，
+                //  若同时检查两个条件会导致停录后残余事件继续被处理并 recordedCount++）
+                if (!recording) {
                     pendingSkipCount.incrementAndGet()
                     return@execute
                 }
@@ -493,7 +497,7 @@ object RecordingManager {
                             else -> null
                         }
                         // 0x800 (WINDOW_CONTENT_CHANGED) 噪音多（每次内容变化都触发），
-                        // 用 signature + targetButton 做节流：同一场景同一目标 1.5 秒内只录一次
+                        // 用 signature + 归一化target 做节流：同一场景同一目标 2 秒内只录一次
                         if (eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
                             // 无可识别 target 的 0x800 直接丢弃（噪音）
                             if (rawTarget == null) {
@@ -501,10 +505,14 @@ object RecordingManager {
                             }
                             val now = System.currentTimeMillis()
                             val sig = features.signature()
-                            val dedupKey = "$sig|$rawTarget"
+                            // 归一化 target：把数字替换为 #，让"浏览14秒""浏览13秒"归一为"浏览#秒"
+                            // 避免倒计时每秒变化都触发新事件（1.5s 去重窗口对秒级倒计时失效）
+                            val normalizedTarget = rawTarget.replace(Regex("\\d+"), "#")
+                            val dedupKey = "$sig|$normalizedTarget"
                             val lastTime = lastClickSigTime[dedupKey] ?: 0L
-                            if (now - lastTime < 1500L) {
-                                // 1.5 秒内重复，静默丢弃
+                            // 2 秒去重窗口：覆盖 1 秒倒计时间隔，但保留用户快速连续点击的能力
+                            if (now - lastTime < 2000L) {
+                                // 2 秒内重复（归一化后），静默丢弃
                                 return@execute
                             }
                             lastClickSigTime[dedupKey] = now
