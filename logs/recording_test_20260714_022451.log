@@ -1,0 +1,81 @@
+=== recording.log cleared on app start (version=2.1/12, time=02:21:49.326) ===
+02:22:04.257 === 录制开始 session=sess_1783966924256 name='流程4247' ===
+02:22:04.325 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=parse_failed (找到施肥按钮但自身/父节点/子树/整页均无'肥料XXXX'格式；text='施肥0次' desc=''；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 施肥0次) → 尝试 OCR 兜底
+02:22:04.407 [start] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='bind_service_false (权限被拒/Service未导出/包不可见)' (无障碍和OCR均未识别到肥料总数)
+02:22:09.777 CLICK_H5 type=0x800 target='前往手机淘宝-芭芭农场' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=返回' btns=[返回]
+02:22:09.779 RECORD sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=返回' category='支付宝-农场主页-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON target='前往手机淘宝-芭芭农场' state=IDLE btns=[返回]
+02:22:09.779 AUTO_CREATE name='支付宝-农场主页-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON session=sess_1783966924256 step=0 sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=返回'
+02:22:09.779 RECORD_INC unmapped recordedCount=1 thread=RecordingManager-worker
+02:22:10.292 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=返回' btns=[返回]
+02:22:10.293 RECORD sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=返回' category='支付宝-未知页-点击支付宝' action=CLICK_BUTTON target='支付宝' state=IDLE btns=[返回]
+02:22:10.294 AUTO_CREATE name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON session=sess_1783966924256 step=1 sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=返回'
+02:22:10.300 RECORD_INC unmapped recordedCount=2 thread=RecordingManager-worker
+02:22:33.104 CLICK_H5 type=0x800 target='全部' sig='p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|fertTask=已获得肥料|fertStruct=c=V|n=3|ch=TV,TV,TV' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+02:22:33.106 RECORD sig='p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|fertTask=已获得肥料|fertStruct=c=V|n=3|ch=TV,TV,TV' category='支付宝-全部 服饰鞋包 食品 日用 数码电器 家装家居 美容/医疗 娱乐/旅行 生活服务-红包弹窗-点击全部' action=CLICK_BUTTON target='全部' state=IDLE btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+02:22:33.107 AUTO_CREATE name='支付宝-全部 服饰鞋包 食品 日用 数码电器 家装家居 美容/医疗 娱乐/旅行 生活服务-红包弹窗-点击全部' action=CLICK_BUTTON session=sess_1783966924256 step=2 sig='p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|fertTask=已获得肥料|fertStruct=c=V|n=3|ch=TV,TV,TV'
+02:22:35.758 CLICK_H5 type=0x800 target='全部' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=还差3次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,施肥0次,邀请,钓红包,得1000肥 三国冰河,浪漫餐厅,几何王国,关闭做任务集肥料弹窗,连续签到任务规则,去逛逛,去完成,去喂鸡,去分享,邀请队友,前往手机淘宝-芭芭农场]
+02:22:35.759 RECORD sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=还差3次领肥料|fertStruct=c=V|n=2|ch=V,TV' category='支付宝-浏览任务-点击全部' action=CLICK_BUTTON target='全部' state=IDLE btns=[任务列表,农场乐园入口,还差3次领肥料,切换摇钱树,逛农货,我的收获,施肥0次,邀请,钓红包,得1000肥 三国冰河,浪漫餐厅,几何王国,关闭做任务集肥料弹窗,连续签到任务规则,去逛逛,去完成,去喂鸡,去分享,邀请队友,前往手机淘宝-芭芭农场]
+02:22:35.760 AUTO_CREATE name='支付宝-浏览任务-点击全部' action=CLICK_BUTTON session=sess_1783966924256 step=3 sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=还差3次领肥料|fertStruct=c=V|n=2|ch=V,TV'
+02:22:35.760 RECORD_INC unmapped recordedCount=4 thread=RecordingManager-worker
+02:22:39.752 STOP_ENTER recordedCount=4 thread=main autoStop=false sessId=sess_1783966924256
+02:22:47.529 CLICK_H5 type=0x800 target='滑动浏览14秒得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:22:47.530 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:22:47.531 RECORD_INC matched recordedCount=5 thread=RecordingManager-worker
+02:22:49.613 CLICK_H5 type=0x800 target='滑动浏览13秒得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:22:49.613 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:22:49.614 RECORD_INC matched recordedCount=6 thread=RecordingManager-worker
+02:22:50.604 CLICK_H5 type=0x800 target='滑动浏览12秒得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:22:50.604 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:22:50.605 RECORD_INC matched recordedCount=7 thread=RecordingManager-worker
+02:22:51.065 CLICK_H5 type=0x800 target='滑动浏览11秒得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:22:51.066 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:22:51.067 RECORD_INC matched recordedCount=8 thread=RecordingManager-worker
+02:22:51.667 CLICK_H5 type=0x800 target='滑动浏览10秒得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:22:51.668 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:22:51.669 RECORD_INC matched recordedCount=9 thread=RecordingManager-worker
+02:22:52.867 CLICK_H5 type=0x800 target='滑动浏览9秒得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:22:52.868 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:22:52.868 RECORD_INC matched recordedCount=10 thread=RecordingManager-worker
+02:22:53.542 CLICK_H5 type=0x800 target='滑动浏览8秒得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:22:53.543 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:22:53.543 RECORD_INC matched recordedCount=11 thread=RecordingManager-worker
+02:22:54.460 CLICK_H5 type=0x800 target='滑动浏览7秒得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:22:54.461 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:22:54.461 RECORD_INC matched recordedCount=12 thread=RecordingManager-worker
+02:22:55.425 CLICK_H5 type=0x800 target='滑动浏览6秒得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:22:55.426 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:22:55.426 RECORD_INC matched recordedCount=13 thread=RecordingManager-worker
+02:22:56.221 CLICK_H5 type=0x800 target='滑动浏览5秒得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:22:56.221 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:22:56.222 RECORD_INC matched recordedCount=14 thread=RecordingManager-worker
+02:22:57.034 CLICK_H5 type=0x800 target='滑动浏览4秒得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:22:57.035 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:22:57.036 RECORD_INC matched recordedCount=15 thread=RecordingManager-worker
+02:22:57.930 CLICK_H5 type=0x800 target='滑动浏览3秒得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:22:57.931 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:22:57.931 RECORD_INC matched recordedCount=16 thread=RecordingManager-worker
+02:22:58.751 CLICK_H5 type=0x800 target='滑动浏览2秒得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:22:58.752 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:22:58.752 RECORD_INC matched recordedCount=17 thread=RecordingManager-worker
+02:22:59.648 CLICK_H5 type=0x800 target='滑动浏览1秒得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:22:59.648 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:22:59.649 RECORD_INC matched recordedCount=18 thread=RecordingManager-worker
+02:23:00.576 CLICK_H5 type=0x800 target='滑动浏览0秒得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:23:00.577 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:23:00.578 RECORD_INC matched recordedCount=19 thread=RecordingManager-worker
+02:23:01.037 CLICK_H5 type=0x800 target='已获得肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:23:01.039 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:23:01.040 RECORD_INC matched recordedCount=20 thread=RecordingManager-worker
+02:23:09.847 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:23:09.849 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:23:09.850 RECORD_INC matched recordedCount=21 thread=RecordingManager-worker
+02:23:09.958 CLICK_H5 type=0x800 target='到店支付1笔得100肥当前进度0，总进度1 今晚24点前可领奖' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:23:09.959 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:23:09.960 RECORD_INC matched recordedCount=22 thread=RecordingManager-worker
+02:23:10.199 CLICK_H5 type=0x800 target='关闭做任务集肥料弹窗' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+02:23:10.200 MATCHED name='支付宝-未知页-点击支付宝' action=CLICK_BUTTON
+02:23:10.202 RECORD_INC matched recordedCount=23 thread=RecordingManager-worker
+02:23:10.330 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 转到上一层级 | 场景规则编辑 | 全部 | 全部 | 淘宝 | 淘宝 | 支付宝 | 支付宝) → 尝试 OCR 兜底
+02:23:10.478 [stop] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='bind_service_false (权限被拒/Service未导出/包不可见)' (无障碍和OCR均未识别到肥料总数)
+02:23:10.479 === 录制结束 session=sess_1783966924256 → '支付宝-肥料任务' SAVE reason=肥料读取失败回退保存(initial=-1 final=-1) steps=4 ===
+02:23:20.918 LOG_UPLOAD_RESULT n=6 tag=sess_924256 detail=上传成功：6 个文件（tag=sess_924256，含 0 张截图）
