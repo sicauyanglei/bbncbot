@@ -1,0 +1,41 @@
+=== recording.log cleared on app start (version=2.1/12, time=21:41:30.843) ===
+21:41:32.032 SKIP_NO_FERTILIZER target='2s后领取' (非肥料相关，丢弃)
+21:41:32.674 SKIP_NO_FERTILIZER target='1s后领取' (非肥料相关，丢弃)
+21:41:33.791 SKIP_NO_FERTILIZER target='0s后领取' (非肥料相关，丢弃)
+21:41:33.828 SKIP_NO_FERTILIZER target='已领取' (非肥料相关，丢弃)
+21:41:34.304 SKIP_NO_FERTILIZER target='15s后领取' (非肥料相关，丢弃)
+21:41:35.176 SKIP_NO_FERTILIZER target='14s后领取' (非肥料相关，丢弃)
+21:41:36.457 SKIP_NO_FERTILIZER target='13s后领取' (非肥料相关，丢弃)
+21:41:38.039 SKIP_NO_FERTILIZER target='12s后领取' (非肥料相关，丢弃)
+21:41:39.419 SKIP_NO_FERTILIZER target='11s后领取' (非肥料相关，丢弃)
+21:41:40.582 SKIP_NO_FERTILIZER target='10s后领取' (非肥料相关，丢弃)
+21:41:42.024 SKIP_NO_FERTILIZER target='9s后领取' (非肥料相关，丢弃)
+21:41:43.441 SKIP_NO_FERTILIZER target='8s后领取' (非肥料相关，丢弃)
+21:41:44.593 SKIP_NO_FERTILIZER target='7s后领取' (非肥料相关，丢弃)
+21:41:46.377 SKIP_NO_FERTILIZER target='6s后领取' (非肥料相关，丢弃)
+21:41:48.343 SKIP_NO_FERTILIZER target='5s后领取' (非肥料相关，丢弃)
+21:41:50.787 SKIP_NO_FERTILIZER target='4s后领取' (非肥料相关，丢弃)
+21:41:52.548 SKIP_NO_FERTILIZER target='3s后领取' (非肥料相关，丢弃)
+21:41:54.469 SKIP_NO_FERTILIZER target='2s后领取' (非肥料相关，丢弃)
+21:41:56.886 SKIP_NO_FERTILIZER target='1s后领取' (非肥料相关，丢弃)
+21:41:59.408 SKIP_NO_FERTILIZER target='已领取' (非肥料相关，丢弃)
+21:42:00.712 SKIP_NO_FERTILIZER target='已领取全部奖励' (非肥料相关，丢弃)
+21:42:00.931 SKIP_NO_FERTILIZER target='已领取' (非肥料相关，丢弃)
+21:42:14.736 SKIP_NO_FERTILIZER target='支付宝' (非肥料相关，丢弃)
+21:42:14.951 CLICK_H5 type=0x800 target='逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+21:42:14.956 RECORD sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' category='支付宝-未知页-点击逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励' action=CLICK_BUTTON target='逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励' state=IDLE btns=[]
+21:42:14.957 AUTO_CREATE name='支付宝-未知页-点击逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励' action=CLICK_BUTTON session=sess_1783950009210 step=0 sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no'
+21:42:15.239 SKIP_NO_FERTILIZER target='继续逛' (非肥料相关，丢弃)
+21:42:15.904 CLICK_H5 type=0x800 target='关闭做任务集肥料弹窗' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+21:42:15.907 MATCHED name='支付宝-未知页-点击逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励' action=CLICK_BUTTON
+21:42:17.221 CLICK_H5 type=0x800 target='囤高原特产，得6万肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+21:42:17.223 MATCHED name='支付宝-未知页-点击逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励' action=CLICK_BUTTON
+21:42:17.653 SKIP_NO_FERTILIZER target='农货百款 等你来“挑”' (非肥料相关，丢弃)
+21:42:18.037 CLICK_H5 type=0x800 target='“抢”青海农货得6万肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+21:42:18.038 MATCHED name='支付宝-未知页-点击逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励' action=CLICK_BUTTON
+21:42:18.534 CLICK_H5 type=0x800 target='每日最高120300肥料' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+21:42:18.536 MATCHED name='支付宝-未知页-点击逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励' action=CLICK_BUTTON
+21:42:19.201 SKIP_NO_FERTILIZER target='青海好农货正热销！' (非肥料相关，丢弃)
+21:42:19.252 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: Why is it sliding? | 云端 | · | sicauyanglei/bbncbot | TRAE Code | 任务耗时 24分31秒 | 总结 | CI 构建通过，"肥料任务模型"已完整实) → 尝试 OCR 兜底
+21:42:19.418 [stop] FERTILIZER_READ_FAIL reason=ocr_fail (无障碍和OCR均未识别到肥料总数)
+21:42:19.419 === 录制结束 session=sess_1783950009210 DISCARD reason=未录制任何操作(steps=0) steps=0 autoStop=false ===
