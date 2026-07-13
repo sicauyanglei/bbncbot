@@ -164,6 +164,9 @@ object RecordingManager {
         val sessId = currentSessionId
         val initial = initialFertilizer
         val steps = recordedCount
+        // 诊断日志：recordedCount 在主线程的读取值（排查 steps=0 问题）
+        Log.i(TAG, "stop: recordedCount=$steps thread=${Thread.currentThread().name} autoStop=$autoStop sessId=$sessId")
+        logToRecordingFile("STOP_ENTER recordedCount=$steps thread=${Thread.currentThread().name} autoStop=$autoStop sessId=$sessId")
         currentSessionId = null
         initialFertilizer = -1
         // UI 立即响应（按钮变回"录制"）
@@ -175,32 +178,40 @@ object RecordingManager {
                 val finalFertilizer = readFertilizerAmountWithDiag("stop")
                 val gained = if (initial >= 0 && finalFertilizer >= 0) finalFertilizer - initial else null
 
-                // 保存条件：肥料监控自动触发（已确认增量）OR 手动停录时肥料有增量
-                // "以取得肥料为任务完成标志"：未取得肥料的 session 视为未完成任务，丢弃
-                val shouldSave = autoStop || (gained != null && gained > 0)
+                // 保存条件（优先级从高到低）：
+                // 1. autoStop=true → 肥料监控确认增量，必须保存
+                // 2. gained > 0 → 手动停录且肥料有增量，保存
+                // 3. gained == null 且 steps > 0 → 肥料读取失败（H5 Canvas/OCR 不可用），
+                //    回退保存：不因读取机制不可靠而丢弃用户的有效录制
+                // 4. gained == 0 且 steps > 0 → 确实没取得肥料，丢弃
+                // 5. steps == 0 → 没录制任何操作，丢弃
+                val shouldSave = when {
+                    autoStop -> true
+                    gained != null && gained > 0 -> true
+                    gained == null && steps > 0 -> true  // 肥料读取失败回退
+                    else -> false
+                }
 
                 if (sessId != null) {
                     if (shouldSave && steps > 0) {
-                        // 取得肥料 → 任务完成 → 保存为规则
-                        // 按"平台+任务描述"重命名 session
+                        // 保存为规则，按"平台+任务描述"重命名 session
                         val (platform, fertTask) = SceneLibrary.getSessionFirstStepInfo(sessId)
                         val newName = buildSessionName(platform, fertTask)
                         SceneLibrary.renameSession(sessId, newName)
                         SceneLibrary.endSession(sessId, steps)
-                        if (autoStop) {
-                            Log.i(TAG, "=== 录制自动结束(取得肥料) session=$sessId → '$newName' 肥料 $initial → $finalFertilizer steps=$steps ===")
-                            logToRecordingFile("=== 录制自动结束(取得肥料) session=$sessId → '$newName' initial=$initial final=$finalFertilizer steps=$steps ===")
-                        } else {
-                            Log.i(TAG, "=== 录制手动结束(取得肥料) session=$sessId → '$newName' 肥料 $initial → $finalFertilizer (+$gained) steps=$steps ===")
-                            logToRecordingFile("=== 录制手动结束(取得肥料) session=$sessId → '$newName' initial=$initial final=$finalFertilizer gained=$gained steps=$steps ===")
+                        val saveReason = when {
+                            autoStop -> "自动结束(取得肥料)"
+                            gained != null && gained > 0 -> "手动结束(取得肥料 +$gained)"
+                            else -> "肥料读取失败回退保存(initial=$initial final=$finalFertilizer)"
                         }
+                        Log.i(TAG, "=== 录制结束 session=$sessId → '$newName' $saveReason steps=$steps ===")
+                        logToRecordingFile("=== 录制结束 session=$sessId → '$newName' SAVE reason=$saveReason steps=$steps ===")
                         onRecordingStopped?.invoke(true, initial, finalFertilizer, steps)
                     } else {
-                        // 未取得肥料 → 任务未完成 → 丢弃 session
+                        // 丢弃 session
                         SceneLibrary.deleteSession(sessId)
                         val reason = when {
                             steps == 0 -> "未录制任何操作(steps=0)"
-                            gained == null -> "肥料读取失败(initial=$initial final=$finalFertilizer)，无法确认取得肥料"
                             gained == 0 -> "肥料无变化($initial → $finalFertilizer)，任务未完成"
                             else -> "肥料减少($initial → $finalFertilizer)，任务未完成"
                         }
@@ -373,12 +384,19 @@ object RecordingManager {
 
             // 2. OCR 截图识别兜底（H5 页无障碍树读不到文本时）
             //    OcrProvider 由 flavor 注入：noOcr 返回 -1，full 走 ML Kit
+            //    诊断：检查 OCR APK 是否安装（noOcr flavor 依赖独立 OCR APK）
+            val ocrApkInstalled = try {
+                service.packageManager.getPackageInfo("com.bbncbot.ocr", 0)
+                true
+            } catch (_: Exception) {
+                false
+            }
             val ocrAmount = com.bbncbot.ocr.OcrProvider.findCurrentFertilizerAmount(service)
             if (ocrAmount >= 0) {
                 logToRecordingFile("[$tag] FERTILIZER_READ_OK amount=$ocrAmount (source=ocr)")
                 return ocrAmount
             }
-            logToRecordingFile("[$tag] FERTILIZER_READ_FAIL reason=ocr_fail (无障碍和OCR均未识别到肥料总数)")
+            logToRecordingFile("[$tag] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=$ocrApkInstalled (无障碍和OCR均未识别到肥料总数)")
             -1
         } catch (e: Exception) {
             logToRecordingFile("[$tag] FERTILIZER_READ_FAIL reason=exception:${e.message}")
@@ -547,6 +565,7 @@ object RecordingManager {
                 logToRecordingFile("MATCHED name='${matchResult.category.name}' action=$action")
                 SceneLibrary.recordRule(features, action, targetButton)
                 recordedCount++
+                logToRecordingFile("RECORD_INC matched recordedCount=$recordedCount thread=${Thread.currentThread().name}")
             }
             is SceneLibrary.MatchResult.Unmapped -> {
                 // 全新场景，自动命名 + 创建（归属当前 session，stepIndex = recordedCount）
@@ -559,6 +578,7 @@ object RecordingManager {
                 recordedCount++
                 Log.i(TAG, "自动创建场景: name='$name' action=$action session=$sessId step=${recordedCount - 1}")
                 logToRecordingFile("AUTO_CREATE name='$name' action=$action session=$sessId step=${recordedCount - 1} sig='${features.signature()}'")
+                logToRecordingFile("RECORD_INC unmapped recordedCount=$recordedCount thread=${Thread.currentThread().name}")
                 // 通知 UI 显示 Toast
                 onSceneAutoCreated?.invoke(name)
             }
