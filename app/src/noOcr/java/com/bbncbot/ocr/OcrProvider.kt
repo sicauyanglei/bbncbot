@@ -1,28 +1,27 @@
 package com.bbncbot.ocr
 
-import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.os.IBinder
+import android.net.Uri
+import android.os.Bundle
 import android.util.Log
 import com.bbncbot.service.FarmAccessibilityService
 import java.io.ByteArrayOutputStream
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 /**
- * OCR 肥料读取 - noOcr flavor AIDL 客户端
+ * OCR 肥料读取 - noOcr flavor ContentProvider 客户端
  *
- * 架构：主 APK（:app）不含 ML Kit，运行时通过 AIDL bindService 调用独立安装的
- * OCR APK（com.bbncbot.ocr）的识别能力。
+ * 架构：主 APK（:app）不含 ML Kit，运行时通过 ContentResolver.call() 调用独立安装的
+ * OCR APK（com.bbncbot.ocr）的 OcrContentProvider 识别能力。
+ *
+ * 替代旧 AIDL bindService 方案——ContentProvider 天然跨进程，不受 bindService
+ * 状态/进程状态影响（无障碍服务 context 下 bindService 反复返回 false）。
  *
  * 区域裁剪优化（避免全屏识别广告/商品图）：
  * 1. 通过 [FarmAccessibilityService.findFertilizerNodeBounds] 定位肥料文本节点屏幕区域
  * 2. bounds 上下扩展 padding（避免数字被裁）→ 裁剪 sub-bitmap
- * 3. sub-bitmap 压缩 JPEG → AIDL 传给 OCR APK（体积从 ~200-400KB 降到 ~10-30KB）
+ * 3. sub-bitmap 压缩 JPEG → Bundle 传给 OCR APK（体积从 ~200-400KB 降到 ~10-30KB）
  * 4. 定位失败/坐标异常 → fallback 全屏 OCR（保证兜底可用）
  *
  * 优势：
@@ -30,9 +29,9 @@ import java.util.concurrent.TimeUnit
  * - OCR APK 安装一次后不变，主 APK 频繁更新无需重装 OCR
  * - 区域裁剪减少 80%+ 像素，识别更快 + 避免广告误识别
  *
- * 必须在后台线程调用（bindService + OCR 耗时约 0.5-2s）。
+ * 必须在后台线程调用（OCR 耗时约 0.5-2s）。
  *
- * fallback：若 OCR APK 未安装或连接失败，上层 RecordingManager 会按
+ * fallback：若 OCR APK 未安装或调用失败，上层 RecordingManager 会按
  * "无障碍读不到 → OCR 不可用"记录日志，不影响录制流程。
  */
 object OcrProvider {
@@ -42,8 +41,11 @@ object OcrProvider {
     /** OCR APK 包名 */
     private const val OCR_PACKAGE = "com.bbncbot.ocr"
 
-    /** OCR Service action */
-    private const val OCR_ACTION = "com.bbncbot.ocr.action.RECOGNIZE"
+    /** ContentProvider authorities */
+    private const val OCR_PROVIDER_URI = "content://com.bbncbot.ocr.provider"
+
+    /** call() 方法名 */
+    private const val METHOD_RECOGNIZE_FERTILIZER = "recognizeFertilizer"
 
     /** JPEG 压缩质量（85 在体积和识别准确率间平衡） */
     private const val JPEG_QUALITY = 85
@@ -55,12 +57,10 @@ object OcrProvider {
      * - "ocr_apk_not_installed"：OCR APK 未安装
      * - "screenshot_failed"：截图失败
      * - "jpeg_compress_failed"：JPEG 压缩失败
-     * - "bind_service_false"：bindService 返回 false（权限被拒/Service 未导出/包不可见）
-     * - "null_binding"：onNullBinding（Service 返回 null，可能权限不匹配）
-     * - "binding_died"：onBindingDied（绑定异常断开）
-     * - "timeout_15s"：15 秒超时未连接
-     * - "remote_call_exception:xxx"：AIDL 调用异常
-     * - "recognize_failed"：远程识别返回 -1
+     * - "recognize_returned_-1"：ContentProvider 调用成功但返回 -1
+     * - "security_exception:xxx"：权限被拒（signature 不匹配等）
+     * - "provider_exception:xxx"：ContentProvider 调用异常
+     * - "recognize_failed"：兜底（其他失败场景未设置时）
      * - ""：成功或未调用
      */
     @Volatile
@@ -76,16 +76,16 @@ object OcrProvider {
     private const val REGION_PADDING_PX = 80
 
     /**
-     * 通过 AIDL 调用 OCR APK 识别当前屏幕的肥料总数
+     * 通过 ContentProvider call() 调用 OCR APK 识别当前屏幕的肥料总数
      *
      * 流程：
      * 1. 检查 OCR APK 已安装
      * 2. 截全屏 Bitmap
      * 3. 定位肥料节点 bounds → 裁剪区域 sub-bitmap（失败用全屏 fallback）
-     * 4. 压缩 JPEG → AIDL 调用 OCR APK
+     * 4. 压缩 JPEG → ContentResolver.call() 调用 OCR APK
      *
-     * @param service 无障碍服务实例（提供截图 + 节点定位 + Context 用于 bindService）
-     * @return 肥料数值；-1 表示 OCR APK 未安装/连接失败/识别失败
+     * @param service 无障碍服务实例（提供截图 + 节点定位 + Context 用于 ContentResolver）
+     * @return 肥料数值；-1 表示 OCR APK 未安装/调用失败/识别失败
      */
     fun findCurrentFertilizerAmount(service: FarmAccessibilityService): Int {
         lastError = ""
@@ -107,7 +107,7 @@ object OcrProvider {
         val cropBitmap = cropFertilizerRegion(service, fullBitmap) ?: fullBitmap
         val isCropped = cropBitmap !== fullBitmap
 
-        // 4. 压缩 JPEG + AIDL 调用
+        // 4. 压缩 JPEG + ContentProvider 调用
         val jpegData = bitmapToJpeg(cropBitmap)
         cropBitmap.recycle()
         if (isCropped) fullBitmap.recycle()  // 裁剪成功时回收全屏，否则 cropBitmap==fullBitmap 已回收
@@ -118,7 +118,7 @@ object OcrProvider {
         }
 
         Log.d(TAG, "OCR fertilizer: cropped=$isCropped jpegSize=${jpegData.size} bytes")
-        val result = callOcrRemote(service, jpegData)
+        val result = callOcrRemote(service.applicationContext, jpegData)
         if (result < 0 && lastError.isEmpty()) {
             lastError = "recognize_failed"
         }
@@ -199,92 +199,37 @@ object OcrProvider {
     }
 
     /**
-     * bindService 连接 OCR APK，调用 recognizeFertilizerAmount
+     * 通过 ContentProvider call() 调用 OCR APK
      *
-     * 同步等待 Service 连接 + 远程调用完成（超时 15s = bind 5s + recognize 10s）
+     * 替代 bindService 方案——ContentProvider 天然跨进程，不受绑定状态限制。
+     *
+     * @param context Context（用 applicationContext 避免 Activity 生命周期影响）
+     * @param jpegData JPEG 压缩的截图数据
+     * @return 肥料数值；-1 表示失败
      */
     private fun callOcrRemote(context: Context, jpegData: ByteArray): Int {
-        // 诊断 1：用 queryIntentServices 确认系统能否解析到 OCR Service
-        val resolveIntent = Intent(OCR_ACTION).apply { setPackage(OCR_PACKAGE) }
-        val resolved = context.packageManager.queryIntentServices(resolveIntent, 0)
-        val diagServices = if (resolved.isEmpty()) "none" else resolved.joinToString(";") {
-            "${it.serviceInfo.packageName}/${it.serviceInfo.name} exported=${it.serviceInfo.exported} perm=${it.serviceInfo.permission ?: "null"}"
-        }
-
-        // 诊断 2：确认 OCR APK 版本和签名
-        var diagOcrPkg = "not_found"
-        try {
-            val pkgInfo = context.packageManager.getPackageInfo(OCR_PACKAGE, 0)
-            diagOcrPkg = "v${pkgInfo.versionName}(${pkgInfo.versionCode}) firstInstall=${pkgInfo.firstInstallTime}"
-        } catch (_: Exception) {}
-
-        Log.i(TAG, "callOcrRemote: services=[$diagServices] ocrPkg=$diagOcrPkg")
-
-        // 用显式 ComponentName 绑定（比 action+package 更可靠，不依赖 intent-filter 解析）
-        val intent = Intent().apply {
-            component = ComponentName(OCR_PACKAGE, "$OCR_PACKAGE.OcrService")
-        }
-        val latch = CountDownLatch(1)
-        var result = -1
-        var bound = false
-
-        val connection = object : ServiceConnection {
-            override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                try {
-                    val ocr = IOcrService.Stub.asInterface(service)
-                    result = ocr.recognizeFertilizerAmount(jpegData)
-                    Log.d(TAG, "OCR remote call success: amount=$result")
-                } catch (e: Exception) {
-                    lastError = "remote_call_exception:${e.message}"
-                    Log.d(TAG, "OCR remote call failed: ${e.message}")
-                    result = -1
-                } finally {
-                    latch.countDown()
-                }
+        val uri = Uri.parse(OCR_PROVIDER_URI)
+        val extras = Bundle().apply { putByteArray("jpegData", jpegData) }
+        return try {
+            val result = context.applicationContext.contentResolver.call(
+                uri, METHOD_RECOGNIZE_FERTILIZER, null, extras
+            )
+            val amount = result?.getInt("result", -1) ?: -1
+            if (amount < 0) {
+                lastError = "recognize_returned_-1"
+                Log.d(TAG, "OCR Provider call returned -1")
+            } else {
+                Log.d(TAG, "OCR Provider call success: amount=$amount")
             }
-
-            override fun onServiceDisconnected(name: ComponentName?) {
-                Log.d(TAG, "OCR service disconnected")
-            }
-
-            override fun onBindingDied(name: ComponentName?) {
-                lastError = "binding_died"
-                Log.d(TAG, "OCR binding died")
-                latch.countDown()
-            }
-
-            override fun onNullBinding(name: ComponentName?) {
-                lastError = "null_binding (onBind返回null，可能包名检查被拒)"
-                Log.d(TAG, "OCR null binding")
-                latch.countDown()
-            }
-        }
-
-        try {
-            bound = context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
-            if (!bound) {
-                lastError = "bind_service_false (services=$diagServices ocrPkg=$diagOcrPkg)"
-                Log.e(TAG, "bindService returned false. services=[$diagServices] ocrPkg=$diagOcrPkg")
-                return -1
-            }
-            // 等待 onServiceConnected + 远程调用完成（超时 15s）
-            latch.await(15, TimeUnit.SECONDS)
-            if (latch.count > 0) {
-                lastError = "timeout_15s"
-                Log.d(TAG, "OCR call timeout (15s)")
-            }
+            amount
+        } catch (e: SecurityException) {
+            lastError = "security_exception:${e.message}"
+            Log.e(TAG, "OCR Provider call SecurityException: ${e.message}")
+            -1
         } catch (e: Exception) {
-            Log.d(TAG, "callOcrRemote exception: ${e.message}")
-            result = -1
-        } finally {
-            if (bound) {
-                try {
-                    context.unbindService(connection)
-                } catch (_: Exception) {
-                    // unbindService 失败可忽略（Service 可能已断开）
-                }
-            }
+            lastError = "provider_exception:${e.javaClass.simpleName}:${e.message}"
+            Log.e(TAG, "OCR Provider call failed: ${e.message}")
+            -1
         }
-        return result
     }
 }

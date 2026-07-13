@@ -63,20 +63,18 @@ android {
 
     buildFeatures {
         viewBinding = true
-        // 启用 AIDL 编译：生成 IOcrService.Stub/Proxy 供 noOcr OcrProvider 跨进程调用 :ocr 模块
-        aidl = true
     }
 
-    // ========== Build Flavors：OCR 架构 - 独立 OCR APK + AIDL 跨进程调用 ==========
+    // ========== Build Flavors：OCR 架构 - 独立 OCR APK + ContentProvider 跨进程调用 ==========
     //
     // 架构：
-    //   - 主 APK（:app）不打包 ML Kit 模型（~20-30MB），通过 AIDL 调用独立安装的
+    //   - 主 APK（:app）不打包 ML Kit 模型（~20-30MB），通过 ContentProvider call() 调用独立安装的
     //     OCR APK（com.bbncbot.ocr）的识别能力。OCR APK 装一次后不变，主包频繁更新无需重装 OCR。
-    //   - :ocr 模块是独立 application，含 ML Kit 中文识别模型，提供 OcrService（AIDL）
+    //   - :ocr 模块是独立 application，含 ML Kit 中文识别模型，提供 OcrContentProvider
     //   - 两个 APK 用同一 release.keystore 签名（signature 级权限保护，只有同签名可调用）
     //
     // Flavor 区别：
-    //   - noOcr（默认/发布）：OcrProvider 是 AIDL 客户端，bindService 调用 :ocr 模块
+    //   - noOcr（默认/发布）：OcrProvider 通过 ContentResolver.call() 调用 :ocr 模块
     //     → 主 APK 体积小，依赖外部 OCR APK（需单独安装一次）
     //   - full（fallback）：OcrProvider 直接内联 ML Kit 调用
     //     → 主 APK 自带 OCR，体积大，作为 :ocr 模块不可用时的备用方案
@@ -88,8 +86,7 @@ android {
     //   fallback 包：  ./gradlew assembleFullRelease   → app-full-release.apk（自带 OCR，大）
     //
     // 源码组织：
-    //   src/main/aidl/.../IOcrService.aidl      AIDL 接口定义（主 APK + :ocr 各一份）
-    //   src/noOcr/java/.../OcrProvider.kt       AIDL 客户端（bindService 调用 :ocr）
+    //   src/noOcr/java/.../OcrProvider.kt       ContentProvider 客户端（ContentResolver.call 调用 :ocr）
     //   src/full/java/.../OcrProvider.kt        ML Kit 内联实现（fallback）
     flavorDimensions += "ocr"
     productFlavors {

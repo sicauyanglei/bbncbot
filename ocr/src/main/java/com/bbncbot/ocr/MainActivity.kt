@@ -9,7 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
  * OCR 模块启动页
  *
  * 仅用于在桌面显示一个图标，让用户确认 OCR 模块已安装。
- * 无实际交互功能——真正的识别能力由 [OcrService] 通过 AIDL 提供。
+ * 无实际交互功能——真正的识别能力由 [OcrContentProvider] 通过 ContentProvider call() 提供。
  *
  * 显示信息：
  * - 模块版本号
