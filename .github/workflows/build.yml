@@ -96,35 +96,18 @@ jobs:
           echo "=== 编译前规则检查通过 ==="
 
       - name: Build APKs
-        # 临时分步构建以隔离失败模块：先构建主 APK，再构建 OCR APK
-        # 失败时把最后 60 行输出作为 ::error:: 打印，让错误出现在 Annotations 里
+        # 同时构建主 APK（noOcr release，小包，AIDL 调用 OCR APK）和 OCR APK（独立模块）
+        # 用户首次安装两个 APK，之后只更新主 APK，OCR 模块不变（除非 ML Kit 模型升级）
         run: |
           set +e
-          echo "=== STEP 1: Build :app (noOcrRelease) ==="
-          ./gradlew :app:assembleNoOcrRelease --no-daemon --stacktrace 2>&1 | tee app-build.log
-          APP_EXIT=${PIPESTATUS[0]}
-          echo "app build exit: $APP_EXIT"
-          echo ""
-          echo "=== STEP 2: Build :ocr (assembleRelease) ==="
-          ./gradlew :ocr:assembleRelease --no-daemon --stacktrace 2>&1 | tee ocr-build.log
-          OCR_EXIT=${PIPESTATUS[0]}
-          echo "ocr build exit: $OCR_EXIT"
-          echo ""
-          cat app-build.log ocr-build.log > gradle-build.log
-          if [ "$APP_EXIT" -ne 0 ]; then
-            # Gradle 错误原因通常在 "What went wrong:" 段，或 "Caused by:" 行
-            # 优先提取这些段；找不到则 fallback 到 "* What went wrong" 段
-            ERR=$(grep -A 30 -E "^(\* )?What went wrong:|^Caused by:" app-build.log | head -c 4000 | tr '\n' '|' | sed 's/|/ \\n /g')
-            if [ -z "$ERR" ]; then ERR=$(grep -iE "error:|exception:|failed" app-build.log | head -c 4000 | tr '\n' '|' | sed 's/|/ \\n /g'); fi
-            echo "::error::APP BUILD FAILED: $ERR"
-            exit 1
+          ./gradlew assembleNoOcrRelease :ocr:assembleRelease --no-daemon --stacktrace 2>&1 | tee gradle-build.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            ERR=$(grep -A 30 -E "^(\* )?What went wrong:|^Caused by:" gradle-build.log | head -c 4000 | tr '\n' '|' | sed 's/|/ \\n /g')
+            if [ -z "$ERR" ]; then ERR=$(grep -iE "error:|exception:|failed" gradle-build.log | head -c 4000 | tr '\n' '|' | sed 's/|/ \\n /g'); fi
+            echo "::error::BUILD FAILED: $ERR"
           fi
-          if [ "$OCR_EXIT" -ne 0 ]; then
-            ERR=$(grep -A 30 -E "^(\* )?What went wrong:|^Caused by:" ocr-build.log | head -c 4000 | tr '\n' '|' | sed 's/|/ \\n /g')
-            if [ -z "$ERR" ]; then ERR=$(grep -iE "error:|exception:|failed" ocr-build.log | head -c 4000 | tr '\n' '|' | sed 's/|/ \\n /g'); fi
-            echo "::error::OCR BUILD FAILED: $ERR"
-            exit 1
-          fi
+          exit $EXIT_CODE
 
       - name: Upload build log on failure
         if: failure()

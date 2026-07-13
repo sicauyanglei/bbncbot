@@ -111,5 +111,6 @@ dependencies {
     // ML Kit 中文文本识别（bundled 模型，不依赖 Play Services，国产 ROM 友好）
     // 仅 full flavor 打包：noOcr 通过 AIDL 调用独立 :ocr 模块，主 APK 不含此依赖
     // 用于录制时 OCR 读取农场主页肥料总数（无障碍节点树在 H5 页读不到）
-    fullImplementation("com.google.mlkit:text-recognition-chinese:16.0.0")
+    // 注意：Kotlin DSL 不自动生成 fullImplementation() 函数，需用 add() 显式添加到 flavor 配置
+    add("fullImplementation", "com.google.mlkit:text-recognition-chinese:16.0.0")
 }
