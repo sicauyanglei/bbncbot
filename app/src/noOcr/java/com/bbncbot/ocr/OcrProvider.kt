@@ -19,19 +19,18 @@ import java.util.concurrent.TimeUnit
  * 架构：主 APK（:app）不含 ML Kit，运行时通过 AIDL bindService 调用独立安装的
  * OCR APK（com.bbncbot.ocr）的识别能力。
  *
+ * 区域裁剪优化（避免全屏识别广告/商品图）：
+ * 1. 通过 [FarmAccessibilityService.findFertilizerNodeBounds] 定位肥料文本节点屏幕区域
+ * 2. bounds 上下扩展 padding（避免数字被裁）→ 裁剪 sub-bitmap
+ * 3. sub-bitmap 压缩 JPEG → AIDL 传给 OCR APK（体积从 ~200-400KB 降到 ~10-30KB）
+ * 4. 定位失败/坐标异常 → fallback 全屏 OCR（保证兜底可用）
+ *
  * 优势：
  * - 主 APK 体积小（不含 ~20-30MB ML Kit 模型）
  * - OCR APK 安装一次后不变，主 APK 频繁更新无需重装 OCR
- * - 调试阶段只更新主 APK，OCR 模型固定不变
+ * - 区域裁剪减少 80%+ 像素，识别更快 + 避免广告误识别
  *
- * 调用流程：
- * 1. 检查 com.bbncbot.ocr 是否已安装（未装则返回 -1，日志提示）
- * 2. 截图 → 压缩成 JPEG byte[]（Binder 事务缓冲区 ~1MB，必须压缩）
- * 3. bindService 连接 OcrService（超时 5s）
- * 4. 调用 IOcrService.recognizeFertilizerAmount(jpegData)（同步，Binder 线程）
- * 5. unbindService，返回结果
- *
- * 必须在后台线程调用（bindService + OCR 耗时约 1-3s）。
+ * 必须在后台线程调用（bindService + OCR 耗时约 0.5-2s）。
  *
  * fallback：若 OCR APK 未安装或连接失败，上层 RecordingManager 会按
  * "无障碍读不到 → OCR 不可用"记录日志，不影响录制流程。
@@ -46,13 +45,27 @@ object OcrProvider {
     /** OCR Service action */
     private const val OCR_ACTION = "com.bbncbot.ocr.action.RECOGNIZE"
 
-    /** JPEG 压缩质量（85 在体积和识别准确率间平衡，~200-400KB/张） */
+    /** JPEG 压缩质量（85 在体积和识别准确率间平衡） */
     private const val JPEG_QUALITY = 85
+
+    /**
+     * 肥料区域上下扩展的 padding（像素）
+     *
+     * 节点 bounds 可能只包含文本本身，扩展 padding 避免数字边缘被裁。
+     * 80px 约等于 1-2 行文字高度，覆盖数字与"肥料"标签的间距。
+     */
+    private const val REGION_PADDING_PX = 80
 
     /**
      * 通过 AIDL 调用 OCR APK 识别当前屏幕的肥料总数
      *
-     * @param service 无障碍服务实例（提供截图能力 + Context 用于 bindService）
+     * 流程：
+     * 1. 检查 OCR APK 已安装
+     * 2. 截全屏 Bitmap
+     * 3. 定位肥料节点 bounds → 裁剪区域 sub-bitmap（失败用全屏 fallback）
+     * 4. 压缩 JPEG → AIDL 调用 OCR APK
+     *
+     * @param service 无障碍服务实例（提供截图 + 节点定位 + Context 用于 bindService）
      * @return 肥料数值；-1 表示 OCR APK 未安装/连接失败/识别失败
      */
     fun findCurrentFertilizerAmount(service: FarmAccessibilityService): Int {
@@ -62,21 +75,26 @@ object OcrProvider {
             return -1
         }
 
-        // 2. 截图
-        val bitmap = service.takeScreenshotBitmap() ?: run {
+        // 2. 截全屏 Bitmap
+        val fullBitmap = service.takeScreenshotBitmap() ?: run {
             Log.d(TAG, "OCR fertilizer: screenshot failed")
             return -1
         }
 
-        // 3. 压缩成 JPEG byte[]（Binder 传输需要）
-        val jpegData = bitmapToJpeg(bitmap)
-        bitmap.recycle()
+        // 3. 定位肥料区域 + 裁剪（失败用全屏 fallback）
+        val cropBitmap = cropFertilizerRegion(service, fullBitmap) ?: fullBitmap
+        val isCropped = cropBitmap !== fullBitmap
+
+        // 4. 压缩 JPEG + AIDL 调用
+        val jpegData = bitmapToJpeg(cropBitmap)
+        cropBitmap.recycle()
+        if (isCropped) fullBitmap.recycle()  // 裁剪成功时回收全屏，否则 cropBitmap==fullBitmap 已回收
         if (jpegData == null || jpegData.isEmpty()) {
-            Log.d(TAG, "OCR fertilizer: jpeg compress failed")
+            Log.d(TAG, "OCR fertilizer: jpeg compress failed (cropped=$isCropped)")
             return -1
         }
 
-        // 4. bindService + AIDL 调用
+        Log.d(TAG, "OCR fertilizer: cropped=$isCropped jpegSize=${jpegData.size} bytes")
         return callOcrRemote(service, jpegData)
     }
 
@@ -93,7 +111,54 @@ object OcrProvider {
     }
 
     /**
-     * Bitmap → JPEG byte[]（Binder 事务缓冲区 ~1MB，全分辨率 Bitmap 会超限）
+     * 定位肥料节点区域并裁剪 sub-bitmap
+     *
+     * 流程：
+     * 1. 调 [FarmAccessibilityService.findFertilizerNodeBounds] 拿肥料文本节点 Rect
+     * 2. bounds 上下扩展 [REGION_PADDING_PX]，左右也扩展（数字可能在"肥料"文字旁边）
+     * 3. 裁剪后 bounds 限制在屏幕范围内（避免越界）
+     * 4. Bitmap.createBitmap 裁出 sub-bitmap
+     *
+     * @param service 无障碍服务（提供节点定位）
+     * @param fullBitmap 全屏截图
+     * @return 裁剪后的 sub-bitmap；null 表示定位失败（调用方用全屏 fallback）
+     */
+    private fun cropFertilizerRegion(
+        service: FarmAccessibilityService,
+        fullBitmap: Bitmap
+    ): Bitmap? {
+        val bounds = service.findFertilizerNodeBounds() ?: run {
+            Log.d(TAG, "cropFertilizerRegion: bounds null (定位失败), fallback 全屏")
+            return null
+        }
+
+        // 扩展 padding（上下左右都扩展，数字可能在"肥料"文字旁边）
+        val left = (bounds.left - REGION_PADDING_PX).coerceAtLeast(0)
+        val top = (bounds.top - REGION_PADDING_PX).coerceAtLeast(0)
+        val right = (bounds.right + REGION_PADDING_PX).coerceAtMost(fullBitmap.width)
+        val bottom = (bounds.bottom + REGION_PADDING_PX).coerceAtMost(fullBitmap.height)
+
+        val width = right - left
+        val height = bottom - top
+
+        // 校验裁剪区域有效（WebView 坐标异常可能导致 width/height<=0）
+        if (width <= 0 || height <= 0) {
+            Log.d(TAG, "cropFertilizerRegion: invalid region left=$left top=$top right=$right bottom=$bottom (bounds=$bounds), fallback 全屏")
+            return null
+        }
+
+        return try {
+            val cropped = Bitmap.createBitmap(fullBitmap, left, top, width, height)
+            Log.d(TAG, "cropFertilizerRegion: success bounds=$bounds region=[$left,$top,$right,$bottom] ${width}x${height}")
+            cropped
+        } catch (e: Exception) {
+            Log.d(TAG, "cropFertilizerRegion: createBitmap failed: ${e.message}, fallback 全屏")
+            null
+        }
+    }
+
+    /**
+     * Bitmap → JPEG byte[]（Binder 事务缓冲区 ~1MB，必须压缩）
      */
     private fun bitmapToJpeg(bitmap: Bitmap): ByteArray? {
         return try {

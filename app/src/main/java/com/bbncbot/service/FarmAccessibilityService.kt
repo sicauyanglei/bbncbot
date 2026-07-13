@@ -2518,6 +2518,110 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 定位肥料文本节点在屏幕上的区域（用于 OCR 区域裁剪，避免全屏识别广告/商品图）
+     *
+     * 定位优先级（与 [extractFertilizerAmount] 一致）：
+     * 1. 施肥按钮自身 text/desc 含"肥料XXXX" → 返回按钮 bounds
+     * 2. 父节点（最多 3 层）含"肥料XXXX" → 返回父节点 bounds（H5 常把完整 desc 放在容器上）
+     * 3. 子树文本含"肥料XXXX" → 返回按钮 bounds（数字在子节点，但区域用按钮范围近似）
+     * 4. 整页遍历找含"肥料\s*\d{3,}"的节点 → 返回该节点 bounds
+     * 5. 都失败 → 返回施肥按钮 bounds（数字可能在按钮附近，OCR 裁上下扩展区域）
+     *
+     * WebView 坐标修正：
+     * - H5 农场页 getBoundsInScreen 可能返回内容坐标（top>bottom 或 width<=0）
+     * - 异常时 fallback 到 getBoundsInWindow，再异常返回 null（调用方走全屏 OCR）
+     *
+     * @return 肥料区域 Rect（屏幕坐标）；null 表示无法定位，调用方应 fallback 全屏 OCR
+     */
+    fun findFertilizerNodeBounds(): android.graphics.Rect? {
+        val root = getRootInFarmApp() ?: rootInActiveWindowSafe() ?: return null
+        val btn = findFertilizeButton()
+        val regex = Regex("肥料\\s*\\d{3,}")
+        val excludeKeywords = listOf("还差", "次领", "%")
+
+        // 1. 施肥按钮自身
+        if (btn != null) {
+            val selfText = btn.text?.toString().orEmpty()
+            val selfDesc = btn.contentDescription?.toString().orEmpty()
+            if (regex.containsMatchIn(selfText) || regex.containsMatchIn(selfDesc)) {
+                return nodeBoundsSafe(btn)
+            }
+            // 2. 父节点（最多 3 层）
+            var parent: AccessibilityNodeInfo? = btn.parent
+            var depth = 0
+            while (parent != null && depth < 3) {
+                val pText = parent.text?.toString().orEmpty()
+                val pDesc = parent.contentDescription?.toString().orEmpty()
+                if (regex.containsMatchIn(pText) || regex.containsMatchIn(pDesc)) {
+                    return nodeBoundsSafe(parent)
+                }
+                parent = parent.parent
+                depth++
+            }
+            // 3. 子树文本含"肥料XXXX" → 用按钮 bounds 近似
+            val sb = StringBuilder()
+            collectTextInto(btn, sb, maxDepth = 3)
+            if (regex.containsMatchIn(sb.toString())) {
+                return nodeBoundsSafe(btn)
+            }
+        }
+
+        // 4. 整页遍历找含"肥料\s*\d{3,}"的节点
+        var foundNode: AccessibilityNodeInfo? = null
+        fun walk(node: AccessibilityNodeInfo) {
+            if (foundNode != null) return
+            val text = node.text?.toString().orEmpty()
+            val desc = node.contentDescription?.toString().orEmpty()
+            for (combined in listOf(text, desc)) {
+                if (!combined.contains("肥料")) continue
+                if (excludeKeywords.any { combined.contains(it) }) continue
+                if (regex.containsMatchIn(combined)) {
+                    foundNode = node
+                    return
+                }
+            }
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                walk(child)
+                if (foundNode != null) return
+            }
+        }
+        walk(root)
+        if (foundNode != null) {
+            return nodeBoundsSafe(foundNode!!)
+        }
+
+        // 5. fallback：返回施肥按钮 bounds（数字可能在按钮附近，OCR 上下扩展）
+        return btn?.let { nodeBoundsSafe(it) }
+    }
+
+    /**
+     * 安全获取节点屏幕坐标，处理 WebView 坐标异常
+     *
+     * WebView 坐标问题（参考 dispatchGestureClickWithWebViewFix）：
+     * - getBoundsInScreen 在 H5 页可能返回内容坐标（top>bottom 或 width<=0）
+     * - 异常时 fallback 到 getBoundsInWindow
+     * - 仍异常返回 null（调用方走全屏 OCR）
+     *
+     * @return 节点屏幕坐标 Rect；null 表示坐标无效
+     */
+    private fun nodeBoundsSafe(node: AccessibilityNodeInfo): android.graphics.Rect? {
+        val rect = android.graphics.Rect()
+        node.getBoundsInScreen(rect)
+        // 校验坐标有效性（WebView 可能返回内容坐标导致 top>bottom 或宽高<=0）
+        if (rect.width() > 0 && rect.height() > 0 && rect.top <= rect.bottom) {
+            return rect
+        }
+        // fallback: getBoundsInWindow
+        val winRect = android.graphics.Rect()
+        node.getBoundsInWindow(winRect)
+        if (winRect.width() > 0 && winRect.height() > 0 && winRect.top <= winRect.bottom) {
+            return winRect
+        }
+        return null
+    }
+
+    /**
      * 截图能力是否已确认不可用（避免重复抛异常刷屏）。
      * - takeScreenshot 抛出 "Services don't have the capability" 时置 true
      * - 修复方式：用户需在系统设置中关闭再重新开启无障碍服务（config 变更后能力缓存不会自动刷新）
