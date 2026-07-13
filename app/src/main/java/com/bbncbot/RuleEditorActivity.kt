@@ -47,8 +47,41 @@ class RuleEditorActivity : AppCompatActivity() {
     /** 当前选中的 platform 过滤值 */
     private var currentPlatformFilter: String? = null
 
+    /**
+     * 规则列表显示单元：一次录制（session）合并为一行，独立规则各自一行
+     *
+     * - [SessionRule]：归属某 session 的所有 category 合并显示为一行
+     * - [StandaloneRule]：无 session 归属的 category（旧数据/手动创建）各自一行
+     */
+    private sealed class RuleDisplayItem {
+        abstract val id: String          // 用于稳定标识
+        abstract val platform: String
+        abstract val priority: Int
+        abstract val enabled: Boolean
+
+        /** session 规则（一次录制，含多个步骤） */
+        data class SessionRule(
+            val session: SceneLibrary.RecordingSession,
+            val stepCategories: List<SceneCategory>  // 按 stepIndex 排序
+        ) : RuleDisplayItem() {
+            override val id = "session:${session.id}"
+            override val platform = stepCategories.firstOrNull()?.platform ?: ""
+            // 用 getter 实时读取底层 category 状态（拖动排序/开关切换后保持同步）
+            override val priority get() = stepCategories.minOfOrNull { it.priority } ?: 0
+            override val enabled get() = stepCategories.any { it.enabled }
+        }
+
+        /** 独立规则（无 session，旧数据/手动创建） */
+        data class StandaloneRule(val category: SceneCategory) : RuleDisplayItem() {
+            override val id = "cat:${category.id}"
+            override val platform = category.platform
+            override val priority get() = category.priority
+            override val enabled get() = category.enabled
+        }
+    }
+
     /** 当前展示的规则列表（已按 priority 升序排序，拖动后实时调整顺序） */
-    private val currentRules: MutableList<SceneCategory> = mutableListOf()
+    private val currentRules: MutableList<RuleDisplayItem> = mutableListOf()
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var tvEmpty: TextView
@@ -236,7 +269,7 @@ class RuleEditorActivity : AppCompatActivity() {
             android.util.Log.i("RuleEditor", "onDeleteClick callback: position=$position rulesSize=${currentRules.size}")
             val rule = currentRules.getOrNull(position)
             if (rule != null) {
-                android.util.Log.i("RuleEditor", "onDeleteClick showing confirm for rule='${rule.name}' id=${rule.id}")
+                android.util.Log.i("RuleEditor", "onDeleteClick showing confirm for id=${rule.id}")
                 showDeleteConfirm(rule, position)
             } else {
                 android.util.Log.w("RuleEditor", "onDeleteClick: rule null at position=$position")
@@ -357,14 +390,28 @@ class RuleEditorActivity : AppCompatActivity() {
         refreshList()
     }
 
-    /** 重新加载规则列表并按 platform 过滤 + priority 排序 */
+    /** 重新加载规则列表：session 合并为一行，独立规则各自一行，按 platform 过滤 + priority 排序 */
     private fun refreshList() {
-        val allRules = SceneLibrary.listCategories()
+        val allCats = SceneLibrary.listCategories()
+        val sessions = SceneLibrary.listSessions().filter { it.status == "COMPLETED" }
+        val sessionCatIds = mutableSetOf<String>()
+        val items = mutableListOf<RuleDisplayItem>()
+        // session 规则：每个 session 合并为一行
+        for (sess in sessions) {
+            val stepCats = allCats.filter { it.sessionId == sess.id }.sortedBy { it.stepIndex }
+            if (stepCats.isEmpty()) continue
+            stepCats.forEach { sessionCatIds.add(it.id) }
+            items.add(RuleDisplayItem.SessionRule(sess, stepCats))
+        }
+        // 独立规则：无 session 归属的 category 各自一行
+        allCats.filter { it.sessionId.isEmpty() && it.id !in sessionCatIds }.forEach {
+            items.add(RuleDisplayItem.StandaloneRule(it))
+        }
+        // 按 platform 过滤 + priority 升序排序
         currentRules.clear()
-        currentRules.addAll(allRules.filter { cat ->
-            val platform = extractPlatformFromCategory(cat.id)
-            if (currentPlatformFilter == null) true else platform == currentPlatformFilter
-        }.sortedWith(compareBy({ it.priority }, { it.name })))
+        currentRules.addAll(items.filter { item ->
+            if (currentPlatformFilter == null) true else item.platform == currentPlatformFilter
+        }.sortedBy { it.priority })
         adapter.notifyDataSetChanged()
         tvEmpty.visibility = if (currentRules.isEmpty()) View.VISIBLE else View.GONE
     }
@@ -379,11 +426,20 @@ class RuleEditorActivity : AppCompatActivity() {
      * 这里改为遍历可见 ViewHolder 直接更新序号文本。
      */
     private fun persistOrderAfterDrag() {
-        for ((idx, rule) in currentRules.withIndex()) {
+        for ((idx, item) in currentRules.withIndex()) {
             val newPriority = idx * 10
-            if (rule.priority != newPriority) {
-                SceneLibrary.updateCategory(rule.id, priority = newPriority)
-                rule.priority = newPriority
+            if (item.priority != newPriority) {
+                when (item) {
+                    is RuleDisplayItem.SessionRule -> {
+                        // session 规则：所有步骤 category 统一设置为新 priority
+                        item.stepCategories.forEach { cat ->
+                            SceneLibrary.updateCategory(cat.id, priority = newPriority)
+                        }
+                    }
+                    is RuleDisplayItem.StandaloneRule -> {
+                        SceneLibrary.updateCategory(item.category.id, priority = newPriority)
+                    }
+                }
             }
         }
         // 只更新序号显示，不重新绑定（避免重置滑动状态）
@@ -401,29 +457,51 @@ class RuleEditorActivity : AppCompatActivity() {
 
     /**
      * 左滑删除确认对话框
-     * @param rule 要删除的规则
+     * @param item 要删除的规则显示单元
      * @param position 在列表中的位置（删除失败时恢复显示）
      */
-    private fun showDeleteConfirm(rule: SceneCategory, position: Int) {
-        AlertDialog.Builder(this)
-            .setTitle("删除规则")
-            .setMessage("确定删除规则「${rule.name}」吗？\n删除后不可恢复。")
-            .setPositiveButton("删除") { _, _ ->
-                SceneLibrary.deleteCategory(rule.id)
-                currentRules.removeAt(position)
-                adapter.notifyItemRemoved(position)
-                // 更新后续项的序号显示
-                adapter.notifyItemRangeChanged(position, currentRules.size - position)
-                tvEmpty.visibility = if (currentRules.isEmpty()) View.VISIBLE else View.GONE
-                Toast.makeText(this, "已删除「${rule.name}」", Toast.LENGTH_SHORT).show()
-                // 删除后重新分配 priority
-                persistOrderAfterDrag()
+    private fun showDeleteConfirm(item: RuleDisplayItem, position: Int) {
+        when (item) {
+            is RuleDisplayItem.SessionRule -> {
+                val sess = item.session
+                AlertDialog.Builder(this)
+                    .setTitle("删除录制流程")
+                    .setMessage("确定删除录制流程「${sess.name}」吗？\n该流程包含 ${item.stepCategories.size} 个步骤，删除后不可恢复。")
+                    .setPositiveButton("删除") { _, _ ->
+                        // 删除 session 及其所有 category（deleteSession 已存在）
+                        SceneLibrary.deleteSession(sess.id)
+                        Toast.makeText(this, "已删除「${sess.name}」", Toast.LENGTH_SHORT).show()
+                        // session 删除后步骤数变化，重新加载列表
+                        refreshList()
+                    }
+                    .setNegativeButton("取消") { _, _ ->
+                        adapter.notifyItemChanged(position)
+                    }
+                    .show()
             }
-            .setNegativeButton("取消") { _, _ ->
-                // 取消则恢复原位
-                adapter.notifyItemChanged(position)
+            is RuleDisplayItem.StandaloneRule -> {
+                val cat = item.category
+                AlertDialog.Builder(this)
+                    .setTitle("删除规则")
+                    .setMessage("确定删除规则「${cat.name}」吗？\n删除后不可恢复。")
+                    .setPositiveButton("删除") { _, _ ->
+                        SceneLibrary.deleteCategory(cat.id)
+                        currentRules.removeAt(position)
+                        adapter.notifyItemRemoved(position)
+                        // 更新后续项的序号显示
+                        adapter.notifyItemRangeChanged(position, currentRules.size - position)
+                        tvEmpty.visibility = if (currentRules.isEmpty()) View.VISIBLE else View.GONE
+                        Toast.makeText(this, "已删除「${cat.name}」", Toast.LENGTH_SHORT).show()
+                        // 删除后重新分配 priority
+                        persistOrderAfterDrag()
+                    }
+                    .setNegativeButton("取消") { _, _ ->
+                        // 取消则恢复原位
+                        adapter.notifyItemChanged(position)
+                    }
+                    .show()
             }
-            .show()
+        }
     }
 
     /**
@@ -472,61 +550,69 @@ class RuleEditorActivity : AppCompatActivity() {
         else -> "通用"
     }
 
-    /** 显示编辑对话框 */
-    private fun showEditDialog(rule: SceneCategory) {
-        val view = LayoutInflater.from(this).inflate(R.layout.dialog_edit_rule, null)
-        val etName = view.findViewById<EditText>(R.id.etName)
-        val spinnerAction = view.findViewById<Spinner>(R.id.spinnerAction)
-        val etTargetButton = view.findViewById<EditText>(R.id.etTargetButton)
-        val etPriority = view.findViewById<EditText>(R.id.etPriority)
-        val tvSignature = view.findViewById<TextView>(R.id.tvSignature)
-
-        etName.setText(rule.name)
-        val actions = Action.values().filter { it != Action.UNKNOWN }
-        val actionLabels = actions.map { actionToText(it) }
-        spinnerAction.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, actionLabels)
-        spinnerAction.setSelection(actions.indexOf(rule.action).coerceAtLeast(0))
-        etTargetButton.setText(rule.targetButton ?: "")
-        etPriority.setText(rule.priority.toString())
-        tvSignature.text = getFirstSignature(rule.id)
-        tvSignature.movementMethod = ScrollingMovementMethod.getInstance()
-
-        AlertDialog.Builder(this)
-            .setTitle("编辑规则")
-            .setView(view)
-            .setPositiveButton("保存") { _, _ ->
-                val newName = etName.text.toString().trim()
-                if (newName.isEmpty()) {
-                    Toast.makeText(this, "名称不能为空", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                val newAction = actions[spinnerAction.selectedItemPosition]
-                val newTarget = etTargetButton.text.toString().trim()
-                val newPriority = etPriority.text.toString().trim().toIntOrNull() ?: 0
-                SceneLibrary.updateCategory(
-                    categoryId = rule.id,
-                    name = newName,
-                    action = newAction,
-                    targetButton = newTarget,
-                    priority = newPriority
-                )
-                Toast.makeText(this, "已保存", Toast.LENGTH_SHORT).show()
-                refreshList()
+    /** 显示编辑对话框：session 流程暂不支持编辑，独立规则可编辑 */
+    private fun showEditDialog(item: RuleDisplayItem) {
+        when (item) {
+            is RuleDisplayItem.SessionRule -> {
+                Toast.makeText(this, "录制流程暂不支持编辑，请重新录制", Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("取消", null)
-            .setNeutralButton("删除") { _, _ ->
+            is RuleDisplayItem.StandaloneRule -> {
+                val rule = item.category
+                val view = LayoutInflater.from(this).inflate(R.layout.dialog_edit_rule, null)
+                val etName = view.findViewById<EditText>(R.id.etName)
+                val spinnerAction = view.findViewById<Spinner>(R.id.spinnerAction)
+                val etTargetButton = view.findViewById<EditText>(R.id.etTargetButton)
+                val etPriority = view.findViewById<EditText>(R.id.etPriority)
+                val tvSignature = view.findViewById<TextView>(R.id.tvSignature)
+
+                etName.setText(rule.name)
+                val actions = Action.values().filter { it != Action.UNKNOWN }
+                val actionLabels = actions.map { actionToText(it) }
+                spinnerAction.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, actionLabels)
+                spinnerAction.setSelection(actions.indexOf(rule.action).coerceAtLeast(0))
+                etTargetButton.setText(rule.targetButton ?: "")
+                etPriority.setText(rule.priority.toString())
+                tvSignature.text = getFirstSignature(rule.id)
+                tvSignature.movementMethod = ScrollingMovementMethod.getInstance()
+
                 AlertDialog.Builder(this)
-                    .setTitle("删除规则")
-                    .setMessage("确定删除规则「${rule.name}」吗？\n删除后不可恢复。")
-                    .setPositiveButton("删除") { _, _ ->
-                        SceneLibrary.deleteCategory(rule.id)
-                        Toast.makeText(this, "已删除「${rule.name}」", Toast.LENGTH_SHORT).show()
+                    .setTitle("编辑规则")
+                    .setView(view)
+                    .setPositiveButton("保存") { _, _ ->
+                        val newName = etName.text.toString().trim()
+                        if (newName.isEmpty()) {
+                            Toast.makeText(this, "名称不能为空", Toast.LENGTH_SHORT).show()
+                            return@setPositiveButton
+                        }
+                        val newAction = actions[spinnerAction.selectedItemPosition]
+                        val newTarget = etTargetButton.text.toString().trim()
+                        val newPriority = etPriority.text.toString().trim().toIntOrNull() ?: 0
+                        SceneLibrary.updateCategory(
+                            categoryId = rule.id,
+                            name = newName,
+                            action = newAction,
+                            targetButton = newTarget,
+                            priority = newPriority
+                        )
+                        Toast.makeText(this, "已保存", Toast.LENGTH_SHORT).show()
                         refreshList()
                     }
                     .setNegativeButton("取消", null)
+                    .setNeutralButton("删除") { _, _ ->
+                        AlertDialog.Builder(this)
+                            .setTitle("删除规则")
+                            .setMessage("确定删除规则「${rule.name}」吗？\n删除后不可恢复。")
+                            .setPositiveButton("删除") { _, _ ->
+                                SceneLibrary.deleteCategory(rule.id)
+                                Toast.makeText(this, "已删除「${rule.name}」", Toast.LENGTH_SHORT).show()
+                                refreshList()
+                            }
+                            .setNegativeButton("取消", null)
+                            .show()
+                    }
                     .show()
             }
-            .show()
+        }
     }
 
     /**
@@ -628,32 +714,58 @@ class RuleEditorActivity : AppCompatActivity() {
         }
 
         override fun onBindViewHolder(holder: RuleViewHolder, position: Int) {
-            val rule = currentRules[position]
+            val item = currentRules[position]
             // 左侧徽章显示规则序号（1, 2, 3...）
             holder.tvPriority.text = (position + 1).toString()
-            // 规则名：优先用肥料任务描述（稳定有意义），其次用 category name
-            val fertTask = rule.fertTask
-            holder.tvName.text = if (fertTask.isNotEmpty()) fertTask else rule.name
-            holder.tvAction.text = "动作：${actionToText(rule.action)}" +
-                (if (rule.targetButton != null) "「${rule.targetButton}」" else "")
-            // 任务行：优先显示肥料任务描述，其次显示 task=，让用户看到这条规则属于哪个肥料任务
-            val task = extractTaskFromCategory(rule.id)
-            holder.tvTask.text = when {
-                fertTask.isNotEmpty() -> "肥料任务：$fertTask"
-                task.isNotEmpty() -> "任务：$task"
-                else -> "任务：（无）"
-            }
-            holder.tvHits.text = "命中 ${rule.hitCount} 次  |  优先级 ${rule.priority}"
-            // 先解绑 listener，避免回收复用时的回调污染
-            holder.switchEnabled.setOnCheckedChangeListener(null)
-            holder.switchEnabled.isChecked = rule.enabled
-            holder.switchEnabled.setOnCheckedChangeListener { _, isChecked ->
-                SceneLibrary.updateCategory(rule.id, enabled = isChecked)
-                Toast.makeText(
-                    this@RuleEditorActivity,
-                    "「${rule.name}」已${if (isChecked) "启用" else "禁用"}",
-                    Toast.LENGTH_SHORT
-                ).show()
+            when (item) {
+                is RuleDisplayItem.SessionRule -> {
+                    // session 流程：显示流程名、步骤数、平台、总命中数
+                    holder.tvName.text = item.session.name
+                    holder.tvAction.text = "流程：${item.stepCategories.size} 步"
+                    holder.tvTask.text = "平台：${platformToText(item.platform)}"
+                    holder.tvHits.text = "总命中 ${item.stepCategories.sumOf { it.hitCount }} 次"
+                    // 先解绑 listener，避免回收复用时的回调污染
+                    holder.switchEnabled.setOnCheckedChangeListener(null)
+                    holder.switchEnabled.isChecked = item.enabled
+                    holder.switchEnabled.setOnCheckedChangeListener { _, isChecked ->
+                        // 切换时更新所有 stepCategories 的 enabled
+                        item.stepCategories.forEach { cat ->
+                            SceneLibrary.updateCategory(cat.id, enabled = isChecked)
+                        }
+                        Toast.makeText(
+                            this@RuleEditorActivity,
+                            "「${item.session.name}」已${if (isChecked) "启用" else "禁用"}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+                is RuleDisplayItem.StandaloneRule -> {
+                    val rule = item.category
+                    // 规则名：优先用肥料任务描述（稳定有意义），其次用 category name
+                    val fertTask = rule.fertTask
+                    holder.tvName.text = if (fertTask.isNotEmpty()) fertTask else rule.name
+                    holder.tvAction.text = "动作：${actionToText(rule.action)}" +
+                        (if (rule.targetButton != null) "「${rule.targetButton}」" else "")
+                    // 任务行：优先显示肥料任务描述，其次显示 task=，让用户看到这条规则属于哪个肥料任务
+                    val task = extractTaskFromCategory(rule.id)
+                    holder.tvTask.text = when {
+                        fertTask.isNotEmpty() -> "肥料任务：$fertTask"
+                        task.isNotEmpty() -> "任务：$task"
+                        else -> "任务：（无）"
+                    }
+                    holder.tvHits.text = "命中 ${rule.hitCount} 次  |  优先级 ${rule.priority}"
+                    // 先解绑 listener，避免回收复用时的回调污染
+                    holder.switchEnabled.setOnCheckedChangeListener(null)
+                    holder.switchEnabled.isChecked = rule.enabled
+                    holder.switchEnabled.setOnCheckedChangeListener { _, isChecked ->
+                        SceneLibrary.updateCategory(rule.id, enabled = isChecked)
+                        Toast.makeText(
+                            this@RuleEditorActivity,
+                            "「${rule.name}」已${if (isChecked) "启用" else "禁用"}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
             }
             // 重置滑动状态（回收的 ViewHolder 可能有残留的偏移和停留标记）
             this@RuleEditorActivity.stayOpen.remove(holder)
