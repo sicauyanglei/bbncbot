@@ -96,12 +96,14 @@ jobs:
           echo "=== 编译前规则检查通过 ==="
 
       - name: Build release APK
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        # full flavor = 带 OCR 模型的稳定版大包（CI 发布用）
+        # 日常调试用 noOcr flavor：./gradlew assembleNoOcrDebug（APK 小 ~20-30MB）
+        run: ./gradlew assembleFullRelease --no-daemon --stacktrace
 
       - name: Verify APK signature
         # 验证 APK 已正确签名（含 v1 JAR 签名），避免再次发布未签名包导致安装失败
         run: |
-          APK=app/build/outputs/apk/release/app-release.apk
+          APK=app/build/outputs/apk/full/release/app-full-release.apk
           if [ ! -f "$APK" ]; then
             echo "::error::APK 不存在: $APK"
             exit 1
@@ -128,7 +130,7 @@ jobs:
         id: rename
         run: |
           SHORT_SHA=${GITHUB_SHA::7}
-          cp app/build/outputs/apk/release/app-release.apk bbncbot-${SHORT_SHA}.apk
+          cp app/build/outputs/apk/full/release/app-full-release.apk bbncbot-${SHORT_SHA}.apk
           echo "apk_path=bbncbot-${SHORT_SHA}.apk" >> $GITHUB_OUTPUT
           echo "apk_name=bbncbot-${SHORT_SHA}.apk" >> $GITHUB_OUTPUT
 
@@ -136,7 +138,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bbncbot-release-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: app/build/outputs/apk/full/release/*.apk
           if-no-files-found: error
           retention-days: 30
 

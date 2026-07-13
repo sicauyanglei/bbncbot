@@ -64,6 +64,35 @@ android {
     buildFeatures {
         viewBinding = true
     }
+
+    // ========== Build Flavors：按是否打包 OCR 模型区分 APK 体积 ==========
+    //
+    // 背景问题：ML Kit 中文识别（text-recognition-chinese）是 bundled 模型，
+    // 体积约 20-30MB，是 APK 体积的大头。调试阶段每次打 debug 包都带上 OCR 模型
+    // 拖慢构建/安装速度，而调试时主要验证规则匹配/回放/录制逻辑，OCR 只是兜底。
+    //
+    // 方案：拆成两个 flavor
+    //   - noOcr：不打包 ML Kit，OcrProvider 返回 -1（APK 小，用于日常调试）
+    //   - full ：打包 ML Kit，OcrProvider 走真实 OCR（用于稳定版大包/上线）
+    //
+    // 构建命令：
+    //   日常调试： ./gradlew assembleNoOcrDebug        → app-noOcr-debug.apk（小）
+    //   稳定大包： ./gradlew assembleFullRelease       → app-full-release.apk（含 OCR）
+    //
+    // 源码组织：
+    //   src/main/java/...           共用代码（RecordingManager 调 OcrProvider）
+    //   src/noOcr/java/.../OcrProvider.kt   空实现（返回 -1）
+    //   src/full/java/.../OcrProvider.kt    ML Kit 真实实现
+    flavorDimensions += "ocr"
+    productFlavors {
+        create("noOcr") {
+            dimension = "ocr"
+            // 不带 ML Kit，applicationId 不变，可直接覆盖安装
+        }
+        create("full") {
+            dimension = "ocr"
+        }
+    }
 }
 
 dependencies {
@@ -73,6 +102,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     // ML Kit 中文文本识别（bundled 模型，不依赖 Play Services，国产 ROM 友好）
+    // 仅 full flavor 打包：noOcr 调试包不带此依赖，APK 体积小 ~20-30MB
     // 用于录制时 OCR 读取农场主页肥料总数（无障碍节点树在 H5 页读不到）
-    implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
+    fullImplementation("com.google.mlkit:text-recognition-chinese:16.0.0")
 }

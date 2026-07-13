@@ -2608,99 +2608,10 @@ class FarmAccessibilityService : AccessibilityService() {
         return resultSwBitmap
     }
 
-    /**
-     * 用 ML Kit OCR 识别屏幕文本，提取当前肥料总数
-     *
-     * 适用场景：H5 农场页无障碍节点树读不到"施肥"/"肥料XXXX"文本时（施肥按钮是图标/Canvas，
-     * 数字单独渲染不与"肥料"文字相连），用 OCR 截图识别兜底。
-     *
-     * 提取策略（按优先级）：
-     * 1. "肥料\s*\d{3,}" 或 "\d{3,}\s*肥料"（"肥料8432" / "8432肥料"）
-     * 2. 含"施肥"或"肥料"的行中，取最大 3 位以上数字（"施肥 8432 可施肥65次" → 8432）
-     * 3. 兜底：全图最大 4 位以上数字（排除年份 19xx/20xx、明显价格等），慎用
-     *
-     * 必须在后台线程调用（截图+OCR 耗时约 0.5-2s）。
-     *
-     * @return 肥料数值；-1 表示 OCR 不可用或未识别到
-     */
-    fun findCurrentFertilizerAmountByOcr(): Int {
-        val bitmap = takeScreenshotBitmap() ?: run {
-            debugLog("OCR fertilizer: screenshot failed")
-            return -1
-        }
-        try {
-            val image = com.google.mlkit.vision.common.InputImage.fromBitmap(bitmap, 0)
-            val recognizer = com.google.mlkit.vision.text.TextRecognition
-                .getClient(com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions.Builder().build())
-            val latch = java.util.concurrent.CountDownLatch(1)
-            var ocrText: com.google.mlkit.vision.text.Text? = null
-            recognizer.process(image)
-                .addOnSuccessListener { ocrText = it; latch.countDown() }
-                .addOnFailureListener { e ->
-                    debugLog("OCR fertilizer: recognize failed: ${e.message}")
-                    latch.countDown()
-                }
-            latch.await(10, java.util.concurrent.TimeUnit.SECONDS)
-            val text = ocrText ?: run {
-                debugLog("OCR fertilizer: recognize timeout or null")
-                return -1
-            }
-            val amount = extractFertilizerFromOcrText(text)
-            debugLog("OCR fertilizer: amount=$amount (lines=${text.textBlocks.sumOf { it.lines.size }})")
-            return amount
-        } catch (e: Exception) {
-            debugLog("OCR fertilizer: exception: ${e.message}")
-            return -1
-        } finally {
-            bitmap.recycle()
-        }
-    }
-
-    /**
-     * 从 OCR 识别结果中提取肥料总数
-     *
-     * @param text ML Kit 识别结果
-     * @return 肥料数值；-1 表示未提取到
-     */
-    private fun extractFertilizerFromOcrText(text: com.google.mlkit.vision.text.Text): Int {
-        val lines = mutableListOf<String>()
-        for (block in text.textBlocks) {
-            for (line in block.lines) {
-                lines.add(line.text)
-            }
-        }
-        val fullText = lines.joinToString(" ")
-
-        // 1. "肥料\s*\d{3,}" 或 "\d{3,}\s*肥料"
-        Regex("肥料\\s*(\\d{3,})").find(fullText)?.let { m ->
-            m.groupValues[1].toIntOrNull()?.let { if (it >= 100) return it }
-        }
-        Regex("(\\d{3,})\\s*肥料").find(fullText)?.let { m ->
-            m.groupValues[1].toIntOrNull()?.let { if (it >= 100) return it }
-        }
-
-        // 2. 含"施肥"或"肥料"的行中，取最大 3 位以上数字
-        var lineBest = -1
-        for (line in lines) {
-            if (!line.contains("施肥") && !line.contains("肥料")) continue
-            // 排除进度提示行（"还差4次领肥料"等无意义的肥料总数候选）
-            if (line.contains("还差") || line.contains("次领")) continue
-            for (m in Regex("\\d{3,}").findAll(line)) {
-                val n = m.value.toIntOrNull() ?: continue
-                if (n > lineBest) lineBest = n
-            }
-        }
-        if (lineBest >= 100) return lineBest
-
-        // 3. 兜底：全图最大 4 位以上数字，排除年份(19xx/20xx)
-        var globalBest = -1
-        for (m in Regex("\\d{4,}").findAll(fullText)) {
-            val n = m.value.toIntOrNull() ?: continue
-            if (n in 1900..2099) continue  // 排除年份
-            if (n > globalBest) globalBest = n
-        }
-        return globalBest
-    }
+    // 注：OCR 肥料识别已迁移到 com.bbncbot.ocr.OcrProvider（按 flavor 二选一注入）
+    // - noOcr flavor：空实现返回 -1（调试包不带 ML Kit 模型，APK 体积小）
+    // - full  flavor：ML Kit 中文识别真实实现（稳定版大包）
+    // 调用方：com.bbncbot.automation.RecordingManager.readFertilizerAmountWithDiag
 
     /**
      * 采样当前页面可见文本（用于失败诊断，判断当前在哪个页面）

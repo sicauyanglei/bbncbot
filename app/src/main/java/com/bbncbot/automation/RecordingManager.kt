@@ -282,9 +282,10 @@ object RecordingManager {
      * 读取链路（逐级降级，任一成功即返回）：
      * 1. 无障碍节点树提取（[FarmAccessibilityService.findCurrentFertilizerAmountWithReason]）
      *    - 自身/父节点/子树/整页遍历正则匹配"肥料XXXX"
-     * 2. OCR 截图识别兜底（[FarmAccessibilityService.findCurrentFertilizerAmountByOcr]）
+     * 2. OCR 截图识别兜底（[com.bbncbot.ocr.OcrProvider]）
      *    - H5 农场页施肥按钮是图标/Canvas、数字单独渲染，无障碍树无文本节点时使用
      *    - ML Kit 中文 OCR 识别全屏文本，按"肥料+数字"格式或施肥行数字提取
+     *    - noOcr flavor 下 OcrProvider 返回 -1（调试包不带 OCR 模型，仅记录日志）
      *
      * @param tag 上下文标记："start" 或 "stop"，用于日志区分
      * @return 肥料数值；-1 表示读取失败
@@ -305,7 +306,8 @@ object RecordingManager {
             logToRecordingFile("[$tag] FERTILIZER_ACCESSIBILITY_FAIL reason=$reason → 尝试 OCR 兜底")
 
             // 2. OCR 截图识别兜底（H5 页无障碍树读不到文本时）
-            val ocrAmount = service.findCurrentFertilizerAmountByOcr()
+            //    OcrProvider 由 flavor 注入：noOcr 返回 -1，full 走 ML Kit
+            val ocrAmount = com.bbncbot.ocr.OcrProvider.findCurrentFertilizerAmount(service)
             if (ocrAmount >= 0) {
                 logToRecordingFile("[$tag] FERTILIZER_READ_OK amount=$ocrAmount (source=ocr)")
                 return ocrAmount
