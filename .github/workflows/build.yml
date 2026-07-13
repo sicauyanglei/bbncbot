@@ -95,54 +95,60 @@ jobs:
           echo ""
           echo "=== 编译前规则检查通过 ==="
 
-      - name: Build release APK
-        # full flavor = 带 OCR 模型的稳定版大包（CI 发布用）
-        # 日常调试用 noOcr flavor：./gradlew assembleNoOcrDebug（APK 小 ~20-30MB）
-        run: ./gradlew assembleFullRelease --no-daemon --stacktrace
+      - name: Build APKs
+        # 同时构建主 APK（noOcr release，小包，AIDL 调用 OCR APK）和 OCR APK（独立模块）
+        # 用户首次安装两个 APK，之后只更新主 APK，OCR 模块不变（除非 ML Kit 模型升级）
+        run: ./gradlew assembleNoOcrRelease :ocr:assembleRelease --no-daemon --stacktrace
 
-      - name: Verify APK signature
-        # 验证 APK 已正确签名（含 v1 JAR 签名），避免再次发布未签名包导致安装失败
+      - name: Verify APK signatures
+        # 验证两个 APK 都已正确签名（含 v1 JAR 签名），且使用同一 keystore（signature 级权限要求）
         run: |
-          APK=app/build/outputs/apk/full/release/app-full-release.apk
-          if [ ! -f "$APK" ]; then
-            echo "::error::APK 不存在: $APK"
-            exit 1
-          fi
-          echo "APK size: $(stat -c%s $APK) bytes"
-          # v1 签名检查：META-INF 下应有 *.RSA/DSA/EC + CERT.SF + MANIFEST.MF
-          V1=$(unzip -l "$APK" | grep -ciE "META-INF/.*\.(RSA|DSA|EC)")
-          SF=$(unzip -l "$APK" | grep -c "META-INF/.*\.SF")
-          MF=$(unzip -l "$APK" | grep -c "META-INF/MANIFEST.MF")
-          echo "v1 signature: RSA/DSA/EC=$V1, SF=$SF, MANIFEST.MF=$MF"
-          if [ "$V1" -eq 0 ] || [ "$SF" -eq 0 ] || [ "$MF" -eq 0 ]; then
-            echo "::error::APK 缺少 v1 签名（国产 ROM 会提示签名冲突），请检查 signingConfig.enableV1Signing"
-            exit 1
-          fi
-          # 用 apksigner 验证签名有效性（若可用）
-          if command -v apksigner >/dev/null 2>&1; then
-            apksigner verify --print-certs "$APK" | head -5
-          else
-            echo "apksigner not found, skip verify (v1 check passed)"
-          fi
-          echo "APK signature verified OK"
+          set -e
+          MAIN_APK=app/build/outputs/apk/noOcr/release/app-noOcr-release.apk
+          OCR_APK=ocr/build/outputs/apk/release/ocr-release.apk
+          for APK in "$MAIN_APK" "$OCR_APK"; do
+            if [ ! -f "$APK" ]; then
+              echo "::error::APK 不存在: $APK"
+              exit 1
+            fi
+            echo "=== $APK ==="
+            echo "size: $(stat -c%s $APK) bytes"
+            V1=$(unzip -l "$APK" | grep -ciE "META-INF/.*\.(RSA|DSA|EC)")
+            SF=$(unzip -l "$APK" | grep -c "META-INF/.*\.SF")
+            MF=$(unzip -l "$APK" | grep -c "META-INF/MANIFEST.MF")
+            echo "v1 signature: RSA/DSA/EC=$V1, SF=$SF, MANIFEST.MF=$MF"
+            if [ "$V1" -eq 0 ] || [ "$SF" -eq 0 ] || [ "$MF" -eq 0 ]; then
+              echo "::error::APK 缺少 v1 签名: $APK"
+              exit 1
+            fi
+            if command -v apksigner >/dev/null 2>&1; then
+              apksigner verify --print-certs "$APK" | head -5
+            fi
+          done
+          echo "✓ 两个 APK 签名验证通过"
 
-      - name: Rename APK with commit sha
+      - name: Rename APKs with commit sha
         id: rename
         run: |
           SHORT_SHA=${GITHUB_SHA::7}
-          cp app/build/outputs/apk/full/release/app-full-release.apk bbncbot-${SHORT_SHA}.apk
-          echo "apk_path=bbncbot-${SHORT_SHA}.apk" >> $GITHUB_OUTPUT
-          echo "apk_name=bbncbot-${SHORT_SHA}.apk" >> $GITHUB_OUTPUT
+          # 主 APK（noOcr release，小包，需配合 OCR APK 使用）
+          cp app/build/outputs/apk/noOcr/release/app-noOcr-release.apk bbncbot-${SHORT_SHA}.apk
+          # OCR APK（独立模块，含 ML Kit 模型，装一次后不变）
+          cp ocr/build/outputs/apk/release/ocr-release.apk bbncbot-ocr-${SHORT_SHA}.apk
+          echo "main_apk=bbncbot-${SHORT_SHA}.apk" >> $GITHUB_OUTPUT
+          echo "ocr_apk=bbncbot-ocr-${SHORT_SHA}.apk" >> $GITHUB_OUTPUT
 
-      - name: Upload APK artifact
+      - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: bbncbot-release-apk
-          path: app/build/outputs/apk/full/release/*.apk
+          name: bbncbot-release-apks
+          path: |
+            app/build/outputs/apk/noOcr/release/*.apk
+            ocr/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Create Release and Upload APK
+      - name: Create Release and Upload APKs
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v_${{ github.run_id }}
@@ -152,6 +158,16 @@ jobs:
             - 提交: ${{ github.sha }}
             - 构建时间: ${{ github.run_id }}
 
-            下载下方 `bbncbot-*.apk` 安装即可。
-          files: ${{ steps.rename.outputs.apk_path }}
+            ## 安装说明
+
+            **首次安装**：下载下方两个 APK 并都安装：
+            1. `bbncbot-ocr-*.apk` — OCR 模块（含中文识别模型，安装一次后无需更新）
+            2. `bbncbot-*.apk` — 主应用（频繁更新，只装这个即可）
+
+            **后续更新**：只下载安装 `bbncbot-*.apk`（主应用），OCR 模块保持不变。
+
+            两个 APK 必须使用同一签名（release.keystore），主应用通过 AIDL 跨进程调用 OCR 模块。
+          files: |
+            ${{ steps.rename.outputs.main_apk }}
+            ${{ steps.rename.outputs.ocr_apk }}
           prerelease: false

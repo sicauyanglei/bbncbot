@@ -65,32 +65,39 @@ android {
         viewBinding = true
     }
 
-    // ========== Build Flavors：按是否打包 OCR 模型区分 APK 体积 ==========
+    // ========== Build Flavors：OCR 架构 - 独立 OCR APK + AIDL 跨进程调用 ==========
     //
-    // 背景问题：ML Kit 中文识别（text-recognition-chinese）是 bundled 模型，
-    // 体积约 20-30MB，是 APK 体积的大头。调试阶段每次打 debug 包都带上 OCR 模型
-    // 拖慢构建/安装速度，而调试时主要验证规则匹配/回放/录制逻辑，OCR 只是兜底。
+    // 架构：
+    //   - 主 APK（:app）不打包 ML Kit 模型（~20-30MB），通过 AIDL 调用独立安装的
+    //     OCR APK（com.bbncbot.ocr）的识别能力。OCR APK 装一次后不变，主包频繁更新无需重装 OCR。
+    //   - :ocr 模块是独立 application，含 ML Kit 中文识别模型，提供 OcrService（AIDL）
+    //   - 两个 APK 用同一 release.keystore 签名（signature 级权限保护，只有同签名可调用）
     //
-    // 方案：拆成两个 flavor
-    //   - noOcr：不打包 ML Kit，OcrProvider 返回 -1（APK 小，用于日常调试）
-    //   - full ：打包 ML Kit，OcrProvider 走真实 OCR（用于稳定版大包/上线）
+    // Flavor 区别：
+    //   - noOcr（默认/发布）：OcrProvider 是 AIDL 客户端，bindService 调用 :ocr 模块
+    //     → 主 APK 体积小，依赖外部 OCR APK（需单独安装一次）
+    //   - full（fallback）：OcrProvider 直接内联 ML Kit 调用
+    //     → 主 APK 自带 OCR，体积大，作为 :ocr 模块不可用时的备用方案
     //
     // 构建命令：
-    //   日常调试： ./gradlew assembleNoOcrDebug        → app-noOcr-debug.apk（小）
-    //   稳定大包： ./gradlew assembleFullRelease       → app-full-release.apk（含 OCR）
+    //   日常调试主包： ./gradlew assembleNoOcrDebug    → app-noOcr-debug.apk（小，需装 OCR APK）
+    //   发布主包：     ./gradlew assembleNoOcrRelease  → app-noOcr-release.apk
+    //   OCR 模块包：   ./gradlew :ocr:assembleRelease  → ocr-release.apk（装一次后不变）
+    //   fallback 包：  ./gradlew assembleFullRelease   → app-full-release.apk（自带 OCR，大）
     //
     // 源码组织：
-    //   src/main/java/...           共用代码（RecordingManager 调 OcrProvider）
-    //   src/noOcr/java/.../OcrProvider.kt   空实现（返回 -1）
-    //   src/full/java/.../OcrProvider.kt    ML Kit 真实实现
+    //   src/main/aidl/.../IOcrService.aidl      AIDL 接口定义（主 APK + :ocr 各一份）
+    //   src/noOcr/java/.../OcrProvider.kt       AIDL 客户端（bindService 调用 :ocr）
+    //   src/full/java/.../OcrProvider.kt        ML Kit 内联实现（fallback）
     flavorDimensions += "ocr"
     productFlavors {
         create("noOcr") {
             dimension = "ocr"
-            // 不带 ML Kit，applicationId 不变，可直接覆盖安装
+            // 不带 ML Kit，AIDL 调用独立 OCR APK（需安装 com.bbncbot.ocr）
         }
         create("full") {
             dimension = "ocr"
+            // 自带 ML Kit，作为 fallback（OCR APK 不可用时使用）
         }
     }
 }
@@ -102,7 +109,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     // ML Kit 中文文本识别（bundled 模型，不依赖 Play Services，国产 ROM 友好）
-    // 仅 full flavor 打包：noOcr 调试包不带此依赖，APK 体积小 ~20-30MB
+    // 仅 full flavor 打包：noOcr 通过 AIDL 调用独立 :ocr 模块，主 APK 不含此依赖
     // 用于录制时 OCR 读取农场主页肥料总数（无障碍节点树在 H5 页读不到）
     fullImplementation("com.google.mlkit:text-recognition-chinese:16.0.0")
 }
