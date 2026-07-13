@@ -1,0 +1,18 @@
+=== recording.log cleared on app start (version=2.1/12, time=05:49:35.865) ===
+05:50:10.017 === 录制开始 session=sess_1783979410016 name='流程16' ===
+05:50:10.185 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=parse_failed (找到施肥按钮但自身/父节点/子树/整页均无'肥料XXXX'格式；text='施肥0次' desc=''；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 施肥0次) → 尝试 OCR 兜底
+05:50:10.279 [start] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='bind_service_false (权限被拒/Service未导出/包不可见)' (无障碍和OCR均未识别到肥料总数)
+05:50:14.854 CLICK_H5 type=0x800 target='前往手机淘宝-芭芭农场' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=返回' btns=[返回]
+05:50:14.855 RECORD sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=返回' category='支付宝-未知页-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON target='前往手机淘宝-芭芭农场' state=IDLE btns=[返回]
+05:50:14.857 AUTO_CREATE name='支付宝-未知页-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON session=sess_1783979410016 step=0 sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=返回'
+05:50:14.857 RECORD_INC unmapped recordedCount=1 thread=RecordingManager-worker
+05:50:15.788 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=返回' btns=[返回]
+05:50:15.790 MATCHED name='支付宝-未知页-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON
+05:50:15.792 RECORD_INC matched recordedCount=2 thread=RecordingManager-worker
+05:51:07.437 CLICK_H5 type=0x800 target='全部' sig='p=ALIPAY|farm=true|type=complete|popup=red_packet|countdown=no|progress=no|fertTask=滑动浏览或查看商品得肥料|fertStruct=c=V|n=5|ch=TV,TV,V,TV,TV' btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+05:51:07.437 RECORD sig='p=ALIPAY|farm=true|type=complete|popup=red_packet|countdown=no|progress=no|fertTask=滑动浏览或查看商品得肥料|fertStruct=c=V|n=5|ch=TV,TV,V,TV,TV' category='支付宝-全部 服饰鞋包 食品 日用 数码电器 家装家居 美容/医疗 娱乐/旅行 生活服务-红包弹窗-点击全部' action=CLICK_BUTTON target='全部' state=IDLE btns=[全部,服饰鞋包,食品,日用,数码电器,家装家居,美容/医疗,娱乐/旅行,生活服务,返回]
+05:51:07.438 AUTO_CREATE name='支付宝-全部 服饰鞋包 食品 日用 数码电器 家装家居 美容/医疗 娱乐/旅行 生活服务-红包弹窗-点击全部' action=CLICK_BUTTON session=sess_1783979410016 step=2 sig='p=ALIPAY|farm=true|type=complete|popup=red_packet|countdown=no|progress=no|fertTask=滑动浏览或查看商品得肥料|fertStruct=c=V|n=5|ch=TV,TV,V,TV,TV'
+05:51:14.210 STOP_ENTER recordedCount=3 thread=main autoStop=false sessId=sess_1783979410016
+05:51:14.390 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=parse_failed (找到施肥按钮但自身/父节点/子树/整页均无'肥料XXXX'格式；text='施肥0次' desc=''；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 施肥0次) → 尝试 OCR 兜底
+05:51:14.480 [stop] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='bind_service_false (权限被拒/Service未导出/包不可见)' (无障碍和OCR均未识别到肥料总数)
+05:51:14.481 === 录制结束 session=sess_1783979410016 → '支付宝-肥料任务' SAVE reason=肥料读取失败回退保存(initial=-1 final=-1) steps=3 ===
