@@ -103,8 +103,10 @@ jobs:
           ./gradlew assembleNoOcrRelease :ocr:assembleRelease --no-daemon --stacktrace 2>&1 | tee gradle-build.log
           EXIT_CODE=${PIPESTATUS[0]}
           if [ "$EXIT_CODE" -ne 0 ]; then
-            ERR=$(grep -A 30 -E "^(\* )?What went wrong:|^Caused by:" gradle-build.log | head -c 4000 | tr '\n' '|' | sed 's/|/ \\n /g')
-            if [ -z "$ERR" ]; then ERR=$(grep -iE "error:|exception:|failed" gradle-build.log | head -c 4000 | tr '\n' '|' | sed 's/|/ \\n /g'); fi
+            # Kotlin 编译错误格式: "e: file://...:line:col: error: message"
+            # Gradle 任务失败: "* What went wrong:" 段
+            ERR=$(grep -E "^e: file|^(\* )?What went wrong:|^Caused by:|error:" gradle-build.log | head -c 4000 | tr '\n' '|' | sed 's/|/ \\n /g')
+            if [ -z "$ERR" ]; then ERR=$(tail -n 40 gradle-build.log | tr '\n' '|' | sed 's/|/ \\n /g' | head -c 4000); fi
             echo "::error::BUILD FAILED: $ERR"
           fi
           exit $EXIT_CODE
