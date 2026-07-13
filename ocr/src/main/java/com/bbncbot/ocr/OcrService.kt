@@ -45,7 +45,27 @@ class OcrService : Service() {
         Log.i(tag, "OcrService created, ML Kit recognizer initialized")
     }
 
-    override fun onBind(intent: Intent?): IBinder = binder
+    /**
+     * 检查调用方包名是否在白名单内
+     *
+     * 替代 signature 级权限：不再强制要求同签名，只检查包名。
+     * 第三方即使知道 action 也无法调用（包名不匹配 → 返回 null）。
+     */
+    private fun isCallerAllowed(): Boolean {
+        val callerUid = android.os.Binder.getCallingUid()
+        val callerPackages = packageManager.getPackagesForUid(callerUid) ?: arrayOf()
+        val allowed = callerPackages.any { it == "com.bbncbot" }
+        if (!allowed) {
+            Log.w(tag, "onBind: rejected callerUid=$callerUid packages=${callerPackages.joinToString(",")} (非白名单包)")
+        }
+        return allowed
+    }
+
+    override fun onBind(intent: Intent?): IBinder? {
+        if (!isCallerAllowed()) return null
+        Log.i(tag, "onBind: accepted")
+        return binder
+    }
 
     private val binder = object : IOcrService.Stub() {
 

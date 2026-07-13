@@ -2,17 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!--
-        自定义 signature 级权限：只有与 :ocr 同签名的 APK（即 :app）才能绑定此 Service
-        protectionLevel="signature" 保证第三方应用无法调用 OCR 能力
-    -->
-    <permission
-        android:name="com.bbncbot.ocr.permission.BIND_OCR"
-        android:protectionLevel="signature" />
-
-    <!-- 主 APK 声明此权限才能 bindService -->
-    <uses-permission android:name="com.bbncbot.ocr.permission.BIND_OCR" />
-
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
@@ -35,13 +24,13 @@
         <!--
             OCR 识别 Service
             - exported=true：允许主 APK（:app）跨进程绑定
-            - permission=com.bbncbot.ocr.permission.BIND_OCR：signature 级权限保护
-            - 主 APK 通过 action="com.bbncbot.ocr.action.RECOGNIZE" + package="com.bbncbot.ocr" 绑定
+            - 不用 signature 级权限保护（避免签名不匹配导致 bindService 被拒）
+            - 改在 OcrService.onBind() 中检查调用方包名是否为 com.bbncbot，非白名单包返回 null
+            - 安全性：第三方需知道 action + package 才能 bind，且 onBind 会拒绝非白名单调用方
         -->
         <service
             android:name=".OcrService"
-            android:exported="true"
-            android:permission="com.bbncbot.ocr.permission.BIND_OCR">
+            android:exported="true">
             <intent-filter>
                 <action android:name="com.bbncbot.ocr.action.RECOGNIZE" />
             </intent-filter>
