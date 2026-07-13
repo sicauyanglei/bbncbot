@@ -63,6 +63,8 @@ android {
 
     buildFeatures {
         viewBinding = true
+        // 启用 AIDL 编译：生成 IOcrService.Stub/Proxy 供 noOcr OcrProvider 跨进程调用 :ocr 模块
+        aidl = true
     }
 
     // ========== Build Flavors：OCR 架构 - 独立 OCR APK + AIDL 跨进程调用 ==========

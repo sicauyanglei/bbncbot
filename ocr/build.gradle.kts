@@ -53,6 +53,12 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    buildFeatures {
+        // 启用 AIDL 编译：生成 IOcrService.Stub 供 OcrService.kt 使用
+        // 不显式开启时 AGP 可能不编译 AIDL 源集，导致 Kotlin 找不到 IOcrService 类
+        aidl = true
+    }
 }
 
 dependencies {
