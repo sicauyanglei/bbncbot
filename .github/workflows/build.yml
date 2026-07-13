@@ -96,15 +96,22 @@ jobs:
           echo "=== 编译前规则检查通过 ==="
 
       - name: Build APKs
-        # 同时构建主 APK（noOcr release，小包，AIDL 调用 OCR APK）和 OCR APK（独立模块）
-        # 用户首次安装两个 APK，之后只更新主 APK，OCR 模块不变（除非 ML Kit 模型升级）
-        # 捕获完整输出到日志文件，构建失败时上传为 artifact 方便排查
+        # 临时分步构建以隔离失败模块：先构建主 APK，再构建 OCR APK
         run: |
           set +e
-          ./gradlew assembleNoOcrRelease :ocr:assembleRelease --no-daemon --stacktrace 2>&1 | tee gradle-build.log
-          EXIT_CODE=${PIPESTATUS[0]}
-          echo "Gradle exit code: $EXIT_CODE"
-          exit $EXIT_CODE
+          echo "=== STEP 1: Build :app (noOcrRelease) ===" 
+          ./gradlew :app:assembleNoOcrRelease --no-daemon --stacktrace 2>&1 | tee app-build.log
+          APP_EXIT=${PIPESTATUS[0]}
+          echo "app build exit: $APP_EXIT"
+          echo ""
+          echo "=== STEP 2: Build :ocr (assembleRelease) ==="
+          ./gradlew :ocr:assembleRelease --no-daemon --stacktrace 2>&1 | tee ocr-build.log
+          OCR_EXIT=${PIPESTATUS[0]}
+          echo "ocr build exit: $OCR_EXIT"
+          echo ""
+          echo "=== SUMMARY: app=$APP_EXIT ocr=$OCR_EXIT ==="
+          cat app-build.log ocr-build.log > gradle-build.log
+          if [ "$APP_EXIT" -ne 0 ] || [ "$OCR_EXIT" -ne 0 ]; then exit 1; fi
 
       - name: Upload build log on failure
         if: failure()
