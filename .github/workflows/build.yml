@@ -112,13 +112,13 @@ jobs:
           echo ""
           cat app-build.log ocr-build.log > gradle-build.log
           if [ "$APP_EXIT" -ne 0 ]; then
-            echo "::error::APP BUILD FAILED. Last 60 lines:"
-            tail -n 60 app-build.log | sed 's/^/  /'
+            ERR=$(tail -n 40 app-build.log | tr '\n' '|' | sed 's/|/ \\n /g')
+            echo "::error::APP BUILD FAILED. Last 40 lines: $ERR"
             exit 1
           fi
           if [ "$OCR_EXIT" -ne 0 ]; then
-            echo "::error::OCR BUILD FAILED. Last 60 lines:"
-            tail -n 60 ocr-build.log | sed 's/^/  /'
+            ERR=$(tail -n 40 ocr-build.log | tr '\n' '|' | sed 's/|/ \\n /g')
+            echo "::error::OCR BUILD FAILED. Last 40 lines: $ERR"
             exit 1
           fi
 
