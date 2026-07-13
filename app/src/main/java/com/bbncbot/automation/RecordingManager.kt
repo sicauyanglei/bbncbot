@@ -102,76 +102,6 @@ object RecordingManager {
     @Volatile
     private var lastMonitoredFertilizer: Int = -1
 
-    /**
-     * 肥料相关关键字（target 文本或页面文本含这些字样视为肥料关键路径）
-     *
-     * - 领取类：立即领肥/领取/已发放/领取成功
-     * - 提示类：还差X次领肥料/肥料 +XXX/得XXX肥料/肥料奖励
-     * - 操作类：施肥/去施肥/做任务集肥料/领肥
-     */
-    private val FERTILIZER_KEYWORDS = listOf(
-        "肥料", "领肥", "施肥", "已发放", "领取成功", "做任务集肥料"
-    )
-
-    /**
-     * 判断当前操作是否与肥料相关（录制关键路径过滤）
-     *
-     * 判定规则（任一命中即视为相关）：
-     * 1. target 按钮文本含肥料关键字（如"立即领肥""领取"）
-     * 2. 页面可见文本含肥料领取/发放提示（如"100肥料已发放""还差4次领肥料"）
-     *
-     * 不相关示例：纯数字（"09""14"）、商品名、搜索框、"支付宝"等导航点击
-     *
-     * @param target 目标按钮文本（可 null）
-     * @param pageTexts 页面可见文本列表
-     * @return true 表示与肥料相关，应记录；false 表示噪音，丢弃
-     */
-    private fun isFertilizerRelevant(target: String?, pageTexts: List<String>): Boolean {
-        // 1. target 含肥料关键字
-        if (target != null && FERTILIZER_KEYWORDS.any { target.contains(it) }) {
-            return true
-        }
-        // 2. 页面文本含肥料领取/发放/提示关键字
-        //    （用户在肥料领取流程中点击，即使 target 本身不含"肥料"也算关键路径）
-        return pageTexts.any { pageText ->
-            FERTILIZER_KEYWORDS.any { pageText.contains(it) }
-        }
-    }
-
-    /**
-     * 重写 target 为肥料任务描述（用户不关心商品名，只关心肥料描述）
-     *
-     * 策略：
-     * 1. target 本身含肥料关键字 → 直接返回原 target（如"立即领肥"）
-     * 2. target 是商品名/数字等非肥料文本 → 复用 [SceneFeatureExtractor.extractFertilizerTaskDesc]
-     *    从 pageTexts 提取含肥料的任务描述
-     *    - 优先取含"得X肥料""领X肥料"等明确奖励数额的描述
-     *    - 找不到则返回通用"肥料任务"
-     *
-     * 示例：
-     * - target="青海藜麦..." pageTexts含"浏览15s得300肥料" → "浏览15s得300肥料"
-     * - target="立即领肥" → "立即领肥"（原样返回）
-     * - target="09" pageTexts含"还差4次领肥料" → "还差4次领肥料"
-     *
-     * @param rawTarget 原始 target（可能是商品名/数字/肥料按钮）
-     * @param pageTexts 页面可见文本列表
-     * @return 肥料任务描述（作为规则记录的 target）
-     */
-    private fun rewriteFertilizerTarget(rawTarget: String?, pageTexts: List<String>): String? {
-        // 1. target 本身含肥料关键字 → 原样返回
-        if (rawTarget != null && FERTILIZER_KEYWORDS.any { rawTarget.contains(it) }) {
-            return rawTarget
-        }
-        // 2. 复用 SceneFeatureExtractor 的肥料任务描述提取逻辑（保证录制和执行用同一套提取规则）
-        val desc = SceneFeatureExtractor.extractFertilizerTaskDesc(pageTexts)
-        if (desc.isNotEmpty()) {
-            return desc
-        }
-        // 3. 兜底：页面确实含肥料关键字（isFertilizerRelevant 已保证），但没匹配到具体描述
-        //    返回通用标识，避免记录商品名
-        return "肥料任务"
-    }
-
     /** 当录制状态变化时通知浮窗更新 UI */
     @Volatile
     var onRecordingChanged: ((Boolean) -> Unit)? = null
@@ -561,16 +491,10 @@ object RecordingManager {
                             }
                             lastClickSigTime[dedupKey] = now
                         }
-                        // 关键路径过滤：只录制与肥料相关的操作，丢弃无关噪音（商品名/数字/搜索框等）
-                        // 肥料相关信号：target 文本含肥料关键字，或页面可见文本含肥料领取/发放提示
-                        if (!isFertilizerRelevant(rawTarget, features.pageTexts)) {
-                            logToRecordingFile("SKIP_NO_FERTILIZER target='$rawTarget' (非肥料相关，丢弃)")
-                            return@execute
-                        }
-                        // 关键路径重写：用户不关心点击的商品名，只关心肥料描述
-                        // 当 target 是商品名/数字等非肥料文本时，从页面文本中提取肥料任务描述作为 target
-                        // 例如：点击"青海藜麦..."商品 → target 改为"浏览15秒得300肥料"
-                        val targetButton = rewriteFertilizerTarget(rawTarget, features.pageTexts)
+                        // 不过滤操作：录制期间记录用户所有操作，由"取得肥料才保存"机制保证规则有效性
+                        // （未取得肥料的录制会在 stop() 时自动丢弃，无需在此预过滤）
+                        // 保留原始按钮文本作为 target，便于回放时按文本匹配按钮
+                        val targetButton = rawTarget
                         // WINDOW_STATE_CHANGED 无 source 时，跳过（避免误把页面跳转记成点击）
                         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
                             nodeText.isNullOrEmpty() && desc.isNullOrEmpty() && eventText.isNullOrEmpty()) {
