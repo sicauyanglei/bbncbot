@@ -22,8 +22,19 @@
     <!-- 枚举桌面快捷方式（需要本 App 被设为默认桌面） -->
     <uses-permission android:name="android.permission.GET_SHORTCUTS" />
 
-    <!-- 绑定独立 OCR APK（com.bbncbot.ocr）的 Service，跨进程调用 ML Kit 识别 -->
-    <!-- 权限由 :ocr 模块用 signature 级声明，只有同签名的 :app 可绑定 -->
+    <!--
+        OCR 跨进程调用的 signature 级权限
+
+        关键：主 APK 也声明 <permission>（与 :ocr 模块声明相同的权限）
+        原因：Android 的 signature 级权限要求"先定义后授予"。
+        - 如果只有 :ocr 声明 <permission>，主 APK 先安装时 <uses-permission> 引用了不存在的权限，
+          OCR APK 后安装时系统不会自动重新授予主 APK 该权限 → bindService 被拒
+        - 两个 APK 都声明 <permission>，无论谁先安装，权限定义都存在，<uses-permission> 立即被授予
+        - signature 级权限只授予同签名 APK，第三方无法获取
+    -->
+    <permission
+        android:name="com.bbncbot.ocr.permission.BIND_OCR"
+        android:protectionLevel="signature" />
     <uses-permission android:name="com.bbncbot.ocr.permission.BIND_OCR" />
 
     <!-- 查询 OCR APK 是否已安装（Android 11+ 包可见性） -->
