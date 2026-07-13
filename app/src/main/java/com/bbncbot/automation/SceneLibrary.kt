@@ -638,6 +638,38 @@ object SceneLibrary {
     }
 
     /**
+     * 重命名录制会话（保存规则时按"平台+任务描述"重命名）
+     *
+     * @param sessionId 会话 ID
+     * @param newName 新名称（如"UC-浏览15秒得300肥料"）
+     */
+    fun renameSession(sessionId: String, newName: String) {
+        ensureInitialized()
+        synchronized(lock) {
+            val sess = sessions.firstOrNull { it.id == sessionId } ?: return
+            val oldName = sess.name
+            sess.name = newName
+            Log.i(TAG, "renameSession: id=$sessionId '$oldName' → '$newName'")
+            persistAsync()
+        }
+    }
+
+    /**
+     * 获取 session 第一步的平台和肥料任务描述（用于"平台+任务描述"命名）
+     *
+     * @return (platform, fertTask)；session 无规则时返回 ("", "")
+     */
+    fun getSessionFirstStepInfo(sessionId: String): Pair<String, String> {
+        ensureInitialized()
+        return synchronized(lock) {
+            val first = categories
+                .filter { it.sessionId == sessionId }
+                .minByOrNull { it.stepIndex }
+            Pair(first?.platform ?: "", first?.fertTask ?: "")
+        }
+    }
+
+    /**
      * 中断会话：删除指定 session 及其所有规则（用户点击"中断"时调用）
      */
     fun deleteSession(sessionId: String) {

@@ -23,10 +23,14 @@ import java.util.Locale
  *   - TYPE_VIEW_TEXT_CHANGED → 忽略
  * - 用户按返回键（pressBack）由 service 拦截
  *
- * **任务流程闭环**：每次录制 = 一个完整任务流程
- * - [start] 时创建 [SceneLibrary.RecordingSession]
- * - 录制期间每个规则按顺序记录 [SceneLibrary.SceneCategory.stepIndex]（0,1,2,...）
- * - [stop] 时标记 session 完成
+ * **任务流程闭环**：每次取得肥料 = 一次任务 = 一个规则（session）
+ * - [start] 时创建 [SceneLibrary.RecordingSession]，记录初始肥料基线
+ * - 录制期间每个操作按顺序记录为 [SceneLibrary.SceneCategory]（stepIndex=0,1,2,...）
+ * - 录制中肥料监控每 4s 检测肥料数值，**检测到增量即自动结束 session 并保存为规则**
+ *   （"以取得肥料为任务完成标志"——取得肥料 = 任务完成 = 操作集合已记录为规则）
+ * - [stop] 时按"是否取得肥料"决定保存/丢弃：
+ *   - 取得肥料（自动触发或手动停录且有增量）→ 保存，按"平台+任务描述"重命名
+ *   - 未取得肥料 → 丢弃 session（任务未完成，不保留无效规则）
  * - bot 执行时若场景匹配 session 第一步，进入"按流程执行"模式，优先匹配下一步
  *
  * 录制完成后关闭录制，bot 恢复自动执行，遇到相同场景按录制规则操作。
@@ -66,6 +70,37 @@ object RecordingManager {
 
     /** 0x800 (WINDOW_CONTENT_CHANGED) 事件节流：dedupKey -> last click time ms */
     private val lastClickSigTime = HashMap<String, Long>()
+
+    /**
+     * 录制中肥料监控周期（毫秒）
+     *
+     * 每 [FERT_MONITOR_INTERVAL_MS] 检查一次当前肥料数值，若比 [initialFertilizer] 增加，
+     * 自动结束当前 session 并保存为规则（"以取得肥料为任务完成标志"）。
+     *
+     * 4 秒间隔平衡：
+     * - 太短（<2s）：频繁截图+OCR/无障碍遍历，影响录制流畅度
+     * - 太长（>8s）：肥料增加后用户可能已开始下一个任务，检测到时上下文已乱
+     */
+    private const val FERT_MONITOR_INTERVAL_MS = 4000L
+
+    /** 肥料监控定时器（录制期间运行，检测到肥料增加自动结束 session） */
+    @Volatile
+    private var fertMonitor: java.util.concurrent.ScheduledFuture<*>? = null
+
+    /** 肥料监控使用的调度器（单线程，录制开始时启动，结束时关闭） */
+    private val fertExecutor = java.util.concurrent.Executors.newSingleThreadScheduledExecutor { r ->
+        Thread(r, "RecordingManager-fertMonitor").apply { isDaemon = true }
+    }
+
+    /**
+     * 最近一次监控到的肥料数值（用于增量检测，避免重复触发自动结束）
+     *
+     * 与 [initialFertilizer] 区别：
+     * - [initialFertilizer]：录制开始时的基线，整个 session 不变
+     * - [lastMonitoredFertilizer]：监控过程中最新读到的值，用于检测"比上次又增加了"
+     */
+    @Volatile
+    private var lastMonitoredFertilizer: Int = -1
 
     /**
      * 肥料相关关键字（target 文本或页面文本含这些字样视为肥料关键路径）
@@ -160,12 +195,14 @@ object RecordingManager {
             recording = true
             recordedCount = 0
             // 创建新录制会话（任务流程闭环）
+            // 临时命名，session 保存时会用"平台+任务描述"重命名（保存时才能确定任务描述）
             val sessionName = "流程${System.currentTimeMillis() % 10000}"
             val sess = SceneLibrary.startSession(sessionName)
             currentSessionId = sess.id
-            // 记录录制开始时的肥料数值（用于停录时对比）——后台线程读取，避免主线程阻塞
+            // 记录录制开始时的肥料数值（用于停录时对比 + 录制中自动检测增量）——后台线程读取
             recordExecutor.execute {
                 initialFertilizer = readFertilizerAmountWithDiag("start")
+                lastMonitoredFertilizer = initialFertilizer
                 Log.i(TAG, "initialFertilizer=$initialFertilizer (async)")
             }
             Log.i(TAG, "=== 录制开始 session=${sess.id} name='$sessionName' ===")
@@ -176,6 +213,9 @@ object RecordingManager {
                 AutomationController.stop()
             }
             SceneLibrary.resetSessionContext()
+            // 启动肥料监控：检测到肥料增加 → 自动结束 session 并保存为规则
+            // "以取得肥料为任务完成标志"：用户无需手动停录，取得肥料即任务完成
+            startFertilizerMonitor()
         } catch (e: Exception) {
             Log.e(TAG, "start recording failed: ${e.message}", e)
             recording = false
@@ -187,6 +227,10 @@ object RecordingManager {
     fun stop() {
         if (!recording) return
         recording = false
+        // 捕获自动结束标志（stopFertilizerMonitor 会重置它）
+        val autoStop = autoStopByFertilizer
+        // 停止肥料监控定时任务（避免停录后 monitor 仍在跑）
+        stopFertilizerMonitor()
         val sessId = currentSessionId
         val initial = initialFertilizer
         val steps = recordedCount
@@ -201,30 +245,37 @@ object RecordingManager {
                 val finalFertilizer = readFertilizerAmountWithDiag("stop")
                 val gained = if (initial >= 0 && finalFertilizer >= 0) finalFertilizer - initial else null
 
+                // 保存条件：肥料监控自动触发（已确认增量）OR 手动停录时肥料有增量
+                // "以取得肥料为任务完成标志"：未取得肥料的 session 视为未完成任务，丢弃
+                val shouldSave = autoStop || (gained != null && gained > 0)
+
                 if (sessId != null) {
-                    if (steps > 0) {
-                        // 有录制步骤 → 保存录制为规则（不管肥料是否增加）
-                        // 用户要求：录制的是操作流程，即使没拿到肥料也要保留规则
+                    if (shouldSave && steps > 0) {
+                        // 取得肥料 → 任务完成 → 保存为规则
+                        // 按"平台+任务描述"重命名 session
+                        val (platform, fertTask) = SceneLibrary.getSessionFirstStepInfo(sessId)
+                        val newName = buildSessionName(platform, fertTask)
+                        SceneLibrary.renameSession(sessId, newName)
                         SceneLibrary.endSession(sessId, steps)
-                        if (gained != null && gained > 0) {
-                            Log.i(TAG, "=== 录制结束 session=$sessId 肥料 $initial → $finalFertilizer (+$gained)，保存规则 ===")
-                            logToRecordingFile("=== 录制结束 session=$sessId 肥料 $initial → $finalFertilizer (+$gained)，保存规则 ===")
+                        if (autoStop) {
+                            Log.i(TAG, "=== 录制自动结束(取得肥料) session=$sessId → '$newName' 肥料 $initial → $finalFertilizer steps=$steps ===")
+                            logToRecordingFile("=== 录制自动结束(取得肥料) session=$sessId → '$newName' initial=$initial final=$finalFertilizer steps=$steps ===")
                         } else {
-                            val reason = when {
-                                gained == null -> "肥料读取失败(initial=$initial final=$finalFertilizer)，但已录制 $steps 步，保留规则"
-                                gained == 0 -> "肥料无变化($initial → $finalFertilizer)，但已录制 $steps 步，保留规则"
-                                else -> "肥料减少($initial → $finalFertilizer)，但已录制 $steps 步，保留规则"
-                            }
-                            Log.w(TAG, "=== 录制结束 session=$sessId $reason ===")
-                            logToRecordingFile("=== 录制结束 session=$sessId KEEP reason=$reason steps=$steps ===")
+                            Log.i(TAG, "=== 录制手动结束(取得肥料) session=$sessId → '$newName' 肥料 $initial → $finalFertilizer (+$gained) steps=$steps ===")
+                            logToRecordingFile("=== 录制手动结束(取得肥料) session=$sessId → '$newName' initial=$initial final=$finalFertilizer gained=$gained steps=$steps ===")
                         }
                         onRecordingStopped?.invoke(true, initial, finalFertilizer, steps)
                     } else {
-                        // 没有录制任何步骤 → 删除空 session
+                        // 未取得肥料 → 任务未完成 → 丢弃 session
                         SceneLibrary.deleteSession(sessId)
-                        val reason = "未录制任何操作(steps=0)"
-                        Log.w(TAG, "=== 录制结束 session=$sessId $reason，丢弃本次录制 ===")
-                        logToRecordingFile("=== 录制结束 session=$sessId DISCARD reason=$reason steps=$steps ===")
+                        val reason = when {
+                            steps == 0 -> "未录制任何操作(steps=0)"
+                            gained == null -> "肥料读取失败(initial=$initial final=$finalFertilizer)，无法确认取得肥料"
+                            gained == 0 -> "肥料无变化($initial → $finalFertilizer)，任务未完成"
+                            else -> "肥料减少($initial → $finalFertilizer)，任务未完成"
+                        }
+                        Log.w(TAG, "=== 录制结束 session=$sessId $reason，丢弃 ===")
+                        logToRecordingFile("=== 录制结束 session=$sessId DISCARD reason=$reason steps=$steps autoStop=$autoStop ===")
                         onRecordingStopped?.invoke(false, initial, finalFertilizer, steps)
                     }
                 }
@@ -256,6 +307,91 @@ object RecordingManager {
     /** 切换录制状态 */
     fun toggle() {
         if (recording) stop() else start()
+    }
+
+    /**
+     * 启动肥料监控定时任务
+     *
+     * 录制期间每 [FERT_MONITOR_INTERVAL_MS] 读取一次当前肥料数值：
+     * - 比基线 [initialFertilizer] 增加 → 判定为"取得肥料"，自动结束 session 并保存为规则
+     * - 未增加 → 继续监控，更新 [lastMonitoredFertilizer]
+     *
+     * 自动结束语义：用户选择"以取得肥料为任务完成标志"。
+     * 取得肥料 = 一次任务完成 = 这个任务的所有操作集合已记录为一个规则（session）。
+     */
+    private fun startFertilizerMonitor() {
+        stopFertilizerMonitor()
+        fertMonitor = fertExecutor.scheduleWithFixedDelay({
+            try {
+                if (!recording) return@scheduleWithFixedDelay
+                val initial = initialFertilizer
+                if (initial < 0) {
+                    // 基线还没读到，跳过本轮（start 时的异步读取可能还没完成）
+                    return@scheduleWithFixedDelay
+                }
+                val current = readFertilizerAmountWithDiag("monitor")
+                if (current < 0) {
+                    // 读不到（可能不在农场主页），跳过本轮
+                    return@scheduleWithFixedDelay
+                }
+                lastMonitoredFertilizer = current
+                if (current > initial) {
+                    val gained = current - initial
+                    Log.i(TAG, "=== 肥料监控检测到增量: $initial → $current (+$gained)，自动结束 session ===")
+                    logToRecordingFile("=== FERT_MONITOR_TRIGGERED initial=$initial current=$current gained=$gained → 自动结束 session ===")
+                    // 自动保存并停止录制（autoSave=true 表示这是取得肥料的自动结束，必须保存）
+                    autoStopByFertilizer = true
+                    stop()
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "fertMonitor tick failed: ${e.message}")
+            }
+        }, FERT_MONITOR_INTERVAL_MS, FERT_MONITOR_INTERVAL_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+        Log.i(TAG, "肥料监控已启动 (间隔 ${FERT_MONITOR_INTERVAL_MS}ms)")
+    }
+
+    /** 停止肥料监控定时任务 */
+    private fun stopFertilizerMonitor() {
+        fertMonitor?.let {
+            it.cancel(false)
+            fertMonitor = null
+        }
+        autoStopByFertilizer = false
+    }
+
+    /**
+     * 标记：当前 stop() 是由肥料监控自动触发的（取得肥料自动结束）
+     *
+     * - true：检测到肥料增加，必须保存 session（这是有效任务）
+     * - false：用户手动停录，按"是否取得肥料"决定保存/丢弃
+     */
+    @Volatile
+    private var autoStopByFertilizer: Boolean = false
+
+    /**
+     * 构建 session 名称："平台+任务描述"格式
+     *
+     * 用户要求：每次取得肥料是一次任务，按"平台+任务描述"命名这个任务的操作集合。
+     *
+     * 示例：
+     * - platform="UC" fertTask="浏览15秒得300肥料" → "UC-浏览15秒得300肥料"
+     * - platform="ALIPAY" fertTask="逛好物最高得1500肥料" → "支付宝-逛好物最高得1500肥料"
+     * - platform="" fertTask="" → "未知-肥料任务"（兜底）
+     *
+     * @param platform 平台标识（"UC" / "ALIPAY" / "TAOBAO" / "UNKNOWN" / ""）
+     * @param fertTask 肥料任务描述（从 [SceneFeatures.fertilizerTaskDesc] 提取）
+     * @return "平台-任务描述" 格式的 session 名称
+     */
+    private fun buildSessionName(platform: String, fertTask: String): String {
+        val p = when (platform) {
+            "UC" -> "UC"
+            "ALIPAY" -> "支付宝"
+            "TAOBAO" -> "淘宝"
+            "UNKNOWN", "" -> "未知"
+            else -> platform
+        }
+        val task = if (fertTask.isNotEmpty()) fertTask else "肥料任务"
+        return "$p-$task"
     }
 
     /**
@@ -547,6 +683,9 @@ object RecordingManager {
         Log.i(TAG, "=== 用户中断 ===")
         logToRecordingFile("=== 用户中断 ===")
 
+        // 停止肥料监控（中断表示"这个流程不对"，不应再因肥料增量自动保存）
+        stopFertilizerMonitor()
+
         // 获取当前场景特征
         val service = FarmAccessibilityService.getInstance()
         if (service != null) {
@@ -567,6 +706,7 @@ object RecordingManager {
         if (recording) {
             stop()
             // 录制中中断 → 删除未完成的 session（表示"这个流程不对"）
+            // stop() 的后台逻辑可能因肥料增量保存 session，这里确保中断时 session 被删除
             if (sessId != null) {
                 SceneLibrary.deleteSession(sessId)
                 Log.i(TAG, "录制中中断：删除未完成 session=$sessId")
