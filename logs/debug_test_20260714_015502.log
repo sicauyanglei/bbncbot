@@ -1,0 +1,71 @@
+=== cleared on app start (version=2.1, time=01:53:48) ===
+01:53:48.987 killPlatformApps: killed com.ucmobile.lite for UC
+01:53:48.990 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+01:53:48.991 killPlatformApps: killed com.taobao.taobao for TAOBAO
+01:53:58.482 FarmAccessibilityService connected, API=36
+01:54:15.275 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+01:54:15.281 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+01:54:15.282 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+01:54:15.283 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+01:54:18.957 navigateAlipay: found 芭芭农场 entry at [252,978][484,1198], clicking
+01:54:18.958 performClickSafe: text='' desc='' bounds=[252,978][484,1198] clickable=true
+01:54:18.996 performClickSafe: ACTION_CLICK success at depth=0
+01:54:38.508 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+01:54:38.613 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+01:54:41.036 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+01:54:41.134 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+01:54:41.219 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+01:54:41.377 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+01:54:41.383 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+01:54:41.394 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+01:54:41.505 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+01:54:41.702 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+01:54:41.899 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+01:54:41.902 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='前往手机淘宝-芭芭农场' desc=''
+01:54:42.080 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+01:54:42.617 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+01:54:42.673 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+01:54:42.682 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='' desc=''
+01:54:42.783 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='' desc=''
+01:54:42.949 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='已领取' desc=''
+01:54:42.951 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+01:54:42.962 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='今天' desc=''
+01:54:42.967 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+01:54:43.012 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+01:54:43.054 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='已领取' desc=''
+01:54:43.068 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+01:54:43.170 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+01:54:43.450 collectTaskContextText: result='', buttonText='', containerFound=true
+01:54:43.738 collectTaskContextText: result='', buttonText='', containerFound=true
+01:54:43.850 collectTaskContextText: result='', buttonText='', containerFound=true
+01:54:43.970 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='关闭做任务集肥料弹窗' desc=''
+01:54:43.999 collectTaskContextText: result='', buttonText='', containerFound=false
+01:54:44.081 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='' desc=''
+01:54:44.147 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+01:54:44.315 collectTaskContextText: result='', buttonText='', containerFound=false
+01:54:44.333 isOnFarmPage: no farm content, sample=[签到成功！每天来芭芭农场，更快1分钱领水果~]
+01:54:44.349 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+01:54:44.630 collectTaskContextText: result='', buttonText='', containerFound=true
+01:54:44.728 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='任务列表' desc=''
+01:54:44.734 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='大额' desc=''
+01:54:44.745 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+01:54:44.828 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='任务列表' desc=''
+01:54:44.994 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+01:54:45.481 collectTaskContextText: result='', buttonText='', containerFound=false
+01:54:45.678 collectTaskContextText: result='', buttonText='', containerFound=false
+01:54:45.904 collectTaskContextText: result='', buttonText='前往手机淘宝-芭芭农场', containerFound=false
+01:54:46.094 collectTaskContextText: result='', buttonText='null', containerFound=true
+01:54:46.670 collectTaskContextText: result='', buttonText='已领取', containerFound=false
+01:54:46.958 collectTaskContextText: result='', buttonText='', containerFound=false
+01:54:47.156 collectTaskContextText: result='', buttonText='今天', containerFound=false
+01:54:47.391 collectTaskContextText: result='', buttonText='', containerFound=true
+01:54:47.662 collectTaskContextText: result='', buttonText='null', containerFound=false
+01:54:47.900 collectTaskContextText: result='', buttonText='已领取', containerFound=false
+01:54:48.127 collectTaskContextText: result='', buttonText='null', containerFound=false
+01:54:48.338 collectTaskContextText: result='', buttonText='null', containerFound=false
+01:54:48.572 collectTaskContextText: result='', buttonText='关闭做任务集肥料弹窗', containerFound=false
+01:54:49.206 collectTaskContextText: result='', buttonText='', containerFound=true
+01:54:49.462 collectTaskContextText: result='任务列表 农场乐园入口 切换摇钱树 逛农货 我的收获 ', buttonText='任务列表', containerFound=true
+01:54:49.716 collectTaskContextText: result='任务列表 ', buttonText='大额', containerFound=true
+01:54:49.975 collectTaskContextText: result='任务列表 农场乐园入口 ', buttonText='', containerFound=true
+01:54:50.242 collectTaskContextText: result='任务列表 农场乐园入口 切换摇钱树 逛农货 我的收获 ', buttonText='任务列表', containerFound=true
