@@ -112,13 +112,16 @@ jobs:
           echo ""
           cat app-build.log ocr-build.log > gradle-build.log
           if [ "$APP_EXIT" -ne 0 ]; then
-            ERR=$(tail -n 40 app-build.log | tr '\n' '|' | sed 's/|/ \\n /g')
-            echo "::error::APP BUILD FAILED. Last 40 lines: $ERR"
+            # Gradle 的 "FAILURE: ..." 段含真正的错误原因，截取从 "FAILURE" 到 "STACKTRACE" 之间
+            ERR=$(sed -n '/^FAILURE: Build failed/,/^STACKTRACE\|^\* Try:/p' app-build.log | tr '\n' '|' | sed 's/|/ \\n /g' | head -c 4000)
+            if [ -z "$ERR" ]; then ERR=$(tail -n 80 app-build.log | tr '\n' '|' | sed 's/|/ \\n /g' | head -c 4000); fi
+            echo "::error::APP BUILD FAILED: $ERR"
             exit 1
           fi
           if [ "$OCR_EXIT" -ne 0 ]; then
-            ERR=$(tail -n 40 ocr-build.log | tr '\n' '|' | sed 's/|/ \\n /g')
-            echo "::error::OCR BUILD FAILED. Last 40 lines: $ERR"
+            ERR=$(sed -n '/^FAILURE: Build failed/,/^STACKTRACE\|^\* Try:/p' ocr-build.log | tr '\n' '|' | sed 's/|/ \\n /g' | head -c 4000)
+            if [ -z "$ERR" ]; then ERR=$(tail -n 80 ocr-build.log | tr '\n' '|' | sed 's/|/ \\n /g' | head -c 4000); fi
+            echo "::error::OCR BUILD FAILED: $ERR"
             exit 1
           fi
 
