@@ -98,7 +98,22 @@ jobs:
       - name: Build APKs
         # 同时构建主 APK（noOcr release，小包，AIDL 调用 OCR APK）和 OCR APK（独立模块）
         # 用户首次安装两个 APK，之后只更新主 APK，OCR 模块不变（除非 ML Kit 模型升级）
-        run: ./gradlew assembleNoOcrRelease :ocr:assembleRelease --no-daemon --stacktrace
+        # 捕获完整输出到日志文件，构建失败时上传为 artifact 方便排查
+        run: |
+          set +e
+          ./gradlew assembleNoOcrRelease :ocr:assembleRelease --no-daemon --stacktrace 2>&1 | tee gradle-build.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          echo "Gradle exit code: $EXIT_CODE"
+          exit $EXIT_CODE
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-build-log
+          path: gradle-build.log
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Verify APK signatures
         # 验证两个 APK 都已正确签名（含 v1 JAR 签名），且使用同一 keystore（signature 级权限要求）
