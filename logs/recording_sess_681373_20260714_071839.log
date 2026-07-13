@@ -1,0 +1,21 @@
+=== recording.log cleared on app start (version=2.1/12, time=07:17:29.932) ===
+07:18:01.374 === 录制开始 session=sess_1783984681373 name='流程1368' ===
+07:18:01.409 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=parse_failed (找到施肥按钮但自身/父节点/子树/整页均无'肥料XXXX'格式；text='施肥0次' desc=''；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 施肥0次) → 尝试 OCR 兜底
+07:18:01.498 [start] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='provider_exception:IllegalArgumentException:Unknown authority com.bbncbot.ocr.provider' (无障碍和OCR均未识别到肥料总数)
+07:18:07.211 CLICK_H5 type=0x800 target='已领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=返回' btns=[返回]
+07:18:07.211 MATCHED name='支付宝-农场主页-点击已领取' action=CLICK_BUTTON
+07:18:07.212 RECORD_INC matched recordedCount=1 thread=RecordingManager-worker
+07:18:07.878 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=返回' btns=[返回]
+07:18:07.878 MATCHED name='支付宝-农场主页-点击已领取' action=CLICK_BUTTON
+07:18:07.881 RECORD_INC matched recordedCount=2 thread=RecordingManager-worker
+07:18:28.877 CLICK_H5 type=0x800 target='浏览得肥料' sig='p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|fertTask=浏览15s得1000肥料|fertStruct=c=V|n=2|ch=Image,TV' btns=[返回,浏览得肥料]
+07:18:28.881 MATCHED name='支付宝-浏览任务-红包弹窗-点击全部' action=CLICK_BUTTON
+07:18:28.882 RECORD_INC matched recordedCount=3 thread=RecordingManager-worker
+07:18:34.330 CLICK_H5 type=0x800 target='icon' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|fertTask=7天签到任务。用户参加7天签到任务，可获得肥料奖励。|fertStruct=c=V|n=11|ch=TV,V,TV,TV,V,TV,TV,TV,TV,TV,TV' btns=[返回,7天签到任务说明,更多,关闭]
+07:18:34.336 RECORD sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|fertTask=7天签到任务。用户参加7天签到任务，可获得肥料奖励。|fertStruct=c=V|n=11|ch=TV,V,TV,TV,V,TV,TV,TV,TV,TV,TV' category='支付宝-未知页-点击icon' action=CLICK_BUTTON target='icon' state=IDLE btns=[返回,7天签到任务说明,更多,关闭]
+07:18:34.338 AUTO_CREATE name='支付宝-未知页-点击icon' action=CLICK_BUTTON session=sess_1783984681373 step=3 sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|fertTask=7天签到任务。用户参加7天签到任务，可获得肥料奖励。|fertStruct=c=V|n=11|ch=TV,V,TV,TV,V,TV,TV,TV,TV,TV,TV'
+07:18:34.339 RECORD_INC unmapped recordedCount=4 thread=RecordingManager-worker
+07:18:39.741 STOP_ENTER recordedCount=4 thread=main autoStop=false sessId=sess_1783984681373
+07:18:39.818 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=parse_failed (找到施肥按钮但自身/父节点/子树/整页均无'肥料XXXX'格式；text='施肥0次' desc=''；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差3次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 施肥0次) → 尝试 OCR 兜底
+07:18:39.900 [stop] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='provider_exception:IllegalArgumentException:Unknown authority com.bbncbot.ocr.provider' (无障碍和OCR均未识别到肥料总数)
+07:18:39.901 === 录制结束 session=sess_1783984681373 → '支付宝-7天签到任务。用户参加7天签到任务，可获得肥料奖励。' SAVE reason=肥料读取失败回退保存(initial=-1 final=-1) steps=4 ===
