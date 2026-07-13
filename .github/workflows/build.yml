@@ -112,15 +112,16 @@ jobs:
           echo ""
           cat app-build.log ocr-build.log > gradle-build.log
           if [ "$APP_EXIT" -ne 0 ]; then
-            # Gradle 的 "FAILURE: ..." 段含真正的错误原因，截取从 "FAILURE" 到 "STACKTRACE" 之间
-            ERR=$(sed -n '/^FAILURE: Build failed/,/^STACKTRACE\|^\* Try:/p' app-build.log | tr '\n' '|' | sed 's/|/ \\n /g' | head -c 4000)
-            if [ -z "$ERR" ]; then ERR=$(tail -n 80 app-build.log | tr '\n' '|' | sed 's/|/ \\n /g' | head -c 4000); fi
+            # Gradle 错误原因通常在 "What went wrong:" 段，或 "Caused by:" 行
+            # 优先提取这些段；找不到则 fallback 到 "* What went wrong" 段
+            ERR=$(grep -A 30 -E "^(\* )?What went wrong:|^Caused by:" app-build.log | head -c 4000 | tr '\n' '|' | sed 's/|/ \\n /g')
+            if [ -z "$ERR" ]; then ERR=$(grep -iE "error:|exception:|failed" app-build.log | head -c 4000 | tr '\n' '|' | sed 's/|/ \\n /g'); fi
             echo "::error::APP BUILD FAILED: $ERR"
             exit 1
           fi
           if [ "$OCR_EXIT" -ne 0 ]; then
-            ERR=$(sed -n '/^FAILURE: Build failed/,/^STACKTRACE\|^\* Try:/p' ocr-build.log | tr '\n' '|' | sed 's/|/ \\n /g' | head -c 4000)
-            if [ -z "$ERR" ]; then ERR=$(tail -n 80 ocr-build.log | tr '\n' '|' | sed 's/|/ \\n /g' | head -c 4000); fi
+            ERR=$(grep -A 30 -E "^(\* )?What went wrong:|^Caused by:" ocr-build.log | head -c 4000 | tr '\n' '|' | sed 's/|/ \\n /g')
+            if [ -z "$ERR" ]; then ERR=$(grep -iE "error:|exception:|failed" ocr-build.log | head -c 4000 | tr '\n' '|' | sed 's/|/ \\n /g'); fi
             echo "::error::OCR BUILD FAILED: $ERR"
             exit 1
           fi
