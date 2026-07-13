@@ -97,9 +97,10 @@ jobs:
 
       - name: Build APKs
         # 临时分步构建以隔离失败模块：先构建主 APK，再构建 OCR APK
+        # 失败时把最后 60 行输出作为 ::error:: 打印，让错误出现在 Annotations 里
         run: |
           set +e
-          echo "=== STEP 1: Build :app (noOcrRelease) ===" 
+          echo "=== STEP 1: Build :app (noOcrRelease) ==="
           ./gradlew :app:assembleNoOcrRelease --no-daemon --stacktrace 2>&1 | tee app-build.log
           APP_EXIT=${PIPESTATUS[0]}
           echo "app build exit: $APP_EXIT"
@@ -109,9 +110,17 @@ jobs:
           OCR_EXIT=${PIPESTATUS[0]}
           echo "ocr build exit: $OCR_EXIT"
           echo ""
-          echo "=== SUMMARY: app=$APP_EXIT ocr=$OCR_EXIT ==="
           cat app-build.log ocr-build.log > gradle-build.log
-          if [ "$APP_EXIT" -ne 0 ] || [ "$OCR_EXIT" -ne 0 ]; then exit 1; fi
+          if [ "$APP_EXIT" -ne 0 ]; then
+            echo "::error::APP BUILD FAILED. Last 60 lines:"
+            tail -n 60 app-build.log | sed 's/^/  /'
+            exit 1
+          fi
+          if [ "$OCR_EXIT" -ne 0 ]; then
+            echo "::error::OCR BUILD FAILED. Last 60 lines:"
+            tail -n 60 ocr-build.log | sed 's/^/  /'
+            exit 1
+          fi
 
       - name: Upload build log on failure
         if: failure()
