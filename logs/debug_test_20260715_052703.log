@@ -1,0 +1,342 @@
+=== cleared on app start (version=2.1, time=05:25:12) ===
+05:25:12.822 killPlatformApps: killed com.ucmobile.lite for UC
+05:25:12.826 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+05:25:12.827 killPlatformApps: killed com.taobao.taobao for TAOBAO
+05:25:23.267 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+05:25:23.269 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+05:25:23.270 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+05:25:23.271 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+05:25:26.862 navigateAlipay: found 芭芭农场 entry at [225,281][975,510], clicking
+05:25:26.862 performClickSafe: text='芭芭农场,种果树得水果，助农增收' desc='' bounds=[225,281][975,510] clickable=false
+05:25:26.863 performClickSafe: ACTION_CLICK failed, trying gesture
+05:25:26.863 dispatchGesture: screen=[[225,281][975,510]] window=[[0,0][0,0]]
+05:25:26.864 dispatchGesture: not in popup, screen bounds valid, click at (600.0, 395.5)
+05:25:28.268 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+05:25:28.371 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+05:25:29.676 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:29.855 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:29.889 collectTaskContextText: result='', buttonText='', containerFound=true
+05:25:30.029 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+05:25:30.034 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:30.037 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:25:30.093 collectTaskContextText: result='', buttonText='', containerFound=true
+05:25:30.122 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:30.306 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:30.322 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:30.326 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:30.338 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:30.356 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:25:30.489 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='已领取' desc=''
+05:25:30.493 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:30.505 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:30.588 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='已领取' desc=''
+05:25:31.276 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+05:25:31.289 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+05:25:31.572 collectTaskContextText: result='做任务集肥料 关闭做任务集肥料弹窗 ', buttonText='', containerFound=true
+05:25:31.723 collectTaskContextText: result='', buttonText='', containerFound=true
+05:25:31.874 collectTaskContextText: result='做任务集肥料 关闭做任务集肥料弹窗 ', buttonText='', containerFound=true
+05:25:31.992 collectTaskContextText: result='做任务集肥料 关闭做任务集肥料弹窗 前往手机淘宝-芭芭农场 ', buttonText='', containerFound=true
+05:25:32.137 collectTaskContextText: result='做任务集肥料 关闭做任务集肥料弹窗 ', buttonText='', containerFound=true
+05:25:32.435 collectTaskContextText: result='做任务集肥料 关闭做任务集肥料弹窗 已领取 连续签到任务规则  继续玩浪漫餐厅当前进度0，总进度3 完成9个订单必得2000肥  逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000  看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥  去庄园喂鸡当前进度0，总进度1 完成喂鸡可得300肥 限时游戏试玩福利 访问即得，最多3500肥(0/3500) 【福利】试玩热门新游 访问必得500 - 3500肥(0/3500)  任意充值得100000肥当前进度0，总进度1 去向僵尸开炮充值可领  砸蛋10次得3000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会  逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥  逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金  去淘宝农场得肥料当前进度0，总进度1 得2100肥，打开即得 蚂蚁庄园小鸡肥料 小鸡们产的肥料  逛一逛快手当前进度0，总进度1 成功打开得1200肥料  钓鱼1次当前进度0，总进度1 得1000肥，钓1次即得  去森林寻宝抽能量当前进度0，总进度1 限时翻倍！奖励300肥料 去森林领落叶肥料 收落叶即得300肥料  天天分享得肥料当前进度0，总进度5 每天最多可获10000肥  合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥  逛一逛芝麻粒当前进度0，总进度1 奖励100肥料  逛一逛支付宝会员当前进度0，总进度1 奖励100肥料  逛一逛手机充值金频道当前进度0，总进度1 可得100肥料  逛一逛领淘宝红包当前进度0，总进度1 奖励100肥料  逛一逛菜鸟领好礼当前进度0，总进度1 成功打开app得100肥料  帮帮种组队当前进度0，总进度1 得5000肥，需队伍达2人  逛一逛淘宝闪购当前进度0，总进度1 奖励100肥料  逛淘宝看视频领现金当前进度0，总进度1 奖励100肥料  逛助农好货得肥料当前进度0，总进度1 浏览15秒助农专场，得100肥料 点击立得，最高3500肥 农场集结，植物大战史莱姆(0/3500)  逛一逛金豆乐园当前进度0，总进度1 访问即得200肥 玩一玩疯狂水世界 可得5000肥(0/5000)  花园世界完成10居民订单当前进度0，总进度1 完成可得1500肥 玩一玩烈焰觉醒 可得5000肥(0/5000) 玩一玩三国大冒险 可得5000肥(0/5000) 玩一玩时尚百货城 可得5000肥(0/5000)  到店支付1笔得100肥当前进度0，总进度1 今晚24点前可领奖 前往手机淘宝-芭芭农场 ', buttonText='', containerFound=true
+05:25:32.768 collectTaskContextText: result='做任务集肥料 关闭做任务集肥料弹窗 已领取 连续签到任务规则  继续玩浪漫餐厅当前进度0，总进度3 完成9个订单必得2000肥  逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000  看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥  去庄园喂鸡当前进度0，总进度1 完成喂鸡可得300肥 限时游戏试玩福利 访问即得，最多3500肥(0/3500) 【福利】试玩热门新游 访问必得500 - 3500肥(0/3500)  任意充值得100000肥当前进度0，总进度1 去向僵尸开炮充值可领  砸蛋10次得3000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会  逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥  逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金  去淘宝农场得肥料当前进度0，总进度1 得2100肥，打开即得 蚂蚁庄园小鸡肥料 小鸡们产的肥料  逛一逛快手当前进度0，总进度1 成功打开得1200肥料  钓鱼1次当前进度0，总进度1 得1000肥，钓1次即得  去森林寻宝抽能量当前进度0，总进度1 限时翻倍！奖励300肥料 去森林领落叶肥料 收落叶即得300肥料  天天分享得肥料当前进度0，总进度5 每天最多可获10000肥  合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥  逛一逛芝麻粒当前进度0，总进度1 奖励100肥料  逛一逛支付宝会员当前进度0，总进度1 奖励100肥料  逛一逛手机充值金频道当前进度0，总进度1 可得100肥料  逛一逛领淘宝红包当前进度0，总进度1 奖励100肥料  逛一逛菜鸟领好礼当前进度0，总进度1 成功打开app得100肥料  帮帮种组队当前进度0，总进度1 得5000肥，需队伍达2人  逛一逛淘宝闪购当前进度0，总进度1 奖励100肥料  逛淘宝看视频领现金当前进度0，总进度1 奖励100肥料  逛助农好货得肥料当前进度0，总进度1 浏览15秒助农专场，得100肥料 点击立得，最高3500肥 农场集结，植物大战史莱姆(0/3500)  逛一逛金豆乐园当前进度0，总进度1 访问即得200肥 玩一玩疯狂水世界 可得5000肥(0/5000)  花园世界完成10居民订单当前进度0，总进度1 完成可得1500肥 玩一玩烈焰觉醒 可得5000肥(0/5000) 玩一玩三国大冒险 可得5000肥(0/5000) 玩一玩时尚百货城 可得5000肥(0/5000)  到店支付1笔得100肥当前进度0，总进度1 今晚24点前可领奖 前往手机淘宝-芭芭农场 ', buttonText='', containerFound=true
+05:25:32.871 collectTaskContextText: result='', buttonText='', containerFound=true
+05:25:32.942 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:32.948 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:32.958 collectTaskContextText: result='已领取 连续签到任务规则  继续玩浪漫餐厅当前进度0，总进度3 完成9个订单必得2000肥 去完成  逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000 去完成  看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥 去完成  去庄园喂鸡当前进度0，总进度1 完成喂鸡可得300肥 去完成 限时游戏试玩福利 访问即得，最多3500肥(0/3500) 去完成 【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成  任意充值得100000肥当前进度0，总进度1 去向僵尸开炮充值可领 去完成  砸蛋10次得3000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成  逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥 去完成  逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金 去完成  去淘宝农场得肥料当前进度0，总进度1 得2100肥，打开即得 去逛逛 蚂蚁庄园小鸡肥料 小鸡们产的肥料 去喂鸡  逛一逛快手当前进度0，总进度1 成功打开得1200肥料 去完成  钓鱼1次当前进度0，总进度1 得1000肥，钓1次即得 去完成  去森林寻宝抽能量当前进度0，总进度1 限时翻倍！奖励300肥料 去完成 去森林领落叶肥料 收落叶即得300肥料 去完成  天天分享得肥料当前进度0，总进度5 每天最多可获10000肥 去分享  合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥 去完成  逛一逛芝麻粒当前进度0，总进度1 奖励100肥料 去逛逛  逛一逛支付宝会员当前进度0，总进度1 奖励100肥料 去逛逛  逛一逛手机充值金频道当前进度0，总进度1 可得100肥料 去完成  逛一逛领淘宝红包当前进度0，总进度1 奖励100肥料 去完成  逛一逛菜鸟领好礼当前进度0，总进度1 成功打开app得100肥料 去完成  帮帮种组队当前进度0，总进度1 得5000肥，需队伍达2人 去邀请  逛一逛淘宝闪购当前进度0，总进度1 奖励100肥料 去完成  逛淘宝看视频领现金当前进度0，总进度1 奖励100肥料 去完成  逛助农好货得肥料当前进度0，总进度1 浏览15秒助农专场，得100肥料 去完成 点击立得，最高3500肥 农场集结，植物大战史莱姆(0/3500) 去完成  逛一逛金豆乐园当前进度0，总进度1 访问即得200肥 去完成 玩一玩疯狂水世界 可得5000肥(0/5000) 去完成  花园世界完成10居民订单当前进度0，总进度1 完成可得1500肥 去完成 玩一玩烈焰觉醒 可得5000肥(0/5000) 去完成 玩一玩三国大冒险 可得5000肥(0/5000) 去完成 玩一玩时尚百货城 可得5000肥(0/5000) 去完成  到店支付1笔得100肥当前进度0，总进度1 今晚24点前可领奖 去完成 前往手机淘宝-芭芭农场 ', buttonText='已领取', containerFound=true
+05:25:32.994 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:32.997 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity text='' desc=''
+05:25:33.081 collectTaskContextText: result='', buttonText='', containerFound=false
+05:25:33.092 isOnFarmPage: no farm content, sample=[松开刷新, 返回, ]
+05:25:33.147 collectTaskContextText: result='', buttonText='', containerFound=false
+05:25:33.220 collectTaskContextText: result='', buttonText='已领取', containerFound=false
+05:25:33.278 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:25:33.334 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:25:33.400 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:25:33.467 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:25:34.096 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:25:34.117 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:25:34.235 collectTaskContextText: result='', buttonText='null', containerFound=true
+05:25:34.350 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:25:34.436 collectTaskContextText: result='', buttonText='null', containerFound=true
+05:25:34.534 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:34.588 collectTaskContextText: result='', buttonText='null', containerFound=true
+05:25:34.631 collectTaskContextText: result='', buttonText='', containerFound=true
+05:25:34.776 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:34.837 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='浏览得奖励' desc=''
+05:25:34.844 collectTaskContextText: result='前方拥堵 刷新试试 ', buttonText='', containerFound=true
+05:25:34.905 collectTaskContextText: result='浏览得奖励 ', buttonText='浏览得奖励', containerFound=true
+05:25:34.938 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:34.956 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:35.024 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:25:35.093 collectTaskContextText: result='前方拥堵 刷新试试 ', buttonText='', containerFound=true
+05:25:39.478 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:39.510 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity text='' desc=''
+05:25:40.878 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+05:25:40.895 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+05:25:40.980 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:25:41.476 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:25:41.535 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:41.541 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:41.591 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:41.618 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity text='' desc=''
+05:25:41.679 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:25:41.689 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:25:41.804 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:25:41.967 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:25:41.983 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:41.989 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:25:42.023 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:25:42.149 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:42.206 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:25:42.413 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:25:42.541 collectTaskContextText: result='', buttonText='null', containerFound=true
+05:25:42.557 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:42.598 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='浏览得奖励' desc=''
+05:25:42.635 collectTaskContextText: result='', buttonText='null', containerFound=true
+05:25:42.687 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:42.731 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:42.739 collectTaskContextText: result='', buttonText='null', containerFound=true
+05:25:42.812 collectTaskContextText: result='', buttonText='', containerFound=true
+05:25:42.882 collectTaskContextText: result='', buttonText='', containerFound=true
+05:25:42.944 collectTaskContextText: result='', buttonText='', containerFound=true
+05:25:43.006 collectTaskContextText: result='前方拥堵 刷新试试 ', buttonText='', containerFound=true
+05:25:43.068 collectTaskContextText: result='浏览得奖励 ', buttonText='浏览得奖励', containerFound=true
+05:25:43.191 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:25:43.264 collectTaskContextText: result='前方拥堵 刷新试试 ', buttonText='', containerFound=true
+05:25:43.932 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:43.984 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity text='' desc=''
+05:25:45.204 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+05:25:45.215 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+05:25:45.317 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:25:45.550 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:25:50.688 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+05:25:50.797 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+05:25:54.118 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:54.285 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:54.435 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:54.604 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:54.770 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:54.922 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:56.883 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:56.893 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:56.981 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:57.004 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity text='' desc=''
+05:25:57.061 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:57.523 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:25:57.526 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:25:57.555 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:25:57.772 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:57.777 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:57.780 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:57.784 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='蚂蚁庄园' desc=''
+05:25:57.787 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc='关闭'
+05:25:57.891 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:57.897 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:58.295 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+05:25:58.299 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+05:25:58.490 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:58.496 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:25:58.508 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Image text='' desc=''
+05:25:59.307 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:59.420 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.ViewFlipper text='' desc=''
+05:25:59.554 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:59.565 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.eg.android.AlipayGphone.AlipayLogin text='' desc=''
+05:25:59.679 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:25:59.844 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+05:25:59.961 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:26:00.078 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+05:26:00.180 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc='搜索框'
+05:26:00.295 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:26:01.191 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.ImageView text='' desc=''
+05:26:01.277 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc='首页'
+05:26:01.395 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc='首页'
+05:26:01.513 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:26:01.626 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+05:26:01.709 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+05:26:04.208 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:26:04.326 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+05:26:04.425 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.support.v7.widget.RecyclerView text='' desc=''
+05:26:06.999 isOnFarmPage: no farm content, sample=[松开刷新, 深圳, 多云 26℃, 搜索框, 搜索, 万兴科技, 更多操作, ]
+05:26:15.102 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+05:26:15.203 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+05:26:16.564 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:16.663 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:16.748 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:16.915 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:16.933 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+05:26:16.947 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:26:17.017 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:17.128 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:17.283 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:17.287 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='前往手机淘宝-芭芭农场' desc=''
+05:26:17.445 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='已领取' desc=''
+05:26:17.448 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:17.451 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Image text='A*BlpJRJYmMOEAAAAAAAAAAAAAARQnAQ' desc=''
+05:26:17.461 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:26:17.561 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='已领取' desc=''
+05:26:18.961 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:18.976 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:18.994 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='前往手机淘宝-芭芭农场' desc=''
+05:26:18.998 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:19.010 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:26:19.126 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:19.294 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:19.462 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:19.942 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:20.108 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:20.275 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:20.424 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:20.576 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:20.742 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:20.890 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:21.057 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:21.226 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:21.395 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:21.560 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:23.796 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:26:23.802 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:26:23.863 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:26:23.884 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity text='' desc=''
+05:26:24.104 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc='关闭'
+05:26:24.203 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:26:24.289 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:26:24.301 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:26:24.384 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:26:24.492 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:24.663 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+05:26:24.717 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:26:24.784 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+05:26:25.128 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:25.132 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:25.142 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:25.145 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:26:25.228 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:25.705 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:25.718 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='. 元 10元 仅差4947.29斤鱼>' desc=''
+05:26:25.724 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:26:25.812 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='. 元 10元 仅差4947.29斤鱼>' desc=''
+05:26:25.945 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:25.966 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='福气鱼塘' desc=''
+05:26:25.970 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='查看领取更多钓竿' desc=''
+05:26:25.974 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='福气鱼塘' desc=''
+05:26:26.189 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='. 元 10元 仅差4947.29斤鱼>' desc=''
+05:26:26.194 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:26.360 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:26.566 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:28.015 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+05:26:28.116 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+05:26:28.732 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:26:28.742 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:28.917 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:28.930 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:29.078 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:29.095 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:26:29.196 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:30.512 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Image text='' desc=''
+05:26:30.615 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Image text='' desc=''
+05:26:31.055 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:26:31.228 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:31.232 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:26:31.408 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:26:39.656 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:26:41.818 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:26:42.068 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:42.076 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:42.087 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:42.090 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:26:42.165 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:42.261 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:26:42.276 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:42.495 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:26:42.526 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:26:42.569 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:26:42.587 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:42.694 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:42.798 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:42.809 isOnFarmPage: no farm content, sample=[福气鱼塘, . 元 10元 仅差4947.29斤鱼>, 前往查看更多动态, 明日钓竿x1, 查看领取更多钓竿, 恭喜！钓到超大鱼了, 灯笼鱼, 14.16斤(≈0.014元)]
+05:26:42.898 collectTaskContextText: result='', buttonText='', containerFound=false
+05:26:42.907 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:43.009 collectTaskContextText: result='', buttonText='', containerFound=false
+05:26:43.078 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:43.118 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+05:26:43.134 collectTaskContextText: result='', buttonText='', containerFound=false
+05:26:43.176 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:43.291 collectTaskContextText: result='', buttonText='', containerFound=false
+05:26:43.431 collectTaskContextText: result='', buttonText='', containerFound=false
+05:26:43.594 collectTaskContextText: result='', buttonText='', containerFound=false
+05:26:43.689 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:26:43.712 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+05:26:43.717 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='14.16斤(≈0.014元)' desc=''
+05:26:43.751 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:43.848 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:43.958 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:44.087 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:44.255 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:44.369 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:44.461 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:44.572 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='关闭' desc=''
+05:26:44.579 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:26:44.595 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:44.670 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='关闭' desc=''
+05:26:44.740 collectTaskContextText: result='', buttonText='', containerFound=false
+05:26:44.850 collectTaskContextText: result='', buttonText='', containerFound=false
+05:26:44.886 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='. 元 10元 仅差4933.13斤鱼>' desc=''
+05:26:44.889 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:44.896 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:44.901 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:26:44.980 collectTaskContextText: result='', buttonText='', containerFound=false
+05:26:44.991 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='. 元 10元 仅差4933.13斤鱼>' desc=''
+05:26:45.058 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:45.074 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.app.Dialog text='' desc=''
+05:26:45.078 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:26:45.106 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='. 元 10元 仅差4933.13斤鱼>' desc=''
+05:26:45.148 collectTaskContextText: result='', buttonText='蚂蚁庄园', containerFound=false
+05:26:45.158 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:45.276 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:45.343 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:26:45.458 collectTaskContextText: result='', buttonText='', containerFound=false
+05:26:45.643 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:45.792 collectTaskContextText: result='', buttonText='', containerFound=false
+05:26:45.822 isOnFarmPage: no farm content, sample=[福气鱼塘, . 元 10元 仅差4933.13斤鱼>, 前往查看更多动态, 明日钓竿x1, 再钓2次, 钓竿+1, 查看领取更多钓竿, 返回]
+05:26:45.878 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='. 元 10元 仅差4933.13斤鱼>' desc=''
+05:26:45.932 collectTaskContextText: result='', buttonText='', containerFound=false
+05:26:46.063 collectTaskContextText: result='', buttonText='', containerFound=false
+05:26:46.223 collectTaskContextText: result='', buttonText='', containerFound=false
+05:26:46.347 collectTaskContextText: result='', buttonText='', containerFound=false
+05:26:46.466 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:46.610 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:46.679 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:46.791 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:46.929 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:47.074 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:47.207 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:47.341 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:47.481 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:47.639 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:47.789 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:47.895 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:47.933 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:48.066 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:48.223 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:48.362 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:48.791 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+05:26:48.831 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity text='' desc=''
+05:26:48.952 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=com.alipay.mywebview.sdk.WebView text='' desc=''
+05:26:49.461 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text=' 钓鱼1次当前进度1，总进度1 得1000肥，钓1次即得' desc=''
+05:26:49.477 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='领取' desc=''
+05:26:49.484 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+05:26:49.576 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text=' 钓鱼1次当前进度1，总进度1 得1000肥，钓1次即得' desc=''
+05:26:50.261 findBrowseRewardCountdownHint: found '逛好物最高得3000肥当前进度0，总进度1 逛15s最高得2000，找肥再得1000', seconds=15
+05:26:50.295 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:50.442 hasBrowseRewardProgressHint: found progress hint '看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥'
+05:26:50.531 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:50.785 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:51.021 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:51.222 collectTaskContextText: result='', buttonText='null', containerFound=false
+05:26:52.372 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='继续钓' desc=''
+05:26:52.378 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:52.473 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='继续钓' desc=''
+05:26:55.336 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='关闭做任务集肥料弹窗' desc=''
+05:26:55.454 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='' desc=''
+05:26:55.503 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+05:26:55.675 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
