@@ -1,0 +1,21 @@
+06:00:38.597 === 录制开始 session=sess_1784066438595 name='流程8590' ===
+06:00:38.825 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差4次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 芭芭农场,种果树得水果，助农增收) → 尝试 OCR 兜底
+06:00:39.004 [start] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='provider_exception:IllegalArgumentException:Unknown authority com.bbncbot.ocr.provider' ocrProviderBuild='' (无障碍和OCR均未识别到肥料总数)
+06:00:48.793 CLICK_H5 type=0x800 target='前往手机淘宝-芭芭农场' sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=还差4次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差4次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 寻道大千,三国冰河,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:00:48.796 RECORD sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=还差4次领肥料|fertStruct=c=V|n=2|ch=V,TV' category='支付宝-浏览任务-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON target='前往手机淘宝-芭芭农场' state=IDLE btns=[任务列表,农场乐园入口,还差4次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 寻道大千,三国冰河,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:00:48.797 AUTO_CREATE name='支付宝-浏览任务-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON session=sess_1784066438595 step=0 sig='p=ALIPAY|farm=true|type=browse|countdown=no|progress=yes|fertTask=还差4次领肥料|fertStruct=c=V|n=2|ch=V,TV'
+06:00:48.798 RECORD_INC unmapped recordedCount=1 thread=RecordingManager-worker
+06:00:49.111 CLICK_H5 type=0x800 target='已领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差4次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差4次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 寻道大千,三国冰河,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:00:49.115 MATCHED name='支付宝-浏览任务-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON
+06:00:49.116 RECORD_INC matched recordedCount=2 thread=RecordingManager-worker
+06:00:49.629 CLICK_H5 type=0x800 target='A*BlpJRJYmMOEAAAAAAAAAAAAAARQnAQ' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差4次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差4次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 寻道大千,三国冰河,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:00:49.631 MATCHED name='支付宝-浏览任务-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON
+06:00:49.632 RECORD_INC matched recordedCount=3 thread=RecordingManager-worker
+06:00:50.811 CLICK_H5 type=0x800 target='前往手机淘宝-芭芭农场' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差4次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差4次领肥料,切换摇钱树,逛农货,我的收获,钓红包,亲友树 合种/帮种,得1000肥 寻道大千,三国冰河,向僵尸开炮,返回,支付宝·芭芭农场,更多,关闭]
+06:00:50.813 MATCHED name='支付宝-浏览任务-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON
+06:00:50.814 RECORD_INC matched recordedCount=4 thread=RecordingManager-worker
+06:00:51.529 STOP_ENTER recordedCount=4 thread=main autoStop=false sessId=sess_1784066438595
+06:00:51.593 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差4次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 芭芭农场,种果树得水果，助农增收) → 尝试 OCR 兜底
+06:00:51.708 [stop] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='provider_exception:IllegalArgumentException:Unknown authority com.bbncbot.ocr.provider' ocrProviderBuild='' (无障碍和OCR均未识别到肥料总数)
+06:00:51.709 === 录制结束 session=sess_1784066438595 → '支付宝-还差4次领肥料' SAVE reason=肥料读取失败回退保存(initial=-1 final=-1) steps=4 ===
+06:00:51.709 LOG_UPLOAD_RESULT n=0 tag=sess_438595 detail=未配置 GitHub Token，跳过上传。请在上方输入框填入 Token 后点保存。
