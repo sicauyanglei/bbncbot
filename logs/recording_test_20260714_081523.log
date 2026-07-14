@@ -1,0 +1,7 @@
+=== recording.log cleared on app start (version=2.1/12 build=build443-e75a700, time=08:14:40.140) ===
+08:14:47.809 === 录制开始 session=sess_1783988087808 name='流程7805' ===
+08:14:47.809 [start] FERTILIZER_READ_FAIL reason=service_null (无障碍服务未连接)
+08:15:13.351 STOP_ENTER recordedCount=0 thread=main autoStop=false sessId=sess_1783988087808
+08:15:13.357 [stop] FERTILIZER_READ_FAIL reason=service_null (无障碍服务未连接)
+08:15:13.365 === 录制结束 session=sess_1783988087808 DISCARD reason=未录制任何操作(steps=0) steps=0 autoStop=false ===
+08:15:13.366 LOG_UPLOAD_SKIP reason=service_null (无障碍服务未连接)
