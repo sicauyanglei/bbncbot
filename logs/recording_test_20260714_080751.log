@@ -1,0 +1,40 @@
+=== recording.log cleared on app start (version=2.1/12 build=build432-2a87dbe, time=08:06:59.337) ===
+08:07:15.054 === 录制开始 session=sess_1783987635052 name='流程5040' ===
+08:07:15.335 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=parse_failed (找到施肥按钮但自身/父节点/子树/整页均无'肥料XXXX'格式；text='施肥19次' desc=''；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差1次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 施肥19次) → 尝试 OCR 兜底
+08:07:15.455 [start] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='provider_exception:IllegalArgumentException:Unknown authority com.bbncbot.ocr.provider' ocrProviderBuild='' (无障碍和OCR均未识别到肥料总数)
+08:07:23.124 CLICK_H5 type=0x800 target='前往手机淘宝-芭芭农场' sig='p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|fertTask=还差1次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差1次领肥料,切换摇钱树,逛农货,我的收获,施肥19次,邀请,钓红包,最近在玩 灵魂序章,寻道大千,冒险大作战,关闭做任务集肥料弹窗,连续签到任务规则,继续逛,去完成,已领取,去逛逛,去喂鸡,去分享]
+08:07:23.126 MATCHED name='支付宝-浏览任务-红包弹窗-点击全部' action=CLICK_BUTTON
+08:07:23.127 RECORD_INC matched recordedCount=1 thread=RecordingManager-worker
+08:07:23.290 CLICK_H5 type=0x800 target='已领取' sig='p=ALIPAY|farm=true|type=farm_home|popup=red_packet|countdown=no|progress=no|fertTask=还差1次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差1次领肥料,切换摇钱树,逛农货,我的收获,施肥19次,邀请,钓红包,最近在玩 灵魂序章,寻道大千,冒险大作战,关闭做任务集肥料弹窗,连续签到任务规则,继续逛,去完成,已领取,去逛逛,去喂鸡,去分享]
+08:07:23.291 MATCHED name='支付宝-浏览任务-红包弹窗-点击全部' action=CLICK_BUTTON
+08:07:23.292 RECORD_INC matched recordedCount=2 thread=RecordingManager-worker
+08:07:26.472 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=关闭,更多,蚂蚁森林,返回' btns=[返回,蚂蚁森林,更多,关闭]
+08:07:26.474 MATCHED name='支付宝-未知页-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON
+08:07:26.475 RECORD_INC matched recordedCount=3 thread=RecordingManager-worker
+08:07:26.815 CLICK_H5 type=0x800 target='关闭' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=你每养成一棵树，我们就为你种下一棵真树 蚂蚁森林 & 支付宝公益,保护地,公益林,关闭,切换为个人版,合种,更多,森林集市,神奇海洋,神奇物种,蚂蚁森林,设置,返回|task=更多  更多 关闭 ' btns=[切换为个人版,设置,神奇海洋,神奇物种,保护地,森林集市,合种,公益林,你每养成一棵树，我们就为你种下一棵真树 蚂蚁森林 & 支付宝公益,返回,蚂蚁森林,更多,关闭]
+08:07:26.816 RECORD sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=你每养成一棵树，我们就为你种下一棵真树 蚂蚁森林 & 支付宝公益,保护地,公益林,关闭,切换为个人版,合种,更多,森林集市,神奇海洋,神奇物种,蚂蚁森林,设置,返回|task=更多  更多 关闭 ' category='支付宝-更多  更多 关闭 -点击关闭' action=CLICK_BUTTON target='关闭' state=IDLE btns=[切换为个人版,设置,神奇海洋,神奇物种,保护地,森林集市,合种,公益林,你每养成一棵树，我们就为你种下一棵真树 蚂蚁森林 & 支付宝公益,返回,蚂蚁森林,更多,关闭]
+08:07:26.818 AUTO_CREATE name='支付宝-更多  更多 关闭 -点击关闭' action=CLICK_BUTTON session=sess_1783987635052 step=3 sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=你每养成一棵树，我们就为你种下一棵真树 蚂蚁森林 & 支付宝公益,保护地,公益林,关闭,切换为个人版,合种,更多,森林集市,神奇海洋,神奇物种,蚂蚁森林,设置,返回|task=更多  更多 关闭 '
+08:07:26.821 RECORD_INC unmapped recordedCount=4 thread=RecordingManager-worker
+08:07:27.934 CLICK_H5 type=0x800 target='蚂蚁森林' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=1 能量雨,你是真厉害,你每养成一棵树，我们就为你种下一棵真树 蚂蚁森林 & 支付宝公益,你还未设置放话,保护地,公益林,切换为个人版,去看全部,吃很多的吃货 (PK森友) 用能量双击卡收取1g 06-29,吃很多的吃货 (PK森友) 用能量双击卡收取4g 06-29,合种,放话,森林集市,消消来解压,真爱合种,神奇海洋,神奇物种,蚂蚁森林,设置,返回|task=蚂蚁森林' btns=[切换为个人版,设置,消消来解压,你是真厉害,神奇海洋,神奇物种,1 能量雨,森林集市,真爱合种,保护地,合种,公益林,去看全部,吃很多的吃货 (PK森友) 用能量双击卡收取4g 06-29,吃很多的吃货 (PK森友) 用能量双击卡收取1g 06-29,你还未设置放话,放话,你每养成一棵树，我们就为你种下一棵真树 蚂蚁森林 & 支付宝公益,返回,蚂蚁森林]
+08:07:27.936 RECORD sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=1 能量雨,你是真厉害,你每养成一棵树，我们就为你种下一棵真树 蚂蚁森林 & 支付宝公益,你还未设置放话,保护地,公益林,切换为个人版,去看全部,吃很多的吃货 (PK森友) 用能量双击卡收取1g 06-29,吃很多的吃货 (PK森友) 用能量双击卡收取4g 06-29,合种,放话,森林集市,消消来解压,真爱合种,神奇海洋,神奇物种,蚂蚁森林,设置,返回|task=蚂蚁森林' category='支付宝-蚂蚁森林-点击蚂蚁森林' action=CLICK_BUTTON target='蚂蚁森林' state=IDLE btns=[切换为个人版,设置,消消来解压,你是真厉害,神奇海洋,神奇物种,1 能量雨,森林集市,真爱合种,保护地,合种,公益林,去看全部,吃很多的吃货 (PK森友) 用能量双击卡收取4g 06-29,吃很多的吃货 (PK森友) 用能量双击卡收取1g 06-29,你还未设置放话,放话,你每养成一棵树，我们就为你种下一棵真树 蚂蚁森林 & 支付宝公益,返回,蚂蚁森林]
+08:07:27.938 AUTO_CREATE name='支付宝-蚂蚁森林-点击蚂蚁森林' action=CLICK_BUTTON session=sess_1783987635052 step=4 sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=1 能量雨,你是真厉害,你每养成一棵树，我们就为你种下一棵真树 蚂蚁森林 & 支付宝公益,你还未设置放话,保护地,公益林,切换为个人版,去看全部,吃很多的吃货 (PK森友) 用能量双击卡收取1g 06-29,吃很多的吃货 (PK森友) 用能量双击卡收取4g 06-29,合种,放话,森林集市,消消来解压,真爱合种,神奇海洋,神奇物种,蚂蚁森林,设置,返回|task=蚂蚁森林'
+08:07:27.939 RECORD_INC unmapped recordedCount=5 thread=RecordingManager-worker
+08:07:29.984 CLICK_H5 type=0x800 target='蚂蚁森林' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=1 能量雨,你是真厉害,你每养成一棵树，我们就为你种下一棵真树 蚂蚁森林 & 支付宝公益,你还未设置放话,保护地,公益林,切换为个人版,去看全部,吃很多的吃货 (PK森友) 用能量双击卡收取1g 06-29,吃很多的吃货 (PK森友) 用能量双击卡收取4g 06-29,合种,放话,森林集市,消消来解压,真爱合种,神奇海洋,神奇物种,蚂蚁森林,设置,返回|task=蚂蚁森林' btns=[切换为个人版,设置,消消来解压,你是真厉害,神奇海洋,神奇物种,1 能量雨,森林集市,真爱合种,保护地,合种,公益林,去看全部,吃很多的吃货 (PK森友) 用能量双击卡收取4g 06-29,吃很多的吃货 (PK森友) 用能量双击卡收取1g 06-29,你还未设置放话,放话,你每养成一棵树，我们就为你种下一棵真树 蚂蚁森林 & 支付宝公益,返回,蚂蚁森林]
+08:07:29.985 MATCHED name='支付宝-蚂蚁森林-点击蚂蚁森林' action=CLICK_BUTTON
+08:07:29.986 RECORD_INC matched recordedCount=6 thread=RecordingManager-worker
+08:07:39.213 CLICK_H5 type=0x800 target='去领取' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差1次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差1次领肥料,切换摇钱树,逛农货,我的收获,施肥19次,邀请,钓红包,得1000肥 小小英雄,浪漫餐厅,几何王国,关闭,返回,支付宝·芭芭农场,更多]
+08:07:39.214 MATCHED name='支付宝-浏览任务-红包弹窗-点击全部' action=CLICK_BUTTON
+08:07:39.215 RECORD_INC matched recordedCount=7 thread=RecordingManager-worker
+08:07:39.888 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差1次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差1次领肥料,切换摇钱树,逛农货,我的收获,施肥19次,邀请,钓红包,得1000肥 小小英雄,浪漫餐厅,几何王国,关闭,返回,支付宝·芭芭农场,更多]
+08:07:39.889 MATCHED name='支付宝-浏览任务-红包弹窗-点击全部' action=CLICK_BUTTON
+08:07:39.889 RECORD_INC matched recordedCount=8 thread=RecordingManager-worker
+08:07:40.004 CLICK_H5 type=0x800 target='关闭' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差1次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差1次领肥料,切换摇钱树,逛农货,我的收获,施肥19次,邀请,钓红包,得1000肥 小小英雄,浪漫餐厅,几何王国,关闭,返回,支付宝·芭芭农场,更多]
+08:07:40.004 MATCHED name='支付宝-浏览任务-红包弹窗-点击全部' action=CLICK_BUTTON
+08:07:40.005 RECORD_INC matched recordedCount=9 thread=RecordingManager-worker
+08:07:40.956 CLICK_H5 type=0x800 target='支付宝·芭芭农场' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|fertTask=还差1次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差1次领肥料,切换摇钱树,逛农货,我的收获,施肥19次,邀请,钓红包,得1000肥 小小英雄,浪漫餐厅,几何王国,关闭,返回,支付宝·芭芭农场,更多]
+08:07:40.957 MATCHED name='支付宝-浏览任务-红包弹窗-点击全部' action=CLICK_BUTTON
+08:07:40.958 RECORD_INC matched recordedCount=10 thread=RecordingManager-worker
+08:07:45.524 STOP_ENTER recordedCount=10 thread=main autoStop=false sessId=sess_1783987635052
+08:07:45.628 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=parse_failed (找到施肥按钮但自身/父节点/子树/整页均无'肥料XXXX'格式；text='施肥19次' desc=''；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差1次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 施肥19次) → 尝试 OCR 兜底
+08:07:45.708 [stop] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='provider_exception:IllegalArgumentException:Unknown authority com.bbncbot.ocr.provider' ocrProviderBuild='' (无障碍和OCR均未识别到肥料总数)
+08:07:45.713 === 录制结束 session=sess_1783987635052 → '支付宝-肥料任务' SAVE reason=肥料读取失败回退保存(initial=-1 final=-1) steps=10 ===
