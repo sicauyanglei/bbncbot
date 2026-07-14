@@ -23,15 +23,14 @@
     <uses-permission android:name="android.permission.GET_SHORTCUTS" />
 
     <!--
-        OCR 跨进程调用：改用 ContentProvider call() 方案
+        OCR 跨进程调用：ContentProvider call() 方案
         - OCR APK 提供 OcrContentProvider（authorities=com.bbncbot.ocr.provider）
         - 主 APK 通过 ContentResolver.call() 调用，不走 bindService
-        - signature 级权限保护：两个 APK 都声明 <permission>（同签名才可调用）
+        - 不用 signature 权限：之前 provider 声明 android:permission 导致
+          系统查找 provider 时预检查权限，权限未授予时 provider 被过滤
+          → Unknown authority（与 bindService 的权限陷阱同理）
+        - 安全由 OcrContentProvider.call() 内部包名白名单保证
     -->
-    <permission
-        android:name="com.bbncbot.ocr.permission.BIND_OCR"
-        android:protectionLevel="signature" />
-    <uses-permission android:name="com.bbncbot.ocr.permission.BIND_OCR" />
 
     <!-- 查询 OCR APK 是否已安装（Android 11+ 包可见性） -->
     <queries>

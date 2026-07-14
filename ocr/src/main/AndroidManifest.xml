@@ -2,17 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!--
-        signature 级权限保护 ContentProvider
-        - ContentProvider 的 android:permission 对 call() 也生效
-        - signature 级：只授予同签名 APK，第三方无法调用
-        - 注意：ContentProvider 权限不依赖"先定义后授予"机制
-          （不同于 Service 的 bindService 权限，Provider 权限在 query/call 时即时检查）
-    -->
-    <permission
-        android:name="com.bbncbot.ocr.permission.BIND_OCR"
-        android:protectionLevel="signature" />
-
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
@@ -36,14 +25,16 @@
             OCR ContentProvider
             - authorities: com.bbncbot.ocr.provider
             - exported=true：允许主 APK 跨进程调用
-            - android:permission：signature 级权限保护（同签名才可调用）
-            - 注意：不再需要 OcrService，删除 <service> 声明
+            - 不用 android:permission：signature 权限会导致系统在查找 provider 时
+              预检查调用方权限，若权限未授予（先定义后授予陷阱/签名差异），
+              provider 被过滤 → Unknown authority
+            - 安全由 OcrContentProvider.call() 内部包名白名单保证
+              (allowedCallers = setOf("com.bbncbot"))，非白名单直接返回 null
         -->
         <provider
             android:name=".OcrContentProvider"
             android:authorities="com.bbncbot.ocr.provider"
-            android:exported="true"
-            android:permission="com.bbncbot.ocr.permission.BIND_OCR" />
+            android:exported="true" />
 
     </application>
 
