@@ -43,6 +43,13 @@ object OcrProvider {
         private set
 
     /**
+     * full flavor 自带 OCR，无独立 OCR APK，构建标识字段保持空（与 noOcr flavor 接口一致）
+     */
+    @Volatile
+    var providerBuildLabel: String = ""
+        private set
+
+    /**
      * 肥料区域上下扩展的 padding（像素）
      *
      * 节点 bounds 可能只包含文本本身，扩展 padding 避免数字边缘被裁。

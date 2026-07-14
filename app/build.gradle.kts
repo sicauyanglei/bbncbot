@@ -13,6 +13,13 @@ android {
         targetSdk = 34
         versionCode = 12
         versionName = "2.1"
+        // 构建标识：CI 通过 -PBUILD_LABEL=build{number}-{sha} 注入
+        // 本地构建为 "local"，日志打印此字段可证明 APK 来源版本
+        buildConfigField(
+            "String",
+            "BUILD_LABEL",
+            "\"${project.findProperty("BUILD_LABEL") ?: "local"}\""
+        )
     }
 
     // release 签名（CI 用仓库内固定的 release.keystore，保证每次签名一致可覆盖安装）
@@ -63,6 +70,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 
     // ========== Build Flavors：OCR 架构 - 独立 OCR APK + ContentProvider 跨进程调用 ==========

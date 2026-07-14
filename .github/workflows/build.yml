@@ -96,11 +96,15 @@ jobs:
           echo "=== 编译前规则检查通过 ==="
 
       - name: Build APKs
-        # 同时构建主 APK（noOcr release，小包，AIDL 调用 OCR APK）和 OCR APK（独立模块）
+        # 同时构建主 APK（noOcr release，小包，ContentProvider 调用 OCR APK）和 OCR APK（独立模块）
         # 用户首次安装两个 APK，之后只更新主 APK，OCR 模块不变（除非 ML Kit 模型升级）
+        # 注入 BUILD_LABEL=build{run_number}-{short_sha}，写入 BuildConfig 供日志打印
         run: |
           set +e
-          ./gradlew assembleNoOcrRelease :ocr:assembleRelease --no-daemon --stacktrace 2>&1 | tee gradle-build.log
+          SHORT_SHA=${GITHUB_SHA::7}
+          BUILD_LABEL="build${{ github.run_number }}-${SHORT_SHA}"
+          echo "Building with BUILD_LABEL=$BUILD_LABEL"
+          ./gradlew assembleNoOcrRelease :ocr:assembleRelease --no-daemon --stacktrace -PBUILD_LABEL="$BUILD_LABEL" 2>&1 | tee gradle-build.log
           EXIT_CODE=${PIPESTATUS[0]}
           if [ "$EXIT_CODE" -ne 0 ]; then
             # Kotlin 编译错误格式: "e: file://...:line:col: error: message"
@@ -186,7 +190,16 @@ jobs:
 
             **后续更新**：只下载安装 `bbncbot-*.apk`（主应用），OCR 模块保持不变。
 
-            两个 APK 必须使用同一签名（release.keystore），主应用通过 AIDL 跨进程调用 OCR 模块。
+            两个 APK 必须使用同一签名（release.keystore），主应用通过 ContentProvider call() 跨进程调用 OCR 模块。
+
+            ## 版本标识
+
+            每个 APK 内嵌构建标识 `BUILD_LABEL`（格式 `build{number}-{commit_sha}`），可在以下位置查看：
+            - 主应用 recording.log 开头：`=== recording.log cleared on app start (version=... build=build431-9a82281 ...) ===`
+            - OCR 模块启动页显示"构建: build431-9a82281"
+            - 录制日志 OCR 相关行包含 `ocrProviderBuild='build431-9a82281'`
+
+            上传日志时请保留这些行，便于精准定位 APK 版本。
           files: |
             ${{ steps.rename.outputs.main_apk }}
             ${{ steps.rename.outputs.ocr_apk }}

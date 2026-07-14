@@ -40,7 +40,7 @@ class OcrContentProvider : ContentProvider() {
     private val allowedCallers = setOf("com.bbncbot")
 
     override fun onCreate(): Boolean {
-        Log.i(tag, "OcrContentProvider created")
+        Log.i(tag, "OcrContentProvider created build=${com.bbncbot.ocr.BuildConfig.BUILD_LABEL}")
         return true
     }
 
@@ -111,8 +111,15 @@ class OcrContentProvider : ContentProvider() {
         }
     }
 
-    private fun bundleResult(amount: Int): Bundle = Bundle().apply { putInt("result", amount) }
-    private fun bundleResult(text: String): Bundle = Bundle().apply { putString("result", text) }
+    private fun bundleResult(amount: Int): Bundle = Bundle().apply {
+        putInt("result", amount)
+        // 回带 OCR APK 构建标识，供主 APK 日志打印（验证 OCR APK 版本）
+        putString("providerBuild", com.bbncbot.ocr.BuildConfig.BUILD_LABEL)
+    }
+    private fun bundleResult(text: String): Bundle = Bundle().apply {
+        putString("result", text)
+        putString("providerBuild", com.bbncbot.ocr.BuildConfig.BUILD_LABEL)
+    }
 
     private fun recognizeSync(bitmap: android.graphics.Bitmap): Text? {
         val image = InputImage.fromBitmap(bitmap, 0)

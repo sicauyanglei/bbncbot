@@ -27,6 +27,7 @@ class MainActivity : AppCompatActivity() {
                 try {
                     val info = packageManager.getPackageInfo(packageName, 0)
                     append("版本: ${info.versionName} (${info.versionCode})\n")
+                    append("构建: ${com.bbncbot.ocr.BuildConfig.BUILD_LABEL}\n")
                 } catch (_: PackageManager.NameNotFoundException) {
                     append("版本: 未知\n")
                 }

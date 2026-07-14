@@ -9,12 +9,19 @@ android {
 
     defaultConfig {
         // 独立 applicationId，与主 APK 区分
-        // 主 APK 通过 bindService("com.bbncbot.ocr.action.RECOGNIZE") 连接此模块
+        // 主 APK 通过 ContentResolver.call() 调用此模块的 OcrContentProvider
         applicationId = "com.bbncbot.ocr"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+        // 构建标识：CI 通过 -PBUILD_LABEL=build{number}-{sha} 注入
+        // 本地构建为 "local"，响应 Bundle 中带回此字段供主 APK 日志打印
+        buildConfigField(
+            "String",
+            "BUILD_LABEL",
+            "\"${project.findProperty("BUILD_LABEL") ?: "local"}\""
+        )
     }
 
     // 与主 APK 用同一 release.keystore 签名：
@@ -55,6 +62,7 @@ android {
     }
 
     buildFeatures {
+        buildConfig = true
     }
 }
 

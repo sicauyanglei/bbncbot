@@ -393,10 +393,10 @@ object RecordingManager {
             }
             val ocrAmount = com.bbncbot.ocr.OcrProvider.findCurrentFertilizerAmount(service)
             if (ocrAmount >= 0) {
-                logToRecordingFile("[$tag] FERTILIZER_READ_OK amount=$ocrAmount (source=ocr)")
+                logToRecordingFile("[$tag] FERTILIZER_READ_OK amount=$ocrAmount (source=ocr ocrProviderBuild='${com.bbncbot.ocr.OcrProvider.providerBuildLabel}')")
                 return ocrAmount
             }
-            logToRecordingFile("[$tag] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=$ocrApkInstalled ocrError='${com.bbncbot.ocr.OcrProvider.lastError}' (无障碍和OCR均未识别到肥料总数)")
+            logToRecordingFile("[$tag] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=$ocrApkInstalled ocrError='${com.bbncbot.ocr.OcrProvider.lastError}' ocrProviderBuild='${com.bbncbot.ocr.OcrProvider.providerBuildLabel}' (无障碍和OCR均未识别到肥料总数)")
             -1
         } catch (e: Exception) {
             logToRecordingFile("[$tag] FERTILIZER_READ_FAIL reason=exception:${e.message}")
@@ -708,9 +708,10 @@ object RecordingManager {
                 @Suppress("DEPRECATION")
                 try { pm.getPackageInfo(context.packageName, 0).versionCode.toString() } catch (e: Exception) { "?" }
             }
-            // 清空并写入版本标识
-            file.writeText("=== recording.log cleared on app start (version=$versionName/$versionCode, time=${dateFormat.format(Date())}) ===\n")
-            Log.i(TAG, "recording.log cleared, version=$versionName/$versionCode")
+            // 清空并写入版本标识（含构建标识 build label，证明 APK 来源版本）
+            val buildLabel = com.bbncbot.BuildConfig.BUILD_LABEL
+            file.writeText("=== recording.log cleared on app start (version=$versionName/$versionCode build=$buildLabel, time=${dateFormat.format(Date())}) ===\n")
+            Log.i(TAG, "recording.log cleared, version=$versionName/$versionCode build=$buildLabel")
         } catch (e: Exception) {
             Log.w(TAG, "clearLogOnAppStart failed: ${e.message}")
         }

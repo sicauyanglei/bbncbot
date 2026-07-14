@@ -68,6 +68,18 @@ object OcrProvider {
         private set
 
     /**
+     * OCR APK 返回的构建标识（ContentProvider 响应 Bundle 中的 providerBuild 字段）
+     *
+     * 用于在主 APK 日志中证明设备上安装的 OCR APK 版本。
+     * - 成功调用 ContentProvider 后填充
+     * - 调用失败时为空字符串
+     * - 值如 "build431-9a82281" 或 "local"（本地构建的 OCR APK）
+     */
+    @Volatile
+    var providerBuildLabel: String = ""
+        private set
+
+    /**
      * 肥料区域上下扩展的 padding（像素）
      *
      * 节点 bounds 可能只包含文本本身，扩展 padding 避免数字边缘被裁。
@@ -89,6 +101,7 @@ object OcrProvider {
      */
     fun findCurrentFertilizerAmount(service: FarmAccessibilityService): Int {
         lastError = ""
+        providerBuildLabel = ""
         // 1. 检查 OCR APK 是否已安装
         if (!isOcrAppInstalled(service)) {
             lastError = "ocr_apk_not_installed"
@@ -214,12 +227,14 @@ object OcrProvider {
             val result = context.applicationContext.contentResolver.call(
                 uri, METHOD_RECOGNIZE_FERTILIZER, null, extras
             )
+            // 提取 OCR APK 构建标识（证明设备上安装的 OCR APK 版本）
+            providerBuildLabel = result?.getString("providerBuild") ?: ""
             val amount = result?.getInt("result", -1) ?: -1
             if (amount < 0) {
                 lastError = "recognize_returned_-1"
-                Log.d(TAG, "OCR Provider call returned -1")
+                Log.d(TAG, "OCR Provider call returned -1 (providerBuild=$providerBuildLabel)")
             } else {
-                Log.d(TAG, "OCR Provider call success: amount=$amount")
+                Log.d(TAG, "OCR Provider call success: amount=$amount (providerBuild=$providerBuildLabel)")
             }
             amount
         } catch (e: SecurityException) {
