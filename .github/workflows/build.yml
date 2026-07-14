@@ -1,9 +1,19 @@
 name: Build APK
 
 # 在线编译：推送到 main 或手动触发时自动编译 release APK 并发布到 Releases
+#
+# 触发规则：
+# - push 到 main 时触发，但忽略 logs/ rules/ sessions/ 目录的变化
+#   （这些目录由 App 上传日志/规则时自动写入，不是源码改动，不应触发构建）
+# - workflow_dispatch 支持手动触发
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'logs/**'
+      - 'rules/**'
+      - 'sessions/**'
+      - '*.md'
   workflow_dispatch:
 
 jobs:
