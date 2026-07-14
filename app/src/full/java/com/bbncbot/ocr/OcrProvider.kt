@@ -43,10 +43,11 @@ object OcrProvider {
         private set
 
     /**
-     * full flavor 自带 OCR，无独立 OCR APK，构建标识字段保持空（与 noOcr flavor 接口一致）
+     * full flavor 自带 OCR，构建标识来自 BuildConfig.BUILD_LABEL（与 noOcr flavor 接口一致）
+     * 日志打印此字段可证明主 APK 版本（full flavor 无独立 OCR APK）
      */
     @Volatile
-    var providerBuildLabel: String = ""
+    var providerBuildLabel: String = com.bbncbot.BuildConfig.BUILD_LABEL
         private set
 
     /**

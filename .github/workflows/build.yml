@@ -106,15 +106,17 @@ jobs:
           echo "=== 编译前规则检查通过 ==="
 
       - name: Build APKs
-        # 同时构建主 APK（noOcr release，小包，ContentProvider 调用 OCR APK）和 OCR APK（独立模块）
-        # 用户首次安装两个 APK，之后只更新主 APK，OCR 模块不变（除非 ML Kit 模型升级）
+        # 构建三种 APK：
+        # 1. noOcr release（小包，需配合 OCR APK 使用）
+        # 2. full release（自带 OCR，单 APK 即可工作，推荐给安装 OCR APK 有困难的用户）
+        # 3. OCR 模块（独立 APK，配合 noOcr 主包使用）
         # 注入 BUILD_LABEL=build{run_number}-{short_sha}，写入 BuildConfig 供日志打印
         run: |
           set +e
           SHORT_SHA=${GITHUB_SHA::7}
           BUILD_LABEL="build${{ github.run_number }}-${SHORT_SHA}"
           echo "Building with BUILD_LABEL=$BUILD_LABEL"
-          ./gradlew assembleNoOcrRelease :ocr:assembleRelease --no-daemon --stacktrace -PBUILD_LABEL="$BUILD_LABEL" 2>&1 | tee gradle-build.log
+          ./gradlew assembleNoOcrRelease assembleFullRelease :ocr:assembleRelease --no-daemon --stacktrace -PBUILD_LABEL="$BUILD_LABEL" 2>&1 | tee gradle-build.log
           EXIT_CODE=${PIPESTATUS[0]}
           if [ "$EXIT_CODE" -ne 0 ]; then
             # Kotlin 编译错误格式: "e: file://...:line:col: error: message"
@@ -135,12 +137,13 @@ jobs:
           retention-days: 7
 
       - name: Verify APK signatures
-        # 验证两个 APK 都已正确签名（含 v1 JAR 签名），且使用同一 keystore（signature 级权限要求）
+        # 验证三个 APK 都已正确签名（含 v1 JAR 签名），且使用同一 keystore（signature 级权限要求）
         run: |
           set -e
           MAIN_APK=app/build/outputs/apk/noOcr/release/app-noOcr-release.apk
+          FULL_APK=app/build/outputs/apk/full/release/app-full-release.apk
           OCR_APK=ocr/build/outputs/apk/release/ocr-release.apk
-          for APK in "$MAIN_APK" "$OCR_APK"; do
+          for APK in "$MAIN_APK" "$FULL_APK" "$OCR_APK"; do
             if [ ! -f "$APK" ]; then
               echo "::error::APK 不存在: $APK"
               exit 1
@@ -159,7 +162,7 @@ jobs:
               apksigner verify --print-certs "$APK" | head -5
             fi
           done
-          echo "✓ 两个 APK 签名验证通过"
+          echo "✓ 三个 APK 签名验证通过"
 
       - name: Rename APKs with commit sha
         id: rename
@@ -167,9 +170,12 @@ jobs:
           SHORT_SHA=${GITHUB_SHA::7}
           # 主 APK（noOcr release，小包，需配合 OCR APK 使用）
           cp app/build/outputs/apk/noOcr/release/app-noOcr-release.apk bbncbot-${SHORT_SHA}.apk
+          # Full APK（自带 OCR，单 APK 即可工作，推荐给安装 OCR APK 有困难的用户）
+          cp app/build/outputs/apk/full/release/app-full-release.apk bbncbot-full-${SHORT_SHA}.apk
           # OCR APK（独立模块，含 ML Kit 模型，装一次后不变）
           cp ocr/build/outputs/apk/release/ocr-release.apk bbncbot-ocr-${SHORT_SHA}.apk
           echo "main_apk=bbncbot-${SHORT_SHA}.apk" >> $GITHUB_OUTPUT
+          echo "full_apk=bbncbot-full-${SHORT_SHA}.apk" >> $GITHUB_OUTPUT
           echo "ocr_apk=bbncbot-ocr-${SHORT_SHA}.apk" >> $GITHUB_OUTPUT
 
       - name: Upload APK artifacts
@@ -178,6 +184,7 @@ jobs:
           name: bbncbot-release-apks
           path: |
             app/build/outputs/apk/noOcr/release/*.apk
+            app/build/outputs/apk/full/release/*.apk
             ocr/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 30
@@ -192,13 +199,16 @@ jobs:
             - 提交: ${{ github.sha }}
             - 构建时间: ${{ github.run_id }}
 
-            ## 安装说明
+            ## 安装说明（推荐 full 单包方案）
 
-            **首次安装**：下载下方两个 APK 并都安装：
+            **方案 A（推荐，简单）**：只下载 `bbncbot-full-*.apk`（约 30MB，自带 OCR）
+            - 一个 APK 搞定，无需安装 OCR 模块
+            - 适合安装 OCR APK 有困难或不想折腾的用户
+            - 更新时也只需下载这一个文件
+
+            **方案 B（小包方案）**：下载两个 APK
             1. `bbncbot-ocr-*.apk` — OCR 模块（含中文识别模型，安装一次后无需更新）
-            2. `bbncbot-*.apk` — 主应用（频繁更新，只装这个即可）
-
-            **后续更新**：只下载安装 `bbncbot-*.apk`（主应用），OCR 模块保持不变。
+            2. `bbncbot-*.apk` — 主应用（小包，频繁更新）
 
             两个 APK 必须使用同一签名（release.keystore），主应用通过 ContentProvider call() 跨进程调用 OCR 模块。
 
@@ -212,5 +222,6 @@ jobs:
             上传日志时请保留这些行，便于精准定位 APK 版本。
           files: |
             ${{ steps.rename.outputs.main_apk }}
+            ${{ steps.rename.outputs.full_apk }}
             ${{ steps.rename.outputs.ocr_apk }}
           prerelease: false
