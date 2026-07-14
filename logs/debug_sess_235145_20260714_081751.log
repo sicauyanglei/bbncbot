@@ -1,0 +1,205 @@
+=== cleared on app start (version=2.1, time=08:14:40) ===
+08:14:40.147 killPlatformApps: killed com.ucmobile.lite for UC
+08:14:40.150 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+08:14:40.152 killPlatformApps: killed com.taobao.taobao for TAOBAO
+08:14:45.561 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+08:14:45.566 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+08:14:45.566 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+08:14:45.567 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+08:17:02.166 FarmAccessibilityService connected, API=36
+08:17:09.468 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+08:17:09.471 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+08:17:09.472 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+08:17:09.474 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+08:17:13.343 navigateAlipay: found 芭芭农场 entry at [125,156][567,242], clicking
+08:17:13.347 performClickSafe: text='支付宝·芭芭农场' desc='' bounds=[125,156][567,242] clickable=true
+08:17:13.359 performClickSafe: ACTION_CLICK success at depth=0
+08:17:15.457 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+08:17:15.558 record event: type=0x800 pkg=com.bbncbot class=android.widget.Button text='停录' desc=''
+08:17:17.968 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:17.991 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:18.085 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:18.102 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:18.184 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:18.204 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:18.219 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:18.284 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:18.337 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:18.353 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:18.400 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:18.440 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:18.502 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:18.510 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:18.655 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:19.269 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:19.316 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:19.769 collectTaskContextText: result='引导标语 ', buttonText='', containerFound=true
+08:17:19.968 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:20.256 collectTaskContextText: result='引导标语 ', buttonText='', containerFound=true
+08:17:20.528 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:20.735 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:21.007 collectTaskContextText: result='引导标语 ', buttonText='', containerFound=true
+08:17:21.271 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:21.542 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:21.750 collectTaskContextText: result='引导标语 ', buttonText='', containerFound=true
+08:17:21.950 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:22.288 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:22.500 collectTaskContextText: result='引导标语 ', buttonText='', containerFound=true
+08:17:22.612 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:22.629 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:22.728 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:22.796 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:22.817 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:22.828 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:22.864 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:22.962 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:22.965 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:23.079 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:23.112 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:23.177 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.RelativeLayout text='' desc=''
+08:17:23.268 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:23.570 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:23.712 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:23.893 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:23.974 collectTaskContextText: result='引导标语 ', buttonText='', containerFound=true
+08:17:24.059 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:24.162 collectTaskContextText: result='引导标语 ', buttonText='', containerFound=true
+08:17:24.208 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:24.213 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+08:17:24.241 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+08:17:24.311 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='' desc=''
+08:17:24.593 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:24.609 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:24.624 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:24.628 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:24.634 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+08:17:24.755 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='已领取' desc=''
+08:17:24.774 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:24.780 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:24.852 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.TextView text='已领取' desc=''
+08:17:25.776 findRedPacketCloseButton: found '继续逛' in red packet popup
+08:17:25.847 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:25.874 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:26.077 collectTaskContextText: result='引导标语 ', buttonText='', containerFound=true
+08:17:26.088 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:26.275 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:26.425 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:26.592 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:26.657 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:27.725 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:27.774 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:27.955 collectTaskContextText: result='引导标语 ', buttonText='', containerFound=true
+08:17:27.987 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:28.173 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:28.336 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:28.486 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:28.655 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:29.440 collectTaskContextText: result='引导标语 ', buttonText='', containerFound=true
+08:17:29.508 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:29.682 findRedPacketCloseButton: found '继续逛' in red packet popup
+08:17:29.738 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:29.770 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:29.954 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:29.985 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:30.188 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:30.219 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:30.402 collectTaskContextText: result='引导标语 ', buttonText='', containerFound=true
+08:17:30.437 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:30.619 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:30.651 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:30.854 collectTaskContextText: result='引导标语 ', buttonText='', containerFound=true
+08:17:30.902 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:31.085 collectTaskContextText: result='返回 ', buttonText='null', containerFound=true
+08:17:31.117 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:31.301 collectTaskContextText: result='引导标语 ', buttonText='', containerFound=true
+08:17:31.335 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:31.537 collectTaskContextText: result='', buttonText='', containerFound=true
+08:17:31.567 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:31.752 collectTaskContextText: result='', buttonText='', containerFound=true
+08:17:31.784 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:31.968 collectTaskContextText: result='做任务集肥料 关闭做任务集肥料弹窗 ', buttonText='', containerFound=true
+08:17:31.999 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:32.252 collectTaskContextText: result='做任务集肥料 关闭做任务集肥料弹窗 ', buttonText='', containerFound=true
+08:17:32.283 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:32.478 collectTaskContextText: result='', buttonText='', containerFound=false
+08:17:32.517 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:32.701 collectTaskContextText: result='', buttonText='', containerFound=true
+08:17:32.731 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:32.850 findRedPacketCloseButton: found '继续逛' in red packet popup
+08:17:32.948 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:33.165 collectTaskContextText: result='做任务集肥料 关闭做任务集肥料弹窗 前往手机淘宝-芭芭农场 ', buttonText='', containerFound=true
+08:17:33.197 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:33.382 collectTaskContextText: result='做任务集肥料 关闭做任务集肥料弹窗 ', buttonText='', containerFound=true
+08:17:33.416 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:33.600 collectTaskContextText: result='做任务集肥料 关闭做任务集肥料弹窗 已领取 连续签到任务规则  逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励  继续玩农场分色瓶当前进度0，总进度3 通过3关必得2000肥  任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料  去庄园喂鸡当前进度0，总进度1 完成喂鸡可得300肥  王者之弈完成1局对战当前进度0，总进度1 可得500肥 【福利】试玩热门新游 访问必得500 - 3500肥(0/3500)  任意充值得100000肥当前进度0，总进度1 去浪漫餐厅充值可领  砸蛋10次得3000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会  去森林收能量当前进度1，总进度1 奖励200肥料  去淘宝农场得肥料当前进度0，总进度1 得3300肥，打开即得 蚂蚁庄园小鸡肥料 小鸡们产的肥料  逛一逛快手当前进度0，总进度1 成功打开得1200肥料  钓鱼1次当前进度1，总进度1 得1000肥，钓1次即得 去森林领落叶肥料 收落叶即得300肥料  分享给好友当前进度0，总进度3 邀请好友助力得600肥料  合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥  逛一逛芝麻粒当前进度0，总进度1 奖励100肥料  逛一逛支付宝会员当前进度0，总进度1 奖励100肥料  逛一逛一淘当前进度0，总进度1 奖励100肥料  逛一逛淘宝闪购当前进度0，总进度1 奖励100肥料  逛淘宝看视频领现金当前进度0，总进度1 奖励100肥料  逛助农好货得肥料当前进度0，总进度1 浏览15秒助农专场，得100肥料  玩30s立得600肥当前进度0，总进度1 超火，大家都在玩的三国 玩一玩疯狂水世界 可得5000肥(0/5000)  疯狂水世界探险船闯5关当前进度0，总进度1 完成可得1500肥 玩一玩烈焰觉醒 可得5000肥(0/5000) 玩一玩三国大冒险 可得5000肥(0/5000) 玩一玩时尚百货城 可得5000肥(0/5000)  到店支付1笔得100肥当前进度0，总进度1 今晚24点前可领奖 前往手机淘宝-芭芭农场 ', buttonText='', containerFound=true
+08:17:33.678 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:33.805 collectTaskContextText: result='做任务集肥料 关闭做任务集肥料弹窗 已领取 连续签到任务规则  逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励  继续玩农场分色瓶当前进度0，总进度3 通过3关必得2000肥  任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料  去庄园喂鸡当前进度0，总进度1 完成喂鸡可得300肥  王者之弈完成1局对战当前进度0，总进度1 可得500肥 【福利】试玩热门新游 访问必得500 - 3500肥(0/3500)  任意充值得100000肥当前进度0，总进度1 去浪漫餐厅充值可领  砸蛋10次得3000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会  去森林收能量当前进度1，总进度1 奖励200肥料  去淘宝农场得肥料当前进度0，总进度1 得3300肥，打开即得 蚂蚁庄园小鸡肥料 小鸡们产的肥料  逛一逛快手当前进度0，总进度1 成功打开得1200肥料  钓鱼1次当前进度1，总进度1 得1000肥，钓1次即得 去森林领落叶肥料 收落叶即得300肥料  分享给好友当前进度0，总进度3 邀请好友助力得600肥料  合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥  逛一逛芝麻粒当前进度0，总进度1 奖励100肥料  逛一逛支付宝会员当前进度0，总进度1 奖励100肥料  逛一逛一淘当前进度0，总进度1 奖励100肥料  逛一逛淘宝闪购当前进度0，总进度1 奖励100肥料  逛淘宝看视频领现金当前进度0，总进度1 奖励100肥料  逛助农好货得肥料当前进度0，总进度1 浏览15秒助农专场，得100肥料  玩30s立得600肥当前进度0，总进度1 超火，大家都在玩的三国 玩一玩疯狂水世界 可得5000肥(0/5000)  疯狂水世界探险船闯5关当前进度0，总进度1 完成可得1500肥 玩一玩烈焰觉醒 可得5000肥(0/5000) 玩一玩三国大冒险 可得5000肥(0/5000) 玩一玩时尚百货城 可得5000肥(0/5000)  到店支付1笔得100肥当前进度0，总进度1 今晚24点前可领奖 前往手机淘宝-芭芭农场 ', buttonText='', containerFound=true
+08:17:33.838 collectTaskContextText: result='', buttonText='', containerFound=true
+08:17:33.871 collectTaskContextText: result='已领取 连续签到任务规则  逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励 继续逛  继续玩农场分色瓶当前进度0，总进度3 通过3关必得2000肥 去完成  任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成  去庄园喂鸡当前进度0，总进度1 完成喂鸡可得300肥 去完成  王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成  任意充值得100000肥当前进度0，总进度1 去浪漫餐厅充值可领 去完成  砸蛋10次得3000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成  去森林收能量当前进度1，总进度1 奖励200肥料 已领取  去淘宝农场得肥料当前进度0，总进度1 得3300肥，打开即得 去逛逛 蚂蚁庄园小鸡肥料 小鸡们产的肥料 去喂鸡  逛一逛快手当前进度0，总进度1 成功打开得1200肥料 去完成  钓鱼1次当前进度1，总进度1 得1000肥，钓1次即得 继续钓 去森林领落叶肥料 收落叶即得300肥料 已完成  分享给好友当前进度0，总进度3 邀请好友助力得600肥料 去分享  合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥 邀请队友  逛一逛芝麻粒当前进度0，总进度1 奖励100肥料 去逛逛  逛一逛支付宝会员当前进度0，总进度1 奖励100肥料 去逛逛  逛一逛一淘当前进度0，总进度1 奖励100肥料 去完成  逛一逛淘宝闪购当前进度0，总进度1 奖励100肥料 去完成  逛淘宝看视频领现金当前进度0，总进度1 奖励100肥料 去完成  逛助农好货得肥料当前进度0，总进度1 浏览15秒助农专场，得100肥料 去完成  玩30s立得600肥当前进度0，总进度1 超火，大家都在玩的三国 去完成 玩一玩疯狂水世界 可得5000肥(0/5000) 去完成  疯狂水世界探险船闯5关当前进度0，总进度1 完成可得1500肥 去完成 玩一玩烈焰觉醒 可得5000肥(0/5000) 去完成 玩一玩三国大冒险 可得5000肥(0/5000) 去完成 玩一玩时尚百货城 可得5000肥(0/5000) 去完成  到店支付1笔得100肥当前进度0，总进度1 今晚24点前可领奖 去完成 前往手机淘宝-芭芭农场 ', buttonText='已领取', containerFound=true
+08:17:33.919 collectTaskContextText: result='做任务集肥料 关闭做任务集肥料弹窗 已领取 连续签到任务规则  逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励  继续玩农场分色瓶当前进度0，总进度3 通过3关必得2000肥  任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料  去庄园喂鸡当前进度0，总进度1 完成喂鸡可得300肥  王者之弈完成1局对战当前进度0，总进度1 可得500肥 【福利】试玩热门新游 访问必得500 - 3500肥(0/3500)  任意充值得100000肥当前进度0，总进度1 去浪漫餐厅充值可领  砸蛋10次得3000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会  去森林收能量当前进度1，总进度1 奖励200肥料  去淘宝农场得肥料当前进度0，总进度1 得3300肥，打开即得 蚂蚁庄园小鸡肥料 小鸡们产的肥料  逛一逛快手当前进度0，总进度1 成功打开得1200肥料  钓鱼1次当前进度1，总进度1 得1000肥，钓1次即得 去森林领落叶肥料 收落叶即得300肥料  分享给好友当前进度0，总进度3 邀请好友助力得600肥料  合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥  逛一逛芝麻粒当前进度0，总进度1 奖励100肥料  逛一逛支付宝会员当前进度0，总进度1 奖励100肥料  逛一逛一淘当前进度0，总进度1 奖励100肥料  逛一逛淘宝闪购当前进度0，总进度1 奖励100肥料  逛淘宝看视频领现金当前进度0，总进度1 奖励100肥料  逛助农好货得肥料当前进度0，总进度1 浏览15秒助农专场，得100肥料  玩30s立得600肥当前进度0，总进度1 超火，大家都在玩的三国 玩一玩疯狂水世界 可得5000肥(0/5000)  疯狂水世界探险船闯5关当前进度0，总进度1 完成可得1500肥 玩一玩烈焰觉醒 可得5000肥(0/5000) 玩一玩三国大冒险 可得5000肥(0/5000) 玩一玩时尚百货城 可得5000肥(0/5000)  到店支付1笔得100肥当前进度0，总进度1 今晚24点前可领奖 前往手机淘宝-芭芭农场 ', buttonText='', containerFound=true
+08:17:33.951 collectTaskContextText: result='已领取 连续签到任务规则  逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励 继续逛  继续玩农场分色瓶当前进度0，总进度3 通过3关必得2000肥 去完成  任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成  去庄园喂鸡当前进度0，总进度1 完成喂鸡可得300肥 去完成  王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成  任意充值得100000肥当前进度0，总进度1 去浪漫餐厅充值可领 去完成  砸蛋10次得3000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成  去森林收能量当前进度1，总进度1 奖励200肥料 已领取  去淘宝农场得肥料当前进度0，总进度1 得3300肥，打开即得 去逛逛 蚂蚁庄园小鸡肥料 小鸡们产的肥料 去喂鸡  逛一逛快手当前进度0，总进度1 成功打开得1200肥料 去完成  钓鱼1次当前进度1，总进度1 得1000肥，钓1次即得 继续钓 去森林领落叶肥料 收落叶即得300肥料 已完成  分享给好友当前进度0，总进度3 邀请好友助力得600肥料 去分享  合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥 邀请队友  逛一逛芝麻粒当前进度0，总进度1 奖励100肥料 去逛逛  逛一逛支付宝会员当前进度0，总进度1 奖励100肥料 去逛逛  逛一逛一淘当前进度0，总进度1 奖励100肥料 去完成  逛一逛淘宝闪购当前进度0，总进度1 奖励100肥料 去完成  逛淘宝看视频领现金当前进度0，总进度1 奖励100肥料 去完成  逛助农好货得肥料当前进度0，总进度1 浏览15秒助农专场，得100肥料 去完成  玩30s立得600肥当前进度0，总进度1 超火，大家都在玩的三国 去完成 玩一玩疯狂水世界 可得5000肥(0/5000) 去完成  疯狂水世界探险船闯5关当前进度0，总进度1 完成可得1500肥 去完成 玩一玩烈焰觉醒 可得5000肥(0/5000) 去完成 玩一玩三国大冒险 可得5000肥(0/5000) 去完成 玩一玩时尚百货城 可得5000肥(0/5000) 去完成  到店支付1笔得100肥当前进度0，总进度1 今晚24点前可领奖 去完成 前往手机淘宝-芭芭农场 ', buttonText='', containerFound=true
+08:17:33.986 collectTaskContextText: result='已领取 连续签到任务规则  逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励 继续逛  继续玩农场分色瓶当前进度0，总进度3 通过3关必得2000肥 去完成  任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成  去庄园喂鸡当前进度0，总进度1 完成喂鸡可得300肥 去完成  王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成  任意充值得100000肥当前进度0，总进度1 去浪漫餐厅充值可领 去完成  砸蛋10次得3000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成  去森林收能量当前进度1，总进度1 奖励200肥料 已领取  去淘宝农场得肥料当前进度0，总进度1 得3300肥，打开即得 去逛逛 蚂蚁庄园小鸡肥料 小鸡们产的肥料 去喂鸡  逛一逛快手当前进度0，总进度1 成功打开得1200肥料 去完成  钓鱼1次当前进度1，总进度1 得1000肥，钓1次即得 继续钓 去森林领落叶肥料 收落叶即得300肥料 已完成  分享给好友当前进度0，总进度3 邀请好友助力得600肥料 去分享  合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥 邀请队友  逛一逛芝麻粒当前进度0，总进度1 奖励100肥料 去逛逛  逛一逛支付宝会员当前进度0，总进度1 奖励100肥料 去逛逛  逛一逛一淘当前进度0，总进度1 奖励100肥料 去完成  逛一逛淘宝闪购当前进度0，总进度1 奖励100肥料 去完成  逛淘宝看视频领现金当前进度0，总进度1 奖励100肥料 去完成  逛助农好货得肥料当前进度0，总进度1 浏览15秒助农专场，得100肥料 去完成  玩30s立得600肥当前进度0，总进度1 超火，大家都在玩的三国 去完成 玩一玩疯狂水世界 可得5000肥(0/5000) 去完成  疯狂水世界探险船闯5关当前进度0，总进度1 完成可得1500肥 去完成 玩一玩烈焰觉醒 可得5000肥(0/5000) 去完成 玩一玩三国大冒险 可得5000肥(0/5000) 去完成 玩一玩时尚百货城 可得5000肥(0/5000) 去完成  到店支付1笔得100肥当前进度0，总进度1 今晚24点前可领奖 去完成 前往手机淘宝-芭芭农场 ', buttonText='已领取', containerFound=true
+08:17:33.996 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+08:17:33.997 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+08:17:34.019 collectTaskContextText: result='做任务集肥料 关闭做任务集肥料弹窗 前往手机淘宝-芭芭农场 ', buttonText='', containerFound=true
+08:17:34.026 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.alipay.android.phone.wallet.outlauncher.page.UserGrowthActivity text='' desc=''
+08:17:34.129 collectTaskContextText: result='', buttonText='', containerFound=false
+08:17:34.151 isOnFarmPage: activity=com.alipay.android.phone.wallet.outlauncher.page.usergrowthactivity not in farm keywords, not on farm page
+08:17:34.214 collectTaskContextText: result='', buttonText='', containerFound=false
+08:17:34.235 isOnFarmPage: activity=com.alipay.android.phone.wallet.outlauncher.page.usergrowthactivity not in farm keywords, not on farm page
+08:17:34.317 collectTaskContextText: result='', buttonText='', containerFound=false
+08:17:34.344 isOnFarmPage: activity=com.alipay.android.phone.wallet.outlauncher.page.usergrowthactivity not in farm keywords, not on farm page
+08:17:34.452 collectTaskContextText: result='', buttonText='', containerFound=false
+08:17:34.478 isOnFarmPage: activity=com.alipay.android.phone.wallet.outlauncher.page.usergrowthactivity not in farm keywords, not on farm page
+08:17:34.630 collectTaskContextText: result='', buttonText='', containerFound=false
+08:17:34.676 isOnFarmPage: activity=com.alipay.android.phone.wallet.outlauncher.page.usergrowthactivity not in farm keywords, not on farm page
+08:17:34.811 collectTaskContextText: result='', buttonText='', containerFound=false
+08:17:34.860 isOnFarmPage: activity=com.alipay.android.phone.wallet.outlauncher.page.usergrowthactivity not in farm keywords, not on farm page
+08:17:35.266 collectTaskContextText: result='', buttonText='', containerFound=false
+08:17:35.369 isOnFarmPage: activity=com.alipay.android.phone.wallet.outlauncher.page.usergrowthactivity not in farm keywords, not on farm page
+08:17:35.671 collectTaskContextText: result='', buttonText='null', containerFound=false
+08:17:35.786 collectTaskContextText: result='', buttonText='null', containerFound=false
+08:17:37.466 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+08:17:37.529 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity text='' desc=''
+08:17:38.878 collectTaskContextText: result='', buttonText='null', containerFound=false
+08:17:38.967 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:39.209 findRedPacketCloseButton: found '继续逛' in red packet popup
+08:17:39.320 collectTaskContextText: result='', buttonText='null', containerFound=false
+08:17:39.368 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:39.595 collectTaskContextText: result='', buttonText='null', containerFound=false
+08:17:41.395 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+08:17:41.401 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+08:17:41.427 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.alipay.android.phone.wallet.outlauncher.page.UserGrowthActivity text='' desc=''
+08:17:45.678 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.FrameLayout text='' desc=''
+08:17:45.932 record event: type=0x20 pkg=com.eg.android.AlipayGphone class=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity text='' desc=''
+08:17:47.840 collectTaskContextText: result='', buttonText='null', containerFound=false
+08:17:47.893 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:48.110 findRedPacketCloseButton: found '继续逛' in red packet popup
+08:17:48.207 collectTaskContextText: result='', buttonText='null', containerFound=false
+08:17:48.252 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:48.435 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text=' 逛一逛快手当前进度1，总进度1 成功打开得1200肥料' desc=''
+08:17:48.441 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='领取' desc=''
+08:17:48.451 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.webkit.WebView text='' desc=''
+08:17:48.535 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text=' 逛一逛快手当前进度1，总进度1 成功打开得1200肥料' desc=''
+08:17:49.073 collectTaskContextText: result='', buttonText='null', containerFound=false
+08:17:49.143 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:49.334 collectTaskContextText: result='', buttonText='null', containerFound=false
+08:17:49.365 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:49.484 collectTaskContextText: result='', buttonText='null', containerFound=false
+08:17:49.517 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:49.601 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='已领取' desc=''
+08:17:49.615 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.view.View text='' desc=''
+08:17:49.686 collectTaskContextText: result='已领取 连续签到任务规则  逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励 继续逛  继续玩农场分色瓶当前进度0，总进度3 通过3关必得2000肥 去完成  任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成  去庄园喂鸡当前进度0，总进度1 完成喂鸡可得300肥 去完成  王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成  任意充值得100000肥当前进度0，总进度1 去浪漫餐厅充值可领 去完成  砸蛋10次得3000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成  去森林收能量当前进度1，总进度1 奖励200肥料 已领取  去淘宝农场得肥料当前进度0，总进度1 得3300肥，打开即得 去逛逛 蚂蚁庄园小鸡肥料 小鸡们产的肥料 去喂鸡  逛一逛快手当前进度1，总进度1 成功打开得1200肥料 已领取  钓鱼1次当前进度1，总进度1 得1000肥，钓1次即得 继续钓 去森林领落叶肥料 收落叶即得300肥料 已完成  分享给好友当前进度0，总进度3 邀请好友助力得600肥料 去分享  合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥 邀请队友  逛一逛芝麻粒当前进度0，总进度1 奖励100肥料 去逛逛  逛一逛支付宝会员当前进度0，总进度1 奖励100肥料 去逛逛  逛一逛一淘当前进度0，总进度1 奖励100肥料 去完成  逛一逛淘宝闪购当前进度0，总进度1 奖励100肥料 去完成  逛淘宝看视频领现金当前进度0，总进度1 奖励100肥料 去完成  逛助农好货得肥料当前进度0，总进度1 浏览15秒助农专场，得100肥料 去完成  玩30s立得600肥当前进度0，总进度1 超火，大家都在玩的三国 去完成 玩一玩疯狂水世界 可得5000肥(0/5000) 去完成  疯狂水世界探险船闯5关当前进度0，总进度1 完成可得1500肥 去完成 玩一玩烈焰觉醒 可得5000肥(0/5000) 去完成 玩一玩三国大冒险 可得5000肥(0/5000) 去完成 玩一玩时尚百货城 可得5000肥(0/5000) 去完成  到店支付1笔得100肥当前进度0，总进度1 今晚24点前可领奖 去完成 前往手机淘宝-芭芭农场 ', buttonText=' 逛一逛快手当前进度1，总进度1 成功打开得1200肥料', containerFound=true
+08:17:49.703 record event: type=0x800 pkg=com.eg.android.AlipayGphone class=android.widget.Button text='已领取' desc=''
+08:17:49.720 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:49.900 collectTaskContextText: result=' 逛一逛快手当前进度1，总进度1 成功打开得1200肥料 已领取 ', buttonText='领取', containerFound=true
+08:17:49.934 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:50.101 collectTaskContextText: result='', buttonText='', containerFound=true
+08:17:50.143 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:50.316 collectTaskContextText: result='已领取 连续签到任务规则  逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励 继续逛  继续玩农场分色瓶当前进度0，总进度3 通过3关必得2000肥 去完成  任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成  去庄园喂鸡当前进度0，总进度1 完成喂鸡可得300肥 去完成  王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成  任意充值得100000肥当前进度0，总进度1 去浪漫餐厅充值可领 去完成  砸蛋10次得3000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成  去森林收能量当前进度1，总进度1 奖励200肥料 已领取  去淘宝农场得肥料当前进度0，总进度1 得3300肥，打开即得 去逛逛 蚂蚁庄园小鸡肥料 小鸡们产的肥料 去喂鸡  逛一逛快手当前进度1，总进度1 成功打开得1200肥料 已领取  钓鱼1次当前进度1，总进度1 得1000肥，钓1次即得 继续钓 去森林领落叶肥料 收落叶即得300肥料 已完成  分享给好友当前进度0，总进度3 邀请好友助力得600肥料 去分享  合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥 邀请队友  逛一逛芝麻粒当前进度0，总进度1 奖励100肥料 去逛逛  逛一逛支付宝会员当前进度0，总进度1 奖励100肥料 去逛逛  逛一逛一淘当前进度0，总进度1 奖励100肥料 去完成  逛一逛淘宝闪购当前进度0，总进度1 奖励100肥料 去完成  逛淘宝看视频领现金当前进度0，总进度1 奖励100肥料 去完成  逛助农好货得肥料当前进度0，总进度1 浏览15秒助农专场，得100肥料 去完成  玩30s立得600肥当前进度0，总进度1 超火，大家都在玩的三国 去完成 玩一玩疯狂水世界 可得5000肥(0/5000) 去完成  疯狂水世界探险船闯5关当前进度0，总进度1 完成可得1500肥 去完成 玩一玩烈焰觉醒 可得5000肥(0/5000) 去完成 玩一玩三国大冒险 可得5000肥(0/5000) 去完成 玩一玩时尚百货城 可得5000肥(0/5000) 去完成  到店支付1笔得100肥当前进度0，总进度1 今晚24点前可领奖 去完成 前往手机淘宝-芭芭农场 ', buttonText=' 逛一逛快手当前进度1，总进度1 成功打开得1200肥料', containerFound=true
+08:17:50.345 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:50.501 collectTaskContextText: result=' 逛一逛快手当前进度1，总进度1 成功打开得1200肥料 已领取 ', buttonText='已领取', containerFound=true
+08:17:50.534 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:50.728 collectTaskContextText: result='已领取 连续签到任务规则  逛好物最高得1500肥料当前进度1，总进度1 连续浏览可得多次肥料奖励 继续逛  继续玩农场分色瓶当前进度0，总进度3 通过3关必得2000肥 去完成  任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成  去庄园喂鸡当前进度0，总进度1 完成喂鸡可得300肥 去完成  王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成  任意充值得100000肥当前进度0，总进度1 去浪漫餐厅充值可领 去完成  砸蛋10次得3000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成  去森林收能量当前进度1，总进度1 奖励200肥料 已领取  去淘宝农场得肥料当前进度0，总进度1 得3300肥，打开即得 去逛逛 蚂蚁庄园小鸡肥料 小鸡们产的肥料 去喂鸡  逛一逛快手当前进度1，总进度1 成功打开得1200肥料 已领取  钓鱼1次当前进度1，总进度1 得1000肥，钓1次即得 继续钓 去森林领落叶肥料 收落叶即得300肥料 已完成  分享给好友当前进度0，总进度3 邀请好友助力得600肥料 去分享  合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥 邀请队友  逛一逛芝麻粒当前进度0，总进度1 奖励100肥料 去逛逛  逛一逛支付宝会员当前进度0，总进度1 奖励100肥料 去逛逛  逛一逛一淘当前进度0，总进度1 奖励100肥料 去完成  逛一逛淘宝闪购当前进度0，总进度1 奖励100肥料 去完成  逛淘宝看视频领现金当前进度0，总进度1 奖励100肥料 去完成  逛助农好货得肥料当前进度0，总进度1 浏览15秒助农专场，得100肥料 去完成  玩30s立得600肥当前进度0，总进度1 超火，大家都在玩的三国 去完成 玩一玩疯狂水世界 可得5000肥(0/5000) 去完成  疯狂水世界探险船闯5关当前进度0，总进度1 完成可得1500肥 去完成 玩一玩烈焰觉醒 可得5000肥(0/5000) 去完成 玩一玩三国大冒险 可得5000肥(0/5000) 去完成 玩一玩时尚百货城 可得5000肥(0/5000) 去完成  到店支付1笔得100肥当前进度0，总进度1 今晚24点前可领奖 去完成 前往手机淘宝-芭芭农场 ', buttonText='', containerFound=true
+08:17:50.748 isTaskCompletePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差1次领肥料, 切换摇钱树]
+08:17:50.952 collectTaskContextText: result=' 逛一逛快手当前进度1，总进度1 成功打开得1200肥料 已领取 ', buttonText='已领取', containerFound=true
