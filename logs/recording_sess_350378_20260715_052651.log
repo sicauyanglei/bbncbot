@@ -1,0 +1,75 @@
+=== recording.log cleared on app start (version=2.1/12 build=build474-c36d66e, time=05:25:12.818) ===
+05:25:27.961 === 录制开始 session=sess_1784064327960 name='流程7953' ===
+05:25:28.081 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差4次领肥料 | 切换摇钱树 | 逛农货 | 游戏奖励 | 我的收获) → 尝试 OCR 兜底
+05:25:28.231 [start] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='provider_exception:IllegalArgumentException:Unknown authority com.bbncbot.ocr.provider' ocrProviderBuild='' (无障碍和OCR均未识别到肥料总数)
+05:25:32.959 CLICK_H5 type=0x800 target='已领取' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no' btns=[]
+05:25:32.960 MATCHED name='支付宝-未知页-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON
+05:25:32.962 RECORD_INC matched recordedCount=1 thread=RecordingManager-worker
+05:25:33.221 CLICK_H5 type=0x800 target='已领取' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=返回' btns=[返回]
+05:25:33.222 MATCHED name='支付宝-未知页-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON
+05:25:33.223 RECORD_INC matched recordedCount=2 thread=RecordingManager-worker
+05:25:33.468 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=返回' btns=[返回]
+05:25:33.470 MATCHED name='支付宝-未知页-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON
+05:25:33.471 RECORD_INC matched recordedCount=3 thread=RecordingManager-worker
+05:25:34.907 CLICK_H5 type=0x800 target='浏览得奖励' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=浏览得奖励,返回|task=浏览得奖励' btns=[返回,浏览得奖励]
+05:25:34.908 RECORD sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=浏览得奖励,返回|task=浏览得奖励' category='支付宝-浏览得奖励-点击浏览得奖励' action=CLICK_BUTTON target='浏览得奖励' state=IDLE btns=[返回,浏览得奖励]
+05:25:34.908 AUTO_CREATE name='支付宝-浏览得奖励-点击浏览得奖励' action=CLICK_BUTTON session=sess_1784064327960 step=3 sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=浏览得奖励,返回|task=浏览得奖励'
+05:25:34.909 RECORD_INC unmapped recordedCount=4 thread=RecordingManager-worker
+05:25:41.477 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no' btns=[]
+05:25:41.481 MATCHED name='支付宝-农场主页-点击已领取' action=CLICK_BUTTON
+05:25:41.482 RECORD_INC matched recordedCount=5 thread=RecordingManager-worker
+05:25:42.416 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=浏览得奖励,返回' btns=[返回,浏览得奖励]
+05:25:42.419 MATCHED name='支付宝-农场主页-点击已领取' action=CLICK_BUTTON
+05:25:42.421 RECORD_INC matched recordedCount=6 thread=RecordingManager-worker
+05:25:43.070 CLICK_H5 type=0x800 target='浏览得奖励' sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=浏览得奖励,返回|task=浏览得奖励' btns=[返回,浏览得奖励]
+05:25:43.071 RECORD sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=浏览得奖励,返回|task=浏览得奖励' category='支付宝-浏览得奖励-点击浏览得奖励' action=CLICK_BUTTON target='浏览得奖励' state=IDLE btns=[返回,浏览得奖励]
+05:25:43.072 AUTO_CREATE name='支付宝-浏览得奖励-点击浏览得奖励' action=CLICK_BUTTON session=sess_1784064327960 step=6 sig='p=ALIPAY|farm=true|type=farm_home|countdown=no|progress=no|btns=浏览得奖励,返回|task=浏览得奖励'
+05:25:43.072 RECORD_INC unmapped recordedCount=7 thread=RecordingManager-worker
+05:25:45.551 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=true|type=browse|countdown=yes|progress=yes|fertTask=还差4次领肥料|fertStruct=c=V|n=2|ch=V,TV' btns=[任务列表,农场乐园入口,还差4次领肥料,切换摇钱树,逛农货,游戏奖励,我的收获,钓红包,亲友树 合种/帮种,得1000肥 寻道大千,三国冰河,向僵尸开炮,关闭做任务集肥料弹窗,连续签到任务规则,去完成,去逛逛,去喂鸡,去分享,去邀请,前往手机淘宝-芭芭农场]
+05:25:45.552 MATCHED name='支付宝-浏览任务-红包弹窗-点击全部' action=CLICK_BUTTON
+05:25:45.553 RECORD_INC matched recordedCount=8 thread=RecordingManager-worker
+05:25:46.124 === 用户中断 ===
+05:25:46.268 STOP_ENTER recordedCount=8 thread=main autoStop=false sessId=sess_1784064327960
+05:25:46.323 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=parse_failed (找到施肥按钮但自身/父节点/子树/整页均无'肥料XXXX'格式；text=' 合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥' desc=''；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差4次领肥料 | 切换摇钱树 | 逛农货 | 游戏奖励 | 我的收获) → 尝试 OCR 兜底
+05:25:46.436 [stop] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='provider_exception:IllegalArgumentException:Unknown authority com.bbncbot.ocr.provider' ocrProviderBuild='' (无障碍和OCR均未识别到肥料总数)
+05:25:46.437 === 录制结束 session=sess_1784064327960 → '未知-肥料任务' SAVE reason=肥料读取失败回退保存(initial=-1 final=-1) steps=8 ===
+05:25:50.379 === 录制开始 session=sess_1784064350378 name='流程378' ===
+05:26:06.777 === 用户中断 ===
+05:26:07.119 STOP_ENTER recordedCount=0 thread=main autoStop=false sessId=sess_1784064350378
+05:26:14.794 === 录制开始 session=sess_1784064374794 name='流程4793' ===
+05:26:42.545 LOG_UPLOAD_RESULT n=6 tag=sess_327960 detail=上传成功：6 个文件（tag=sess_327960，含 0 张截图）
+05:26:42.647 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 福气鱼塘 | . 元 10元 仅差4947.29斤鱼> | 前往查看更多动态 | 明日钓竿x1 | 查看领取更多钓竿 | 恭喜！钓到超大鱼了 | 灯笼鱼 | 14.16斤(≈0.014元)) → 尝试 OCR 兜底
+05:26:42.782 [start] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='provider_exception:IllegalArgumentException:Unknown authority com.bbncbot.ocr.provider' ocrProviderBuild='' (无障碍和OCR均未识别到肥料总数)
+05:26:44.096 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=. 元 10元 仅差4947.29斤鱼>,关闭,再钓一次,前往查看更多动态,收藏到
+我的小程序,更多,查看领取更多钓竿,返回' btns=[. 元 10元 仅差4947.29斤鱼>,前往查看更多动态,查看领取更多钓竿,再钓一次,关闭,返回,收藏到
+我的小程序,更多]
+05:26:44.100 MATCHED name='支付宝-未知页-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON
+05:26:44.103 RECORD_INC matched recordedCount=1 thread=RecordingManager-worker
+05:26:45.152 CLICK_H5 type=0x800 target='蚂蚁庄园' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=. 元 10元 仅差4933.13斤鱼>,关闭,前往查看更多动态,收藏到
+我的小程序,更多,查看领取更多钓竿,返回' btns=[. 元 10元 仅差4933.13斤鱼>,前往查看更多动态,查看领取更多钓竿,返回,收藏到
+我的小程序,更多,关闭]
+05:26:45.155 MATCHED name='支付宝-未知页-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON
+05:26:45.157 RECORD_INC matched recordedCount=2 thread=RecordingManager-worker
+05:26:45.282 CLICK_H5 type=0x800 target='关闭' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=. 元 10元 仅差4933.13斤鱼>,关闭,前往查看更多动态,收藏到
+我的小程序,更多,查看领取更多钓竿,返回' btns=[. 元 10元 仅差4933.13斤鱼>,前往查看更多动态,查看领取更多钓竿,返回,收藏到
+我的小程序,更多,关闭]
+05:26:45.285 MATCHED name='支付宝-未知页-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON
+05:26:45.287 RECORD_INC matched recordedCount=3 thread=RecordingManager-worker
+05:26:46.933 CLICK_H5 type=0x20 target='支付宝' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=. 元 10元 仅差4933.13斤鱼>,关闭,前往查看更多动态,收藏到
+我的小程序,更多,查看领取更多钓竿,返回' btns=[. 元 10元 仅差4933.13斤鱼>,前往查看更多动态,查看领取更多钓竿,返回,收藏到
+我的小程序,更多,关闭]
+05:26:46.935 MATCHED name='支付宝-未知页-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON
+05:26:46.937 RECORD_INC matched recordedCount=4 thread=RecordingManager-worker
+05:26:47.643 CLICK_H5 type=0x800 target='搜索框' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=. 元 10元 仅差4933.13斤鱼>,关闭,前往查看更多动态,收藏到
+我的小程序,更多,查看领取更多钓竿,返回' btns=[. 元 10元 仅差4933.13斤鱼>,前往查看更多动态,查看领取更多钓竿,返回,收藏到
+我的小程序,更多,关闭]
+05:26:47.644 MATCHED name='支付宝-未知页-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON
+05:26:47.646 RECORD_INC matched recordedCount=5 thread=RecordingManager-worker
+05:26:48.075 CLICK_H5 type=0x800 target='首页' sig='p=ALIPAY|farm=false|type=unknown|countdown=no|progress=no|btns=. 元 10元 仅差4933.13斤鱼>,关闭,前往查看更多动态,收藏到
+我的小程序,更多,查看领取更多钓竿,返回' btns=[. 元 10元 仅差4933.13斤鱼>,前往查看更多动态,查看领取更多钓竿,返回,收藏到
+我的小程序,更多,关闭]
+05:26:48.077 MATCHED name='支付宝-未知页-点击前往手机淘宝-芭芭农场' action=CLICK_BUTTON
+05:26:48.080 RECORD_INC matched recordedCount=6 thread=RecordingManager-worker
+05:26:51.256 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=parse_failed (找到施肥按钮但自身/父节点/子树/整页均无'肥料XXXX'格式；text=' 合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥' desc=''；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差4次领肥料 | 切换摇钱树 | 逛农货 | 我的收获 | 芭芭农场,种果树得水果，助农增收) → 尝试 OCR 兜底
+05:26:51.397 [stop] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='provider_exception:IllegalArgumentException:Unknown authority com.bbncbot.ocr.provider' ocrProviderBuild='' (无障碍和OCR均未识别到肥料总数)
+05:26:51.397 === 录制结束 session=sess_1784064350378 DISCARD reason=未录制任何操作(steps=0) steps=0 autoStop=false ===
