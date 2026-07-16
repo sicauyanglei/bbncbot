@@ -17,7 +17,7 @@ import com.bbncbot.service.FarmAccessibilityService
  * 4. 定位失败/坐标异常 → fallback 全屏 OCR
  *
  * 与 noOcr flavor 的 [OcrProvider] 同包名同类名，编译期按 flavor 二选一注入，
- * 上层 [com.bbncbot.automation.RecordingManager] 无感知。
+ * 上层 AutomationController 无感知。
  *
  * 提取策略（按优先级）：
  * 1. "肥料\s*\d{3,}" 或 "\d{3,}\s*肥料"（"肥料8432" / "8432肥料"）
@@ -31,7 +31,7 @@ object OcrProvider {
     private const val TAG = "OcrProvider"
 
     /**
-     * 上次操作的详细失败原因（供上层 RecordingManager 记录到 recording.log 诊断）
+     * 上次操作的详细失败原因（供上层 AutomationController 记录到 debug.log 诊断）
      * - "screenshot_failed"：截图失败
      * - "recognize_timeout"：识别超时
      * - "recognize_failed:xxx"：识别失败

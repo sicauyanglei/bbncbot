@@ -79,7 +79,7 @@ android {
     //   - 主 APK（:app）不打包 ML Kit 模型（~20-30MB），通过 ContentProvider call() 调用独立安装的
     //     OCR APK（com.bbncbot.ocr）的识别能力。OCR APK 装一次后不变，主包频繁更新无需重装 OCR。
     //   - :ocr 模块是独立 application，含 ML Kit 中文识别模型，提供 OcrContentProvider
-    //   - 两个 APK 用同一 release.keystore 签名（signature 级权限保护，只有同签名可调用）
+    //   - 安全：OcrContentProvider.call() 内部包名白名单（com.bbncbot）校验调用方，不依赖 signature 权限
     //
     // Flavor 区别：
     //   - noOcr（默认/发布）：OcrProvider 通过 ContentResolver.call() 调用 :ocr 模块
@@ -100,7 +100,7 @@ android {
     productFlavors {
         create("noOcr") {
             dimension = "ocr"
-            // 不带 ML Kit，AIDL 调用独立 OCR APK（需安装 com.bbncbot.ocr）
+            // 不带 ML Kit，通过 ContentProvider call() 调用独立 OCR APK（需安装 com.bbncbot.ocr）
         }
         create("full") {
             dimension = "ocr"
@@ -116,8 +116,8 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     // ML Kit 中文文本识别（bundled 模型，不依赖 Play Services，国产 ROM 友好）
-    // 仅 full flavor 打包：noOcr 通过 AIDL 调用独立 :ocr 模块，主 APK 不含此依赖
-    // 用于录制时 OCR 读取农场主页肥料总数（无障碍节点树在 H5 页读不到）
+    // 仅 full flavor 打包：noOcr 通过 ContentProvider 调用独立 :ocr 模块，主 APK 不含此依赖
+    // 用于自动化运行时 OCR 读取农场主页肥料总数（无障碍节点树在 H5 页读不到）
     // 注意：Kotlin DSL 不自动生成 fullImplementation() 函数，需用 add() 显式添加到 flavor 配置
     add("fullImplementation", "com.google.mlkit:text-recognition-chinese:16.0.0")
 }

@@ -14,20 +14,18 @@ import java.util.Locale
  * 用途：把本地日志文件上传到 GitHub 仓库，便于开发者远程查看手机运行日志（无需用户手动复制）。
  *
  * 上传内容：
- * - 文本日志（logs/）：recording.log / debug.log / proposals.log / teachings.log
- * - 规则数据（rules/）：scene_rules.json / rules_explanation.txt
+ * - 文本日志（logs/）：debug.log / proposals.log / teachings.log
  * - 截图样本（sessions/）：最近一次采集会话的截图 + 元数据 JSON
  *
  * 实现方式：GitHub Contents API（PUT 单文件，自动 commit）
  * - 文件路径：`{子目录}/{prefix}_{timestamp}.{ext}`，时间戳防覆盖
  * - 鉴权：用户在 MainActivity 填入的 GitHub Personal Access Token（仅本地存储）
  *
- * 触发时机：每次 [RecordingManager.stop] 录制停止后自动调用（后台线程，不阻塞 UI）。
+ * 触发时机：由用户在 MainActivity 点击"立即测试上传日志"手动触发（后台线程，不阻塞 UI）。
  *
  * 日志维护：
- * - 上传前自动刷新 rules_explanation.txt（确保文件存在且为最新）
  * - 上传后清理已上传的 session 截图目录（释放磁盘空间）
- * - app 启动时由 [RecordingManager.clearLogOnAppStart] 清理旧日志
+ * - app 启动时由 [clearLogsOnAppStart] 清理旧日志
  *
  * 安全说明：
  * - 仓库为 public，上传的日志内容（设备型号、操作记录）会公开，仅包含调试信息
@@ -59,12 +57,9 @@ object LogUploader {
             "Android/data/com.bbncbot/files"
         )
     }
-    private val recordingLogFile: File get() = File(logDir, "recording.log")
     private val debugLogFile: File get() = File(logDir, "debug.log")
     private val proposalsLogFile: File get() = File(logDir, "proposals.log")
     private val teachingsLogFile: File get() = File(logDir, "teachings.log")
-    private val sceneRulesFile: File get() = File(logDir, "scene_rules.json")
-    private val rulesExplanationFile: File get() = File(logDir, "rules_explanation.txt")
     private val sessionsDir: File get() = File(logDir, "sessions")
 
     /** 上次操作结果（供 UI 测试按钮显示，避免用户看不到失败原因） */
@@ -90,9 +85,8 @@ object LogUploader {
      * 上传所有日志到 GitHub
      *
      * 上传内容：
-     * 1. 文本日志 → `logs/`：recording.log / debug.log / proposals.log / teachings.log
-     * 2. 规则数据 → `rules/`：scene_rules.json / rules_explanation.txt（上传前自动刷新）
-     * 3. 截图样本 → `sessions/{tag}/`：最近一次采集会话的截图（最多 [MAX_SCREENSHOTS_PER_UPLOAD] 张）
+     * 1. 文本日志 → `logs/`：debug.log / proposals.log / teachings.log
+     * 2. 截图样本 → `sessions/{tag}/`：最近一次采集会话的截图（最多 [MAX_SCREENSHOTS_PER_UPLOAD] 张）
      *
      * 大文件处理：超过 [MAX_LOG_BYTES] 的日志文件会截断保留末尾部分（最近的日志更有诊断价值）。
      *
@@ -110,21 +104,12 @@ object LogUploader {
             return 0
         }
 
-        // 上传前刷新 rules_explanation.txt，确保文件存在且为最新规则状态
-        try {
-            SceneLibrary.dumpRulesExplanationToFile()
-            Log.d(TAG, "rules_explanation.txt refreshed before upload")
-        } catch (e: Exception) {
-            Log.w(TAG, "refresh rules_explanation.txt failed: ${e.message}")
-        }
-
         val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         var success = 0
         val errors = mutableListOf<String>()
 
         // 1. 文本日志：(本地文件, 远端文件名前缀, 远端子目录)
         val textLogs = listOf(
-            Triple(recordingLogFile, "recording", "logs"),
             Triple(debugLogFile, "debug", "logs"),
             Triple(proposalsLogFile, "proposals", "logs"),
             Triple(teachingsLogFile, "teachings", "logs")
@@ -142,21 +127,7 @@ object LogUploader {
             if (uploadFile !== localFile) uploadFile.delete()
         }
 
-        // 2. 规则数据：用 Pair<本地文件, 远端路径> 直接拼好，避免 Triple 3 元组不够用
-        val ruleFiles = listOf(
-            sceneRulesFile to "rules/scene_rules_${tag}_${ts}.json",
-            rulesExplanationFile to "rules/rules_explanation_${tag}_${ts}.txt"
-        )
-        for ((localFile, remotePath) in ruleFiles) {
-            if (!localFile.exists() || localFile.length() == 0L) {
-                errors.add("${localFile.name}: 文件不存在或为空")
-                continue
-            }
-            val (ok, err) = uploadFile(token, remotePath, localFile, "upload ${localFile.name} ($tag)")
-            if (ok) success++ else errors.add("${localFile.name}: $err")
-        }
-
-        // 3. 截图样本：上传最近一次 session 的截图（最多 MAX_SCREENSHOTS_PER_UPLOAD 张）
+        // 2. 截图样本：上传最近一次 session 的截图（最多 MAX_SCREENSHOTS_PER_UPLOAD 张）
         val screenshotCount = uploadLatestSessionScreenshots(token, tag, ts)
         success += screenshotCount
 
@@ -259,7 +230,6 @@ object LogUploader {
     /**
      * 清理旧日志文件（app 启动时调用）
      *
-     * - recording.log 由 RecordingManager.clearLogOnAppStart 清空
      * - debug.log / proposals.log / teachings.log 在此清空（写入版本标识）
      * - 删除全部 session 截图目录（app 启动前清空所有旧日志）
      *

@@ -37,7 +37,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnOpenFarm: Button
     private lateinit var btnOpenAlipayFarm: Button
     private lateinit var btnOpenTaobaoFarm: Button
-    private lateinit var btnRuleEditor: Button
     private lateinit var etGhToken: EditText
     private lateinit var btnSaveGhToken: Button
     private lateinit var tvGhTokenStatus: TextView
@@ -63,9 +62,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        // 清除旧版日志（recording.log 由 RecordingManager 清空，debug/proposals/teachings 由 LogUploader 清空）
-        // 同时清理过期 session 截图目录，避免磁盘占用无限增长
-        com.bbncbot.automation.RecordingManager.clearLogOnAppStart(this)
+        // 清除旧版日志（debug/proposals/teachings 由 LogUploader 清空）
         com.bbncbot.automation.LogUploader.clearLogsOnAppStart(this)
 
         // 启动 App 时先 kill 所有芭芭农场平台 App（UC/支付宝/淘宝）的老进程
@@ -81,7 +78,6 @@ class MainActivity : AppCompatActivity() {
         btnOpenFarm = findViewById(R.id.btnOpenFarm)
         btnOpenAlipayFarm = findViewById(R.id.btnOpenAlipayFarm)
         btnOpenTaobaoFarm = findViewById(R.id.btnOpenTaobaoFarm)
-        btnRuleEditor = findViewById(R.id.btnRuleEditor)
         etGhToken = findViewById(R.id.etGhToken)
         btnSaveGhToken = findViewById(R.id.btnSaveGhToken)
         tvGhTokenStatus = findViewById(R.id.tvGhTokenStatus)
@@ -94,7 +90,7 @@ class MainActivity : AppCompatActivity() {
             etGhToken.setText(savedGhToken)
             tvGhTokenStatus.text = "日志上传：已配置（${savedGhToken.take(4)}...${savedGhToken.takeLast(4)}）"
         } else {
-            tvGhTokenStatus.text = "日志上传：未配置（录制停止不会自动上传）"
+            tvGhTokenStatus.text = "日志上传：未配置（点击测试上传按钮手动上传）"
         }
 
         btnSaveGhToken.setOnClickListener {
@@ -110,7 +106,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // 立即测试上传：不依赖录制停止，方便用户快速验证 Token/网络/权限是否正常
+        // 立即测试上传：手动触发，方便用户快速验证 Token/网络/权限是否正常
         btnTestUpload.setOnClickListener {
             // 自动保存输入框中的 Token（避免用户填了 Token 但没点保存就测试）
             val tokenInBox = etGhToken.text.toString().trim()
@@ -132,7 +128,7 @@ class MainActivity : AppCompatActivity() {
                     // 提示用户截图在 sessions/ 子目录
                     if (n > 0) {
                         android.widget.Toast.makeText(
-                            this, "日志+截图已上传（logs/ rules/ sessions/ 目录）",
+                            this, "日志+截图已上传（logs/ sessions/ 目录）",
                             android.widget.Toast.LENGTH_LONG
                         ).show()
                     }
@@ -157,9 +153,6 @@ class MainActivity : AppCompatActivity() {
         }
         btnOpenTaobaoFarm.setOnClickListener {
             openApp("com.taobao.taobao", "淘宝")
-        }
-        btnRuleEditor.setOnClickListener {
-            startActivity(Intent(this, RuleEditorActivity::class.java))
         }
 
         // 解析 shortcut intent 中的平台参数

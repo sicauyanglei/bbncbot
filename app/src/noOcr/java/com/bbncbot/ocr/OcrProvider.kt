@@ -31,8 +31,8 @@ import java.io.ByteArrayOutputStream
  *
  * 必须在后台线程调用（OCR 耗时约 0.5-2s）。
  *
- * fallback：若 OCR APK 未安装或调用失败，上层 RecordingManager 会按
- * "无障碍读不到 → OCR 不可用"记录日志，不影响录制流程。
+ * fallback：若 OCR APK 未安装或调用失败，上层 AutomationController 会按
+ * "无障碍读不到 → OCR 不可用"记录日志，不影响自动化流程。
  */
 object OcrProvider {
 
@@ -51,7 +51,7 @@ object OcrProvider {
     private const val JPEG_QUALITY = 85
 
     /**
-     * 上次操作的详细失败原因（供上层 RecordingManager 记录到 recording.log 诊断）
+     * 上次操作的详细失败原因（供上层 AutomationController 记录到 debug.log 诊断）
      *
      * 区分以下失败场景：
      * - "ocr_apk_not_installed"：OCR APK 未安装

@@ -117,28 +117,6 @@ class FarmAccessibilityService : AccessibilityService() {
         val pkg = event.packageName?.toString().orEmpty()
         val className = event.className?.toString().orEmpty()
 
-        // 录制模式：监听用户手势事件（点击/滑动），记录成规则
-        if (com.bbncbot.automation.RecordingManager.recording) {
-            // 仅对可能的手势事件打印诊断日志（含 H5 WebView 的 TEXT_CHANGED/WINDOW_STATE_CHANGED），
-            // 便于定位"录制时步骤为0"问题：确认事件是否到达 service、eventType 是什么
-            val evType = event.eventType
-            if (evType == AccessibilityEvent.TYPE_VIEW_CLICKED ||
-                evType == AccessibilityEvent.TYPE_VIEW_SCROLLED ||
-                evType == AccessibilityEvent.TYPE_VIEW_LONG_CLICKED ||
-                evType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED ||
-                evType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
-                evType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
-                val srcText = event.source?.text?.toString().orEmpty()
-                val srcDesc = event.source?.contentDescription?.toString().orEmpty()
-                debugLog("record event: type=0x${evType.toString(16)} pkg=$pkg class=$className text='$srcText' desc='$srcDesc'")
-            }
-            try {
-                com.bbncbot.automation.RecordingManager.onUserGesture(event, this)
-            } catch (e: Exception) {
-                Log.w(TAG, "RecordingManager.onUserGesture failed: ${e.message}")
-            }
-        }
-
         // 跟踪窗口状态变化，记录当前前台 Activity 和包名
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
             pkg.isNotEmpty() && className.isNotEmpty()) {
@@ -2387,7 +2365,7 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * 读取当前肥料数值并返回详细失败原因（用于录制失败诊断）
+     * 读取当前肥料数值并返回详细失败原因（用于自动化失败诊断）
      *
      * 失败原因分类：
      * - no_root：拿不到无障碍根节点（可能不在农场 App）
@@ -2715,7 +2693,6 @@ class FarmAccessibilityService : AccessibilityService() {
     // 注：OCR 肥料识别已迁移到 com.bbncbot.ocr.OcrProvider（按 flavor 二选一注入）
     // - noOcr flavor：空实现返回 -1（调试包不带 ML Kit 模型，APK 体积小）
     // - full  flavor：ML Kit 中文识别真实实现（稳定版大包）
-    // 调用方：com.bbncbot.automation.RecordingManager.readFertilizerAmountWithDiag
 
     /**
      * 采样当前页面可见文本（用于失败诊断，判断当前在哪个页面）

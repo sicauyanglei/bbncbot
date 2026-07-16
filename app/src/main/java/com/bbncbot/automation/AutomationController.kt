@@ -325,14 +325,10 @@ object AutomationController {
         }
     }
 
-    /**
-     * 命中规则的统一视图（适配 SceneLibrary 重构后的 MatchResult API）
-     *
-     * SceneLibrary 重构后 [SceneLibrary.match] 返回 [SceneLibrary.MatchResult]
-     * （Matched/Unmapped/Defaulted/None）。此处把 Matched/Defaulted 折叠为带
-     * action/targetButton/hitCount/source/confidence 的统一对象，Unmapped/None
-     * 视为未命中返回 null，保持 withSceneRule 等调用方原控制流不变。
-     */
+    // 录制/规则系统已移除：以下两个函数保留签名兼容现有调用点，但直接走 fallback/onClick
+    // SceneLibrary.Action 枚举仍保留（部分调用点的 onRuleAction lambda 引用它）
+    // MatchedRule 仅作为 withSceneRule 的占位参数类型，不再实际构造
+
     @PublishedApi
     internal data class MatchedRule(
         val action: SceneLibrary.Action,
@@ -342,43 +338,6 @@ object AutomationController {
         val confidence: Double
     )
 
-    @PublishedApi
-    internal fun SceneLibrary.MatchResult.toMatchedRuleOrNull(): MatchedRule? = when (this) {
-        is SceneLibrary.MatchResult.Matched -> MatchedRule(
-            action = category.action,
-            targetButton = category.targetButton,
-            hitCount = category.hitCount,
-            source = "category:${category.name}",
-            confidence = 1.0
-        )
-        is SceneLibrary.MatchResult.Defaulted -> MatchedRule(
-            action = action,
-            targetButton = targetButton,
-            hitCount = 0,
-            source = "default",
-            confidence = 0.5
-        )
-        is SceneLibrary.MatchResult.Unmapped,
-        SceneLibrary.MatchResult.None -> null
-    }
-
-    /**
-     * 场景规则统一接入点 - 把"提取特征→查规则→询问→执行/学习"完整流程封装
-     *
-     * 工作流：
-     * 1. 提取当前场景特征
-     * 2. 查 SceneLibrary 规则库
-     * 3. 命中规则：
-     *    - 关闭交互模式 → 直接执行 [onRuleAction]，并记录 APPROVE 强化规则
-     *    - 开启交互模式 → 弹询问浮窗，用户同意→执行并强化；用户拒绝→弱化规则并执行 [onFallback]
-     * 4. 未命中规则：走 [onFallback]（原关键词/坐标逻辑），不记录学习
-     *
-     * @param decisionPoint 决策点名称（如 "processTask_click_go_complete"），用于日志
-     * @param proposedAction 拟执行的动作（用于规则匹配 + 询问展示）
-     * @param proposedReason 拟执行原因
-     * @param onRuleAction 命中规则时执行（参数：命中的规则）
-     * @param onFallback 未命中规则或用户拒绝时执行原逻辑
-     */
     private inline fun withSceneRule(
         decisionPoint: String,
         proposedAction: String,
@@ -387,115 +346,16 @@ object AutomationController {
         crossinline onRuleAction: (MatchedRule) -> Unit,
         crossinline onFallback: () -> Unit
     ) {
-        val service = getService() ?: run { onFallback(); return }
-        // 提取场景特征（taskButton 用于提取任务行上下文关键词，区分不同任务内容的规则）
-        val features = SceneFeatureExtractor.extract(service, state.name, taskButton = taskButton)
-        debugLog("$decisionPoint: scene sig=${features.signature()}")
-        // 查规则库
-        val rule = SceneLibrary.match(features).toMatchedRuleOrNull()
-        if (rule == null) {
-            // 未命中规则，走原逻辑
-            debugLog("$decisionPoint: no scene rule matched, fallback to original logic")
-            onFallback()
-            return
-        }
-        debugLog("$decisionPoint: scene rule matched, action=${rule.action} target=${rule.targetButton} conf=${rule.confidence} hits=${rule.hitCount}")
-        // 命中规则：构造询问展示
-        val ruleActionText = "[$decisionPoint] 规则建议: ${rule.action}" + (rule.targetButton?.let { " '$it'" } ?: "")
-        val ruleReason = "命中规则(来源=${rule.source}, 置信度=${rule.confidence}, 命中${rule.hitCount}次). $proposedReason"
-        withApproval(
-            action = ruleActionText,
-            reason = ruleReason,
-            pageSummary = features.summary(),
-            onApprove = {
-                // 用户同意，执行规则动作并记录强化
-                SceneLibrary.recordRule(features, rule.action, rule.targetButton)
-                onRuleAction(rule)
-            },
-            onReject = {
-                // 用户拒绝：新 API 已移除弱化语义，仅走原逻辑
-                debugLog("$decisionPoint: scene rule rejected by user, fallback to original logic")
-                onFallback()
-            }
-        )
+        onFallback()
     }
 
-    /**
-     * 通用：点击类决策点接入场景规则
-     *
-     * 适用于：点"去完成"按钮、点直接领取按钮、点历史搜索词、点"集肥料"坐标、关广告按钮等
-     *
-     * - 命中规则且规则是 CLICK_BUTTON → 执行 [onClick]（由调用方决定点哪个按钮）
-     * - 命中规则且规则是 BACK/EXIT_TASK/STOP_AUTOMATION → 执行对应动作
-     * - 命中规则且规则是 WAIT → 不动作，由调用方安排下次轮询
-     * - 未命中 → 执行 [onClick]（原逻辑）
-     *
-     * @param decisionPoint 决策点名称
-     * @param actionDesc 动作描述（如 "点击'去完成'按钮"）
-     * @param onClick 实际执行点击的逻辑（命中规则且 action=CLICK_BUTTON 或未命中时调用）
-     */
     private inline fun withSceneRuleClick(
         decisionPoint: String,
         actionDesc: String,
         taskButton: AccessibilityNodeInfo? = null,
         crossinline onClick: () -> Unit
     ) {
-        withSceneRule(
-            decisionPoint = decisionPoint,
-            proposedAction = actionDesc,
-            proposedReason = actionDesc,
-            taskButton = taskButton,
-            onRuleAction = { rule ->
-                when (rule.action) {
-                    SceneLibrary.Action.CLICK_BUTTON -> {
-                        // 规则命中点击：优先按 targetButton 找节点点击，找不到则走原 onClick
-                        val target = rule.targetButton
-                        if (target != null) {
-                            val service = getService()
-                            if (service != null) {
-                                val root = service.getRootInFarmApp()
-                                val node = root?.let { service.findNodeByText(it, target) }
-                                if (node != null) {
-                                    debugLog("$decisionPoint: rule click button '$target'")
-                                    service.performClickSafe(node)
-                                    return@withSceneRule
-                                }
-                            }
-                        }
-                        // target 为空或找不到节点，走原 onClick
-                        onClick()
-                    }
-                    SceneLibrary.Action.BACK -> {
-                        debugLog("$decisionPoint: rule back")
-                        getService()?.pressBack()
-                    }
-                    SceneLibrary.Action.EXIT_TASK -> {
-                        debugLog("$decisionPoint: rule exit task")
-                        getService()?.let {
-                            currentTaskIndex++
-                            collectedCount++
-                            exitBrowsePage(it, reason = "scene_rule_${decisionPoint}")
-                        }
-                    }
-                    SceneLibrary.Action.STOP_AUTOMATION -> {
-                        debugLog("$decisionPoint: rule stop automation")
-                        stop()
-                    }
-                    SceneLibrary.Action.WAIT -> {
-                        debugLog("$decisionPoint: rule wait")
-                        // 不动作，由调用方安排下次轮询
-                    }
-                    else -> {
-                        // 其他动作（如滑动）不适合点击类决策点，走原逻辑
-                        onClick()
-                    }
-                }
-            },
-            onFallback = {
-                // 未命中规则，执行原点击逻辑
-                onClick()
-            }
-        )
+        onClick()
     }
 
     /** 采集当前页面文本摘要（用于询问浮窗展示，最多取 8 条避免太长） */
@@ -629,8 +489,6 @@ object AutomationController {
         // 取消进行中的导航回调，避免 stop 后导航继续干扰用户操作
         getService()?.cancelNavigation()
         getService()?.setAdMode(false)
-        // 重置场景执行上下文（不再按 session 流程执行）
-        SceneLibrary.resetSessionContext()
         moveTo(AutomationState.IDLE)
     }
 
@@ -933,33 +791,31 @@ object AutomationController {
 
         // 闭环规则：支付宝/淘宝/UC 每次进入 OPENING_TASK_LIST 必须保证在任务列表页（截图页面）
         // 用户要求：三个平台农场页起始画面（任务开始前）和任务结束后都要停在任务列表页，形成闭环。
-        //           但具体点哪个按钮进去任务由用户录制规则时决定（不写死"集肥料"）。
+        //           具体点哪个按钮进去任务由内置启发式逻辑决定（不写死"集肥料"）。
         // 实现：每轮重新打开任务列表时（taskListOpenedThisRound=false）：
         //   - 先检查页面是否已有"去完成"按钮（任务列表本就开着，如 UC 主页）→ 直接处理，无需再点
-        //   - 没有则走 withSceneRule 让录制规则决定点哪个按钮调出任务列表
-        //   - 未命中规则→降级 findCollectFertilizerButton 文本查找 + 坐标兜底
+        //   - 没有则用 findCollectFertilizerButton 文本查找入口按钮 + 坐标兜底
         // 这样既保证闭环（任务结束后回到任务列表页），又不破坏 UC 任务入口原本在主页的行为。
         if (service.currentPlatform != Platform.UNKNOWN && !taskListOpenedThisRound) {
             // 先检查页面上是否已有可见的"去完成"按钮（UC 主页任务入口直接可见的情况）
             val visibleGoComplete = service.findGoCompleteButtons()
             if (visibleGoComplete.isEmpty()) {
-                // 任务列表未打开：走录制规则 / 降级逻辑调出任务列表
+                // 任务列表未打开：用文本查找 + 坐标兜底调出任务列表
                 taskListOpenedThisRound = true  // 标记本轮已尝试调出，避免重复进入死循环
-                debugLog("openTaskList: [${service.currentPlatform}闭环] no goComplete buttons visible, opening task list (attempt=$attempt, will follow recorded rule)")
+                debugLog("openTaskList: [${service.currentPlatform}闭环] no goComplete buttons visible, opening task list (attempt=$attempt, using heuristic)")
                 withSceneRule(
                     decisionPoint = "openTaskList_${service.currentPlatform}_entry",
                     proposedAction = "${service.currentPlatform}闭环：调出任务列表入口",
                     proposedReason = "${service.currentPlatform}任务开始前/结束后都要停在任务列表页",
                     onRuleAction = { _ ->
-                        // 录制规则已执行点击（CLICK_BUTTON/BACK 等），等页面加载后检查任务列表是否打开
-                        debugLog("openTaskList: [${service.currentPlatform}闭环] recorded rule executed, checking task list opened")
+                        // 保留分支兼容签名（规则系统已移除，实际不会进入）
                         handler.postDelayed({
                             if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
                         }, INTERVAL_PAGE_LOAD_MS)
                     },
                     onFallback = {
-                        // 未命中录制规则：降级用 collectFertilizerTexts 文本查找入口按钮
-                        debugLog("openTaskList: [${service.currentPlatform}闭环] no recorded rule, fallback to text search (attempt=$attempt)")
+                        // 启发式逻辑：用 collectFertilizerTexts 文本查找入口按钮
+                        debugLog("openTaskList: [${service.currentPlatform}闭环] heuristic text search (attempt=$attempt)")
                         val entryButton = service.findCollectFertilizerButton()
                         if (entryButton != null) {
                             debugLog("openTaskList: [${service.currentPlatform}闭环] clicking entry button by text (attempt=$attempt)")
@@ -1105,12 +961,11 @@ object AutomationController {
     }
 
     /**
-     * 按用户配置的规则优先级排序任务按钮
+     * 任务按钮排序（规则系统已移除，当前为稳定占位实现）
      *
-     * - 对每个"去完成"按钮提取任务内容标识，查 SceneLibrary 中对应规则的 priority
-     * - priority 小的排前面（先执行），未匹配规则的按钮排最后（保持原顺序）
-     * - 稳定排序：相同 priority 的按钮保持原有视觉顺序
-     * - 让用户在规则编辑界面配置的执行顺序在此生效
+     * - 对每个"去完成"按钮提取任务内容标识，查 SceneLibrary.getPriorityForTask
+     * - 规则库已移除，priority 统一返回 0，即保持原有视觉顺序（稳定排序）
+     * - 保留此函数供未来重新引入任务优先级策略时扩展
      */
     private fun sortTaskButtonsByPriority(
         service: FarmAccessibilityService,
@@ -1586,54 +1441,7 @@ object AutomationController {
             Triple(baseY - swipeRange, baseY + swipeRange, "down")
         }
 
-        // 先查场景规则库：命中则执行规则动作，未命中直接滑动
-        // 注意：滑动是浏览任务的常规高频动作，不走 withApproval 询问
-        // （每次滑动都弹浮窗会卡住整个任务流程）
-        // 退出/点击等关键决策仍保留询问，滑动直接执行
-        val sceneFeatures = SceneFeatureExtractor.extract(service, state.name)
-        debugLog("browseTask: scene sig=${sceneFeatures.signature()}")
-        val sceneRule = SceneLibrary.match(sceneFeatures).toMatchedRuleOrNull()
-        if (sceneRule != null) {
-            debugLog("browseTask: scene rule matched, action=${sceneRule.action} target=${sceneRule.targetButton} conf=${sceneRule.confidence}")
-            // 命中规则：仅当规则动作不是滑动类时才需要确认（退出/停止等关键动作）
-            // 滑动类规则直接执行，不询问
-            when (sceneRule.action) {
-                SceneLibrary.Action.SWIPE_UP, SceneLibrary.Action.SWIPE_DOWN -> {
-                    // 滑动规则：直接执行，记录强化
-                    SceneLibrary.recordRule(sceneFeatures, sceneRule.action, sceneRule.targetButton)
-                    executeSceneRuleAction(service, sceneRule, swipeCount, centerX, startY, endY)
-                }
-                SceneLibrary.Action.WAIT -> {
-                    // 等待规则：直接执行，不询问
-                    SceneLibrary.recordRule(sceneFeatures, sceneRule.action, sceneRule.targetButton)
-                    executeSceneRuleAction(service, sceneRule, swipeCount, centerX, startY, endY)
-                }
-                else -> {
-                    // 退出/返回/停止等关键动作：走询问流程（这些动作影响大，需要用户确认）
-                    val ruleActionText = "规则建议: ${sceneRule.action}" + (sceneRule.targetButton?.let { " '$it'" } ?: "")
-                    val ruleReason = "命中规则(来源=${sceneRule.source}, 置信度=${sceneRule.confidence}, 命中${sceneRule.hitCount}次)"
-                    withApproval(
-                        action = ruleActionText,
-                        reason = ruleReason,
-                        pageSummary = sceneFeatures.summary(),
-                        onApprove = {
-                            SceneLibrary.recordRule(sceneFeatures, sceneRule.action, sceneRule.targetButton)
-                            executeSceneRuleAction(service, sceneRule, swipeCount, centerX, startY, endY)
-                        },
-                        onReject = {
-                            // 新 API 已移除 REJECT 弱化语义，仅记录日志
-                            debugLog("browseTask: scene rule rejected by user, executing original swipe")
-                            service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
-                            scheduleNextBrowseCheck(service, swipeCount)
-                        }
-                    )
-                    return
-                }
-            }
-            return
-        }
-
-        // 未命中规则，直接执行滑动（不询问，滑动是常规动作）
+        // 直接执行滑动（滑动是浏览任务的常规高频动作）
         // 诊断日志：滑动前记录页面状态、倒计时、进度，帮助定位"为什么不如人工操作"
         val browsePageType = service.getPageType()
         val browseCountdown = service.findBrowseRewardCountdownHint()
@@ -1641,72 +1449,6 @@ object AutomationController {
         debugLog("browseTask: swipe #$swipeCount/$browseTaskTargetSwipes $dirText ($startY -> $endY), pageType=$browsePageType, countdown=${browseCountdown}s, progress=$browseProgress")
         service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
         scheduleNextBrowseCheck(service, swipeCount)
-    }
-
-    /**
-     * 执行场景规则动作
-     * - 把 [SceneLibrary.Action] 映射到具体的 service 调用
-     * - 滑动动作用当前的滑动参数（centerX/startY/endY），其他动作独立执行
-     */
-    private fun executeSceneRuleAction(
-        service: FarmAccessibilityService,
-        rule: MatchedRule,
-        swipeCount: Int,
-        centerX: Float,
-        startY: Float,
-        endY: Float
-    ) {
-        when (rule.action) {
-            SceneLibrary.Action.SWIPE_UP, SceneLibrary.Action.SWIPE_DOWN -> {
-                debugLog("sceneRule: swipe (count=$swipeCount)")
-                service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
-                scheduleNextBrowseCheck(service, swipeCount)
-            }
-            SceneLibrary.Action.BACK -> {
-                debugLog("sceneRule: press back")
-                service.pressBack()
-            }
-            SceneLibrary.Action.EXIT_TASK -> {
-                debugLog("sceneRule: exit task")
-                currentTaskIndex++
-                collectedCount++
-                exitBrowsePage(service, reason = "scene_rule_exit")
-            }
-            SceneLibrary.Action.WAIT -> {
-                debugLog("sceneRule: wait")
-                handler.postDelayed({
-                    if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount + 1)
-                }, BROWSE_SWIPE_INTERVAL_MS)
-            }
-            SceneLibrary.Action.CLICK_BUTTON -> {
-                val target = rule.targetButton
-                if (target != null) {
-                    debugLog("sceneRule: click button '$target'")
-                    val root = service.getRootInFarmApp()
-                    val node = root?.let { service.findNodeByText(it, target) }
-                    if (node != null) {
-                        service.performClickSafe(node)
-                    } else {
-                        debugLog("sceneRule: button '$target' not found, fallback to swipe")
-                        service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
-                        scheduleNextBrowseCheck(service, swipeCount)
-                    }
-                } else {
-                    debugLog("sceneRule: click button without target, fallback to swipe")
-                    service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
-                    scheduleNextBrowseCheck(service, swipeCount)
-                }
-            }
-            SceneLibrary.Action.STOP_AUTOMATION -> {
-                debugLog("sceneRule: stop automation")
-                stop()
-            }
-            SceneLibrary.Action.UNKNOWN -> {
-                debugLog("sceneRule: unknown action, fallback to swipe")
-                service.dispatchGestureSwipe(centerX, startY, centerX, endY, 500L)
-                scheduleNextBrowseCheck(service, swipeCount)
-            }
-        }
     }
 
     /**
