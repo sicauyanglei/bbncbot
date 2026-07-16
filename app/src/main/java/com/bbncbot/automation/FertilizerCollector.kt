@@ -76,7 +76,8 @@ interface FertilizerCollector {
     fun isSearchRecommendPage(service: FarmAccessibilityService): Boolean
 
     /**
-     * 检测当前页面是否是异常页面（需要退出的交易/商品页面）
+     * 检测当前页面是否是异常页面（交易/付款/商品详情等页面）
+     * - 禁止交易获取肥料：所有交易相关页面都视为异常，遇到时立即退出
      * - 如收银台、商品详情页、订单确认页等
      * @return true 表示是异常页面
      */

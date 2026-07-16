@@ -1222,26 +1222,13 @@ object AutomationController {
             }
         }
 
-        // 滑动前检测：是否在异常页面（交易页面、收银台等需要花钱的页面）→ 立即退出
-        // 注意：商品详情页（ttdetailactivity）不是异常页面，可以滑动浏览
+        // 滑动前检测：是否在异常页面（交易页面、商品详情页、收银台等）→ 立即退出
+        // 禁止交易获取肥料：所有交易相关页面都视为异常
         if (service.isOnAbnormalPage()) {
             debugLog("browseTask: abnormal/trading page detected, exiting immediately")
             currentTaskIndex++
             collectedCount++
             exitBrowsePage(service, reason = "abnormal_page")
-            return
-        }
-
-        // 滑动前检测：是否在商品详情页（有"加入购物车"按钮）→ 按返回退回商品列表页
-        // 用户要求：不要进入这种页面，只在列表页滑动浏览
-        // 不直接退出任务（详情页可能是误点/平台自动跳转导致），按返回退回列表页继续滑动
-        if (service.isProductDetailPage()) {
-            debugLog("browseTask: product detail page detected, pressing back to list page (swipe #$swipeCount)")
-            service.pressBack()
-            // 等待返回列表页后，保持 swipeCount 重新进入（不消耗滑动次数）
-            handler.postDelayed({
-                if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount)
-            }, INTERVAL_PAGE_LOAD_MS)
             return
         }
 
@@ -1301,8 +1288,8 @@ object AutomationController {
                 exitBrowsePage(service, reason = "paid_search_in_swipe")
                 return@postDelayed
             }
-            // 检测异常页面（交易页面、收银台等需要花钱的页面）→ 立即退出
-            // 注意：商品详情页可以滑动浏览，不算异常页面
+            // 检测异常页面（交易页面、商品详情页、收银台等）→ 立即退出
+            // 禁止交易获取肥料：所有交易相关页面都视为异常
             if (service.isOnAbnormalPage()) {
                 debugLog("browseTask: abnormal/trading page during swipe, exiting immediately")
                 currentTaskIndex++

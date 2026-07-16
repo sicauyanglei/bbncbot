@@ -506,12 +506,13 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * 检测当前页面是否是商品详情页（有"加入购物车"按钮的页面）
+     * 检测当前页面是否是商品详情页（有"加入购物车"+"立即购买"按钮的页面）
      *
-     * 用户要求：浏览任务不要进入商品详情页，只在商品列表页滑动浏览即可。
+     * 禁止交易获取肥料：商品详情页是交易前置页面，命中后由 [isOnAbnormalPage] 统一处理，
+     * 调用方（浏览任务/游戏任务/导航）会立即退出任务，不再浏览或滑动。
+     *
      * - 商品详情页典型特征：同时含"加入购物车"+"立即购买"按钮
      * - 只匹配单个关键词会误判（如列表页的"立即购买"标签），要求两者同时出现
-     * - 命中后调用方应按返回键退回商品列表页
      *
      * @return true 表示当前在商品详情页，应退出
      */
@@ -1831,33 +1832,45 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * 检测是否在异常页面（需要花钱的真正交易/付款页面）
+     * 检测是否在异常页面（交易/付款/商品详情等页面）
      *
-     * 只检测真正的付款/收银台页面，遇到时按返回退出（不进入这种页面）。
+     * 禁止交易获取肥料：所有交易相关页面都视为异常，遇到时立即退出。
      *
-     * **不算异常页面**（可正常浏览领取肥料）：
-     * - 商品详情页（ttdetailactivity）— 浏览任务的终点，需要滑动浏览
-     * - SKU 选择页（sku）— 可浏览
-     * - 地址编辑页（addressedit）— 可浏览
-     * - 订单确认页（orderconfirm）— 进入不付款即可返回
+     * 异常页面包括：
+     * - 商品详情页（ttdetailactivity）— 有"加入购物车"+"立即购买"按钮，交易前置页面
+     * - 订单确认页（orderconfirm）— 交易流程页面
+     * - 收银台/支付页（cashdesk/cashier）— 实际付款页面
+     * - 交易确认页（tradeconfirm）— 实际提交付款
+     * - 结算页（checkout）— 实际付款
      *
-     * 用户要求：交易类的肥料不需要跳过，但真正的付款页面不进入，按返回回到上一个网页。
+     * 检测方式：activity 名 + 页面内容双重检测
+     * - activity 名检测覆盖已知交易页面
+     * - 内容级检测（[isProductDetailPage]）兜底捕获 H5/WebView 内的交易页
+     *
+     * 用户要求：禁止交易获取肥料，所有交易相关页面都不进入，按返回退出。
      */
     fun isOnAbnormalPage(): Boolean {
         val activity = currentActivityName?.lowercase().orEmpty()
-        if (activity.isEmpty()) return false
-        // 仅保留真正的付款/收银台/交易确认页面（进入会花钱）
+        // 1. activity 级检测：交易相关页面
         val abnormalKeywords = listOf(
             "cashdesk",          // 支付宝收银台（com.taobao.tao.alipay.cashdesk.cashdeskactivity）
             "cashier",           // 收银台/支付页
             "tradeconfirm",      // 交易确认页（实际提交付款）
-            "checkout"           // 结算页（实际付款）
+            "checkout",          // 结算页（实际付款）
+            "ttdetailactivity",  // 淘宝商品详情页（交易前置页面）
+            "orderconfirm"       // 订单确认页（交易流程页面）
         )
-        val isAbnormal = abnormalKeywords.any { activity.contains(it) }
-        if (isAbnormal) {
+        if (activity.isNotEmpty() && abnormalKeywords.any { activity.contains(it) }) {
             debugLog("isOnAbnormalPage: YES, activity=$activity")
+            return true
         }
-        return isAbnormal
+        // 2. 内容级检测：商品详情页（有"加入购物车"+"立即购买"按钮）
+        // 兜底捕获 H5/WebView 内的交易页（activity 名可能不暴露）
+        if (isProductDetailPage()) {
+            debugLog("isOnAbnormalPage: YES, product detail page detected by content")
+            return true
+        }
+        return false
     }
 
     /**
