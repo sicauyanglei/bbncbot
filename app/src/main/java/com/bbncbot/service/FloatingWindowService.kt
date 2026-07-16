@@ -20,7 +20,6 @@ import android.widget.TextView
 import android.widget.Toast
 import com.bbncbot.MainActivity
 import com.bbncbot.R
-import com.bbncbot.automation.ActionProposer
 import com.bbncbot.automation.AutomationController
 import com.bbncbot.automation.AutomationState
 import com.bbncbot.service.FarmAccessibilityService
@@ -30,8 +29,7 @@ import kotlin.math.abs
  * 悬浮窗前台 Service
  *
  * - 通过 WindowManager 显示一个可拖动的悬浮按钮
- * - 按钮文本根据 [AutomationController] 状态切换：「开始施肥」/「停止施肥」
- * - 长按按钮切换 [ActionProposer.enabled] 交互模式：开启后每个拟动作都会弹询问浮窗
+ * - 按钮文本根据 [AutomationController] 状态切换：「开始」/「停止」
  * - 通过前台通知保活
  */
 class FloatingWindowService : Service() {
@@ -41,19 +39,11 @@ class FloatingWindowService : Service() {
         private const val CHANNEL_ID = "bbnc_farm_bot_channel"
         private const val NOTIFICATION_ID = 1001
         private const val CLICK_THRESHOLD_PX = 10f
-        /** 长按切换交互模式的阈值（毫秒） */
-        private const val LONG_PRESS_THRESHOLD_MS = 800L
     }
 
     private lateinit var windowManager: WindowManager
     private var floatingView: View? = null
     private var actionButton: Button? = null
-
-    /** 询问浮窗（拟动作展示 + 三按钮），默认不添加，[ActionProposer] 有提议时才显示 */
-    private var proposalView: View? = null
-    private var proposalActionTv: TextView? = null
-    private var proposalReasonTv: TextView? = null
-    private var proposalPageTv: TextView? = null
 
     private val layoutParams: WindowManager.LayoutParams by lazy {
         WindowManager.LayoutParams().apply {
@@ -74,37 +64,14 @@ class FloatingWindowService : Service() {
         }
     }
 
-    /** 询问浮窗的 LayoutParams（独立位置，避免与主按钮重叠） */
-    private val proposalLayoutParams: WindowManager.LayoutParams by lazy {
-        WindowManager.LayoutParams().apply {
-            type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            } else {
-                @Suppress("DEPRECATION")
-                WindowManager.LayoutParams.TYPE_PHONE
-            }
-            format = PixelFormat.RGBA_8888
-            // 注意：不加 FLAG_NOT_FOCUSABLE，以便按钮可点击响应
-            flags = WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-            width = WindowManager.LayoutParams.WRAP_CONTENT
-            height = WindowManager.LayoutParams.WRAP_CONTENT
-            gravity = Gravity.CENTER
-        }
-    }
-
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification())
         setupFloatingWindow()
-        setupProposalWindow()
         AutomationController.onStateChanged = { state ->
             updateButtonUi(state)
-        }
-        // 监听提议变化：有提议显示浮窗，无提议隐藏
-        ActionProposer.onProposalChanged = { proposal ->
-            if (proposal != null) showProposal(proposal) else hideProposal()
         }
         // 初始化按钮显示
         updateButtonUi(AutomationController.currentState)
@@ -122,15 +89,6 @@ class FloatingWindowService : Service() {
         } else if (intent?.action == "com.bbncbot.DUMP_NODES") {
             Log.i(TAG, "Received DUMP_NODES broadcast")
             FarmAccessibilityService.getInstance()?.dumpNodeTree()
-        } else if (intent?.action == "com.bbncbot.TOGGLE_INTERACTIVE") {
-            // adb shell am broadcast -a com.bbncbot.TOGGLE_INTERACTIVE
-            Log.i(TAG, "Received TOGGLE_INTERACTIVE broadcast")
-            toggleInteractiveMode()
-        } else if (intent?.action == "com.bbncbot.OPEN_TEACH") {
-            // adb shell am broadcast -a com.bbncbot.OPEN_TEACH
-            // 此广播切换交互模式（录制系统已移除）
-            Log.i(TAG, "Received OPEN_TEACH broadcast")
-            toggleInteractiveMode()
         }
         return START_STICKY
     }
@@ -141,14 +99,6 @@ class FloatingWindowService : Service() {
         super.onDestroy()
         AutomationController.stop()
         AutomationController.onStateChanged = null
-        ActionProposer.onProposalChanged = null
-        proposalView?.let {
-            try {
-                windowManager.removeView(it)
-            } catch (e: Exception) {
-                Log.w(TAG, "removeView proposal failed: ${e.message}")
-            }
-        }
         floatingView?.let {
             try {
                 windowManager.removeView(it)
@@ -158,7 +108,6 @@ class FloatingWindowService : Service() {
         }
         floatingView = null
         actionButton = null
-        proposalView = null
         Log.i(TAG, "FloatingWindowService destroyed")
     }
 
@@ -186,7 +135,6 @@ class FloatingWindowService : Service() {
         var initialTouchX = 0f
         var initialTouchY = 0f
         var isDragging = false
-        var pressDownTime = 0L
 
         button.setOnTouchListener { v: View, event: MotionEvent ->
             when (event.action) {
@@ -196,7 +144,6 @@ class FloatingWindowService : Service() {
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
                     isDragging = false
-                    pressDownTime = System.currentTimeMillis()
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.rawX - initialTouchX
@@ -213,17 +160,10 @@ class FloatingWindowService : Service() {
                     }
                 }
                 MotionEvent.ACTION_UP -> {
-                    val pressDuration = System.currentTimeMillis() - pressDownTime
                     if (!isDragging) {
-                        if (pressDuration >= LONG_PRESS_THRESHOLD_MS) {
-                            // 长按：切换交互模式（每个拟动作弹询问浮窗）
-                            Log.i(TAG, "long press detected, toggling interactive mode")
-                            toggleInteractiveMode()
-                        } else {
-                            // 单击：启停自动化
-                            v.performClick()
-                            onActionButtonClicked()
-                        }
+                        // 单击：启停自动化
+                        v.performClick()
+                        onActionButtonClicked()
                     }
                 }
             }
@@ -235,66 +175,6 @@ class FloatingWindowService : Service() {
             windowManager.addView(view, layoutParams)
         } catch (e: Exception) {
             Log.e(TAG, "addView failed: ${e.message}")
-        }
-    }
-
-    /** 切换交互模式开关（长按悬浮按钮触发） */
-    private fun toggleInteractiveMode() {
-        ActionProposer.enabled = !ActionProposer.enabled
-        val msg = if (ActionProposer.enabled) "交互模式已开启：每个动作都会询问你" else "交互模式已关闭：自动执行"
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
-        Log.i(TAG, "interactive mode toggled: enabled=${ActionProposer.enabled}")
-        // 关闭交互模式时如果有未响应的提议，按 APPROVE 自动放行
-        if (!ActionProposer.enabled && ActionProposer.hasPending()) {
-            ActionProposer.respond(ActionProposer.Response.APPROVE)
-        }
-    }
-
-    /** 初始化询问浮窗（默认不添加到 WindowManager） */
-    private fun setupProposalWindow() {
-        val inflater = LayoutInflater.from(this)
-        val view = inflater.inflate(R.layout.view_proposal_dialog, null, false)
-        proposalActionTv = view.findViewById(R.id.tvProposalAction)
-        proposalReasonTv = view.findViewById(R.id.tvProposalReason)
-        proposalPageTv = view.findViewById(R.id.tvProposalPage)
-        view.findViewById<Button>(R.id.btnApprove).setOnClickListener {
-            ActionProposer.respond(ActionProposer.Response.APPROVE)
-        }
-        view.findViewById<Button>(R.id.btnReject).setOnClickListener {
-            ActionProposer.respond(ActionProposer.Response.REJECT)
-        }
-        view.findViewById<Button>(R.id.btnSkip).setOnClickListener {
-            ActionProposer.respond(ActionProposer.Response.SKIP)
-        }
-        proposalView = view
-    }
-
-    /** 显示询问浮窗（主线程调用） */
-    private fun showProposal(proposal: ActionProposer.Proposal) {
-        val view = proposalView ?: return
-        proposalActionTv?.text = proposal.action
-        proposalReasonTv?.text = proposal.reason
-        proposalPageTv?.text = proposal.pageSummary
-        try {
-            // 已添加则更新布局即可
-            windowManager.removeView(view)
-        } catch (e: Exception) {
-            // 未添加过，忽略
-        }
-        try {
-            windowManager.addView(view, proposalLayoutParams)
-        } catch (e: Exception) {
-            Log.w(TAG, "showProposal addView failed: ${e.message}")
-        }
-    }
-
-    /** 隐藏询问浮窗（主线程调用） */
-    private fun hideProposal() {
-        val view = proposalView ?: return
-        try {
-            windowManager.removeView(view)
-        } catch (e: Exception) {
-            // 未添加，忽略
         }
     }
 

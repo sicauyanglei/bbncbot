@@ -283,89 +283,6 @@ object AutomationController {
     }
 
     /**
-     * 执行前询问用户（仅在 [ActionProposer.enabled] = true 时启用）
-     *
-     * - 关闭交互模式：直接同步执行 [onApprove]
-     * - 开启交互模式：把拟动作展示到浮窗，等用户响应：
-     *   - APPROVE：执行 [onApprove]
-     *   - REJECT / SKIP：执行 [onReject]（默认空实现，即不动作，状态机下次轮询重新决策）
-     *
-     * 回调一定在主线程触发（[ActionProposer] 内部用 mainHandler.post 切回主线程）。
-     * 注意：[onApprove] / [onReject] 是异步回调，调用方在此函数返回后不应继续执行后续逻辑。
-     */
-    private inline fun withApproval(
-        action: String,
-        reason: String,
-        pageSummary: String,
-        crossinline onApprove: () -> Unit,
-        crossinline onReject: () -> Unit = {}
-    ) {
-        if (!ActionProposer.enabled) {
-            onApprove()
-            return
-        }
-        Log.i(TAG, "withApproval: proposing action='$action' reason='$reason' state=$state")
-        val stateAtProposal = state
-        ActionProposer.requestApproval(action, reason, pageSummary) { response ->
-            Log.i(TAG, "withApproval: received response=$response (action='$action', stateAtProposal=$stateAtProposal, stateNow=$state)")
-            if (state != stateAtProposal) {
-                Log.w(TAG, "withApproval: state changed during wait! was=$stateAtProposal now=$state, action may be skipped")
-            }
-            when (response) {
-                ActionProposer.Response.APPROVE -> {
-                    Log.i(TAG, "withApproval: executing onApprove for '$action'")
-                    onApprove()
-                    Log.i(TAG, "withApproval: onApprove returned for '$action'")
-                }
-                ActionProposer.Response.REJECT, ActionProposer.Response.SKIP -> {
-                    Log.i(TAG, "withApproval: executing onReject for '$action'")
-                    onReject()
-                }
-            }
-        }
-    }
-
-    // 录制/规则系统已移除：以下两个函数保留签名兼容现有调用点，但直接走 fallback/onClick
-    // SceneLibrary.Action 枚举仍保留（部分调用点的 onRuleAction lambda 引用它）
-    // MatchedRule 仅作为 withSceneRule 的占位参数类型，不再实际构造
-
-    @PublishedApi
-    internal data class MatchedRule(
-        val action: SceneLibrary.Action,
-        val targetButton: String?,
-        val hitCount: Int,
-        val source: String,
-        val confidence: Double
-    )
-
-    private inline fun withSceneRule(
-        decisionPoint: String,
-        proposedAction: String,
-        proposedReason: String,
-        taskButton: AccessibilityNodeInfo? = null,
-        crossinline onRuleAction: (MatchedRule) -> Unit,
-        crossinline onFallback: () -> Unit
-    ) {
-        onFallback()
-    }
-
-    private inline fun withSceneRuleClick(
-        decisionPoint: String,
-        actionDesc: String,
-        taskButton: AccessibilityNodeInfo? = null,
-        crossinline onClick: () -> Unit
-    ) {
-        onClick()
-    }
-
-    /** 采集当前页面文本摘要（用于询问浮窗展示，最多取 8 条避免太长） */
-    private fun pageTextSummary(service: FarmAccessibilityService): String {
-        val root = service.getRootInFarmApp() ?: return "[]"
-        val texts = service.collectAllText(root)
-        return texts.take(8).toString()
-    }
-
-    /**
      * 页面状态快照日志：输出当前所有关键页面判断结果，用于诊断"卡在哪个页面"问题
      * 调用时机：状态转换、关键决策点
      */
@@ -713,43 +630,38 @@ object AutomationController {
         val btnDesc = button.contentDescription?.toString().orEmpty()
         debugLog("collectDirect: clicking text='$btnText' desc='$btnDesc' (attempt ${attempt + 1})")
         Log.i(TAG, "collectDirect: clicking '$btnText' (attempt ${attempt + 1})")
-        withSceneRuleClick(
-            decisionPoint = "collectDirect_click_button",
-            actionDesc = "点击直接领取按钮 (text='$btnText')"
-        ) {
-            service.performClickSafe(button)
+        service.performClickSafe(button)
 
-            // 等待弹窗或页面变化
-            handler.postDelayed({
-                if (state == AutomationState.COLLECTING_DIRECT) {
-                    // 尝试点击确认领取按钮（精确匹配，不包含"关闭"）
-                    val claimBtn = service.findClaimRewardButtonExact()
-                    if (claimBtn != null) {
-                        Log.i(TAG, "collectDirect: found exact claim button, clicking")
-                        service.performClickSafe(claimBtn)
-                    }
-                    // 领取后等待弹窗按钮文字更新（"立即领取"→"点此逛一逛再赚1000肥料"）
-                    handler.postDelayed({
-                        if (state != AutomationState.COLLECTING_DIRECT) return@postDelayed
-                        // 检查弹窗内是否出现浏览入口（"点此逛一逛"/"再赚"等）
-                        val browseEntry = service.findBrowseEntryInPopup()
-                        if (browseEntry != null) {
-                            Log.i(TAG, "collectDirect: found browse entry in popup after claim, entering BROWSING_TASK")
-                            debugLog("collectDirect: browse entry found, switching to BROWSING_TASK")
-                            taskButtons = listOf(browseEntry)
-                            currentTaskIndex = 0
-                            taskListCheckAttempt = 0
-                            browseFromDirectPopup = true  // 标记：浏览完成后回 COLLECTING_DIRECT
-                            moveTo(AutomationState.BROWSING_TASK)
-                            handler.postDelayed({ runBrowsingTask(swipeCount = 0) }, INTERVAL_CLICK_MS)
-                            return@postDelayed
-                        }
-                        // 没有浏览入口，继续检查下一个 direct 按钮
-                        if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
-                    }, INTERVAL_CLICK_MS)
+        // 等待弹窗或页面变化
+        handler.postDelayed({
+            if (state == AutomationState.COLLECTING_DIRECT) {
+                // 尝试点击确认领取按钮（精确匹配，不包含"关闭"）
+                val claimBtn = service.findClaimRewardButtonExact()
+                if (claimBtn != null) {
+                    Log.i(TAG, "collectDirect: found exact claim button, clicking")
+                    service.performClickSafe(claimBtn)
                 }
-            }, INTERVAL_PAGE_LOAD_MS)
-        }
+                // 领取后等待弹窗按钮文字更新（"立即领取"→"点此逛一逛再赚1000肥料"）
+                handler.postDelayed({
+                    if (state != AutomationState.COLLECTING_DIRECT) return@postDelayed
+                    // 检查弹窗内是否出现浏览入口（"点此逛一逛"/"再赚"等）
+                    val browseEntry = service.findBrowseEntryInPopup()
+                    if (browseEntry != null) {
+                        Log.i(TAG, "collectDirect: found browse entry in popup after claim, entering BROWSING_TASK")
+                        debugLog("collectDirect: browse entry found, switching to BROWSING_TASK")
+                        taskButtons = listOf(browseEntry)
+                        currentTaskIndex = 0
+                        taskListCheckAttempt = 0
+                        browseFromDirectPopup = true  // 标记：浏览完成后回 COLLECTING_DIRECT
+                        moveTo(AutomationState.BROWSING_TASK)
+                        handler.postDelayed({ runBrowsingTask(swipeCount = 0) }, INTERVAL_CLICK_MS)
+                        return@postDelayed
+                    }
+                    // 没有浏览入口，继续检查下一个 direct 按钮
+                    if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
+                }, INTERVAL_CLICK_MS)
+            }
+        }, INTERVAL_PAGE_LOAD_MS)
     }
 
     // ============== 阶段3: 打开任务列表 ==============
@@ -803,41 +715,28 @@ object AutomationController {
                 // 任务列表未打开：用文本查找 + 坐标兜底调出任务列表
                 taskListOpenedThisRound = true  // 标记本轮已尝试调出，避免重复进入死循环
                 debugLog("openTaskList: [${service.currentPlatform}闭环] no goComplete buttons visible, opening task list (attempt=$attempt, using heuristic)")
-                withSceneRule(
-                    decisionPoint = "openTaskList_${service.currentPlatform}_entry",
-                    proposedAction = "${service.currentPlatform}闭环：调出任务列表入口",
-                    proposedReason = "${service.currentPlatform}任务开始前/结束后都要停在任务列表页",
-                    onRuleAction = { _ ->
-                        // 保留分支兼容签名（规则系统已移除，实际不会进入）
-                        handler.postDelayed({
-                            if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
-                        }, INTERVAL_PAGE_LOAD_MS)
-                    },
-                    onFallback = {
-                        // 启发式逻辑：用 collectFertilizerTexts 文本查找入口按钮
-                        debugLog("openTaskList: [${service.currentPlatform}闭环] heuristic text search (attempt=$attempt)")
-                        val entryButton = service.findCollectFertilizerButton()
-                        if (entryButton != null) {
-                            debugLog("openTaskList: [${service.currentPlatform}闭环] clicking entry button by text (attempt=$attempt)")
-                            service.performClickSafe(entryButton)
-                        } else {
-                            // 文本也没找到，用坐标候选兜底
-                            val candidates = collectFertilizerCandidates(service)
-                            if (candidates.isNotEmpty()) {
-                                val coordIndex = attempt % candidates.size
-                                val (xRatio, yRatio) = candidates[coordIndex]
-                                debugLog("openTaskList: [${service.currentPlatform}闭环] no entry button, clicking by coordinate #$coordIndex (attempt=$attempt)")
-                                clickAtRatio(service, xRatio, yRatio, "集肥料")
-                            } else {
-                                debugLog("openTaskList: [${service.currentPlatform}闭环] no entry found (text+coord), reset flag for next round")
-                                taskListOpenedThisRound = false  // 重置，让下一轮还能尝试
-                            }
-                        }
-                        handler.postDelayed({
-                            if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
-                        }, INTERVAL_PAGE_LOAD_MS)
+                // 启发式逻辑：用 collectFertilizerTexts 文本查找入口按钮
+                debugLog("openTaskList: [${service.currentPlatform}闭环] heuristic text search (attempt=$attempt)")
+                val entryButton = service.findCollectFertilizerButton()
+                if (entryButton != null) {
+                    debugLog("openTaskList: [${service.currentPlatform}闭环] clicking entry button by text (attempt=$attempt)")
+                    service.performClickSafe(entryButton)
+                } else {
+                    // 文本也没找到，用坐标候选兜底
+                    val candidates = collectFertilizerCandidates(service)
+                    if (candidates.isNotEmpty()) {
+                        val coordIndex = attempt % candidates.size
+                        val (xRatio, yRatio) = candidates[coordIndex]
+                        debugLog("openTaskList: [${service.currentPlatform}闭环] no entry button, clicking by coordinate #$coordIndex (attempt=$attempt)")
+                        clickAtRatio(service, xRatio, yRatio, "集肥料")
+                    } else {
+                        debugLog("openTaskList: [${service.currentPlatform}闭环] no entry found (text+coord), reset flag for next round")
+                        taskListOpenedThisRound = false  // 重置，让下一轮还能尝试
                     }
-                )
+                }
+                handler.postDelayed({
+                    if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
+                }, INTERVAL_PAGE_LOAD_MS)
                 return
             } else {
                 // 任务列表本就开着（UC 主页有去完成按钮），标记本轮已确认，直接走下面的处理
@@ -899,15 +798,10 @@ object AutomationController {
         val coordIndex = attempt % candidates.size
         val (xRatio, yRatio) = candidates[coordIndex]
         Log.i(TAG, "openTaskList: clicking 集肥料 by coordinate #$coordIndex (attempt ${attempt + 1}) platform=${service.currentPlatform}")
-        withSceneRuleClick(
-            decisionPoint = "openTaskList_click_fertilizer_coord",
-            actionDesc = "坐标点击'集肥料'入口 (coord=#$coordIndex)"
-        ) {
-            clickAtRatio(service, xRatio, yRatio, "集肥料")
-            handler.postDelayed({
-                if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
-            }, INTERVAL_PAGE_LOAD_MS)
-        }
+        clickAtRatio(service, xRatio, yRatio, "集肥料")
+        handler.postDelayed({
+            if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, attempt)
+        }, INTERVAL_PAGE_LOAD_MS)
     }
 
     /** 检查任务列表是否已打开（带等待重试） */
@@ -961,11 +855,10 @@ object AutomationController {
     }
 
     /**
-     * 任务按钮排序（规则系统已移除，当前为稳定占位实现）
+     * 任务按钮排序（稳定排序，保留原有视觉顺序）
      *
-     * - 对每个"去完成"按钮提取任务内容标识，查 SceneLibrary.getPriorityForTask
-     * - 规则库已移除，priority 统一返回 0，即保持原有视觉顺序（稳定排序）
-     * - 保留此函数供未来重新引入任务优先级策略时扩展
+     * - 对每个"去完成"按钮提取任务内容标识，用于日志诊断
+     * - priority 统一为 0，即保持原有视觉顺序（稳定排序）
      */
     private fun sortTaskButtonsByPriority(
         service: FarmAccessibilityService,
@@ -976,9 +869,8 @@ object AutomationController {
         if (platform == "UNKNOWN") return buttons
         return buttons.mapIndexed { idx, btn ->
             val taskContent = SceneFeatureExtractor.extractTaskContentText(service, btn)
-            val priority = SceneLibrary.getPriorityForTask(platform, taskContent)
-            debugLog("sortTaskButtons: idx=$idx task='$taskContent' priority=$priority")
-            Triple(priority, idx, btn)
+            debugLog("sortTaskButtons: idx=$idx task='$taskContent' priority=0")
+            Triple(0, idx, btn)
         }.sortedWith(compareBy({ it.first }, { it.second })).map { it.third }
     }
 
@@ -1135,18 +1027,12 @@ object AutomationController {
                 debugLog("processTask: multi-click task detected, remainingReplays=$taskReplayRemaining")
             }
         }
-        withSceneRuleClick(
-            decisionPoint = "processTask_click_go_complete",
-            actionDesc = "点击'去完成'按钮 (text='$buttonText')",
-            taskButton = button
-        ) {
-            service.performClickSafe(button)
+        service.performClickSafe(button)
 
-            // 等待检测是否进入广告
-            handler.postDelayed({
-                if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt)
-            }, INTERVAL_PAGE_LOAD_MS)
-        }
+        // 等待检测是否进入广告
+        handler.postDelayed({
+            if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt)
+        }, INTERVAL_PAGE_LOAD_MS)
     }
 
     // ============== 阶段3b: 滑动浏览任务 ==============
@@ -1165,22 +1051,10 @@ object AutomationController {
             logPageSnapshot(service, "browseTask-start")
             // 重置红包弹窗关闭计数器（新的浏览任务开始）
             browseRedPacketCloseAttempts = 0
-            // 启动采集会话：记录"任务开始→任务结束"全过程截图
-            // tag 包含来源（direct/search/browse）+ 任务索引，便于事后筛选
-            val sourceTag = when {
-                browseFromDirectPopup -> "from_direct"
-                browseFromSearchBrowse -> "from_search_browse"
-                else -> "from_list"
-            }
-            service.startDumpSession("browse_${currentTaskIndex}_${sourceTag}")
-            service.dumpScreenshotWithMeta("browse", "BROWSING_TASK", 0, "task_start")
             // 第一步：点击"去完成"按钮进入浏览页面
             val button = taskButtons.getOrNull(currentTaskIndex)
             if (button == null) {
                 debugLog("browseTask: button gone, back to processing")
-                // 任务按钮失效：刚启动会话就要早退，结束会话避免泄漏
-                service.dumpScreenshotWithMeta("browse", state.name, 0, "exit_button_gone")
-                service.endDumpSession()
                 // 从 direct 弹窗进入的浏览：节点失效回 COLLECTING_DIRECT
                 val fromDirect = browseFromDirectPopup
                 browseFromDirectPopup = false
@@ -1242,11 +1116,6 @@ object AutomationController {
             return
         }
 
-        // swipeCount > 0 进入滑动循环：每次都截一张图（用于事后回看"何时该退出"）
-        if (swipeCount > 0) {
-            service.dumpScreenshotWithMeta("browse", "BROWSING_TASK", swipeCount, "swipe_loop")
-        }
-
         // 优先检测：是否有红包弹窗 → 先关闭它，才能继续滑动获取肥料
         // 红包弹窗会遮挡页面，不关闭无法滑动；关闭后保持 swipeCount 重新进入
         // 防御：限制连续关闭次数，避免 findRedPacketCloseButton 误判导致死循环
@@ -1264,51 +1133,14 @@ object AutomationController {
             browseRedPacketCloseAttempts++
             Log.i(TAG, "browseTask: red packet popup detected, closing it first (attempt $browseRedPacketCloseAttempts/$MAX_RED_PACKET_CLOSE_ATTEMPTS)")
             debugLog("browseTask: closing red packet popup before swiping (swipe #$swipeCount, attempt $browseRedPacketCloseAttempts/$MAX_RED_PACKET_CLOSE_ATTEMPTS)")
-            service.dumpScreenshotWithMeta("browse", "BROWSING_TASK", swipeCount, "red_packet_popup")
             val scheduleReentry = {
                 // 等待弹窗关闭后重新进入（保持 swipeCount 不变，不消耗滑动次数）
                 handler.postDelayed({
                     if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount)
                 }, INTERVAL_CLICK_MS)
             }
-            val originalAction: () -> Unit = {
-                service.performClickSafe(redPacketBtn)
-                scheduleReentry()
-            }
-            withSceneRule(
-                decisionPoint = "browseTask_close_red_packet",
-                proposedAction = "CLICK_BUTTON",
-                proposedReason = "关闭遮挡弹窗（红包弹窗），target=关闭",
-                onRuleAction = { rule ->
-                    when (rule.action) {
-                        SceneLibrary.Action.CLICK_BUTTON -> {
-                            // 规则命中点击：优先按 targetButton 找节点点击
-                            val target = rule.targetButton
-                            if (target != null) {
-                                val s = getService()
-                                if (s != null) {
-                                    val root = s.getRootInFarmApp()
-                                    val node = root?.let { s.findNodeByText(it, target) }
-                                    if (node != null) {
-                                        debugLog("browseTask_close_red_packet: rule click button '$target'")
-                                        s.performClickSafe(node)
-                                        scheduleReentry()
-                                        return@withSceneRule
-                                    }
-                                }
-                            }
-                            // target 为空或找不到节点，走原逻辑
-                            originalAction()
-                        }
-                        SceneLibrary.Action.WAIT -> {
-                            debugLog("browseTask_close_red_packet: rule wait")
-                            // 不动作，由调用方安排下次轮询
-                        }
-                        else -> originalAction()
-                    }
-                },
-                onFallback = originalAction
-            )
+            service.performClickSafe(redPacketBtn)
+            scheduleReentry()
             return
         }
 
@@ -1349,8 +1181,6 @@ object AutomationController {
         // 不依赖返回键（WebView 里返回键不可靠）
         if (service.isFertilizerGrantedPage()) {
             debugLog("browseTask: fertilizer granted page detected, exiting via RETURNING (swipes=$swipeCount/$browseTaskTargetSwipes)")
-            service.dumpScreenshotWithMeta("browse", state.name, browseTaskTargetSwipes, "exit_fertilizer_granted")
-            service.endDumpSession()
             currentTaskIndex++
             collectedCount++
             browseFromSearchBrowse = false
@@ -1407,7 +1237,6 @@ object AutomationController {
         // 不直接退出任务（详情页可能是误点/平台自动跳转导致），按返回退回列表页继续滑动
         if (service.isProductDetailPage()) {
             debugLog("browseTask: product detail page detected, pressing back to list page (swipe #$swipeCount)")
-            service.dumpScreenshotWithMeta("browse", state.name, swipeCount, "product_detail_back")
             service.pressBack()
             // 等待返回列表页后，保持 swipeCount 重新进入（不消耗滑动次数）
             handler.postDelayed({
@@ -1484,8 +1313,6 @@ object AutomationController {
             // 检测是否已完成任务（得到肥料）
             if (service.isFertilizerGrantedPage()) {
                 debugLog("browseTask: fertilizer granted detected during swipe, exiting via RETURNING")
-                service.dumpScreenshotWithMeta("browse", state.name, browseTaskTargetSwipes, "exit_fertilizer_granted_in_swipe")
-                service.endDumpSession()
                 collectedCount++
                 currentTaskIndex++
                 // 直接走 RETURNING：reopenFarmByDeepLink 会 kill 目标 App 老进程 +
@@ -1499,9 +1326,6 @@ object AutomationController {
             // 检测是否已完成任务（得到肥料）
             if (service.isTaskCompletePage()) {
                 debugLog("browseTask: task complete detected during swipe, exiting")
-                // 退出前截图 + 结束会话（这里直接 return 不走 exitBrowsePage，需手动调用）
-                service.dumpScreenshotWithMeta("browse", state.name, browseTaskTargetSwipes, "exit_task_complete_in_swipe")
-                service.endDumpSession()
                 // 优先点右上角关闭或左上角返回图标
                 val closeBtn = service.findAdCloseButton()
                 val backIcon = service.findBackIcon()
@@ -1546,81 +1370,58 @@ object AutomationController {
 
     /** 退出浏览页面：优先用左上角返回图标，否则按返回键，然后重新打开任务列表 */
     private fun exitBrowsePage(service: FarmAccessibilityService, reason: String = "exit_browse_page") {
-        // 退出前截图：这是判断"任务是否真的完成 / 该不该退出"的最关键样本
-        // reason 用于事后看图区分退出原因（task_complete / timeout / abnormal_page / paid_search...）
-        service.dumpScreenshotWithMeta("browse", state.name, browseTaskTargetSwipes, "exit_${reason}")
-        // 结束采集会话（截图已落盘，避免下个任务混进来）
-        service.endDumpSession()
-        // 若开启交互模式，退出前询问用户（这是最关键的判断点：该不该退出？）
-        val exitAction = "退出浏览页(原因: $reason)"
-        val exitReasonText = "taskIdx=$currentTaskIndex, collected=$collectedCount, targetSwipes=$browseTaskTargetSwipes"
-        val exitPageSummary = pageTextSummary(service)
-        withApproval(
-            action = exitAction,
-            reason = exitReasonText,
-            pageSummary = exitPageSummary,
-            onApprove = {
-                // 用户同意退出，执行原退出逻辑
-                // 优先点击左上角返回图标退出（"下单得奖励"、"当前页下单得肥料"等搜索推荐页面）
-                val backIcon = service.findBackIcon()
-                if (backIcon != null) {
-                    debugLog("exitBrowsePage: clicking back icon to exit")
-                    service.performClickSafe(backIcon)
-                } else {
-                    debugLog("exitBrowsePage: no back icon found, pressing back")
-                    service.pressBack()
-                }
-                // 等待页面返回，然后检查是否回到农场页
+        // 用户同意退出，执行原退出逻辑
+        // 优先点击左上角返回图标退出（"下单得奖励"、"当前页下单得肥料"等搜索推荐页面）
+        val backIcon = service.findBackIcon()
+        if (backIcon != null) {
+            debugLog("exitBrowsePage: clicking back icon to exit")
+            service.performClickSafe(backIcon)
+        } else {
+            debugLog("exitBrowsePage: no back icon found, pressing back")
+            service.pressBack()
+        }
+        // 等待页面返回，然后检查是否回到农场页
+        handler.postDelayed({
+            // 从 direct 弹窗进入的浏览：完成后回 COLLECTING_DIRECT 继续找其他 direct 按钮
+            val fromDirect = browseFromDirectPopup
+            browseFromDirectPopup = false  // 复位
+            if (fromDirect) {
+                debugLog("exitBrowsePage: browse was from direct popup, returning to COLLECTING_DIRECT")
+                moveTo(AutomationState.COLLECTING_DIRECT)
+                handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
+                return@postDelayed
+            }
+            // 从"搜索后浏览立得奖励"任务页进入的浏览：完成后需要返回两次回芭芭农场
+            // 第一次返回已执行（上方 backIcon/pressBack），这里再按一次返回
+            val fromSearchBrowse = browseFromSearchBrowse
+            browseFromSearchBrowse = false  // 复位
+            if (fromSearchBrowse && !service.isOnFarmPage()) {
+                debugLog("exitBrowsePage: browse was from search browse task, pressing back again to return to farm")
+                service.pressBack()
                 handler.postDelayed({
-                    // 从 direct 弹窗进入的浏览：完成后回 COLLECTING_DIRECT 继续找其他 direct 按钮
-                    val fromDirect = browseFromDirectPopup
-                    browseFromDirectPopup = false  // 复位
-                    if (fromDirect) {
-                        debugLog("exitBrowsePage: browse was from direct popup, returning to COLLECTING_DIRECT")
-                        moveTo(AutomationState.COLLECTING_DIRECT)
-                        handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
-                        return@postDelayed
-                    }
-                    // 从"搜索后浏览立得奖励"任务页进入的浏览：完成后需要返回两次回芭芭农场
-                    // 第一次返回已执行（上方 backIcon/pressBack），这里再按一次返回
-                    val fromSearchBrowse = browseFromSearchBrowse
-                    browseFromSearchBrowse = false  // 复位
-                    if (fromSearchBrowse && !service.isOnFarmPage()) {
-                        debugLog("exitBrowsePage: browse was from search browse task, pressing back again to return to farm")
-                        service.pressBack()
-                        handler.postDelayed({
-                            if (service.isOnFarmPage()) {
-                                debugLog("exitBrowsePage: returned to farm after second back")
-                                moveTo(AutomationState.OPENING_TASK_LIST)
-                                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
-                            } else {
-                                debugLog("exitBrowsePage: still not on farm after second back, re-navigating")
-                                moveTo(AutomationState.NAVIGATING)
-                                handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
-                            }
-                        }, INTERVAL_PAGE_LOAD_MS)
-                        return@postDelayed
-                    }
                     if (service.isOnFarmPage()) {
-                        // 已回到农场页，重新打开任务列表
+                        debugLog("exitBrowsePage: returned to farm after second back")
                         moveTo(AutomationState.OPENING_TASK_LIST)
                         handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
                     } else {
-                        // 不在农场页，可能回到了淘宝主页，需要重新导航到农场
-                        debugLog("exitBrowsePage: not on farm page after exit, re-navigating")
+                        debugLog("exitBrowsePage: still not on farm after second back, re-navigating")
                         moveTo(AutomationState.NAVIGATING)
                         handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
                     }
                 }, INTERVAL_PAGE_LOAD_MS)
-            },
-            onReject = {
-                // 用户拒绝退出：说明判断可能有误（不该退出）
-                // 停止自动化，让用户手动检查页面后决定下一步
-                Log.w(TAG, "exitBrowsePage: rejected by user (reason=$reason), stopping for manual inspection")
-                debugLog("exitBrowsePage: rejected by user, stop automation for inspection")
-                stop()
+                return@postDelayed
             }
-        )
+            if (service.isOnFarmPage()) {
+                // 已回到农场页，重新打开任务列表
+                moveTo(AutomationState.OPENING_TASK_LIST)
+                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+            } else {
+                // 不在农场页，可能回到了淘宝主页，需要重新导航到农场
+                debugLog("exitBrowsePage: not on farm page after exit, re-navigating")
+                moveTo(AutomationState.NAVIGATING)
+                handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
+            }
+        }, INTERVAL_PAGE_LOAD_MS)
     }
 
     // ============== 阶段3c: 玩游戏任务（AI 游戏达人） ==============
@@ -1869,19 +1670,14 @@ object AutomationController {
             if (historyKeyword != null) {
                 Log.i(TAG, "processTask: search browse task page detected, clicking history search keyword")
                 debugLog("processTask: clicking history search keyword to enter browse page")
-                withSceneRuleClick(
-                    decisionPoint = "checkTaskResult_click_history_keyword",
-                    actionDesc = "点击历史搜索词进入浏览页面"
-                ) {
-                    service.performClickSafe(historyKeyword)
-                    // 标记来自搜索浏览任务，退出时返回两次
-                    browseFromSearchBrowse = true
-                    browseFromDirectPopup = false
-                    browseTaskTargetSwipes = MAX_BROWSE_SWIPES
-                    // 等待进入真正的浏览页面（"滑动浏览得肥料"），然后切换到 BROWSING_TASK
-                    moveTo(AutomationState.BROWSING_TASK)
-                    handler.postDelayed({ runBrowsingTask(swipeCount = 1) }, INTERVAL_PAGE_LOAD_MS)
-                }
+                service.performClickSafe(historyKeyword)
+                // 标记来自搜索浏览任务，退出时返回两次
+                browseFromSearchBrowse = true
+                browseFromDirectPopup = false
+                browseTaskTargetSwipes = MAX_BROWSE_SWIPES
+                // 等待进入真正的浏览页面（"滑动浏览得肥料"），然后切换到 BROWSING_TASK
+                moveTo(AutomationState.BROWSING_TASK)
+                handler.postDelayed({ runBrowsingTask(swipeCount = 1) }, INTERVAL_PAGE_LOAD_MS)
                 return
             } else {
                 // 找不到历史搜索词，按返回退出
@@ -2325,44 +2121,12 @@ object AutomationController {
                 if (entryBtn != null) {
                     Log.i(TAG, "watchAd: found '我要更快拿奖' button, clicking it")
                     debugLog("watchAd: clicking '我要更快拿奖' entry button")
-                    val originalAction: () -> Unit = {
-                        service.performClickSafe(entryBtn)
-                        fasterRewardStage = 1
-                        // 等待确认弹窗出现（"15秒更快拿奖"）
-                        handler.postDelayed({
-                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-                        }, INTERVAL_PAGE_LOAD_MS)
-                    }
-                    withSceneRule(
-                        decisionPoint = "fasterReward_click_entry",
-                        proposedAction = "EXIT_TASK",
-                        proposedReason = "退出任务（跳过点击'我要更快拿奖'入口按钮）",
-                        onRuleAction = { rule ->
-                            when (rule.action) {
-                                SceneLibrary.Action.EXIT_TASK -> {
-                                    debugLog("fasterReward_click_entry: rule exit task")
-                                    getService()?.let {
-                                        currentTaskIndex++
-                                        collectedCount++
-                                        exitBrowsePage(it, reason = "scene_rule_fasterReward_click_entry")
-                                    }
-                                }
-                                SceneLibrary.Action.BACK -> {
-                                    debugLog("fasterReward_click_entry: rule back")
-                                    getService()?.pressBack()
-                                }
-                                SceneLibrary.Action.STOP_AUTOMATION -> {
-                                    debugLog("fasterReward_click_entry: rule stop automation")
-                                    stop()
-                                }
-                                SceneLibrary.Action.WAIT -> {
-                                    debugLog("fasterReward_click_entry: rule wait")
-                                }
-                                else -> originalAction()
-                            }
-                        },
-                        onFallback = originalAction
-                    )
+                    service.performClickSafe(entryBtn)
+                    fasterRewardStage = 1
+                    // 等待确认弹窗出现（"15秒更快拿奖"）
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
+                    }, INTERVAL_PAGE_LOAD_MS)
                     return
                 }
             }
@@ -2373,46 +2137,14 @@ object AutomationController {
                     if (allowBtn != null) {
                         Log.i(TAG, "watchAd: faster reward confirm popup detected, clicking allow")
                         debugLog("watchAd: clicking allow on faster reward confirm popup")
-                        val originalAction: () -> Unit = {
-                            service.performClickSafe(allowBtn)
-                            fasterRewardStage = 2
-                            // 记录点击"允许"时的时间戳，用于计算16秒停留
-                            fasterRewardAppEnterTimeMs = System.currentTimeMillis()
-                            // 等待新 App 打开，然后停留16秒
-                            handler.postDelayed({
-                                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-                            }, INTERVAL_PAGE_LOAD_MS)
-                        }
-                        withSceneRule(
-                            decisionPoint = "fasterReward_click_allow",
-                            proposedAction = "EXIT_TASK",
-                            proposedReason = "退出任务（跳过点击'允许'按钮）",
-                            onRuleAction = { rule ->
-                                when (rule.action) {
-                                    SceneLibrary.Action.EXIT_TASK -> {
-                                        debugLog("fasterReward_click_allow: rule exit task")
-                                        getService()?.let {
-                                            currentTaskIndex++
-                                            collectedCount++
-                                            exitBrowsePage(it, reason = "scene_rule_fasterReward_click_allow")
-                                        }
-                                    }
-                                    SceneLibrary.Action.BACK -> {
-                                        debugLog("fasterReward_click_allow: rule back")
-                                        getService()?.pressBack()
-                                    }
-                                    SceneLibrary.Action.STOP_AUTOMATION -> {
-                                        debugLog("fasterReward_click_allow: rule stop automation")
-                                        stop()
-                                    }
-                                    SceneLibrary.Action.WAIT -> {
-                                        debugLog("fasterReward_click_allow: rule wait")
-                                    }
-                                    else -> originalAction()
-                                }
-                            },
-                            onFallback = originalAction
-                        )
+                        service.performClickSafe(allowBtn)
+                        fasterRewardStage = 2
+                        // 记录点击"允许"时的时间戳，用于计算16秒停留
+                        fasterRewardAppEnterTimeMs = System.currentTimeMillis()
+                        // 等待新 App 打开，然后停留16秒
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
+                        }, INTERVAL_PAGE_LOAD_MS)
                         return
                     } else {
                         // 弹窗出现但"允许"按钮未渲染，短暂等待后重试
@@ -2787,37 +2519,7 @@ object AutomationController {
                 val closeBtn = service.findAdCloseButton()
                 if (closeBtn != null) {
                     Log.i(TAG, "closeAd: found close button, clicking")
-                    val originalAction: () -> Unit = { service.performClickSafe(closeBtn) }
-                    withSceneRule(
-                        decisionPoint = "closeAd_click_close_btn",
-                        proposedAction = "EXIT_TASK",
-                        proposedReason = "退出任务（跳过点击广告关闭按钮）",
-                        onRuleAction = { rule ->
-                            when (rule.action) {
-                                SceneLibrary.Action.EXIT_TASK -> {
-                                    debugLog("closeAd_click_close_btn: rule exit task")
-                                    getService()?.let {
-                                        currentTaskIndex++
-                                        collectedCount++
-                                        exitBrowsePage(it, reason = "scene_rule_closeAd_click_close_btn")
-                                    }
-                                }
-                                SceneLibrary.Action.BACK -> {
-                                    debugLog("closeAd_click_close_btn: rule back")
-                                    getService()?.pressBack()
-                                }
-                                SceneLibrary.Action.STOP_AUTOMATION -> {
-                                    debugLog("closeAd_click_close_btn: rule stop automation")
-                                    stop()
-                                }
-                                SceneLibrary.Action.WAIT -> {
-                                    debugLog("closeAd_click_close_btn: rule wait")
-                                }
-                                else -> originalAction()
-                            }
-                        },
-                        onFallback = originalAction
-                    )
+                    service.performClickSafe(closeBtn)
                 } else {
                     // 未找到关闭按钮节点，进入下一策略
                     debugLog("closeAd: close button node not found, trying next strategy")

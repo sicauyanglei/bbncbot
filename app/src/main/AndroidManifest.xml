@@ -82,8 +82,6 @@
                 <action android:name="com.bbncbot.START_AUTOMATION" />
                 <action android:name="com.bbncbot.STOP_AUTOMATION" />
                 <action android:name="com.bbncbot.DUMP_NODES" />
-                <action android:name="com.bbncbot.TOGGLE_INTERACTIVE" />
-                <action android:name="com.bbncbot.OPEN_TEACH" />
             </intent-filter>
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"

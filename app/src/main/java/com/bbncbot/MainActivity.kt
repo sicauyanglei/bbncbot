@@ -62,7 +62,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        // 清除旧版日志（debug/proposals/teachings 由 LogUploader 清空）
+        // 清除旧版日志（debug 由 LogUploader 清空）
         com.bbncbot.automation.LogUploader.clearLogsOnAppStart(this)
 
         // 启动 App 时先 kill 所有芭芭农场平台 App（UC/支付宝/淘宝）的老进程
@@ -125,10 +125,10 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         "✗ $msg"
                     }
-                    // 提示用户截图在 sessions/ 子目录
+                    // 提示用户日志已上传
                     if (n > 0) {
                         android.widget.Toast.makeText(
-                            this, "日志+截图已上传（logs/ sessions/ 目录）",
+                            this, "日志已上传（logs/ 目录）",
                             android.widget.Toast.LENGTH_LONG
                         ).show()
                     }

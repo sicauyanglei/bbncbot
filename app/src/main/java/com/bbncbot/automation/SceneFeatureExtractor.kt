@@ -4,11 +4,10 @@ import android.view.accessibility.AccessibilityNodeInfo
 import com.bbncbot.service.FarmAccessibilityService
 
 /**
- * 场景特征提取器（已精简）
+ * 任务内容标识提取器
  *
- * 录制 / 规则匹配系统已整体移除，本对象仅保留任务排序用到的任务内容标识提取：
- * - [extractTaskContentText]：从任务按钮所在行提取稳定的任务内容标识（如"看严选推荐商品"），
- *   供 [AutomationController.sortTaskButtons] 做任务排序去重。
+ * 从任务按钮所在行提取稳定的任务内容标识（如"看严选推荐商品"），
+ * 供 [AutomationController] 做任务排序去重。
  */
 object SceneFeatureExtractor {
 

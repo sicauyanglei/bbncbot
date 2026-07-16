@@ -11,11 +11,10 @@ import java.util.Locale
 /**
  * 日志上传到 GitHub 仓库
  *
- * 用途：把本地日志文件上传到 GitHub 仓库，便于开发者远程查看手机运行日志（无需用户手动复制）。
+ * 用途：把本地 debug.log 日志上传到 GitHub 仓库，便于开发者远程查看手机运行日志（无需用户手动复制）。
  *
  * 上传内容：
- * - 文本日志（logs/）：debug.log / proposals.log / teachings.log
- * - 截图样本（sessions/）：最近一次采集会话的截图 + 元数据 JSON
+ * - 文本日志（logs/）：debug.log
  *
  * 实现方式：GitHub Contents API（PUT 单文件，自动 commit）
  * - 文件路径：`{子目录}/{prefix}_{timestamp}.{ext}`，时间戳防覆盖
@@ -24,7 +23,6 @@ import java.util.Locale
  * 触发时机：由用户在 MainActivity 点击"立即测试上传日志"手动触发（后台线程，不阻塞 UI）。
  *
  * 日志维护：
- * - 上传后清理已上传的 session 截图目录（释放磁盘空间）
  * - app 启动时由 [clearLogsOnAppStart] 清理旧日志
  *
  * 安全说明：
@@ -47,9 +45,6 @@ object LogUploader {
     /** 单个日志文件大小上限（2MB），超过则截断保留末尾部分 */
     private const val MAX_LOG_BYTES = 2L * 1024 * 1024
 
-    /** 上传截图数量上限（避免上传过多截图导致请求过多） */
-    private const val MAX_SCREENSHOTS_PER_UPLOAD = 10
-
     /** 日志文件本地根目录 */
     private val logDir: File by lazy {
         File(
@@ -58,9 +53,6 @@ object LogUploader {
         )
     }
     private val debugLogFile: File get() = File(logDir, "debug.log")
-    private val proposalsLogFile: File get() = File(logDir, "proposals.log")
-    private val teachingsLogFile: File get() = File(logDir, "teachings.log")
-    private val sessionsDir: File get() = File(logDir, "sessions")
 
     /** 上次操作结果（供 UI 测试按钮显示，避免用户看不到失败原因） */
     @Volatile
@@ -82,18 +74,14 @@ object LogUploader {
     }
 
     /**
-     * 上传所有日志到 GitHub
-     *
-     * 上传内容：
-     * 1. 文本日志 → `logs/`：debug.log / proposals.log / teachings.log
-     * 2. 截图样本 → `sessions/{tag}/`：最近一次采集会话的截图（最多 [MAX_SCREENSHOTS_PER_UPLOAD] 张）
+     * 上传 debug.log 日志到 GitHub
      *
      * 大文件处理：超过 [MAX_LOG_BYTES] 的日志文件会截断保留末尾部分（最近的日志更有诊断价值）。
      *
      * 必须在后台线程调用（含网络 IO）。
      *
      * @param context 任意 Context
-     * @param tag 文件名前缀标记，如 "session_abc123"
+     * @param tag 文件名前缀标记，如 "test"
      * @return 上传成功文件数（0=未配置 token 或全部失败）
      */
     fun upload(context: Context, tag: String): Int {
@@ -108,35 +96,24 @@ object LogUploader {
         var success = 0
         val errors = mutableListOf<String>()
 
-        // 1. 文本日志：(本地文件, 远端文件名前缀, 远端子目录)
-        val textLogs = listOf(
-            Triple(debugLogFile, "debug", "logs"),
-            Triple(proposalsLogFile, "proposals", "logs"),
-            Triple(teachingsLogFile, "teachings", "logs")
-        )
-        for ((localFile, namePrefix, subDir) in textLogs) {
-            val uploadFile = prepareLogForUpload(localFile)
-            if (uploadFile == null) {
-                errors.add("${localFile.name}: 文件不存在或为空")
-                continue
-            }
-            val remotePath = "$subDir/${namePrefix}_${tag}_${ts}.log"
-            val (ok, err) = uploadFile(token, remotePath, uploadFile, "upload ${localFile.name} ($tag)")
-            if (ok) success++ else errors.add("${localFile.name}: $err")
+        // 上传 debug.log
+        val uploadFile = prepareLogForUpload(debugLogFile)
+        if (uploadFile == null) {
+            errors.add("${debugLogFile.name}: 文件不存在或为空")
+        } else {
+            val remotePath = "logs/debug_${tag}_${ts}.log"
+            val (ok, err) = uploadFile(token, remotePath, uploadFile, "upload ${debugLogFile.name} ($tag)")
+            if (ok) success++ else errors.add("${debugLogFile.name}: $err")
             // 清理临时截断文件
-            if (uploadFile !== localFile) uploadFile.delete()
+            if (uploadFile !== debugLogFile) uploadFile.delete()
         }
-
-        // 2. 截图样本：上传最近一次 session 的截图（最多 MAX_SCREENSHOTS_PER_UPLOAD 张）
-        val screenshotCount = uploadLatestSessionScreenshots(token, tag, ts)
-        success += screenshotCount
 
         lastResult = if (errors.isEmpty()) {
-            "上传成功：$success 个文件（tag=$tag，含 $screenshotCount 张截图）"
+            "上传成功：$success 个文件（tag=$tag）"
         } else {
-            "成功 $success 个（含 $screenshotCount 张截图），失败：${errors.joinToString("; ")}"
+            "成功 $success 个，失败：${errors.joinToString("; ")}"
         }
-        Log.i(TAG, "upload done: $success files uploaded (tag=$tag, screenshots=$screenshotCount), errors=$errors")
+        Log.i(TAG, "upload done: $success files uploaded (tag=$tag), errors=$errors")
         return success
     }
 
@@ -167,71 +144,9 @@ object LogUploader {
     }
 
     /**
-     * 上传最近一次采集会话的截图
-     *
-     * - 找到 sessions/ 下最新修改的会话目录
-     * - 上传其中的截图文件（.png）和元数据（.json），最多 [MAX_SCREENSHOTS_PER_UPLOAD] 个
-     * - 截图较大，只上传最近的几张（按文件名排序取最后几张，即任务退出前的截图）
-     *
-     * @return 上传成功的截图文件数
-     */
-    private fun uploadLatestSessionScreenshots(token: String, tag: String, ts: String): Int {
-        if (!sessionsDir.exists()) return 0
-        // 找最新的 session 目录
-        val sessionDirs = sessionsDir.listFiles()?.filter { it.isDirectory } ?: return 0
-        if (sessionDirs.isEmpty()) return 0
-        val latestDir = sessionDirs.maxByOrNull { it.lastModified() } ?: return 0
-
-        // 收集所有截图文件（.png）和元数据（.json），按文件名排序
-        val allFiles = latestDir.listFiles()?.filter { it.isFile } ?: return 0
-        if (allFiles.isEmpty()) return 0
-
-        // 按文件名排序，取最后 MAX_SCREENSHOTS_PER_UPLOAD 个文件（任务退出前的截图最有诊断价值）
-        val filesToUpload = allFiles.sortedBy { it.name }.takeLast(MAX_SCREENSHOTS_PER_UPLOAD)
-        val remoteSubDir = "sessions/${tag}_${ts}"
-
-        var count = 0
-        for (file in filesToUpload) {
-            val ext = file.extension.ifEmpty { "bin" }
-            val remotePath = "$remoteSubDir/${file.name}"
-            val (ok, _) = uploadFile(token, remotePath, file, "upload screenshot ${file.name} ($tag)")
-            if (ok) count++
-        }
-        Log.i(TAG, "session screenshots uploaded: $count from ${latestDir.name}")
-        return count
-    }
-
-    /**
-     * 清理过期的 session 截图目录
-     *
-     * - 保留最近 [keepCount] 个 session 目录，删除更早的
-     * - 在 app 启动时调用，避免截图无限累积占满磁盘
-     *
-     * @param keepCount 保留的 session 目录数量
-     */
-    fun cleanupOldSessions(keepCount: Int = 3) {
-        try {
-            if (!sessionsDir.exists()) return
-            val sessionDirs = sessionsDir.listFiles()?.filter { it.isDirectory } ?: return
-            if (sessionDirs.size <= keepCount) return
-            // 按最后修改时间排序，删除最旧的
-            val sorted = sessionDirs.sortedBy { it.lastModified() }
-            val toDelete = sorted.dropLast(keepCount)
-            for (dir in toDelete) {
-                dir.deleteRecursively()
-                Log.i(TAG, "cleaned old session dir: ${dir.name}")
-            }
-            Log.i(TAG, "cleanupOldSessions: removed ${toDelete.size} dirs, kept ${sorted.size - toDelete.size}")
-        } catch (e: Exception) {
-            Log.w(TAG, "cleanupOldSessions failed: ${e.message}")
-        }
-    }
-
-    /**
      * 清理旧日志文件（app 启动时调用）
      *
-     * - debug.log / proposals.log / teachings.log 在此清空（写入版本标识）
-     * - 删除全部 session 截图目录（app 启动前清空所有旧日志）
+     * - debug.log 在此清空（写入版本标识）
      *
      * @param context 用于读取版本号
      */
@@ -243,38 +158,13 @@ object LogUploader {
         val header = "=== cleared on app start (version=$versionName, time=$timeStr) ===\n"
 
         // 清空追加型日志文件（写入版本标识，保留文件存在性）
-        val logsToClear = listOf(debugLogFile, proposalsLogFile, teachingsLogFile)
-        for (file in logsToClear) {
-            try {
-                file.parentFile?.mkdirs()
-                file.writeText(header)
-            } catch (e: Exception) {
-                Log.w(TAG, "clear ${file.name} failed: ${e.message}")
-            }
-        }
-        Log.i(TAG, "logs cleared on app start: debug.log, proposals.log, teachings.log")
-
-        // app 启动前删除全部 session 截图目录（用户要求清空所有旧日志）
-        deleteAllSessions()
-    }
-
-    /**
-     * 删除全部 session 截图目录
-     *
-     * - app 启动时调用，清空所有旧的采集会话截图
-     * - 与 [cleanupOldSessions] 不同，此方法不保留任何 session 目录
-     */
-    private fun deleteAllSessions() {
         try {
-            if (!sessionsDir.exists()) return
-            val sessionDirs = sessionsDir.listFiles()?.filter { it.isDirectory } ?: return
-            for (dir in sessionDirs) {
-                dir.deleteRecursively()
-            }
-            Log.i(TAG, "deleteAllSessions: removed ${sessionDirs.size} session dirs")
+            debugLogFile.parentFile?.mkdirs()
+            debugLogFile.writeText(header)
         } catch (e: Exception) {
-            Log.w(TAG, "deleteAllSessions failed: ${e.message}")
+            Log.w(TAG, "clear ${debugLogFile.name} failed: ${e.message}")
         }
+        Log.i(TAG, "logs cleared on app start: debug.log")
     }
 
     /**

@@ -86,7 +86,7 @@
             android:layout_marginTop="4dp"
             android:textSize="12sp"
             android:textColor="#888888"
-            android:text="点击下方按钮可手动上传 debug.log / proposals.log / teachings.log + 截图到 GitHub 仓库 logs/ 目录，便于远程查看运行日志。Token 仅本地存储。建议用 fine-grained PAT 仅授权本仓库 contents:write。" />
+            android:text="点击下方按钮可手动上传 debug.log 到 GitHub 仓库 logs/ 目录，便于远程查看运行日志。Token 仅本地存储。建议用 fine-grained PAT 仅授权本仓库 contents:write。" />
 
         <EditText
             android:id="@+id/etGhToken"
