@@ -114,8 +114,8 @@ object AutomationController {
 
     /**
      * 当前广告的最短观看时长（毫秒）
-     * - 进入 WATCHING_AD 时解析广告页面提示动态设置（页面提示的秒数 + 缓冲）
-     * - 无提示时使用默认值 [AD_MIN_DURATION_MS]
+     * - 进入 WATCHING_AD 时按平台广告策略 + 页面提示动态设置（页面提示的秒数 + 缓冲）
+     * - 无提示时使用平台默认值 [PlatformConfig.adDefaultMinDurationMs]
      * - 用户要求：太快退出可能获取不到肥料，需保持到规定时间+缓冲后再检测退出
      */
     @Volatile
@@ -123,12 +123,20 @@ object AutomationController {
 
     /**
      * 当前广告的最大等待时长（毫秒）
-     * - 动态计算：max(AD_MAX_DURATION_MS, adMinDurationMs + 30s)
+     * - 动态计算：max(平台默认上限, adMinDurationMs + 30s)
      * - 确保页面提示的长广告（如120秒）不会被提前强制关闭
      * - 在最短等待时间基础上留 30 秒余量让广告结束并发放奖励
      */
     @Volatile
     private var adMaxDurationMs: Long = AD_MAX_DURATION_MS
+
+    /**
+     * 当前广告的结束检测轮询间隔（毫秒）
+     * - 进入 WATCHING_AD 时按平台广告策略设置 [PlatformConfig.adEndCheckIntervalMs]
+     * - 支付宝/淘宝用 3s 更激进地快速检测退出，UC 用 5s 配合"更快拿奖"流程稳定轮询
+     */
+    @Volatile
+    private var adEndCheckIntervalMs: Long = AD_END_CHECK_INTERVAL_MS
 
     /**
      * 深链跳转跟踪：广告任务跳转到其他 App 时记录的包名（null=未在深链状态）
@@ -2077,173 +2085,181 @@ object AutomationController {
             fasterRewardAppPkg = null   // 重置新 App 包名记录
             fasterRewardAppEnterTimeMs = 0L  // 重置新 App 进入时间戳
             watchingAdPlatform = service.currentPlatform  // 记录农场平台，强杀深链 App 后重新启动此平台
+            // 按平台广告策略加载默认时长与检测间隔（UC/支付宝/淘宝差异化）
+            val platformCfg = service.currentPlatformConfig()
+            adEndCheckIntervalMs = platformCfg.adEndCheckIntervalMs
             val hintSeconds = service.findAdDurationHint()
             if (hintSeconds > 0) {
                 // 页面提示的秒数 + 缓冲时间（毫秒）
                 adMinDurationMs = hintSeconds * 1000L + AD_DURATION_BUFFER_MS
-                // 最大等待时间随最短时间动态调整：最短+30秒余量，且不小于默认90秒
-                adMaxDurationMs = maxOf(AD_MAX_DURATION_MS, adMinDurationMs + 30000L)
-                debugLog("watchAd: parsed ad duration hint=${hintSeconds}s, min wait=${adMinDurationMs}ms, max wait=${adMaxDurationMs}ms (hint+buffer)")
+                // 最大等待时间随最短时间动态调整：最短+30秒余量，且不小于平台默认上限
+                adMaxDurationMs = maxOf(platformCfg.adDefaultMaxDurationMs, adMinDurationMs + 30000L)
+                debugLog("watchAd: parsed ad duration hint=${hintSeconds}s, min wait=${adMinDurationMs}ms, max wait=${adMaxDurationMs}ms (hint+buffer), checkInterval=${adEndCheckIntervalMs}ms")
             } else {
-                adMinDurationMs = AD_MIN_DURATION_MS
-                adMaxDurationMs = AD_MAX_DURATION_MS
-                debugLog("watchAd: no duration hint, using default min=${adMinDurationMs}ms, max=${adMaxDurationMs}ms")
+                // 无时长提示：使用平台默认值（UC=30s/90s, 支付宝=15s/60s, 淘宝=20s/75s）
+                adMinDurationMs = platformCfg.adDefaultMinDurationMs
+                adMaxDurationMs = platformCfg.adDefaultMaxDurationMs
+                debugLog("watchAd: no duration hint, platform=${platformCfg.platform}, default min=${adMinDurationMs}ms, max=${adMaxDurationMs}ms, checkInterval=${adEndCheckIntervalMs}ms")
             }
         }
 
         // 每 15 秒输出一次页面快照（避免日志过多）
-        if (elapsedMs % 15000L < AD_END_CHECK_INTERVAL_MS) {
+        if (elapsedMs % 15000L < adEndCheckIntervalMs) {
             logPageSnapshot(service, "watchAd-${elapsedMs}ms")
         }
 
-        // 优先检测：UC 芭芭农场广告页"更快拿奖"弹窗处理
-        // 用户需求：点"我要更快拿奖" → 弹窗点"允许" → 新app打开停留16秒
-        // → 关闭新打开的app → 回到"恭喜获得奖励提升"窗口 → 点右上角关闭 → 回芭芭农场
-        // 状态机：0=待检测入口按钮 / 1=已点入口等待确认弹窗点允许 /
-        //         2=已点允许新app打开停留16秒 / 3=已关闭新app等待奖励提升窗口点关闭 / 4=已完成
-        when (fasterRewardStage) {
-            0 -> {
-                // 阶段0：查找"我要更快拿奖"按钮
-                val entryBtn = service.findFasterRewardEntryButton()
-                if (entryBtn != null) {
-                    Log.i(TAG, "watchAd: found '我要更快拿奖' button, clicking it")
-                    debugLog("watchAd: clicking '我要更快拿奖' entry button")
-                    service.performClickSafe(entryBtn)
-                    fasterRewardStage = 1
-                    // 等待确认弹窗出现（"15秒更快拿奖"）
-                    handler.postDelayed({
-                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-                    }, INTERVAL_PAGE_LOAD_MS)
-                    return
-                }
-            }
-            1 -> {
-                // 阶段1：已点入口按钮，等待"15秒更快拿奖"确认弹窗出现，然后点"允许"
-                if (service.isFasterRewardPopupShown()) {
-                    val allowBtn = service.findFasterRewardAllowButton()
-                    if (allowBtn != null) {
-                        Log.i(TAG, "watchAd: faster reward confirm popup detected, clicking allow")
-                        debugLog("watchAd: clicking allow on faster reward confirm popup")
-                        service.performClickSafe(allowBtn)
-                        fasterRewardStage = 2
-                        // 记录点击"允许"时的时间戳，用于计算16秒停留
-                        fasterRewardAppEnterTimeMs = System.currentTimeMillis()
-                        // 等待新 App 打开，然后停留16秒
+        // "更快拿奖"流程仅在支持的平台执行（UC 特有，支付宝/淘宝跳过）
+        val supportsFasterReward = service.currentPlatformConfig().supportsFasterReward
+        if (supportsFasterReward) {
+            // 优先检测：UC 芭芭农场广告页"更快拿奖"弹窗处理
+            // 用户需求：点"我要更快拿奖" → 弹窗点"允许" → 新app打开停留16秒
+            // → 关闭新打开的app → 回到"恭喜获得奖励提升"窗口 → 点右上角关闭 → 回芭芭农场
+            // 状态机：0=待检测入口按钮 / 1=已点入口等待确认弹窗点允许 /
+            //         2=已点允许新app打开停留16秒 / 3=已关闭新app等待奖励提升窗口点关闭 / 4=已完成
+            when (fasterRewardStage) {
+                0 -> {
+                    // 阶段0：查找"我要更快拿奖"按钮
+                    val entryBtn = service.findFasterRewardEntryButton()
+                    if (entryBtn != null) {
+                        Log.i(TAG, "watchAd: found '我要更快拿奖' button, clicking it")
+                        debugLog("watchAd: clicking '我要更快拿奖' entry button")
+                        service.performClickSafe(entryBtn)
+                        fasterRewardStage = 1
+                        // 等待确认弹窗出现（"15秒更快拿奖"）
                         handler.postDelayed({
-                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                        }, INTERVAL_PAGE_LOAD_MS)
+                        return
+                    }
+                }
+                1 -> {
+                    // 阶段1：已点入口按钮，等待"15秒更快拿奖"确认弹窗出现，然后点"允许"
+                    if (service.isFasterRewardPopupShown()) {
+                        val allowBtn = service.findFasterRewardAllowButton()
+                        if (allowBtn != null) {
+                            Log.i(TAG, "watchAd: faster reward confirm popup detected, clicking allow")
+                            debugLog("watchAd: clicking allow on faster reward confirm popup")
+                            service.performClickSafe(allowBtn)
+                            fasterRewardStage = 2
+                            // 记录点击"允许"时的时间戳，用于计算16秒停留
+                            fasterRewardAppEnterTimeMs = System.currentTimeMillis()
+                            // 等待新 App 打开，然后停留16秒
+                            handler.postDelayed({
+                                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                            }, INTERVAL_PAGE_LOAD_MS)
+                            return
+                        } else {
+                            // 弹窗出现但"允许"按钮未渲染，短暂等待后重试
+                            debugLog("watchAd: faster reward popup shown but allow button not found, retrying")
+                            handler.postDelayed({
+                                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                            }, INTERVAL_CLICK_MS)
+                            return
+                        }
+                    } else {
+                        // 确认弹窗还没出现，继续等待（可能页面切换中）
+                        debugLog("watchAd: waiting for faster reward confirm popup (stage=1)")
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                        }, adEndCheckIntervalMs)
+                        return
+                    }
+                }
+                2 -> {
+                    // 阶段2：已点"允许"，新 App 已打开，停留16秒
+                    val currentPkg = service.getCurrentWindowPackage()
+                    // 首次进入此阶段时记录新 App 包名
+                    if (fasterRewardAppPkg == null && currentPkg != null) {
+                        // 排除农场 App 自身（防止误判）
+                        val farmPkgs = watchingAdPlatform.config.packageNames
+                        if (!farmPkgs.contains(currentPkg)) {
+                            fasterRewardAppPkg = currentPkg
+                            Log.i(TAG, "watchAd: faster reward new app '$currentPkg' opened, staying ${FASTER_REWARD_APP_STAY_MS}ms")
+                            debugLog("watchAd: faster reward app '$currentPkg' opened, staying 16s")
+                        }
+                    }
+                    // 计算停留时间
+                    val stayedMs = if (fasterRewardAppEnterTimeMs > 0) {
+                        System.currentTimeMillis() - fasterRewardAppEnterTimeMs
+                    } else 0L
+                    if (stayedMs >= FASTER_REWARD_APP_STAY_MS) {
+                        // 停留满16秒，关闭新打开的 App 并激活农场 App 到前台
+                        Log.i(TAG, "watchAd: faster reward stayed ${stayedMs}ms, killing new app and activating farm")
+                        debugLog("watchAd: 16s elapsed, killing new app '${fasterRewardAppPkg}' + activating farm")
+                        service.setAdMode(false)
+                        // 1. 激活农场 App 到前台
+                        if (watchingAdPlatform != Platform.UNKNOWN) {
+                            debugLog("watchAd: launching farm platform $watchingAdPlatform to foreground")
+                            service.launchPlatformApp(watchingAdPlatform)
+                        }
+                        // 2. 同时 kill 掉新打开的 App
+                        val killedPkg = fasterRewardAppPkg
+                        if (killedPkg != null) {
+                            service.forceKillApp(killedPkg, pressBackFirst = false)
+                        } else {
+                            // 没有记录到包名，按返回键尝试关闭
+                            debugLog("watchAd: no pkg recorded, pressing back to close new app")
+                            service.pressBack()
+                        }
+                        fasterRewardStage = 3
+                        // 等待回到"恭喜获得奖励提升"窗口
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
                         }, INTERVAL_PAGE_LOAD_MS)
                         return
                     } else {
-                        // 弹窗出现但"允许"按钮未渲染，短暂等待后重试
-                        debugLog("watchAd: faster reward popup shown but allow button not found, retrying")
+                        // 还未满16秒，继续等待
+                        debugLog("watchAd: faster reward staying in new app, ${stayedMs}/${FASTER_REWARD_APP_STAY_MS}ms elapsed")
                         handler.postDelayed({
-                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-                        }, INTERVAL_CLICK_MS)
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                        }, adEndCheckIntervalMs)
                         return
                     }
-                } else {
-                    // 确认弹窗还没出现，继续等待（可能页面切换中）
-                    debugLog("watchAd: waiting for faster reward confirm popup (stage=1)")
-                    handler.postDelayed({
-                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-                    }, AD_END_CHECK_INTERVAL_MS)
-                    return
                 }
-            }
-            2 -> {
-                // 阶段2：已点"允许"，新 App 已打开，停留16秒
-                val currentPkg = service.getCurrentWindowPackage()
-                // 首次进入此阶段时记录新 App 包名
-                if (fasterRewardAppPkg == null && currentPkg != null) {
-                    // 排除农场 App 自身（防止误判）
-                    val farmPkgs = watchingAdPlatform.config.packageNames
-                    if (!farmPkgs.contains(currentPkg)) {
-                        fasterRewardAppPkg = currentPkg
-                        Log.i(TAG, "watchAd: faster reward new app '$currentPkg' opened, staying ${FASTER_REWARD_APP_STAY_MS}ms")
-                        debugLog("watchAd: faster reward app '$currentPkg' opened, staying 16s")
-                    }
-                }
-                // 计算停留时间
-                val stayedMs = if (fasterRewardAppEnterTimeMs > 0) {
-                    System.currentTimeMillis() - fasterRewardAppEnterTimeMs
-                } else 0L
-                if (stayedMs >= FASTER_REWARD_APP_STAY_MS) {
-                    // 停留满16秒，关闭新打开的 App 并激活农场 App 到前台
-                    Log.i(TAG, "watchAd: faster reward stayed ${stayedMs}ms, killing new app and activating farm")
-                    debugLog("watchAd: 16s elapsed, killing new app '${fasterRewardAppPkg}' + activating farm")
-                    service.setAdMode(false)
-                    // 1. 激活农场 App 到前台
-                    if (watchingAdPlatform != Platform.UNKNOWN) {
-                        debugLog("watchAd: launching farm platform $watchingAdPlatform to foreground")
-                        service.launchPlatformApp(watchingAdPlatform)
-                    }
-                    // 2. 同时 kill 掉新打开的 App
-                    val killedPkg = fasterRewardAppPkg
-                    if (killedPkg != null) {
-                        service.forceKillApp(killedPkg, pressBackFirst = false)
-                    } else {
-                        // 没有记录到包名，按返回键尝试关闭
-                        debugLog("watchAd: no pkg recorded, pressing back to close new app")
-                        service.pressBack()
-                    }
-                    fasterRewardStage = 3
-                    // 等待回到"恭喜获得奖励提升"窗口
-                    handler.postDelayed({
-                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-                    }, INTERVAL_PAGE_LOAD_MS)
-                    return
-                } else {
-                    // 还未满16秒，继续等待
-                    debugLog("watchAd: faster reward staying in new app, ${stayedMs}/${FASTER_REWARD_APP_STAY_MS}ms elapsed")
-                    handler.postDelayed({
-                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-                    }, AD_END_CHECK_INTERVAL_MS)
-                    return
-                }
-            }
-            3 -> {
-                // 阶段3：已关闭新 App，等待"恭喜获得奖励提升"窗口，点右上角关闭
-                if (service.isRewardUpgradePopupShown()) {
-                    Log.i(TAG, "watchAd: reward upgrade popup detected, clicking close")
-                    debugLog("watchAd: '恭喜获得奖励提升' popup detected, clicking top-right close")
-                    // 点右上角关闭按钮
-                    val closeBtn = service.findAdCloseButton()
-                    val backIcon = service.findBackIcon()
-                    when {
-                        closeBtn != null -> { debugLog("watchAd: clicking close icon"); service.performClickSafe(closeBtn) }
-                        backIcon != null -> { debugLog("watchAd: clicking back icon"); service.performClickSafe(backIcon) }
-                        else -> { debugLog("watchAd: pressing back to close popup"); service.pressBack() }
-                    }
-                    fasterRewardStage = 4
-                    collectedCount++
-                    advanceTaskIndex()
-                    // 等待返回到芭芭农场页面
-                    handler.postDelayed({
-                        if (state == AutomationState.WATCHING_AD) {
-                            if (!service.isOnFarmPage()) {
-                                debugLog("watchAd: not on farm after close, pressing back")
-                                service.pressBack()
-                            }
-                            handler.postDelayed({
-                                if (state == AutomationState.WATCHING_AD) {
-                                    moveTo(AutomationState.OPENING_TASK_LIST)
-                                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
-                                }
-                            }, INTERVAL_CLICK_MS)
+                3 -> {
+                    // 阶段3：已关闭新 App，等待"恭喜获得奖励提升"窗口，点右上角关闭
+                    if (service.isRewardUpgradePopupShown()) {
+                        Log.i(TAG, "watchAd: reward upgrade popup detected, clicking close")
+                        debugLog("watchAd: '恭喜获得奖励提升' popup detected, clicking top-right close")
+                        // 点右上角关闭按钮
+                        val closeBtn = service.findAdCloseButton()
+                        val backIcon = service.findBackIcon()
+                        when {
+                            closeBtn != null -> { debugLog("watchAd: clicking close icon"); service.performClickSafe(closeBtn) }
+                            backIcon != null -> { debugLog("watchAd: clicking back icon"); service.performClickSafe(backIcon) }
+                            else -> { debugLog("watchAd: pressing back to close popup"); service.pressBack() }
                         }
-                    }, INTERVAL_PAGE_LOAD_MS)
-                    return
-                } else {
-                    // 还未出现"恭喜获得奖励提升"窗口，继续等待
-                    debugLog("watchAd: waiting for '恭喜获得奖励提升' popup (stage=3)")
-                    handler.postDelayed({
-                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-                    }, AD_END_CHECK_INTERVAL_MS)
-                    return
+                        fasterRewardStage = 4
+                        collectedCount++
+                        advanceTaskIndex()
+                        // 等待返回到芭芭农场页面
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) {
+                                if (!service.isOnFarmPage()) {
+                                    debugLog("watchAd: not on farm after close, pressing back")
+                                    service.pressBack()
+                                }
+                                handler.postDelayed({
+                                    if (state == AutomationState.WATCHING_AD) {
+                                        moveTo(AutomationState.OPENING_TASK_LIST)
+                                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                                    }
+                                }, INTERVAL_CLICK_MS)
+                            }
+                        }, INTERVAL_PAGE_LOAD_MS)
+                        return
+                    } else {
+                        // 还未出现"恭喜获得奖励提升"窗口，继续等待
+                        debugLog("watchAd: waiting for '恭喜获得奖励提升' popup (stage=3)")
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                        }, adEndCheckIntervalMs)
+                        return
+                    }
                 }
-            }
-            4 -> {
-                // 阶段4：已完成，不重复处理（避免重复点击）
+                4 -> {
+                    // 阶段4：已完成，不重复处理（避免重复点击）
+                }
             }
         }
 
@@ -2361,8 +2377,8 @@ object AutomationController {
                 // 已调度 kill，继续轮询兜底（若任务自然完成返回农场，上方"returned to farm"分支会取消 kill）
                 debugLog("watchAd: in deep-linked app '$currentPkg', kill scheduled in ${DEEP_LINK_MAX_DURATION_MS}ms, polling as fallback")
                 handler.postDelayed({
-                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-                }, AD_END_CHECK_INTERVAL_MS)
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                }, adEndCheckIntervalMs)
                 return
             }
         }
@@ -2371,7 +2387,7 @@ object AutomationController {
         // 用户要求：太快退出可能获取不到肥料，必须等够页面提示的规定时间+缓冲
         if (elapsedMs < adMinDurationMs) {
             // 诊断日志：每 15 秒记录一次广告页面状态，帮助定位"广告是否真的在播放"
-            if (elapsedMs % 15000L < AD_END_CHECK_INTERVAL_MS) {
+            if (elapsedMs % 15000L < adEndCheckIntervalMs) {
                 val adPageType = service.getPageType()
                 val adActivity = service.isAdActivity()
                 val adPlaying = service.isAdPlaying()
@@ -2381,8 +2397,8 @@ object AutomationController {
             }
             Log.d(TAG, "watchAd: waiting (${elapsedMs}ms/${adMinDurationMs}ms)")
             handler.postDelayed({
-                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-            }, AD_END_CHECK_INTERVAL_MS)
+                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+            }, adEndCheckIntervalMs)
             return
         }
 
@@ -2398,8 +2414,8 @@ object AutomationController {
         if (service.isTaskCompletePage()) {
             Log.i(TAG, "watchAd: task complete page detected, exiting")
             debugLog("watchAd: task complete, exiting via close/back icon")
-            // 优先点右上角关闭按钮（游戏/广告退出）
-            val closeBtn = service.findAdCloseButton()
+            // 优先点右上角关闭按钮（游戏/广告退出，含平台特有关闭文本）
+            val closeBtn = service.findAdCloseButton(service.currentPlatformConfig().adCloseButtonTexts)
             val backIcon = service.findBackIcon()
             when {
                 closeBtn != null -> { debugLog("watchAd: clicking close icon"); service.performClickSafe(closeBtn) }
@@ -2447,8 +2463,8 @@ object AutomationController {
                 service.performClickSafe(claimBtn)
                 // 不立即退出：继续轮询，由 isTaskCompletePage() 检测到"全部完成/已完成"后退出
                 handler.postDelayed({
-                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-                }, AD_END_CHECK_INTERVAL_MS)
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                }, adEndCheckIntervalMs)
                 return
             }
 
@@ -2465,16 +2481,16 @@ object AutomationController {
             Log.i(TAG, "watchAd: claim button found while ad playing, waiting for '已完成' marker")
             debugLog("watchAd: claim button found but waiting for '已完成' marker before exiting")
             handler.postDelayed({
-                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-            }, AD_END_CHECK_INTERVAL_MS)
+                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+            }, adEndCheckIntervalMs)
             return
         }
 
         // 继续等待
         Log.d(TAG, "watchAd: still playing (${elapsedMs}ms/${adMaxDurationMs}ms)")
         handler.postDelayed({
-            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + AD_END_CHECK_INTERVAL_MS)
-        }, AD_END_CHECK_INTERVAL_MS)
+            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+        }, adEndCheckIntervalMs)
     }
 
     // ============== 阶段5: 关闭广告（多策略） ==============
@@ -2502,8 +2518,9 @@ object AutomationController {
 
         when (strategy) {
             0 -> {
-                // 策略0：查找并点击"×"/"关闭"按钮节点
-                val closeBtn = service.findAdCloseButton()
+                // 策略0：查找并点击"×"/"关闭"按钮节点（优先平台特有关闭文本）
+                val platformCloseTexts = service.currentPlatformConfig().adCloseButtonTexts
+                val closeBtn = service.findAdCloseButton(platformCloseTexts)
                 if (closeBtn != null) {
                     Log.i(TAG, "closeAd: found close button, clicking")
                     service.performClickSafe(closeBtn)

@@ -4,7 +4,15 @@ package com.bbncbot.automation
  * 农场平台
  *
  * - 通过无障碍服务自动检测当前前台 App，匹配对应平台
- * - 每个平台对应一份 [PlatformConfig]，包含包名、文案、坐标等
+ * - 每个平台对应一份 [PlatformConfig]，包含包名、文案、坐标、广告策略等
+ *
+ * 平台广告设计特点（决定智能肥料获取策略）：
+ * - **UC 极速版**：自有广告系统 + 穿山甲 SDK，广告 15-30s，特有"我要更快拿奖"跳转流程，
+ *   倒计时结束后右上角"×"可关闭，H5 内嵌广告为主
+ * - **支付宝**：H5 容器（xriveractivity）内嵌广告，Activity 可能不变需靠 adModeFlag + 内容检测，
+ *   广告 15-30s，关闭按钮为 H5 内"×"图标，无"更快拿奖"流程，可更激进地短超时退出
+ * - **淘宝**：小程序容器（TMSActivity）内嵌广告 + 信息流广告，广告 15-30s，
+ *   关闭按钮右上角"×"或"跳过"，无"更快拿奖"流程
  *
  * 注：坐标比例基于 v11 PC 端 ADB 方案经验（屏幕 896x1980），其他屏幕由调用方按 metrics 缩放。
  * 支付宝/淘宝的坐标比例为合理默认值，需在实际设备上调试微调。
@@ -96,6 +104,23 @@ interface PlatformConfig {
      * - 获取方法：adb logcat 抓取点击桌面快捷方式时的 startActivity 日志
      */
     val farmDeepLink: String?
+
+    // ---------- 智能广告策略（平台差异化） ----------
+
+    /** 广告默认最短等待时间（毫秒），页面无时长提示时使用 */
+    val adDefaultMinDurationMs: Long
+
+    /** 广告默认最长等待时间（毫秒），超时强制关闭 */
+    val adDefaultMaxDurationMs: Long
+
+    /** 广告结束检测间隔（毫秒），值越小检测越频繁、退出越快，但 CPU 消耗略增 */
+    val adEndCheckIntervalMs: Long
+
+    /** 是否处理"我要更快拿奖"跳转流程（UC 特有，其他平台为 false） */
+    val supportsFasterReward: Boolean
+
+    /** 平台特有的广告关闭按钮文本/描述提示（除通用的"×"/"关闭"外） */
+    val adCloseButtonTexts: List<String>
 }
 
 /** UC 极速版（com.ucmobile.lite）配置 - 沿用现有 v2 实现 */
@@ -136,6 +161,14 @@ object UcPlatformConfig : PlatformConfig {
         Pair(0.500f, 0.950f)   // 底部中央
     )
     override val farmDeepLink = "https://broccoli.uc.cn/apps/ucfarm/routes/farm"
+
+    // ---------- 智能广告策略（UC 特有） ----------
+    // UC 广告设计特点：自有广告系统 + 穿山甲 SDK，广告 15-30s，特有"我要更快拿奖"跳转流程
+    override val adDefaultMinDurationMs = 30000L      // UC 广告通常需完整观看，默认 30s
+    override val adDefaultMaxDurationMs = 90000L      // 含"更快拿奖"跳转流程，上限放宽到 90s
+    override val adEndCheckIntervalMs = 5000L         // 5s 检测间隔（"更快拿奖"流程需较稳定轮询）
+    override val supportsFasterReward = true          // UC 特有："我要更快拿奖"跳转流程
+    override val adCloseButtonTexts = listOf("跳过广告", "跳过视频", "关闭广告")
 }
 
 /**
@@ -201,6 +234,15 @@ object AlipayPlatformConfig : PlatformConfig {
     )
     // TODO: 用户提供支付宝芭芭农场桌面快捷方式的 deep link 后填入（如 alipays://platformapi/startapp?appId=xxx）
     override val farmDeepLink: String? = null
+
+    // ---------- 智能广告策略（支付宝） ----------
+    // 支付宝广告设计特点：H5 容器（xriveractivity）内嵌广告，Activity 可能不变需靠内容检测，
+    // 广告 15-30s，无"更快拿奖"流程，可更激进地短超时快速退出
+    override val adDefaultMinDurationMs = 15000L      // 支付宝广告普遍较短，默认 15s 即可检测退出
+    override val adDefaultMaxDurationMs = 60000L      // 无跳转流程，上限收紧到 60s
+    override val adEndCheckIntervalMs = 3000L         // 3s 检测间隔（更激进，快速发现广告结束）
+    override val supportsFasterReward = false         // 支付宝无"更快拿奖"流程
+    override val adCloseButtonTexts = listOf("关闭广告", "跳过", "关闭")
 }
 
 /**
@@ -244,4 +286,13 @@ object TaobaoPlatformConfig : PlatformConfig {
     )
     // TODO: 用户提供淘宝芭芭农场桌面快捷方式的 deep link 后填入
     override val farmDeepLink: String? = null
+
+    // ---------- 智能广告策略（淘宝） ----------
+    // 淘宝广告设计特点：小程序容器（TMSActivity）内嵌广告 + 信息流广告，广告 15-30s，
+    // 无"更快拿奖"流程，关闭按钮右上角"×"或"跳过"
+    override val adDefaultMinDurationMs = 20000L      // 淘宝广告略长于支付宝，默认 20s
+    override val adDefaultMaxDurationMs = 75000L      // 无跳转流程，上限 75s
+    override val adEndCheckIntervalMs = 3000L         // 3s 检测间隔（更激进，快速发现广告结束）
+    override val supportsFasterReward = false         // 淘宝无"更快拿奖"流程
+    override val adCloseButtonTexts = listOf("跳过广告", "跳过", "关闭")
 }

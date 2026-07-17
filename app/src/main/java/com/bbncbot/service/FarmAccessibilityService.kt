@@ -1586,12 +1586,24 @@ class FarmAccessibilityService : AccessibilityService() {
 
     /**
      * 查找广告关闭按钮
-     * - 优先查找"×"、"关闭"节点
+     * - 优先按平台特有关闭文本查找（[platformTexts]），更精确匹配平台广告 SDK 的关闭按钮
+     * - 其次查找通用"×"、"关闭"、"close"、"跳过"、"skip"节点
+     * - 最后查找右上角可点击小图标
      * - 失败时返回null，由调用方尝试坐标候选
+     * @param platformTexts 平台特有的广告关闭按钮文本（如 UC 的"跳过广告"/"关闭广告"）
      * @return 按钮节点或null
      */
-    fun findAdCloseButton(): AccessibilityNodeInfo? {
+    fun findAdCloseButton(platformTexts: List<String> = emptyList()): AccessibilityNodeInfo? {
         val root = rootInActiveWindowSafe() ?: return null
+        // 优先按平台特有关闭文本查找（更精确，避免误匹配）
+        for (kw in platformTexts) {
+            val node = findNodeByText(root, kw)
+            if (node != null) {
+                Log.d(TAG, "findAdCloseButton: found by platform text='$kw'")
+                return node
+            }
+        }
+        // 通用关闭按钮文本
         val keywords = listOf("×", "关闭", "close", "跳过", "skip")
         for (kw in keywords) {
             val node = findNodeByText(root, kw)
