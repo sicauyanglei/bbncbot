@@ -71,12 +71,46 @@ object LogUploader {
     var lastResult: String = "未执行过上传"
         private set
 
+    /**
+     * 清理 Token 字符串
+     *
+     * 问题背景：用户从聊天软件/网页复制 Token 粘贴时，可能带入：
+     * - 零宽空格（U+200B）、不换行空格（U+00A0）、BOM（U+FEFF）等不可见字符
+     * - 换行符、制表符（多行复制时）
+     * - 首尾空白
+     *
+     * 这些字符肉眼看不见，但会随 Token 一起发给 GitHub → 401 Bad credentials。
+     * 标准 .trim() 只去除 ASCII 空白，无法处理 Unicode 不可见字符。
+     *
+     * GitHub Token 合法字符集（PAT/classic）：
+     * - 前缀：github_pat_ / ghp_ / gho_ / ghu_ / ghs_ / ghr_
+     * - 内容：仅 A-Z a-z 0-9 _ -
+     *
+     * 处理策略：保留 Token 中所有合法字符（字母/数字/下划线/连字符），剔除其他所有字符。
+     * 这样即使粘贴带不可见字符也能恢复成正确 Token。
+     */
+    private fun sanitizeToken(raw: String): String {
+        // 1. 去除首尾 ASCII 空白
+        var t = raw.trim()
+        // 2. 剔除所有非合法字符（仅保留 A-Za-z0-9_-）
+        //    这会清掉零宽空格、BOM、NBSP、换行、引号等所有不可见/非法字符
+        t = t.filter { it.isLetterOrDigit() || it == '_' || it == '-' }
+        return t
+    }
+
     /** 保存 GitHub Token（由 MainActivity 调用） */
     fun saveToken(context: Context, token: String) {
+        val cleaned = sanitizeToken(token)
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
-            .putString(KEY_TOKEN, token.trim())
+            .putString(KEY_TOKEN, cleaned)
             .apply()
+        // 诊断日志：保存后立即打印 token 长度和首尾，方便用户对比输入和保存是否一致
+        if (cleaned.isNotEmpty()) {
+            Log.i(TAG, "saveToken: saved (len=${cleaned.length}, head='${cleaned.take(4)}', tail='${cleaned.takeLast(4)}')")
+        } else {
+            Log.i(TAG, "saveToken: cleared")
+        }
     }
 
     /** 读取已保存的 GitHub Token */
@@ -104,6 +138,13 @@ object LogUploader {
             return 0
         }
 
+        // 诊断日志：打印 token 前后 4 位、长度、字符集（用于排查"App 端 token 与 curl 测试不一致"问题）
+        // 不泄露完整 token，只打印首尾各 4 字符 + 总长度
+        val tokenDiag = "len=${token.length}, head='${token.take(4)}', tail='${token.takeLast(4)}', " +
+            "hasNewline=${token.contains('\n') || token.contains('\r')}, " +
+            "hasSpace=${token.contains(' ') || token.contains('\t')}"
+        Log.i(TAG, "upload start: tag=$tag, token=***$tokenDiag")
+
         val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         var success = 0
         val errors = mutableListOf<String>()
@@ -116,7 +157,12 @@ object LogUploader {
         } else {
             val remotePath = "logs/debug_${tag}_${ts}.log"
             val (ok, err) = uploadFile(token, remotePath, uploadFile, "upload ${debugLogFile.name} ($tag)")
-            if (ok) success++ else errors.add("${debugLogFile.name}: $err")
+            if (ok) {
+                success++
+            } else {
+                // 失败时把 token 诊断信息附在错误后面，方便用户对比 App 端 token 与 curl 用的 token 是否一致
+                errors.add("${debugLogFile.name}: $err [token: $tokenDiag]")
+            }
             // 清理临时截断文件
             if (uploadFile !== debugLogFile) uploadFile.delete()
         }
@@ -231,19 +277,23 @@ object LogUploader {
             }
 
             val code = conn.responseCode
+            // 读取 GitHub 返回的错误响应体（所有失败码都读，便于诊断）
+            // GitHub 401 响应体通常含 {"message":"Bad credentials",...}，
+            // 403 含 {"message":"Resource not accessible by personal access token",...}
+            // 直接展示给用户，避免"401 Token 无效"这种笼统信息掩盖真实原因
+            val errBody = try {
+                conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+            } catch (_: Exception) { "" }
+            Log.i(TAG, "uploadFile resp: code=$code, url=$remotePath, errBody=${errBody.take(300)}")
             return when {
                 code in 200..299 -> {
                     Log.i(TAG, "uploaded: $remotePath (${fileBytes.size} bytes)")
                     Pair(true, "")
                 }
-                code == 401 -> Pair(false, "401 Token 无效或已过期")
-                code == 403 -> Pair(false, "403 Token 权限不足（需 contents:write）或触发限流")
-                code == 404 -> Pair(false, "404 仓库不存在或 Token 无权访问")
-                else -> {
-                    val err = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-                    Log.e(TAG, "upload failed $code: $remotePath\n$err")
-                    Pair(false, "HTTP $code: ${err.take(200)}")
-                }
+                code == 401 -> Pair(false, "401 Token 无效或已过期。GitHub 返回: ${errBody.take(200)}")
+                code == 403 -> Pair(false, "403 权限不足或限流。GitHub 返回: ${errBody.take(200)}")
+                code == 404 -> Pair(false, "404 仓库不存在或 Token 无权访问: ${errBody.take(200)}")
+                else -> Pair(false, "HTTP $code: ${errBody.take(200)}")
             }
         } catch (e: Exception) {
             Log.e(TAG, "upload exception: ${e.message}", e)
