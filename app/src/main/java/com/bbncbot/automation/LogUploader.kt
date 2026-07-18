@@ -3,6 +3,7 @@ package com.bbncbot.automation
 import android.content.Context
 import android.util.Base64
 import android.util.Log
+import com.bbncbot.BuildConfig
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -44,6 +45,24 @@ object LogUploader {
 
     /** 单个日志文件大小上限（2MB），超过则截断保留末尾部分 */
     private const val MAX_LOG_BYTES = 2L * 1024 * 1024
+
+    /**
+     * 把诊断日志写入 debug.log 文件（同时也输出到 logcat）
+     *
+     * 必要性：LogUploader 的诊断信息（token 首尾、HTTP 响应码、GitHub 错误体）只写 logcat 时，
+     * 用户无法通过分享 debug.log 把这些信息发给我，难以远程诊断"401 失败"等问题。
+     * 因此关键诊断信息也写入 debug.log，与 Service/Controller 的日志格式一致。
+     */
+    private fun debugLog(context: Context, msg: String) {
+        Log.i(TAG, msg)
+        try {
+            val timestamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.US).format(Date())
+            val line = "$timestamp $msg\n"
+            val file = getDebugLogFile(context)
+            file.parentFile?.mkdirs()
+            file.appendText(line)
+        } catch (_: Exception) { /* ignore */ }
+    }
 
     /**
      * 日志文件本地根目录（App 私有外部存储，无需任何权限）
@@ -106,10 +125,11 @@ object LogUploader {
             .putString(KEY_TOKEN, cleaned)
             .apply()
         // 诊断日志：保存后立即打印 token 长度和首尾，方便用户对比输入和保存是否一致
+        // 同时写入 debug.log 文件，便于远程诊断
         if (cleaned.isNotEmpty()) {
-            Log.i(TAG, "saveToken: saved (len=${cleaned.length}, head='${cleaned.take(4)}', tail='${cleaned.takeLast(4)}')")
+            debugLog(context, "saveToken: saved (len=${cleaned.length}, head='${cleaned.take(4)}', tail='${cleaned.takeLast(4)}')")
         } else {
-            Log.i(TAG, "saveToken: cleared")
+            debugLog(context, "saveToken: cleared")
         }
     }
 
@@ -134,16 +154,17 @@ object LogUploader {
         val token = loadToken(context)
         if (token.isEmpty()) {
             lastResult = "未配置 GitHub Token，跳过上传。请在上方输入框填入 Token 后点保存。"
-            Log.d(TAG, "skip upload: token not configured")
+            debugLog(context, "upload: skip, token not configured")
             return 0
         }
 
         // 诊断日志：打印 token 前后 4 位、长度、字符集（用于排查"App 端 token 与 curl 测试不一致"问题）
         // 不泄露完整 token，只打印首尾各 4 字符 + 总长度
+        // 同时写入 debug.log，方便用户分享日志后远程诊断
         val tokenDiag = "len=${token.length}, head='${token.take(4)}', tail='${token.takeLast(4)}', " +
             "hasNewline=${token.contains('\n') || token.contains('\r')}, " +
             "hasSpace=${token.contains(' ') || token.contains('\t')}"
-        Log.i(TAG, "upload start: tag=$tag, token=***$tokenDiag")
+        debugLog(context, "upload start: tag=$tag, token=***$tokenDiag")
 
         val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         var success = 0
@@ -154,14 +175,17 @@ object LogUploader {
         val uploadFile = prepareLogForUpload(debugLogFile)
         if (uploadFile == null) {
             errors.add("${debugLogFile.name}: 文件不存在或为空")
+            debugLog(context, "upload: debug.log not exist or empty, skip")
         } else {
             val remotePath = "logs/debug_${tag}_${ts}.log"
-            val (ok, err) = uploadFile(token, remotePath, uploadFile, "upload ${debugLogFile.name} ($tag)")
+            val (ok, err) = uploadFile(context, token, remotePath, uploadFile, "upload ${debugLogFile.name} ($tag)")
             if (ok) {
                 success++
+                debugLog(context, "upload: success, remotePath=$remotePath")
             } else {
                 // 失败时把 token 诊断信息附在错误后面，方便用户对比 App 端 token 与 curl 用的 token 是否一致
                 errors.add("${debugLogFile.name}: $err [token: $tokenDiag]")
+                debugLog(context, "upload: FAILED, err=$err, tokenDiag=$tokenDiag")
             }
             // 清理临时截断文件
             if (uploadFile !== debugLogFile) uploadFile.delete()
@@ -172,7 +196,7 @@ object LogUploader {
         } else {
             "成功 $success 个，失败：${errors.joinToString("; ")}"
         }
-        Log.i(TAG, "upload done: $success files uploaded (tag=$tag), errors=$errors")
+        debugLog(context, "upload done: $success files uploaded (tag=$tag), errors=$errors")
         return success
     }
 
@@ -214,7 +238,10 @@ object LogUploader {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "?"
         } catch (e: Exception) { "?" }
         val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
-        val header = "=== cleared on app start (version=$versionName, time=$timeStr) ===\n"
+        // BUILD_LABEL 来自 BuildConfig，CI 构建时注入（如 build500-3c9691b），本地构建为 "local"
+        // 写入 header 用于远程诊断时确认用户实际运行的 APK 版本
+        val buildLabel = try { BuildConfig.BUILD_LABEL } catch (_: Throwable) { "unknown" }
+        val header = "=== cleared on app start (version=$versionName, build=$buildLabel, time=$timeStr) ===\n"
 
         // 清空追加型日志文件（写入版本标识，保留文件存在性）
         try {
@@ -237,6 +264,7 @@ object LogUploader {
      * @return (是否成功, 失败原因描述)
      */
     private fun uploadFile(
+        context: Context,
         token: String,
         remotePath: String,
         localFile: File,
@@ -247,6 +275,7 @@ object LogUploader {
             val url = java.net.URL(
                 "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$remotePath"
             )
+            debugLog(context, "uploadFile: PUT $url, localFile=${localFile.name} (${localFile.length()} bytes)")
             conn = (url.openConnection() as java.net.HttpURLConnection).apply {
                 requestMethod = "PUT"
                 connectTimeout = 15000
@@ -284,10 +313,11 @@ object LogUploader {
             val errBody = try {
                 conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
             } catch (_: Exception) { "" }
-            Log.i(TAG, "uploadFile resp: code=$code, url=$remotePath, errBody=${errBody.take(300)}")
+            // 把响应码和 GitHub 原始错误体写入 debug.log，方便远程诊断
+            debugLog(context, "uploadFile resp: code=$code, url=$remotePath, errBody=${errBody.take(500)}")
             return when {
                 code in 200..299 -> {
-                    Log.i(TAG, "uploaded: $remotePath (${fileBytes.size} bytes)")
+                    debugLog(context, "uploaded: $remotePath (${fileBytes.size} bytes)")
                     Pair(true, "")
                 }
                 code == 401 -> Pair(false, "401 Token 无效或已过期。GitHub 返回: ${errBody.take(200)}")
@@ -297,6 +327,7 @@ object LogUploader {
             }
         } catch (e: Exception) {
             Log.e(TAG, "upload exception: ${e.message}", e)
+            debugLog(context, "uploadFile exception: ${e.javaClass.simpleName}: ${e.message}")
             return Pair(false, "异常: ${e.javaClass.simpleName}: ${e.message}")
         } finally {
             conn?.disconnect()

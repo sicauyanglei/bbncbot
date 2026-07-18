@@ -11,8 +11,8 @@ android {
         applicationId = "com.bbncbot"
         minSdk = 24
         targetSdk = 34
-        versionCode = 12
-        versionName = "2.1"
+        versionCode = 13
+        versionName = "2.2"
         // 构建标识：CI 通过 -PBUILD_LABEL=build{number}-{sha} 注入
         // 本地构建为 "local"，日志打印此字段可证明 APK 来源版本
         buildConfigField(
