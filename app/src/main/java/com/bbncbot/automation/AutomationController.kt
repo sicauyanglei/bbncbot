@@ -1046,6 +1046,8 @@ object AutomationController {
         // - 移除宽泛的"领取"/"收下"
         // - 保留带动词前缀的精确短语："去签到""立即领取""点击领取""开心收下"
         // - 额外排除"退款"/"扣回"/"下单后"等付费暗示词
+        // build518 补丁：恢复 button.text == "领取" 精确匹配（用户反馈纯"领取"按钮应优先），
+        // 但 contextText 含"领取"仍不匹配（避免"领取后退款"等陷阱描述命中）
         val easyClaimKeywords = listOf(
             "去签到",        // 每日签到任务（明确动词）
             "签到领",        // "签到领肥料"等
@@ -1070,9 +1072,13 @@ object AutomationController {
             val isPaid = service.isPaidTask(btn)
             // P1-3：额外检查付费暗示词，避免 isPaidTask 漏判（paidKeywords 不全）
             val hasPaidHint = paidHintKeywords.any { fullText.contains(it) }
-            val isEasyClaim = !isPaid && !hasPaidHint && easyClaimKeywords.any { fullText.contains(it) }
+            // build518 补丁：button.text 精确等于"领取"或"收下"也视为 easyClaim
+            // （纯领取按钮是点击即得肥料的简单任务），但 contextText 不能含付费暗示词
+            val isPureClaimButton = (buttonText == "领取" || buttonText == "收下") && !hasPaidHint
+            val isEasyClaim = !isPaid && !hasPaidHint &&
+                (easyClaimKeywords.any { fullText.contains(it) } || isPureClaimButton)
             val priority = if (isEasyClaim) 0 else 1
-            debugLog("sortTaskButtons: idx=$idx task='$taskContent' priority=$priority (easyClaim=$isEasyClaim, paid=$isPaid, paidHint=$hasPaidHint, button='$buttonText')")
+            debugLog("sortTaskButtons: idx=$idx task='$taskContent' priority=$priority (easyClaim=$isEasyClaim, paid=$isPaid, paidHint=$hasPaidHint, pureClaim=$isPureClaimButton, button='$buttonText')")
             Triple(priority, idx, btn)
         }.sortedWith(compareBy({ it.first }, { it.second })).map { it.third }
     }
@@ -2106,12 +2112,51 @@ object AutomationController {
         // 等待用户/机器人在其他App执行任务后回到农场App
         if (!service.isOnFarmPage()) {
             val otherPkg = service.getCurrentWindowPackage()
-            Log.i(TAG, "processTask: deep-linked to another app ($otherPkg), treating as ad task")
-            debugLog("processTask: deep-link ad task, pkg=$otherPkg, entering WATCHING_AD to wait for return to farm")
-            service.setAdMode(true)
-            moveTo(AutomationState.WATCHING_AD)
-            handler.postDelayed({ runWatchingAd(elapsedMs = 0L) }, INTERVAL_CLICK_MS)
-            return
+            // P0-C（build519 修复）：Honor 设备 getCurrentWindowPackage 会误报 systemui
+            // 历史问题（debug_test_20260718_205618.log, build517-0885ae7）：
+            // - 点击"去完成"按钮后支付宝内部跳转到搜索页（样本含"芭芭农场,搜索,全部,服饰鞋包"）
+            // - isOnFarmPage 正确返回 false（搜索页不是农场页）
+            // - 但 getCurrentWindowPackage 返回 "com.android.systemui"（Honor 顶部状态栏窗口误报，
+            //   详见 FarmAccessibilityService.kt:4264-4266 的注释）
+            // - 误判为"深链跳转到 systemui"进入 WATCHING_AD，16ms 后 STOPPING，自动化直接结束
+            //
+            // 修复：用 rootInActiveWindowSafe().packageName 判断用户实际看到的真实页面
+            // - 真实页面是农场包名（支付宝内部跳转）→ getCurrentWindowPackage 误报 systemui，
+            //   不进 WATCHING_AD，继续后续 scene 检测（identifyCurrentScene 会处理搜索页等）
+            // - 真实页面是 systemui（真正的下拉通知栏/控制中心）→ 等待用户关闭后重试
+            // - 真实页面是其他非农场 App（真的深链跳转）→ 进入 WATCHING_AD 等待返回
+            val activeRootPkg = service.rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+            val cfg = service.currentPlatformConfig()
+            val isActiveRootFarmPkg = activeRootPkg.isNotEmpty() && (
+                cfg.packageNames.contains(activeRootPkg) ||
+                cfg.internalPackagePrefixes.any { activeRootPkg.startsWith(it) } ||
+                activeRootPkg == "com.bbncbot")
+            val isRealSystemUiOverlay = otherPkg == "com.android.systemui" &&
+                (activeRootPkg.isEmpty() || activeRootPkg == "com.android.systemui")
+            when {
+                // 真实页面是农场包名 → getCurrentWindowPackage 误报 systemui，不进 WATCHING_AD
+                // 继续后续 scene 检测（支付宝内部跳转的搜索页/任务页等）
+                isActiveRootFarmPkg -> {
+                    debugLog("processTask: not on farm page but activeRoot='$activeRootPkg' is farm pkg, otherPkg='$otherPkg' (systemui false positive), skip WATCHING_AD, continue scene detection")
+                }
+                // 真实页面是 systemui（真正的下拉通知栏/控制中心）→ 等待用户关闭后重试
+                isRealSystemUiOverlay -> {
+                    debugLog("processTask: real systemui overlay detected (activeRoot='$activeRootPkg'), waiting for dismissal, retry attempt=$attempt")
+                    handler.postDelayed({
+                        if (state == AutomationState.PROCESSING_TASK) runProcessingTask(attempt + 1)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                    return
+                }
+                // 真实页面是非农场 App（真的深链跳转）→ 进入 WATCHING_AD
+                else -> {
+                    Log.i(TAG, "processTask: deep-linked to another app (otherPkg=$otherPkg, activeRoot=$activeRootPkg), treating as ad task")
+                    debugLog("processTask: deep-link ad task, otherPkg=$otherPkg, activeRoot=$activeRootPkg, entering WATCHING_AD to wait for return to farm")
+                    service.setAdMode(true)
+                    moveTo(AutomationState.WATCHING_AD)
+                    handler.postDelayed({ runWatchingAd(elapsedMs = 0L) }, INTERVAL_CLICK_MS)
+                    return
+                }
+            }
         }
 
         // 检测是否还在农场页（点击无效果 / 签到答题弹窗 / 任务完成弹窗）

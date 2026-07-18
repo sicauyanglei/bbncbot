@@ -2171,15 +2171,25 @@ class FarmAccessibilityService : AccessibilityService() {
         val btnHeight = btnRect.height()
 
         // 自适应选择容器：向上找第一个"合理高度"的祖先（任务行高度 < 600px）
+        // 但不能只看高度——纯"去完成"按钮 clickTarget 高度 82px，
+        // 向上找父节点高度也 82px（按钮容器），再向上父节点可能仍是窄的容器，
+        // 导致找到的容器只包含按钮自身，没收集到任务标题。
+        // 策略：先向上找"有兄弟节点含任务描述文本"的祖先（任务行），
+        // 兜底再按高度找。
         var container: AccessibilityNodeInfo? = null
+
+        // 策略1：向上找首个"含多个子节点的兄弟节点"或"高度 100~500px 的祖先"
         var p: AccessibilityNodeInfo? = button.parent
         var depth = 0
         while (p != null && depth < 4) {
             val pRect = android.graphics.Rect()
             p.getBoundsInScreen(pRect)
             val pHeight = pRect.height()
-            // 任务行容器高度通常 100~500px，列表容器高度通常 > 800px
-            if (pHeight in 80..600) {
+            val pWidth = pRect.width()
+            // 任务行容器特征：高度 100~500px，宽度接近屏幕宽（> 500px），
+            // 含多个子节点（任务描述 + 按钮）
+            // 列表容器高度通常 > 800px
+            if (pHeight in 100..600 && pWidth > 500 && p.childCount >= 2) {
                 container = p
                 break
             }
@@ -2189,7 +2199,25 @@ class FarmAccessibilityService : AccessibilityService() {
             depth++
         }
 
-        // 兜底：如果没找到合适的祖先容器，用 button 自己作为容器（收集子树文本）
+        // 策略2兜底：如果策略1没找到，向上找第一个高度 > 当前按钮的祖先（任务行通常比按钮高）
+        if (container == null) {
+            var p2: AccessibilityNodeInfo? = button.parent
+            var depth2 = 0
+            while (p2 != null && depth2 < 3) {
+                val p2Rect = android.graphics.Rect()
+                p2.getBoundsInScreen(p2Rect)
+                val p2Height = p2Rect.height()
+                if (p2Height > btnHeight && p2Height <= 600) {
+                    container = p2
+                    break
+                }
+                if (p2Height > 600) break
+                p2 = p2.parent
+                depth2++
+            }
+        }
+
+        // 最终兜底：如果都没找到，用 button 自己作为容器（收集子树文本）
         val effectiveContainer = container ?: button
         collectTextRecursive(effectiveContainer, sb, maxDepth = 4)
         val result = sb.toString()
