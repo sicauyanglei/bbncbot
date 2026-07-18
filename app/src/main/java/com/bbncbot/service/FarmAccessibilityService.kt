@@ -2243,6 +2243,14 @@ class FarmAccessibilityService : AccessibilityService() {
         val root = rootInActiveWindowSafe() ?: return null
         // 陷阱按钮黑名单（来自平台配置）：避免把"立即下载/去购买/查看详情"等诱导按钮误识别为关闭
         val trapTexts = currentPlatformConfig().adInstallButtonTexts
+        // Honor/Android 系统通知栏控件黑名单：通知栏下拉后会出现"手电筒/WiFi/蓝牙/飞行模式"等开关，
+        // 这些开关的 desc 可能是"手电筒已关闭"等含"关闭"字样 → 被误识别为广告关闭按钮 → 误点击。
+        // 同时它们的 bounds 常在屏幕底部（top=2792 > bottom=2664 这种非法矩形也是通知栏控件的特征）。
+        // 黑名单：节点 text/desc 含以下关键词时直接排除。
+        val systemControlKeywords = listOf(
+            "手电筒", " flashlight", "蓝牙", "bluetooth", "飞行模式", "airplane mode",
+            "wifi", "热点", "hotspot", "自动旋转", "auto rotate", "请勿打扰", "do not disturb"
+        )
         // 检查节点是否是诱导按钮（按子串匹配，如"领取优惠"含"领取"会被误识别为奖励按钮，
         // 故严格按整段文本/desc 检查是否包含陷阱关键词）
         fun isTrapNode(node: AccessibilityNodeInfo): Boolean {
@@ -2251,10 +2259,38 @@ class FarmAccessibilityService : AccessibilityService() {
             val combined = text + desc
             return trapTexts.any { trap -> combined.contains(trap) }
         }
+        // 检查节点是否是系统通知栏控件（手电筒/WiFi 等开关）
+        fun isSystemControlNode(node: AccessibilityNodeInfo): Boolean {
+            val text = node.text?.toString().orEmpty().lowercase()
+            val desc = node.contentDescription?.toString().orEmpty().lowercase()
+            val combined = "$text $desc"
+            return systemControlKeywords.any { kw -> combined.contains(kw) }
+        }
+        // 检查 bounds 是否合法（top > bottom、width <= 0、height <= 0 都是非法矩形）
+        // Honor 通知栏的控件 bounds 常出现 top > bottom 的非法矩形，必须过滤
+        fun hasInvalidBounds(node: AccessibilityNodeInfo): Boolean {
+            val rect = android.graphics.Rect()
+            node.getBoundsInScreen(rect)
+            if (rect.width() <= 0 || rect.height() <= 0 || rect.top > rect.bottom) {
+                debugLog("findAdCloseButton: drop invalid bounds node text='${node.text?.toString()?.take(20)}' desc='${node.contentDescription?.toString()?.take(20)}' bounds=${rect.toShortString()}")
+                return true
+            }
+            return false
+        }
+        // 综合校验节点：陷阱 / 系统控件 / 非法 bounds 都排除
+        fun isValidCloseNode(node: AccessibilityNodeInfo): Boolean {
+            if (isTrapNode(node)) return false
+            if (isSystemControlNode(node)) {
+                debugLog("findAdCloseButton: drop system control node text='${node.text?.toString()?.take(20)}' desc='${node.contentDescription?.toString()?.take(20)}'")
+                return false
+            }
+            if (hasInvalidBounds(node)) return false
+            return true
+        }
         // 优先按平台特有关闭文本查找（更精确，避免误匹配），且排除诱导按钮
         for (kw in platformTexts) {
             val node = findNodeByText(root, kw)
-            if (node != null && !isTrapNode(node)) {
+            if (node != null && isValidCloseNode(node)) {
                 Log.d(TAG, "findAdCloseButton: found by platform text='$kw'")
                 return node
             }
@@ -2263,14 +2299,14 @@ class FarmAccessibilityService : AccessibilityService() {
         val keywords = listOf("×", "关闭", "close", "跳过", "skip", "关闭广告", "跳过广告", "跳过视频")
         for (kw in keywords) {
             val node = findNodeByText(root, kw)
-            if (node != null && !isTrapNode(node)) {
+            if (node != null && isValidCloseNode(node)) {
                 Log.d(TAG, "findAdCloseButton: found by text='$kw'")
                 return node
             }
         }
         // 文字没找到，尝试查找右上角区域的可点击小图标（游戏/广告的关闭按钮通常是右上角X图标）
         val closeIcon = findTopRightClickableIcon(root, isRight = true)
-        if (closeIcon != null) {
+        if (closeIcon != null && isValidCloseNode(closeIcon)) {
             debugLog("findAdCloseButton: found top-right close icon")
             return closeIcon
         }
@@ -4154,8 +4190,13 @@ class FarmAccessibilityService : AccessibilityService() {
                 rect.left < rect.right && rect.top < rect.bottom &&
                 rect.left >= 0 && rect.top >= 0
             if (boundsValid && !isSearchNode && rect.height() < 600 && rect.width() < 1000) {
-                debugLog("navigateAlipay: found 芭芭农场 entry at ${rect.toShortString()}, clicking")
-                performClickSafe(farmEntry)
+                debugLog("navigateAlipay: found 芭芭农场 entry at ${rect.toShortString()}, clickable=${farmEntry.isClickable}, clicking")
+                val clickResult = performClickSafe(farmEntry)
+                debugLog("navigateAlipay: 芭芭农场 entry click result=$clickResult (will verify navigation)")
+                // Honor 桌面下"芭芭农场"入口常 clickable=false，手势兜底点击后可能未真正进入农场页。
+                // 修复：performClickSafe 返回后等待几秒，让界面切换；
+                // 如果仍在支付宝首页（没进入芭芭农场 H5 页），下一轮 stepNavigateAlipayFarm 会重试。
+                // 这里设置 8 秒超时清除导航标志，足够 H5 加载。
                 navHandler.postDelayed({ clearNavigatingFlag() }, 8000L)
                 return
             }

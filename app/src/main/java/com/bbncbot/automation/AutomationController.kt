@@ -664,8 +664,32 @@ object AutomationController {
             debugLog("navigate: abnormal page detected, pressing back")
             service.pressBack()
         } else if (!service.isFarmAppInForeground()) {
-            Log.w(TAG, "navigate: farm app not in foreground (platform=${service.currentPlatform}), waiting")
-            debugLog("navigate: farm app not in foreground (platform=${service.currentPlatform}, attempt=$attempt), waiting for relaunch")
+            // 农场 App 不在前台（如刚启动自动化时 bbncbot.MainActivity 还在前台，
+            // 或农场 App 被切到后台/被系统回收）。
+            // 历史问题：原逻辑只打印"waiting for relaunch"等待用户手动切到农场 App，
+            // 但用户期望点"开始自动化"后 bot 应自己拉起农场 App。
+            // 修复：attempt==0 时主动调用 reopenFarmByDeepLink 拉起农场 App；
+            //       attempt>=1 时若仍未切到农场 App（可能 deep link 失败或 App 启动慢），
+            //       再次调用 reopenFarmByDeepLink 重新拉起（避免卡死在 "waiting for relaunch"）。
+            //       间隔由 INTERVAL_PAGE_LOAD_MS (5s) 控制，避免短时间内重复 kill+launch。
+            if (attempt == 0 || attempt % 3 == 0) {
+                // attempt==0：首次拉起；attempt % 3 == 0：每 3 轮（15s）重试一次拉起
+                Log.i(TAG, "navigate: farm app not in foreground (platform=${service.currentPlatform}), actively relaunching (attempt=$attempt)")
+                debugLog("navigate: farm app not in foreground (platform=${service.currentPlatform}, attempt=$attempt), calling reopenFarmByDeepLink")
+                service.reopenFarmByDeepLink()
+                // 延迟调用 navigateToFarm：等 App 启动后通过 AccessibilityEvent 识别平台，
+                // 再调用 navigateToFarm 导航到芭芭农场 H5 页（reopenFarmByDeepLink 只启动 App 主页，
+                // 不会自动进入农场页，必须靠 navigateToFarm 完成后续导航）。
+                handler.postDelayed({
+                    if (state == AutomationState.NAVIGATING && !service.isFarmAppInForeground()) {
+                        debugLog("navigate: still not in farm app after relaunch, calling navigateToFarm to push navigation")
+                        service.navigateToFarm()
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
+            } else {
+                Log.w(TAG, "navigate: farm app still not in foreground after relaunch (platform=${service.currentPlatform}, attempt=$attempt), waiting")
+                debugLog("navigate: farm app still not in foreground after relaunch (attempt=$attempt), waiting for next retry")
+            }
         } else {
             // 在农场 App 内但不在农场页（如淘宝主页），主动导航到芭芭农场
             Log.i(TAG, "navigate: in farm app but not farm page (platform=${service.currentPlatform}), calling navigateToFarm")
