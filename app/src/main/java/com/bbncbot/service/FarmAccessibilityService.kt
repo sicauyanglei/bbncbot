@@ -1770,8 +1770,10 @@ class FarmAccessibilityService : AccessibilityService() {
      * @param isRight true=右上角（关闭按钮），false=左上角（返回按钮）
      */
     private fun findTopRightClickableIcon(root: AccessibilityNodeInfo, isRight: Boolean): AccessibilityNodeInfo? {
-        val screenW = 1200  // 屏幕1080dp * density
-        val screenH = 2664
+        // 使用真实屏幕尺寸（适配所有设备，替代硬编码 1200x2664）
+        val metrics = resources.displayMetrics
+        val screenW = metrics.widthPixels
+        val screenH = metrics.heightPixels
         // 搜索区域：顶部1/8，左/右侧1/4
         val regionLeft = if (isRight) (screenW * 0.7).toInt() else 0
         val regionRight = if (isRight) screenW else (screenW * 0.3).toInt()
@@ -1808,7 +1810,7 @@ class FarmAccessibilityService : AccessibilityService() {
         if (bestNode != null) {
             val rect = android.graphics.Rect()
             bestNode!!.getBoundsInScreen(rect)
-            debugLog("findTopCornerIcon: found ${if (isRight) "right" else "left"} icon at ${rect.toShortString()}")
+            debugLog("findTopCornerIcon: found ${if (isRight) "right" else "left"} icon at ${rect.toShortString()} (screen=${screenW}x${screenH})")
         }
         return bestNode
     }
@@ -2196,6 +2198,105 @@ class FarmAccessibilityService : AccessibilityService() {
         debugLog("closeAdLandingPage: no close button found, pressing back as fallback")
         pressBack()
         return true
+    }
+
+    /**
+     * 检测广告复看陷阱（"再看一个"/"加倍领取"/"看视频翻倍"诱导继续看广告）
+     *
+     * 广告设计者意图：广告结束后弹出"再看一个视频可加倍领取"/"看视频翻倍奖励"等诱导弹窗，
+     * 利用用户"贪多"心理诱导继续观看更多广告，获取更多广告收益。
+     * 这类弹窗通常有：
+     * - 诱导按钮："再看一个"/"加倍领取"/"翻倍领取"/"看视频翻倍"
+     * - 关闭按钮："不了"/"放弃"/"关闭"/"暂不"（较小或不显眼）
+     *
+     * 策略：检测到复看陷阱时，优先点关闭类按钮，绝不点诱导按钮。
+     * 若无关闭按钮，按返回退出。
+     *
+     * @return true 表示检测到复看陷阱并已处理（点击关闭或按返回）
+     */
+    fun closeAdReplayTrap(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        // 复看陷阱诱导按钮关键词
+        val replayTrapKeywords = listOf(
+            "再看一个", "再看看", "再看视频", "再看一次",
+            "加倍领取", "翻倍领取", "翻倍奖励", "双倍奖励",
+            "看视频翻倍", "看视频加倍", "看广告翻倍",
+            "立即翻倍", "立即加倍", "领取双倍",
+            "再看15秒", "再看30秒", "再看视频领"
+        )
+        val hasReplayTrap = allText.any { text ->
+            replayTrapKeywords.any { kw -> text.contains(kw) }
+        }
+        if (!hasReplayTrap) return false
+        debugLog("closeAdReplayTrap: replay trap detected, looking for close button")
+        // 优先点关闭类按钮（与 closeAdInstallPopup 类似，但针对复看场景）
+        val closeKeywords = listOf(
+            "不了", "不要", "放弃", "暂不",
+            "关闭", "返回", "取消",
+            "下次再说", "以后再说", "残忍拒绝"
+        )
+        // 排除诱导按钮（避免"放弃加倍"被"放弃"匹配但实际是诱导）
+        val trapTexts = currentPlatformConfig().adInstallButtonTexts
+        for (kw in closeKeywords) {
+            val node = findNodeByText(root, kw)
+            if (node != null) {
+                val text = node.text?.toString().orEmpty()
+                val desc = node.contentDescription?.toString().orEmpty()
+                // 排除诱导按钮
+                if (trapTexts.any { trap -> (text + desc).contains(trap) }) continue
+                // 排除复看诱导按钮（如"放弃翻倍"可能含"放弃"但实际是诱导）
+                if (replayTrapKeywords.any { trap -> (text + desc).contains(trap) }) continue
+                debugLog("closeAdReplayTrap: found close button by text='$kw', clicking")
+                if (performClickSafe(node)) return true
+            }
+        }
+        // 无关闭按钮，按返回退出
+        debugLog("closeAdReplayTrap: no close button found, pressing back")
+        pressBack()
+        return true
+    }
+
+    /**
+     * 检测虚假关闭按钮（位置异常或尺寸过大的"关闭"按钮，可能是诱导跳转）
+     *
+     * 广告设计者意图：在广告页面放置一个尺寸很大、位置居中的"关闭"按钮，
+     * 用户以为是关闭广告，实际点击后跳转到广告主落地页或应用商店。
+     * 真正的关闭按钮通常是右上角的小图标（30-150px），而非居中大按钮。
+     *
+     * 本方法检测 findAdCloseButton 找到的节点是否可疑：
+     * - 尺寸过大（宽度 > 屏幕30%）→ 可疑
+     * - 位置居中（非右上角区域）→ 可疑
+     *
+     * @param closeBtn 待检测的关闭按钮节点
+     * @return true 表示是虚假关闭按钮（不应点击）
+     */
+    fun isFakeCloseButton(closeBtn: AccessibilityNodeInfo): Boolean {
+        val rect = android.graphics.Rect()
+        closeBtn.getBoundsInScreen(rect)
+        val metrics = resources.displayMetrics
+        val screenW = metrics.widthPixels
+        val screenH = metrics.heightPixels
+        val w = rect.width()
+        val h = rect.height()
+        // 检查1：尺寸过大（宽度 > 屏幕30% 或 高度 > 屏幕10%）
+        // 真正的关闭按钮是小图标，不会占屏幕大比例
+        if (w > screenW * 0.3f || h > screenH * 0.1f) {
+            debugLog("isFakeCloseButton: YES (size too large: ${w}x${h}, screen=${screenW}x${screenH})")
+            return true
+        }
+        // 检查2：位置居中（非右上角区域）
+        // 真正的关闭按钮在右上角（right > 屏幕70%，top < 屏幕15%）
+        val isRightTop = rect.left > screenW * 0.7f && rect.top < screenH * 0.15f
+        if (!isRightTop) {
+            // 非右上角，但可能是底部"跳过"按钮（也合法）
+            val isBottom = rect.top > screenH * 0.85f
+            if (!isBottom) {
+                debugLog("isFakeCloseButton: YES (position not right-top or bottom: ${rect.toShortString()})")
+                return true
+            }
+        }
+        return false
     }
 
 

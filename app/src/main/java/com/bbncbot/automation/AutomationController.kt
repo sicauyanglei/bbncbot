@@ -2516,6 +2516,16 @@ object AutomationController {
             }, INTERVAL_PAGE_LOAD_MS)
             return
         }
+        // 5. 广告复看陷阱（"再看一个"/"加倍领取"诱导继续看广告）
+        //    → 优先点关闭类按钮，绝不点诱导按钮，避免被套娃看更多广告
+        if (service.closeAdReplayTrap()) {
+            Log.w(TAG, "watchAd: ad replay trap detected and closed (再看一个/加倍领取)")
+            debugLog("watchAd: replay trap handled, continuing to check ad end")
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+            }, INTERVAL_CLICK_MS)
+            return
+        }
 
         // 超时强制关闭
         if (elapsedMs >= adMaxDurationMs) {
@@ -2809,6 +2819,13 @@ object AutomationController {
                 val platformCloseTexts = service.currentPlatformConfig().adCloseButtonTexts
                 val closeBtn = service.findAdCloseButton(platformCloseTexts)
                 if (closeBtn != null) {
+                    // 虚假关闭按钮检测：尺寸过大或位置居中的"关闭"可能是诱导跳转
+                    if (service.isFakeCloseButton(closeBtn)) {
+                        Log.w(TAG, "closeAd: fake close button detected (size/position suspicious), skipping strategy 0")
+                        debugLog("closeAd: fake close button (too large or centered), trying next strategy")
+                        runClosingAd(1)
+                        return
+                    }
                     Log.i(TAG, "closeAd: found close button, clicking")
                     service.performClickSafe(closeBtn)
                 } else {
