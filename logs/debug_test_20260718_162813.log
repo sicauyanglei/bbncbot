@@ -1,0 +1,86 @@
+=== cleared on app start (version=2.2, build=build501-6c5096c, time=16:25:03) ===
+16:25:03.982 killPlatformApps: killed com.ucmobile.lite for UC
+16:25:03.984 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+16:25:03.985 killPlatformApps: killed com.taobao.taobao for TAOBAO
+16:25:08.888 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:25:08.893 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+16:25:08.894 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+16:25:08.896 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+16:25:12.448 navigateAlipay: found 芭芭农场 entry at [108,402][298,510], clicking
+16:25:12.451 performClickSafe: text='芭芭农场' desc='' bounds=[108,402][298,510] clickable=false
+16:25:12.453 performClickSafe: ACTION_CLICK failed, trying gesture
+16:25:12.455 dispatchGesture: screen=[[108,402][298,510]] window=[[0,0][0,0]]
+16:25:12.455 dispatchGesture: not in popup, screen bounds valid, click at (203.0, 456.0)
+16:25:14.950 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:25:14.951 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+16:25:14.952 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+16:25:14.953 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+16:25:16.688 === Automation v2 Started === platform=ALIPAY
+16:25:16.691 cancelNavigation: all navigation callbacks cancelled
+16:25:16.696 reset platform complete: ALIPAY
+16:25:16.698 state: IDLE -> NAVIGATING
+16:25:17.945 isOnFarmPage: no farm content, sample=[松开刷新, search_icon, 芭芭农场, 搜索, 全部, 服饰鞋包, 食品, 日用]
+16:25:18.086 [navigate-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:25:18.433 navigate: calling navigateToFarm, platform=ALIPAY
+16:25:19.944 navigateAlipay: found 芭芭农场 entry at [108,402][298,510], clicking
+16:25:19.946 performClickSafe: text='芭芭农场' desc='' bounds=[108,402][298,510] clickable=false
+16:25:19.948 performClickSafe: ACTION_CLICK failed, trying gesture
+16:25:19.951 dispatchGesture: screen=[[108,402][298,510]] window=[[0,0][0,0]]
+16:25:19.952 dispatchGesture: not in popup, screen bounds valid, click at (203.0, 456.0)
+16:25:23.451 isFarmAppInForeground: windows miss farm pkg, but activity=com.bbncbot.mainactivity matches farm keywords, treat as in farm app
+16:25:23.482 navigate: on farm page, platform=ALIPAY
+16:25:23.494 navigate: hasFarmContentLoaded=false, attempt=1
+16:25:24.822 saveToken: saved (len=93, head='gith', tail='YSXx')
+16:25:24.826 upload start: tag=test, token=***len=93, head='gith', tail='YSXx', hasNewline=false, hasSpace=false
+16:25:24.828 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260718_162524.log, localFile=debug.log (2962 bytes)
+16:25:25.390 uploadFile resp: code=401, url=logs/debug_test_20260718_162524.log, errBody={
+  "message": "Bad credentials",
+  "documentation_url": "https://docs.github.com/rest",
+  "status": "401"
+}
+16:25:25.390 upload: FAILED, err=401 Token 无效或已过期。GitHub 返回: {
+  "message": "Bad credentials",
+  "documentation_url": "https://docs.github.com/rest",
+  "status": "401"
+}, tokenDiag=len=93, head='gith', tail='YSXx', hasNewline=false, hasSpace=false
+16:25:25.391 upload done: 0 files uploaded (tag=test), errors=[debug.log: 401 Token 无效或已过期。GitHub 返回: {
+  "message": "Bad credentials",
+  "documentation_url": "https://docs.github.com/rest",
+  "status": "401"
+} [token: len=93, head='gith', tail='YSXx', hasNewline=false, hasSpace=false]]
+16:25:28.520 isFarmAppInForeground: windows miss farm pkg, but activity=com.bbncbot.mainactivity matches farm keywords, treat as in farm app
+16:25:28.540 navigate: on farm page, platform=ALIPAY
+16:25:28.553 navigate: hasFarmContentLoaded=false, attempt=2
+16:25:30.646 state: NAVIGATING -> STOPPING
+16:25:30.647 cancelNavigation: all navigation callbacks cancelled
+16:25:30.648 state: STOPPING -> IDLE
+16:27:02.969 saveToken: saved (len=93, head='gith', tail='GP1v')
+16:27:04.652 saveToken: saved (len=93, head='gith', tail='GP1v')
+16:27:04.656 upload start: tag=test, token=***len=93, head='gith', tail='GP1v', hasNewline=false, hasSpace=false
+16:27:04.660 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260718_162704.log, localFile=debug.log (4546 bytes)
+16:27:05.728 uploadFile resp: code=201, url=logs/debug_test_20260718_162704.log, errBody=
+16:27:05.732 uploaded: logs/debug_test_20260718_162704.log (4704 bytes)
+16:27:05.735 upload: success, remotePath=logs/debug_test_20260718_162704.log
+16:27:05.737 upload done: 1 files uploaded (tag=test), errors=[]
+16:28:00.845 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:28:00.849 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+16:28:00.850 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+16:28:00.851 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+16:28:02.204 === Automation v2 Started === platform=ALIPAY
+16:28:02.205 cancelNavigation: all navigation callbacks cancelled
+16:28:02.206 reset platform complete: ALIPAY
+16:28:02.206 state: IDLE -> NAVIGATING
+16:28:03.191 isOnFarmPage: no farm content, sample=[松开刷新, search_icon, 芭芭农场, 搜索, 全部, 服饰鞋包, 食品, 日用]
+16:28:03.289 [navigate-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:28:03.602 navigate: calling navigateToFarm, platform=ALIPAY
+16:28:05.184 navigateAlipay: found 芭芭农场 entry at [108,402][298,510], clicking
+16:28:05.185 performClickSafe: text='芭芭农场' desc='' bounds=[108,402][298,510] clickable=false
+16:28:05.186 performClickSafe: ACTION_CLICK failed, trying gesture
+16:28:05.187 dispatchGesture: screen=[[108,402][298,510]] window=[[0,0][0,0]]
+16:28:05.188 dispatchGesture: not in popup, screen bounds valid, click at (203.0, 456.0)
+16:28:08.613 isFarmAppInForeground: windows miss farm pkg, but activity=com.bbncbot.mainactivity matches farm keywords, treat as in farm app
+16:28:08.620 navigate: on farm page, platform=ALIPAY
+16:28:08.626 navigate: hasFarmContentLoaded=false, attempt=1
+16:28:13.082 saveToken: saved (len=93, head='gith', tail='GP1v')
+16:28:13.084 upload start: tag=test, token=***len=93, head='gith', tail='GP1v', hasNewline=false, hasSpace=false
+16:28:13.085 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260718_162813.log, localFile=debug.log (6906 bytes)
