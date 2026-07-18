@@ -1945,6 +1945,14 @@ class FarmAccessibilityService : AccessibilityService() {
      * @return true 表示是滑动浏览任务
      */
     fun isBrowseTask(button: AccessibilityNodeInfo): Boolean {
+        // 用户需求："去逛逛"按钮应该点击进入任务页，而不是走滑动浏览流程
+        // 很多"去逛逛"任务是点击进入页面后停留/浏览获取肥料，需要点击进入
+        // 因此按钮文字恰好是"去逛逛"时，不走浏览流程，走普通任务点击流程
+        val buttonText = button.text?.toString().orEmpty()
+        if (buttonText == "去逛逛") {
+            debugLog("isBrowseTask: button text is '去逛逛', treat as click task (not browse)")
+            return false
+        }
         // "下单得奖励"是浏览搜索结果页面的任务，浏览后就能得肥料
         // "发现精选好物"、"搜一搜你心仪得宝贝"、"看严选推荐商品" 需要点击商品并滑动浏览
         // 通用浏览关键词 + 平台专属浏览关键词（差异化：淘宝浏览任务最多）
@@ -1955,7 +1963,7 @@ class FarmAccessibilityService : AccessibilityService() {
         ) + currentPlatformConfig().browseTaskKeywords
         val contextText = collectTaskContextText(button)
         val isBrowse = browseKeywords.any { contextText.contains(it) }
-        debugLog("isBrowseTask: context='$contextText', isBrowse=$isBrowse")
+        debugLog("isBrowseTask: buttonText='$buttonText', context='$contextText', isBrowse=$isBrowse")
         return isBrowse
     }
 
