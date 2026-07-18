@@ -1,0 +1,28 @@
+=== cleared on app start (version=2.2, build=build504-08bff1c, time=17:22:41) ===
+17:22:41.626 killPlatformApps: killed com.ucmobile.lite for UC
+17:22:41.629 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+17:22:41.631 killPlatformApps: killed com.taobao.taobao for TAOBAO
+17:23:52.790 FarmAccessibilityService connected, API=36
+17:24:11.844 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+17:24:11.850 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+17:24:11.850 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+17:24:11.852 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+17:24:15.467 navigateAlipay: found 芭芭农场 entry at [108,402][298,510], clicking
+17:24:15.472 performClickSafe: text='芭芭农场' desc='' bounds=[108,402][298,510] clickable=false
+17:24:15.474 performClickSafe: ACTION_CLICK failed, trying gesture
+17:24:15.475 dispatchGesture: screen=[[108,402][298,510]] window=[[0,0][0,0]]
+17:24:15.476 dispatchGesture: not in popup, screen bounds valid, click at (203.0, 456.0)
+17:25:26.313 saveToken: saved (len=93, head='gith', tail='McKr')
+17:25:33.395 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+17:25:33.396 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+17:25:33.396 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+17:25:33.397 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+17:25:36.947 navigateAlipay: found 芭芭农场 entry at [108,402][298,510], clicking
+17:25:36.952 performClickSafe: text='芭芭农场' desc='' bounds=[108,402][298,510] clickable=false
+17:25:36.953 performClickSafe: ACTION_CLICK failed, trying gesture
+17:25:36.954 dispatchGesture: screen=[[108,402][298,510]] window=[[0,0][0,0]]
+17:25:36.956 dispatchGesture: not in popup, screen bounds valid, click at (203.0, 456.0)
+17:25:40.171 saveToken: saved (len=93, head='gith', tail='McKr')
+17:25:47.202 saveToken: saved (len=93, head='gith', tail='McKr')
+17:25:47.204 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+17:25:47.205 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260718_172547.log, localFile=debug.log (2203 bytes)
