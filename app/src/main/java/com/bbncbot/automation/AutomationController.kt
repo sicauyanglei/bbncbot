@@ -1181,7 +1181,7 @@ object AutomationController {
         // 用户反馈："(1/1)" "(2/2)" 这种 X/X 样式的任务已完成，不需要再点。
         // 任务列表里 "X/Y" 表示 "当前进度/总进度"，X==Y 说明已完成。
         // 匹配模式：(N/N) 或 （N/N），N 为正整数（也兼容无括号的 N/N 但要避免误匹配日期）
-        val taskContextText = service.collectTaskContextText(button)
+        // 注：taskContextText 已在 1a-bis 块声明，这里复用
         val completedRegex = Regex("""[(（](\d+)/\1[)）]""")
         val completedMatch = completedRegex.find(taskContextText) ?: completedRegex.find(buttonText)
         if (completedMatch != null) {
