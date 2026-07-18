@@ -37,13 +37,19 @@ object AiVisionClient {
     private const val API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
 
     /**
-     * 使用免费视觉模型 glm-4.6v-flash
+     * 视觉模型优先级列表（按能力从强到弱，依次尝试）
      *
      * 模型选择说明：
-     * - glm-4.6v-flash：128K 上下文，视觉理解 SOTA，原生多模态（推荐）
-     * - 备选：glm-4v-flash（旧版，同样免费，能力稍弱）
+     * - glm-4.6v-flash：128K 上下文，视觉理解 SOTA，原生多模态（首选，能力最强）
+     * - glm-4v-flash：旧版视觉模型，同样免费，能力稍弱但稳定（兜底，避免 4.6v 限流时失效）
+     *
+     * 注意：glm-4.7-flash 是纯文本模型（输入模态仅文本），不能处理图片，故不在此列表。
+     * 截图分析必须用带 "v"（vision）的视觉模型。
+     *
+     * Fallback 策略：依次尝试列表中的模型，遇到 1305（访问量过大）等限流错误时
+     * 自动降级到下一个模型，确保 bot 无人值守时 AI 视觉兜底始终可用。
      */
-    private const val MODEL = "glm-4.6v-flash"
+    private val VISION_MODELS = listOf("glm-4.6v-flash", "glm-4v-flash")
 
     /**
      * AI 视觉动作结果
@@ -84,6 +90,32 @@ object AiVisionClient {
 
         val prompt = buildPrompt(sceneContext)
 
+        // 依次尝试视觉模型列表（glm-4.6v-flash → glm-4v-flash）
+        // 遇到限流（1305）等可恢复错误时自动降级到下一个模型
+        for (model in VISION_MODELS) {
+            val result = callVisionModel(apiKey, model, prompt, base64Image, sceneContext)
+            if (result != null) {
+                return result
+            }
+            // result == null 时继续尝试下一个模型（可能是限流/网络错误）
+        }
+        Log.w(TAG, "analyzeScreenshot: all vision models failed (tried=${VISION_MODELS.joinToString()})")
+        return null
+    }
+
+    /**
+     * 调用单个视觉模型
+     *
+     * @return VisionResult；遇到限流/网络错误返回 null（调用方会尝试下一个模型）；
+     *         API 返回了内容但解析失败也返回 null（继续尝试下一个模型兜底）
+     */
+    private fun callVisionModel(
+        apiKey: String,
+        model: String,
+        prompt: String,
+        base64Image: String,
+        sceneContext: String
+    ): VisionResult? {
         var conn: java.net.HttpURLConnection? = null
         return try {
             val url = java.net.URL(API_URL)
@@ -124,7 +156,7 @@ object AiVisionClient {
                 })
             }
             val jsonBody = JSONObject().apply {
-                put("model", MODEL)
+                put("model", model)
                 put("messages", messages)
                 put("temperature", 0.1)  // 低温度，提高决策确定性
                 put("max_tokens", 200)   // 返回 JSON 很短
@@ -137,23 +169,25 @@ object AiVisionClient {
             val code = conn.responseCode
             if (code !in 200..299) {
                 val err = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-                Log.e(TAG, "analyzeScreenshot: GLM API failed (HTTP $code): ${err.take(300)}")
+                // 1305: 访问量过大（限流）→ 返回 null 让调用方尝试下一个模型
+                // 其他错误也返回 null，统一由调用方 fallback
+                Log.w(TAG, "callVisionModel($model) failed (HTTP $code): ${err.take(200)}, will try next model")
                 return null
             }
 
             val response = conn.inputStream.bufferedReader().use { it.readText() }
             val contentStr = parseContent(response)
             if (contentStr.isBlank()) {
-                Log.w(TAG, "analyzeScreenshot: empty content, response=${response.take(200)}")
+                Log.w(TAG, "callVisionModel($model): empty content, response=${response.take(200)}")
                 return null
             }
 
             val result = parseAction(contentStr)
-            Log.i(TAG, "analyzeScreenshot: sceneContext='$sceneContext', " +
+            Log.i(TAG, "callVisionModel($model) success: sceneContext='$sceneContext', " +
                 "action=${result.action}, reason='${result.reason.take(80)}'")
             result
         } catch (e: Exception) {
-            Log.e(TAG, "analyzeScreenshot exception: ${e.message}", e)
+            Log.e(TAG, "callVisionModel($model) exception: ${e.message}")
             null
         } finally {
             conn?.disconnect()
