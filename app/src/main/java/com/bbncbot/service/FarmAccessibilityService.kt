@@ -279,6 +279,17 @@ class FarmAccessibilityService : AccessibilityService() {
         }
     }
 
+    /**
+     * 最近一次 [isFarmAppInForeground] 调用时，windows 中是否真的看到农场平台包名窗口。
+     *
+     * 用途：区分"通过 windows 找到 farm 包名"（强信号）与"仅靠 Activity 类名兜底"（弱信号）。
+     * - 弱信号场景下，[isOnFarmPage] 必须能拿到 root 并通过内容验证才算真在农场页，
+     *   避免把"蚂蚁庄园 XRiverActivity"等同样命中 farmPageActivityKeywords 的小程序页
+     *   误判为农场页（实际根本没回农场，导致 gamePlay 提前退出、误标任务完成）。
+     */
+    @Volatile
+    private var farmPkgWindowVisible: Boolean = false
+
     /** 当前农场 App 是否在前台（是否有当前平台窗口） */
     fun isFarmAppInForeground(): Boolean {
         return try {
@@ -289,12 +300,14 @@ class FarmAccessibilityService : AccessibilityService() {
             //    导致自动化启动后即使没切到农场 App 也以为切到了 → 空转。
             val BBNCBOT_PKG = "com.bbncbot"
             // 1. 优先遍历 windows 查找农场平台包名（最可靠）
+            farmPkgWindowVisible = false  // 默认未看到，下面找到才置 true
             val windows = windows
             for (w in windows) {
                 val pkg = w.root?.packageName?.toString().orEmpty()
                 // 显式排除本应用包名（即使 windows 中出现也不算农场 App）
                 if (pkg == BBNCBOT_PKG) continue
                 if (pkg in cfg.packageNames || cfg.internalPackagePrefixes.any { pkg.startsWith(it) }) {
+                    farmPkgWindowVisible = true
                     return true
                 }
             }
@@ -302,6 +315,10 @@ class FarmAccessibilityService : AccessibilityService() {
             //    但 currentActivityName 已通过 TYPE_WINDOW_STATE_CHANGED 更新为农场 Activity。
             //    若 Activity 类名匹配农场平台 farmPageActivityKeywords，认为仍在农场 App 内。
             //    （forceKillApp 已清除 currentActivityName，所以此处非 null 一定是 kill 后新事件设置的）
+            //
+            //    注意：此兜底为"弱信号"——XRiverActivity 是支付宝小程序通用容器，
+            //    蚂蚁庄园/蚂蚁森林等也命中该关键词。调用方（如 isOnFarmPage）必须配合
+            //    内容验证，不能仅凭此就认为在农场页（详见 farmPkgWindowVisible 注释）。
             val activity = currentActivityName?.lowercase().orEmpty()
             if (activity.isNotEmpty() && cfg.farmPageActivityKeywords.isNotEmpty() &&
                 cfg.farmPageActivityKeywords.any { activity.contains(it) }
@@ -312,7 +329,7 @@ class FarmAccessibilityService : AccessibilityService() {
                     debugLog("isFarmAppInForeground: activity=$activity is bbncbot itself, NOT treat as farm app")
                     return false
                 }
-                debugLog("isFarmAppInForeground: windows miss farm pkg, but activity=$activity matches farm keywords, treat as in farm app")
+                debugLog("isFarmAppInForeground: windows miss farm pkg, but activity=$activity matches farm keywords, treat as in farm app (weak signal, requires content check)")
                 return true
             }
             false
@@ -620,7 +637,21 @@ class FarmAccessibilityService : AccessibilityService() {
             return false
         }
         // 3. 检查是否有第三方广告 SDK 窗口
-        val pkg = getCurrentWindowPackage() ?: return true
+        //    拿不到当前窗口包名时：
+        //    - 若 windows 中真的看到了农场包名（farmPkgWindowVisible=true），可能是窗口切换瞬间，
+        //      保守认为还在农场页（向下兼容旧逻辑）。
+        //    - 若仅靠 Activity 兜底进入（farmPkgWindowVisible=false，如蚂蚁庄园 XRiverActivity），
+        //      说明当前页根本不是农场页，直接返回 false，避免误判导致 gamePlay 提前退出等连锁问题。
+        val pkg = getCurrentWindowPackage()
+        if (pkg == null) {
+            if (!farmPkgWindowVisible) {
+                debugLog("isOnFarmPage: no window pkg and no farm pkg window visible (activity fallback only, activity=$activity), not on farm page")
+                farmPageCache = false
+                farmPageCacheTime = System.currentTimeMillis()
+                return false
+            }
+            return true
+        }
         val pkgLower = pkg.lowercase()
         if (AD_PKG_KEYWORDS.any { pkgLower.contains(it) }) return false
 
@@ -630,75 +661,85 @@ class FarmAccessibilityService : AccessibilityService() {
             return farmPageCache!!
         }
         val root = getRootInFarmApp()
-        if (root != null) {
-            val allText = collectAllText(root)
-
-            // 排除搜索推荐页（"下单得肥料"等搜索推荐页面不是种植页）
-            // 注意：任务列表弹窗中也包含"下单得肥料"等任务描述文字，
-            // 所以只有在没有种植页核心元素（"集肥料"、"施肥"等）时才判断为搜索推荐页
-            val hasFarmCore = allText.any { text ->
-                text.contains("集肥料") || text.contains("施肥") ||
-                    text.contains("换种") || text.contains("好友林") ||
-                    text.contains("一起种") ||
-                    // 支付宝农场页特有关键词（H5 页面，文本可能不暴露，需多重兜底）
-                    text.contains("领肥料") || text.contains("限时挑战") ||
-                    text.contains("得1000肥") || text.contains("赚肥料") ||
-                    text.contains("得肥料")
-            }
-            val searchPageKeywords = listOf(
-                "下单得肥料", "当前页下单", "搜索有惊喜", "搜一搜浏览",
-                "搜索有福利"
-            )
-            val matchCount = searchPageKeywords.count { text -> allText.any { it.contains(text) } }
-            val hasSearchOnlyKeyword = allText.any { it.contains("搜一搜") || it.contains("搜索有惊喜") }
-            // 只有在没有种植页核心元素，且匹配到搜索推荐页特征时才判断为搜索推荐页
-            // 注意："搜索后浏览立得奖励"、"浏览宝贝得奖励"是免费浏览任务（需点击历史搜索词进入），
-            // 不属于付费搜索推荐页，不应在此误判
-            val isSearchPage = !hasFarmCore && (matchCount >= 2 || (matchCount >= 1 && hasSearchOnlyKeyword))
-            if (isSearchPage) {
-                debugLog("isOnFarmPage: search recommend page detected (matchCount=$matchCount, hasFarmCore=$hasFarmCore), not farm page")
+        if (root == null) {
+            // 拿不到 root：与步骤 3 同样的策略，仅当 windows 中确实看到农场包名窗口时才认为在农场页
+            if (!farmPkgWindowVisible) {
+                debugLog("isOnFarmPage: root=null and no farm pkg window visible (activity fallback only, activity=$activity), not on farm page")
                 farmPageCache = false
                 farmPageCacheTime = now
                 return false
             }
+            return true
+        }
+        val allText = collectAllText(root)
 
-            val hasFarmContent = allText.any { text ->
-                // 种植页特有元素：只在种植页出现的文本，搜索推荐页不会有
-                text.contains("集肥料") || text.contains("施肥") ||
-                    text.contains("换种") || text.contains("去砍价") ||
-                    text.contains("好友林") || text.contains("一起种") ||
-                    text.contains("超惠买") || text.contains("兔兔挖肥料") ||
-                    text.contains("任务完成") || text.contains("返回首页") ||
-                    text.contains("领取奖励") || text.contains("肥料明细") ||
-                    // 支付宝农场页特有关键词（H5 页面，文本可能不暴露，需多重兜底）
-                    text.contains("领肥料") || text.contains("限时挑战") ||
-                    text.contains("得1000肥") || text.contains("赚肥料") ||
-                    text.contains("得肥料")
-            }
-            // 单独的"芭芭农场"不算，搜索推荐页也会有这个文字
-            if (!hasFarmContent) {
-                // H5 WebView 兜底：支付宝/淘宝农场页是 H5 页面，WebView 可能不暴露文本节点，
-                // 导致 collectAllText 返回空列表或极少文本，内容关键词检查必然失败。
-                // 此时若 Activity 是农场 H5 容器（h5appactivity/h5webviewactivity/webviewactivity），
-                // 且可访问文本节点很少（< 3），假设是农场 H5 页面返回 true。
-                // 前提：到达此处前 Activity 已通过 farmKeywords 检查（步骤 2），
-                // 且包名已通过农场 App 检查（步骤 3），非广告 Activity（步骤 1）。
-                val isH5FarmActivity = activity.contains("h5") || activity.contains("webview")
-                if (allText.size < 3 && isH5FarmActivity) {
-                    debugLog("isOnFarmPage: H5 WebView fallback triggered (allText.size=${allText.size}, activity=$activity), assuming farm H5 page")
-                    farmPageCache = true
-                    farmPageCacheTime = now
-                    return true
-                }
-                debugLog("isOnFarmPage: no farm content, sample=${allText.take(8)}")
-                farmPageCache = false
-                farmPageCacheTime = now
-                return false
-            }
-            farmPageCache = true
+        // 排除搜索推荐页（"下单得肥料"等搜索推荐页面不是种植页）
+        // 注意：任务列表弹窗中也包含"下单得肥料"等任务描述文字，
+        // 所以只有在没有种植页核心元素（"集肥料"、"施肥"等）时才判断为搜索推荐页
+        val hasFarmCore = allText.any { text ->
+            text.contains("集肥料") || text.contains("施肥") ||
+                text.contains("换种") || text.contains("好友林") ||
+                text.contains("一起种") ||
+                // 支付宝农场页特有关键词（H5 页面，文本可能不暴露，需多重兜底）
+                text.contains("领肥料") || text.contains("限时挑战") ||
+                text.contains("得1000肥") || text.contains("赚肥料") ||
+                text.contains("得肥料")
+        }
+        val searchPageKeywords = listOf(
+            "下单得肥料", "当前页下单", "搜索有惊喜", "搜一搜浏览",
+            "搜索有福利"
+        )
+        val matchCount = searchPageKeywords.count { text -> allText.any { it.contains(text) } }
+        val hasSearchOnlyKeyword = allText.any { it.contains("搜一搜") || it.contains("搜索有惊喜") }
+        // 只有在没有种植页核心元素，且匹配到搜索推荐页特征时才判断为搜索推荐页
+        // 注意："搜索后浏览立得奖励"、"浏览宝贝得奖励"是免费浏览任务（需点击历史搜索词进入），
+        // 不属于付费搜索推荐页，不应在此误判
+        val isSearchPage = !hasFarmCore && (matchCount >= 2 || (matchCount >= 1 && hasSearchOnlyKeyword))
+        if (isSearchPage) {
+            debugLog("isOnFarmPage: search recommend page detected (matchCount=$matchCount, hasFarmCore=$hasFarmCore), not farm page")
+            farmPageCache = false
             farmPageCacheTime = now
+            return false
         }
 
+        val hasFarmContent = allText.any { text ->
+            // 种植页特有元素：只在种植页出现的文本，搜索推荐页不会有
+            text.contains("集肥料") || text.contains("施肥") ||
+                text.contains("换种") || text.contains("去砍价") ||
+                text.contains("好友林") || text.contains("一起种") ||
+                text.contains("超惠买") || text.contains("兔兔挖肥料") ||
+                text.contains("任务完成") || text.contains("返回首页") ||
+                text.contains("领取奖励") || text.contains("肥料明细") ||
+                // 支付宝农场页特有关键词（H5 页面，文本可能不暴露，需多重兜底）
+                text.contains("领肥料") || text.contains("限时挑战") ||
+                text.contains("得1000肥") || text.contains("赚肥料") ||
+                text.contains("得肥料")
+        }
+        // 单独的"芭芭农场"不算，搜索推荐页也会有这个文字
+        if (!hasFarmContent) {
+            // H5 WebView 兜底：支付宝/淘宝农场页是 H5 页面，WebView 可能不暴露文本节点，
+            // 导致 collectAllText 返回空列表或极少文本，内容关键词检查必然失败。
+            // 此时若 Activity 是农场 H5 容器（h5appactivity/h5webviewactivity/webviewactivity），
+            // 且可访问文本节点很少（< 3），假设是农场 H5 页面返回 true。
+            // 前提：到达此处前 Activity 已通过 farmKeywords 检查（步骤 2），
+            // 且包名已通过农场 App 检查（步骤 3），非广告 Activity（步骤 1）。
+            //
+            // 安全收紧：仅当 windows 中确实看到农场包名（farmPkgWindowVisible=true）时才启用 H5 兜底，
+            // 避免蚂蚁庄园 XRiverActivity（非 H5 容器但通过 Activity 兜底进入）误中此分支。
+            val isH5FarmActivity = activity.contains("h5") || activity.contains("webview")
+            if (allText.size < 3 && isH5FarmActivity && farmPkgWindowVisible) {
+                debugLog("isOnFarmPage: H5 WebView fallback triggered (allText.size=${allText.size}, activity=$activity), assuming farm H5 page")
+                farmPageCache = true
+                farmPageCacheTime = now
+                return true
+            }
+            debugLog("isOnFarmPage: no farm content, sample=${allText.take(8)}")
+            farmPageCache = false
+            farmPageCacheTime = now
+            return false
+        }
+        farmPageCache = true
+        farmPageCacheTime = now
         return true
     }
 
@@ -1780,14 +1821,50 @@ class FarmAccessibilityService : AccessibilityService() {
      * 查找所有"去完成"按钮
      * - 使用当前平台配置的文本候选
      * @return 按钮节点列表
+     *
+     * 过滤规则（防御扫描器把规则条款文本误识别为任务按钮，引发 isPaidTask / collectedCount 误判）：
+     * 1. 必须可点击（[findClickableSelfOrParentInternal] 找不到可点击父节点时返回 node 本身，
+     *    但规则条款节点 clickable=false，不应作为任务按钮）
+     * 2. 按钮文本必须简短（≤50 字）—— 真任务按钮文案一般 <30 字；规则条款常 >100 字
+     * 3. 按钮文本不能以条款编号开头（"1、"/"2、"/"3. "/"4）"...）
+     * 4. bounds 必须合法（width > 0 且 height > 0），过滤屏幕外/缓存失效的非法矩形
      */
     fun findGoCompleteButtons(): List<AccessibilityNodeInfo> {
         val root = getRootInFarmApp() ?: return emptyList()
         val keywords = currentPlatformConfig().goCompleteTexts
-        val result = mutableListOf<AccessibilityNodeInfo>()
+        val raw = mutableListOf<AccessibilityNodeInfo>()
         val seen = HashSet<Int>()
-        collectNodesByText(root, keywords, result, seen)
-        Log.d(TAG, "findGoCompleteButtons: found ${result.size} buttons")
+        collectNodesByText(root, keywords, raw, seen)
+        // 过滤规则条款 / 不可点击 / bounds 非法的节点
+        val result = raw.filter { node ->
+            // 1. 必须可点击
+            if (!node.isClickable) {
+                debugLog("findGoCompleteButtons: drop non-clickable node text='${node.text?.toString()?.take(30)}'")
+                return@filter false
+            }
+            // 2. 文本长度过滤（防止规则条款被误识别）
+            val text = node.text?.toString()?.trim().orEmpty()
+            val desc = node.contentDescription?.toString()?.trim().orEmpty()
+            val buttonText = if (text.isNotEmpty()) text else desc
+            if (buttonText.length > 50) {
+                debugLog("findGoCompleteButtons: drop long-text node (len=${buttonText.length}, text='${buttonText.take(30)}...')")
+                return@filter false
+            }
+            // 3. 条款编号开头过滤
+            if (Regex("^[0-9]+[、.）)]").containsMatchIn(buttonText)) {
+                debugLog("findGoCompleteButtons: drop rule-clause node (text='$buttonText')")
+                return@filter false
+            }
+            // 4. bounds 合法性过滤
+            val rect = android.graphics.Rect()
+            node.getBoundsInScreen(rect)
+            if (rect.width() <= 0 || rect.height() <= 0) {
+                debugLog("findGoCompleteButtons: drop zero-size node text='$buttonText' bounds=${rect.toShortString()}")
+                return@filter false
+            }
+            true
+        }
+        Log.d(TAG, "findGoCompleteButtons: found ${result.size} buttons (raw=${raw.size}, dropped=${raw.size - result.size})")
         return result
     }
 
@@ -1910,6 +1987,23 @@ class FarmAccessibilityService : AccessibilityService() {
         // 只有明确要求花钱/交易的才是付费任务，跳过
         // 作为广告设计专家：识别广告主的真实付费意图（CPA/CPS/充值类任务）
         // 通用付费关键词 + 平台专属付费关键词（差异化：淘宝下单陷阱多，支付宝金融陷阱多）
+
+        // 防御性检查：传入的节点必须是一个真实的"去完成/去逛逛"任务按钮。
+        // 历史问题：当 taskButton 扫描器把规则条款文本节点（如"3、用户未通过活动指定的入口去完成任务的，无法获得红包权益；"）
+        // 误识别为任务按钮时，isPaidTask 会因文本里含"红包"/"充值"等关键词误判为付费任务，
+        // 进而触发"全部任务完成"误判（实际 1 个真任务都没做）。这里加双重防御：
+        // 1. 节点必须可点击（规则条款节点 clickable=false）
+        // 2. 节点文本不能是条款编号开头（"1、"/"2、"/"3、"...）或异常长（>50 字，任务按钮文案一般 <30 字）
+        if (!button.isClickable) {
+            debugLog("isPaidTask: skip, button not clickable")
+            return false
+        }
+        val buttonText = button.text?.toString()?.trim().orEmpty()
+        if (buttonText.length > 50 || Regex("^[0-9]+[、.）)]").containsMatchIn(buttonText)) {
+            debugLog("isPaidTask: skip, button text looks like rule/term clause (len=${buttonText.length}, text='$buttonText')")
+            return false
+        }
+
         val paidKeywords = listOf(
             "购买", "付款", "充值", "付费", "消费满",   // 基础交易
             "首充", "首单", "首购",                       // 首次交易引导
@@ -4111,7 +4205,17 @@ class FarmAccessibilityService : AccessibilityService() {
         }
 
         // 策略3：找不到搜索框，按返回重试
-        debugLog("navigateAlipay: no search or farm entry found, retry=$retry")
+        // 历史问题：当 gamePlay 等场景卡在子小程序页（如蚂蚁庄园）时，页面 root 有内容但
+        // 既无"芭芭农场"入口也无"搜索"按钮（蚂蚁庄园没有这两个元素），原逻辑只是 postDelayed 重试，
+        // 在同一子页死循环 8 次直到 abort，期间不会主动 pressBack 退出子小程序。
+        // 修复：retry=0 时还可能是页面未加载完，等待重试即可；retry>=1 时主动 pressBack 退出当前子页
+        // （退到支付宝主容器后再重试，能找到搜索框或入口）。
+        if (retry >= 1) {
+            debugLog("navigateAlipay: no search or farm entry found, pressing back to exit sub-page (retry=$retry)")
+            pressBack()
+        } else {
+            debugLog("navigateAlipay: no search or farm entry found, retry=$retry")
+        }
         navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 2000L)
     }
 
