@@ -1859,30 +1859,54 @@ object AutomationController {
             return
         }
 
-        // 游戏完成页（"领取奖励"/"恭喜"/"完成"/"升级"等）→ 领奖后返回农场
+        // 游戏完成页（"领取奖励"/"恭喜"/"完成"/"升级"等）→ 不主动点击，只等待
+        // build528（用户反馈）：试玩游戏但不是完成游戏任务（如对战、关卡、过关、订单等任务），
+        // 打开游戏 App 后，只需要等待拿肥料，不需要任何操作。
+        // 历史问题：isGameCompletePage 检测到"任务完成"/"已完成"等文案后主动调用
+        // clickClaimRewardButton 点击"领取奖励"/"确认"/"确定"/"完成"/"继续"/"下一步"等按钮，
+        // 这些点击可能误触发游戏内的其他操作（如"开始游戏"/"下一关"等），干扰游戏流程。
+        // 修复：检测到游戏完成页后不主动点击，只继续等待，让游戏自动发放肥料，
+        // 直到检测到"肥料全部取完"或停留超时后退出。
         if (service.isGameCompletePage()) {
-            Log.i(TAG, "gamePlay: game complete page detected, claiming reward")
-            debugLog("gamePlay: game complete detected, claiming reward")
-            val claimed = service.clickClaimRewardButton()
-            if (claimed) {
-                debugLog("gamePlay: reward claimed")
-            }
+            Log.i(TAG, "gamePlay: game complete page detected, waiting for fertilizer to be credited (no click)")
+            debugLog("gamePlay: game complete detected, waiting (no click, user request: don't operate)")
+            handler.postDelayed({
+                if (state == AutomationState.GAME_PLAYING) runGamePlaying(elapsedMs + GAME_ACTION_INTERVAL_MS)
+            }, GAME_ACTION_INTERVAL_MS)
+            return
+        }
+
+        // build528（用户反馈）：检测"肥料全部取完"/"肥料已全部领取"等提示 → pressBack 退出游戏
+        // 用户需求：显示肥料全部取完后，退出游戏 App
+        if (service.isFertilizerAllClaimed()) {
+            Log.i(TAG, "gamePlay: fertilizer all claimed detected, exiting game")
+            debugLog("gamePlay: 肥料全部取完 detected, pressing back to exit game")
+            service.pressBack()
             handler.postDelayed({
                 if (state != AutomationState.GAME_PLAYING) return@postDelayed
-                // 返回农场
-                if (!service.isOnFarmPage()) service.pressBack()
-                handler.postDelayed({
-                    if (state == AutomationState.GAME_PLAYING) {
-                        if (service.isOnFarmPage()) {
-                            debugLog("gamePlay: returned to farm after reward, game task complete")
-                            collectedCount++
+                if (service.isOnFarmPage()) {
+                    debugLog("gamePlay: returned to farm after 肥料全部取完, task complete")
+                    collectedCount++
+                    currentTaskIndex++
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                } else {
+                    // 不在农场页，可能退到中间页，再按一次返回
+                    debugLog("gamePlay: not on farm after 肥料全部取完, pressing back once more")
+                    service.pressBack()
+                    handler.postDelayed({
+                        if (state == AutomationState.GAME_PLAYING) {
+                            if (service.isOnFarmPage()) {
+                                debugLog("gamePlay: returned to farm on second back after 肥料全部取完, task complete")
+                                collectedCount++
+                            }
+                            currentTaskIndex++
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
                         }
-                        currentTaskIndex++
-                        moveTo(AutomationState.OPENING_TASK_LIST)
-                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
-                    }
-                }, INTERVAL_PAGE_LOAD_MS)
-            }, INTERVAL_CLICK_MS)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
             return
         }
 

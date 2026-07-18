@@ -1053,6 +1053,39 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 检测游戏页面是否显示"肥料全部取完"/"肥料已全部领取"等提示
+     *
+     * build528（用户反馈）：试玩游戏但不是完成游戏任务（如对战、关卡、过关、订单等任务），
+     * 打开游戏 App 后，只需要等待拿肥料，不需要任何操作，
+     * 显示肥料全部取完后，退出游戏 App。
+     *
+     * 检测以下提示文案：
+     * - "肥料全部取完"/"肥料已全部取完"
+     * - "肥料已全部领取"/"肥料全部领取"
+     * - "今日肥料已全部领取"/"今日肥料全部领取"
+     * - "肥料领取完毕"/"肥料已领取完毕"
+     * - "没有更多肥料了"/"肥料已领完"
+     *
+     * @return true 表示肥料已全部取完，应退出游戏
+     */
+    fun isFertilizerAllClaimed(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        val isAllClaimed = allText.any { text ->
+            text.contains("肥料全部取完") || text.contains("肥料已全部取完") ||
+                text.contains("肥料已全部领取") || text.contains("肥料全部领取") ||
+                text.contains("今日肥料已全部领取") || text.contains("今日肥料全部领取") ||
+                text.contains("肥料领取完毕") || text.contains("肥料已领取完毕") ||
+                text.contains("没有更多肥料") || text.contains("肥料已领完") ||
+                text.contains("全部肥料已领取") || text.contains("全部肥料已取完")
+        }
+        if (isAllClaimed) {
+            debugLog("isFertilizerAllClaimed: YES, sample=${allText.take(5)}")
+        }
+        return isAllClaimed
+    }
+
+    /**
      * 查找并点击"领取奖励"/"确认"/"完成"按钮
      * @return true 表示成功点击
      */
