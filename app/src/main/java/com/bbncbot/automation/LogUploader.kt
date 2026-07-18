@@ -45,14 +45,26 @@ object LogUploader {
     /** 单个日志文件大小上限（2MB），超过则截断保留末尾部分 */
     private const val MAX_LOG_BYTES = 2L * 1024 * 1024
 
-    /** 日志文件本地根目录 */
-    private val logDir: File by lazy {
-        File(
-            android.os.Environment.getExternalStorageDirectory(),
-            "Android/data/com.bbncbot/files"
-        )
+    /**
+     * 日志文件本地根目录（App 私有外部存储，无需任何权限）
+     *
+     * 重要：必须用 Context.getExternalFilesDir(null)，不能用 Environment.getExternalStorageDirectory()。
+     * 原因：Android 11+ (API 30+) 严格限制外部存储访问，App 无权访问
+     * /sdcard/Android/data/{pkg}/files/ 路径（除非用 SAF/SAF DocumentFile）。
+     * getExternalFilesDir 返回的路径（/sdcard/Android/data/{pkg}/files/）虽然物理路径相同，
+     * 但通过 Context 访问时 App 拥有完全读写权限，无需 MANAGE_EXTERNAL_STORAGE 权限。
+     *
+     * 注意：所有写日志的代码（Service/Controller/Activity）必须用同一路径，否则会出现
+     * "写入方写到 A 路径，LogUploader 读 B 路径读不到文件" 的 bug。
+     */
+    fun getLogDir(context: Context): File {
+        return context.getExternalFilesDir(null) ?: File(context.filesDir, "external").also {
+            it.mkdirs()
+        }
     }
-    private val debugLogFile: File get() = File(logDir, "debug.log")
+
+    /** 获取 debug.log 文件（必须传入 Context 以使用正确的私有目录） */
+    fun getDebugLogFile(context: Context): File = File(getLogDir(context), "debug.log")
 
     /** 上次操作结果（供 UI 测试按钮显示，避免用户看不到失败原因） */
     @Volatile
@@ -97,6 +109,7 @@ object LogUploader {
         val errors = mutableListOf<String>()
 
         // 上传 debug.log
+        val debugLogFile = getDebugLogFile(context)
         val uploadFile = prepareLogForUpload(debugLogFile)
         if (uploadFile == null) {
             errors.add("${debugLogFile.name}: 文件不存在或为空")
@@ -159,10 +172,11 @@ object LogUploader {
 
         // 清空追加型日志文件（写入版本标识，保留文件存在性）
         try {
+            val debugLogFile = getDebugLogFile(context)
             debugLogFile.parentFile?.mkdirs()
             debugLogFile.writeText(header)
         } catch (e: Exception) {
-            Log.w(TAG, "clear ${debugLogFile.name} failed: ${e.message}")
+            Log.w(TAG, "clear debug.log failed: ${e.message}")
         }
         Log.i(TAG, "logs cleared on app start: debug.log")
     }

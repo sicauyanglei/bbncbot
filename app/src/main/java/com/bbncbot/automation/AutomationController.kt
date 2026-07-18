@@ -298,10 +298,17 @@ object AutomationController {
             val timestamp = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
                 .format(java.util.Date())
             val line = "$timestamp $msg\n"
-            val file = java.io.File(
-                android.os.Environment.getExternalStorageDirectory(),
-                "Android/data/com.bbncbot/files/debug.log"
-            )
+            // 必须用 Context.getExternalFilesDir(null) 而非 Environment.getExternalStorageDirectory()
+            // 原因：Android 11+ 限制外部存储访问，Environment 路径写入会静默失败
+            // 通过 serviceRef 拿到 Service Context（Service 是 Context 子类）
+            // 与 LogUploader.getLogDir / FarmAccessibilityService.debugLog 保持同一路径
+            val ctx = serviceRef?.get()
+            val file = if (ctx != null) {
+                java.io.File(ctx.getExternalFilesDir(null), "debug.log")
+            } else {
+                // Service 已销毁的兜底：用 filesDir（App 内部存储，必定可写）
+                java.io.File(android.app.Application().filesDir, "debug.log")
+            }
             file.parentFile?.mkdirs()
             file.appendText(line)
         } catch (_: Exception) { /* ignore */ }

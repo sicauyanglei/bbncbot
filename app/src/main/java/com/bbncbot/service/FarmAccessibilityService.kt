@@ -145,9 +145,12 @@ class FarmAccessibilityService : AccessibilityService() {
             val timestamp = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
                 .format(java.util.Date())
             val line = "$timestamp $msg\n"
+            // 必须用 getExternalFilesDir(null) 而非 Environment.getExternalStorageDirectory()
+            // 原因：Android 11+ 限制外部存储访问，Environment 路径写入会静默失败
+            // 与 LogUploader.getLogDir 保持一致，确保写入方和读取方路径相同
             val file = java.io.File(
-                android.os.Environment.getExternalStorageDirectory(),
-                "Android/data/com.bbncbot/files/debug.log"
+                getExternalFilesDir(null),
+                "debug.log"
             )
             file.parentFile?.mkdirs()
             file.appendText(line)
