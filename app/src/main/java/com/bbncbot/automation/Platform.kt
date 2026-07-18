@@ -272,6 +272,16 @@ object AlipayPlatformConfig : PlatformConfig {
     override val adEndCheckIntervalMs = 3000L         // 3s 检测间隔（更激进，快速发现广告结束）
     override val supportsFasterReward = false         // 支付宝无"更快拿奖"流程
     override val adCloseButtonTexts = listOf("关闭广告", "跳过", "关闭")
+    // 陷阱按钮黑名单（支付宝 H5 广告与 UC 模式一致，沿用通用诱导文案）
+    override val adInstallButtonTexts = listOf(
+        "立即下载", "立即安装", "点击下载", "免费下载",
+        "立即体验", "立即试玩", "开始试玩",
+        "前往应用", "打开应用", "前往查看",
+        "查看详情", "了解更多", "查看更多",
+        "立即抢购", "立即购买", "去购买", "立即下单",
+        "立即注册", "立即开通", "立即续费", "开通会员",
+        "领取优惠", "领取福利", "立即领取福利"
+    )
 }
 
 /**
@@ -324,4 +334,14 @@ object TaobaoPlatformConfig : PlatformConfig {
     override val adEndCheckIntervalMs = 3000L         // 3s 检测间隔（更激进，快速发现广告结束）
     override val supportsFasterReward = false         // 淘宝无"更快拿奖"流程
     override val adCloseButtonTexts = listOf("跳过广告", "跳过", "关闭")
+    // 陷阱按钮黑名单（淘宝小程序/信息流广告与 UC 模式一致，沿用通用诱导文案）
+    override val adInstallButtonTexts = listOf(
+        "立即下载", "立即安装", "点击下载", "免费下载",
+        "立即体验", "立即试玩", "开始试玩",
+        "前往应用", "打开应用", "前往查看",
+        "查看详情", "了解更多", "查看更多",
+        "立即抢购", "立即购买", "去购买", "立即下单",
+        "立即注册", "立即开通", "立即续费", "开通会员",
+        "领取优惠", "领取福利", "立即领取福利"
+    )
 }

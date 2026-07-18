@@ -69,14 +69,26 @@ object AutomationController {
     private const val MAX_BROWSE_WAIT_SWIPES = 30
     /** 每次滑动间隔（毫秒） */
     private const val BROWSE_SWIPE_INTERVAL_MS = 2000L
-    /** 游戏任务最大时长（3 分钟），超时放弃 */
-    private const val GAME_MAX_DURATION_MS = 180000L
-    /** 游戏 AI 操作间隔（每 4 秒分析一次画面并操作） */
+    /**
+     * 游戏任务最大时长（硬超时，超时强制退出）
+     *
+     * 用户澄清：游戏过关卡任务实现不了，但"打开游戏停留玩一下"的任务可以获取肥料。
+     * 这类任务只需在游戏内停留规定时长即可发放肥料，无需真正通关。
+     * 因此硬超时从原 180s 收紧到 90s（覆盖加载 5s + 停留 30s + 退出余量）。
+     */
+    private const val GAME_MAX_DURATION_MS = 90000L
+    /**
+     * 游戏停留目标时长（"打开游戏停留玩一下"任务的核心指标）
+     *
+     * - 停留达到此时长后，主动按返回退出回农场，任务发放肥料
+     * - 停留期间不按返回键（按返回会退出游戏导致停留失败）
+     * - 仅检测：陷阱页（充值/交易）立即退出 / 完成页领奖 / 自动返回农场
+     */
+    private const val GAME_STAY_TARGET_MS = 30000L
+    /** 游戏轮询间隔（每 4 秒检测一次页面状态） */
     private const val GAME_ACTION_INTERVAL_MS = 4000L
     /** 游戏加载等待时间 */
     private const val GAME_LOAD_MS = 5000L
-    /** 游戏 AI 最大操作次数（防止无限消耗 API 配额） */
-    private const val GAME_MAX_ACTIONS = 40
     /** 浏览任务中连续关闭红包弹窗的最大次数（超过则视为误判，继续滑动） */
     private const val MAX_RED_PACKET_CLOSE_ATTEMPTS = 3
 
@@ -979,14 +991,14 @@ object AutomationController {
             return
         }
 
-        // 2. 游戏类任务：作为游戏达人进入游戏完成升级获取肥料
+        // 2. 游戏类任务：打开游戏停留玩一下即可获取肥料（无法实现过关卡，仅靠停留拿奖励）
         if (service.isGameTask(button)) {
             Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is game task, entering GAME_PLAYING (text='$buttonText')")
-            debugLog("processTask: game task #${currentTaskIndex + 1}, text='$buttonText', AI will play to complete")
+            debugLog("processTask: game task #${currentTaskIndex + 1}, text='$buttonText', staying in game to earn fertilizer")
             // 点击"去完成"进入游戏
             service.performClickSafe(button)
             moveTo(AutomationState.GAME_PLAYING)
-            handler.postDelayed({ runGamePlaying(elapsedMs = 0L, actionCount = 0) }, INTERVAL_PAGE_LOAD_MS)
+            handler.postDelayed({ runGamePlaying(elapsedMs = 0L) }, INTERVAL_PAGE_LOAD_MS)
             return
         }
 
@@ -1419,21 +1431,29 @@ object AutomationController {
         }, INTERVAL_PAGE_LOAD_MS)
     }
 
-    // ============== 阶段3c: 玩游戏任务（AI 游戏达人） ==============
+    // ============== 阶段3c: 玩游戏任务（停留拿肥料） ==============
 
     /**
-     * 玩游戏任务：AI 分析游戏画面并操作完成升级获取肥料
+     * 玩游戏任务：打开游戏停留玩一下即可获取肥料（无法实现过关卡）
+     *
+     * 基于用户澄清："玩游戏过关卡任务你实现不了，但是只是打开游戏停留玩一下的任务你是可以获取到肥料的"
+     * 这类任务只需在游戏内停留规定时长即可发放肥料，无需真正通关。
      *
      * 策略：
-     * 1. 等待游戏加载
-     * 2. 循环：AI 截图分析 → 决策操作（开始/消除/点击/滑动）→ 执行
-     * 3. 检测游戏完成（"领取"/"恭喜"/"完成"/"升级"等）→ 领取奖励返回
-     * 4. 超时（3 分钟）或操作上限 → 按返回退出，跳过任务
+     * 1. 等待游戏加载（GAME_LOAD_MS）
+     * 2. 停留轮询：每 GAME_ACTION_INTERVAL_MS 检测一次页面状态
+     *    - 陷阱页（充值/交易页）→ 立即点关闭/返回退出，跳过任务（不领肥料，安全优先）
+     *    - 完成页（"领取奖励"/"恭喜"/"完成"/"升级"等）→ 领取奖励后返回农场
+     *    - 自动返回农场页 → 假设任务已结算，肥料已发放
+     *    - 其他页面 → 继续停留（不按返回，避免退出游戏导致停留失败）
+     * 3. 停留达到 GAME_STAY_TARGET_MS（30s）且仍在游戏内 → 主动按返回退出回农场，任务发放肥料
+     * 4. 硬超时 GAME_MAX_DURATION_MS（90s）→ 强制退出，跳过任务
+     *
+     * 关键：停留期间绝不按返回键（按返回会退出游戏导致停留失败），仅靠页面状态检测驱动退出。
      *
      * @param elapsedMs 已用时
-     * @param actionCount AI 已执行的操作次数
      */
-    private fun runGamePlaying(elapsedMs: Long, actionCount: Int) {
+    private fun runGamePlaying(elapsedMs: Long) {
         if (state != AutomationState.GAME_PLAYING) return
         val service = getService() ?: run { stop(); return }
 
@@ -1441,10 +1461,10 @@ object AutomationController {
             logPageSnapshot(service, "gamePlay-start")
         }
 
-        // 超时放弃
-        if (elapsedMs >= GAME_MAX_DURATION_MS || actionCount >= GAME_MAX_ACTIONS) {
-            Log.w(TAG, "gamePlay: timeout (elapsed=${elapsedMs}ms, actions=$actionCount), exiting")
-            debugLog("gamePlay: timeout, exiting game, skipping task")
+        // 硬超时强制退出（90s，覆盖加载5s + 停留30s + 退出余量）
+        if (elapsedMs >= GAME_MAX_DURATION_MS) {
+            Log.w(TAG, "gamePlay: hard timeout (elapsed=${elapsedMs}ms), exiting")
+            debugLog("gamePlay: hard timeout, exiting game, skipping task")
             service.pressBack()
             handler.postDelayed({
                 if (state == AutomationState.GAME_PLAYING) {
@@ -1461,11 +1481,39 @@ object AutomationController {
             return
         }
 
-        // 检测游戏完成页面（"领取奖励"/"恭喜"/"完成"/"升级"等）
+        // 陷阱页（充值/付费/交易）→ 立即退出，跳过任务（安全优先，不领肥料）
+        if (service.isRechargePage() || service.isOnAbnormalPage()) {
+            Log.w(TAG, "gamePlay: trap page (recharge/abnormal) detected, exiting immediately")
+            debugLog("gamePlay: trap page detected, trying to click close button")
+            val closed = service.clickCloseOnRechargePage()
+            if (!closed) {
+                debugLog("gamePlay: no close button found, pressing back to exit trap")
+                service.pressBack()
+            }
+            handler.postDelayed({
+                if (state == AutomationState.GAME_PLAYING) {
+                    // 再次检测是否还在陷阱页（关闭失败的情况）
+                    if (service.isRechargePage() || service.isOnAbnormalPage()) {
+                        debugLog("gamePlay: still on trap page, pressing back again")
+                        service.pressBack()
+                    }
+                    handler.postDelayed({
+                        if (state == AutomationState.GAME_PLAYING) {
+                            debugLog("gamePlay: exited trap page, skipping task (no fertilizer)")
+                            currentTaskIndex++
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        }
+                    }, INTERVAL_CLICK_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 游戏完成页（"领取奖励"/"恭喜"/"完成"/"升级"等）→ 领奖后返回农场
         if (service.isGameCompletePage()) {
             Log.i(TAG, "gamePlay: game complete page detected, claiming reward")
             debugLog("gamePlay: game complete detected, claiming reward")
-            // 尝试点击"领取"/"确认"/"完成"按钮
             val claimed = service.clickClaimRewardButton()
             if (claimed) {
                 debugLog("gamePlay: reward claimed")
@@ -1477,7 +1525,7 @@ object AutomationController {
                 handler.postDelayed({
                     if (state == AutomationState.GAME_PLAYING) {
                         if (service.isOnFarmPage()) {
-                            debugLog("gamePlay: returned to farm, game task complete")
+                            debugLog("gamePlay: returned to farm after reward, game task complete")
                             collectedCount++
                         }
                         currentTaskIndex++
@@ -1489,7 +1537,7 @@ object AutomationController {
             return
         }
 
-        // 检测是否已回到农场页（游戏可能自动返回）
+        // 已回到农场页（游戏自动返回，说明任务已结算）→ 假设完成
         if (elapsedMs > GAME_LOAD_MS && service.isOnFarmPage()) {
             Log.i(TAG, "gamePlay: back to farm page, game task likely complete")
             debugLog("gamePlay: back to farm, assuming complete")
@@ -1500,51 +1548,47 @@ object AutomationController {
             return
         }
 
-        // 检测充值/付费页面（游戏内引导充值）→ 优先点击关闭按钮
-        if (service.isRechargePage() || service.isOnAbnormalPage()) {
-            Log.w(TAG, "gamePlay: recharge/payment page detected, clicking close button")
-            debugLog("gamePlay: recharge page detected, trying to click close button")
-            // 优先找关闭按钮点击（暂不充值/取消/×图标等）
-            val closed = service.clickCloseOnRechargePage()
-            if (!closed) {
-                // 找不到关闭按钮，按返回退出
-                debugLog("gamePlay: no close button found by text, pressing back")
-                service.pressBack()
-            }
+        // 停留达到目标时长（30s）且仍在游戏内 → 主动按返回退出回农场，任务发放肥料
+        if (elapsedMs >= GAME_STAY_TARGET_MS) {
+            Log.i(TAG, "gamePlay: stay target reached (elapsed=${elapsedMs}ms), exiting to farm")
+            debugLog("gamePlay: stay ${elapsedMs}ms reached, pressing back to collect fertilizer")
+            service.pressBack()
             handler.postDelayed({
-                if (state == AutomationState.GAME_PLAYING) {
-                    // 再次检测是否还在充值页（关闭失败的情况）
-                    if (service.isRechargePage() || service.isOnAbnormalPage()) {
-                        debugLog("gamePlay: still on recharge page after close attempt, pressing back again")
-                        service.pressBack()
-                    }
+                if (state != AutomationState.GAME_PLAYING) return@postDelayed
+                if (service.isOnFarmPage()) {
+                    debugLog("gamePlay: returned to farm after stay, task complete")
+                    collectedCount++
+                    currentTaskIndex++
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                } else {
+                    // 不在农场页，可能退到中间页，再按一次返回
+                    debugLog("gamePlay: not on farm after back, pressing back once more")
+                    service.pressBack()
                     handler.postDelayed({
                         if (state == AutomationState.GAME_PLAYING) {
+                            if (service.isOnFarmPage()) {
+                                debugLog("gamePlay: returned to farm on second back, task complete")
+                                collectedCount++
+                            }
                             currentTaskIndex++
                             moveTo(AutomationState.OPENING_TASK_LIST)
                             handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
                         }
-                    }, INTERVAL_CLICK_MS)
+                    }, INTERVAL_PAGE_LOAD_MS)
                 }
             }, INTERVAL_PAGE_LOAD_MS)
             return
         }
 
-        // 游戏加载等待（前 GAME_LOAD_MS 不操作）
+        // 其他页面：继续停留（不按返回，避免退出游戏），下一轮检测
         if (elapsedMs < GAME_LOAD_MS) {
-            handler.postDelayed({
-                if (state == AutomationState.GAME_PLAYING) runGamePlaying(elapsedMs + GAME_ACTION_INTERVAL_MS, actionCount)
-            }, GAME_ACTION_INTERVAL_MS)
-            return
+            debugLog("gamePlay: waiting for game to load (elapsed=${elapsedMs}ms)")
+        } else {
+            debugLog("gamePlay: staying in game (elapsed=${elapsedMs}ms, target=${GAME_STAY_TARGET_MS}ms)")
         }
-
-        // 无 AI 决策，按返回尝试
-        debugLog("gamePlay: no AI, pressing back as fallback (action #${actionCount + 1}, elapsed=${elapsedMs}ms)")
-        service.pressBack()
-
-        // 继续下一轮操作
         handler.postDelayed({
-            if (state == AutomationState.GAME_PLAYING) runGamePlaying(elapsedMs + GAME_ACTION_INTERVAL_MS, actionCount + 1)
+            if (state == AutomationState.GAME_PLAYING) runGamePlaying(elapsedMs + GAME_ACTION_INTERVAL_MS)
         }, GAME_ACTION_INTERVAL_MS)
     }
 
