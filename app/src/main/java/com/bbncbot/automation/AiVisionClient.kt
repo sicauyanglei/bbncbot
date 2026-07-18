@@ -489,22 +489,27 @@ object AiVisionClient {
      * 构造进度识别提示词
      *
      * 约束 AI 只返回 JSON，便于代码解析。
+     *
+     * build529（用户反馈）：环形进度条通常位于屏幕左侧区域（如浏览任务页左侧的"已浏览时长环"），
+     * 提示词中明确告诉 AI 优先扫描左侧区域，避免在多元素页面遗漏。
      */
     private fun buildProgressPrompt(sceneContext: String): String {
         return buildString {
             append("当前场景上下文：").append(sceneContext).append("\n\n")
             append("请分析这张手机截图，识别屏幕上的肥料进度信息。\n\n")
+            append("重点扫描区域：屏幕左侧区域（约左 1/3）通常会有环形进度条/进度环，" +
+                "请优先观察左侧是否有一个圆形/环形的进度指示器，圆环会有部分填充（如填充了一半表示 50%）。\n\n")
             append("需要识别的内容：\n")
-            append("1. 是否存在环形进度条/进度环（通常是圆环形式，部分填充表示进度）\n")
-            append("2. 如果存在进度环，填充比例是多少（0-100%）\n")
-            append("3. 如果有倒计时数字（如\"15s\"\"剩余15秒\"），剩余多少秒\n\n")
+            append("1. 是否存在环形进度条/进度环（圆形/环形，部分填充表示进度，通常在左侧）\n")
+            append("2. 如果存在进度环，填充比例是多少（0-100%）——已填充部分占整个环的比例\n")
+            append("3. 如果环内或环旁有倒计时数字（如\"15s\"\"剩余15秒\"\"15/30\"），剩余多少秒\n\n")
             append("返回严格的 JSON 格式：\n")
-            append("{\"has_progress_bar\": <true|false>, \"percent\": <0-100整数>, \"seconds_remaining\": <整数>, \"reason\": \"<简要描述>\"}\n\n")
+            append("{\"has_progress_bar\": <true|false>, \"percent\": <0-100整数>, \"seconds_remaining\": <整数>, \"reason\": \"<简要描述，含进度环位置与填充情况>\"}\n\n")
             append("说明：\n")
             append("- has_progress_bar：是否识别到任何形式的进度条/进度环/倒计时进度\n")
             append("- percent：进度环填充百分比（0-100，无进度条填 0）\n")
             append("- seconds_remaining：剩余秒数（无倒计时填 0）\n")
-            append("- reason：简要描述你看到的进度元素\n\n")
+            append("- reason：简要描述进度元素的位置（如\"左侧环形进度条，约填充 50%\"）\n\n")
             append("只返回 JSON，不要 markdown 代码块，不要解释。")
         }
     }
