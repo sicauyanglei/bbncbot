@@ -1595,19 +1595,29 @@ class FarmAccessibilityService : AccessibilityService() {
      */
     fun findAdCloseButton(platformTexts: List<String> = emptyList()): AccessibilityNodeInfo? {
         val root = rootInActiveWindowSafe() ?: return null
-        // 优先按平台特有关闭文本查找（更精确，避免误匹配）
+        // 陷阱按钮黑名单（来自平台配置）：避免把"立即下载/去购买/查看详情"等诱导按钮误识别为关闭
+        val trapTexts = currentPlatformConfig().adInstallButtonTexts
+        // 检查节点是否是诱导按钮（按子串匹配，如"领取优惠"含"领取"会被误识别为奖励按钮，
+        // 故严格按整段文本/desc 检查是否包含陷阱关键词）
+        fun isTrapNode(node: AccessibilityNodeInfo): Boolean {
+            val text = node.text?.toString().orEmpty()
+            val desc = node.contentDescription?.toString().orEmpty()
+            val combined = text + desc
+            return trapTexts.any { trap -> combined.contains(trap) }
+        }
+        // 优先按平台特有关闭文本查找（更精确，避免误匹配），且排除诱导按钮
         for (kw in platformTexts) {
             val node = findNodeByText(root, kw)
-            if (node != null) {
+            if (node != null && !isTrapNode(node)) {
                 Log.d(TAG, "findAdCloseButton: found by platform text='$kw'")
                 return node
             }
         }
-        // 通用关闭按钮文本
-        val keywords = listOf("×", "关闭", "close", "跳过", "skip")
+        // 通用关闭按钮文本（精确匹配关闭类关键词，避免"立即关闭下载"等诱导文案子串误匹配）
+        val keywords = listOf("×", "关闭", "close", "跳过", "skip", "关闭广告", "跳过广告", "跳过视频")
         for (kw in keywords) {
             val node = findNodeByText(root, kw)
-            if (node != null) {
+            if (node != null && !isTrapNode(node)) {
                 Log.d(TAG, "findAdCloseButton: found by text='$kw'")
                 return node
             }
@@ -1939,6 +1949,103 @@ class FarmAccessibilityService : AccessibilityService() {
         return false
     }
 
+    // ============== 广告陷阱防护（防诱导点击/防落地页陷阱） ==============
+
+    /**
+     * 检测当前页面是否是广告主落地页（下载/安装/应用商店诱导页）
+     *
+     * 广告设计者意图：诱导用户点击进入广告主落地页（下载/购买/注册），
+     * 获取广告转化收益。这类页面通常同时有多个"立即下载/立即安装/立即体验/查看详情"
+     * 等转化按钮，但缺乏农场页核心元素（集肥料/施肥/任务列表/任务完成）。
+     *
+     * 误入此类页面时，应立即按返回退出，避免被诱导点击安装/购买。
+     *
+     * 判定条件：
+     * - 页面文本含 ≥2 个广告主转化按钮黑名单关键词
+     * - 且无农场页核心文案（避免误判农场任务列表为落地页）
+     *
+     * @return true 表示当前在广告主落地页
+     */
+    fun isAdLandingPage(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        // 农场页核心文案：若存在则肯定不是落地页
+        // （注意："任务完成"也在农场核心文案里，避免误判完成页）
+        val hasFarmCore = allText.any { text ->
+            text.contains("集肥料") || text.contains("施肥") ||
+                text.contains("换种") || text.contains("芭芭农场") ||
+                text.contains("任务列表") || text.contains("任务完成") ||
+                text.contains("已领取全部奖励")
+        }
+        if (hasFarmCore) return false
+        // 统计广告主转化按钮出现次数（来自平台配置的陷阱按钮黑名单）
+        val trapTexts = currentPlatformConfig().adInstallButtonTexts
+        val matchCount = allText.count { text ->
+            trapTexts.any { trap -> text.contains(trap) }
+        }
+        // ≥2 个转化按钮 + 无农场核心 = 高度疑似广告主落地页
+        val isLanding = matchCount >= 2
+        if (isLanding) {
+            debugLog("isAdLandingPage: YES, matchCount=$matchCount (advertiser landing page)")
+        }
+        return isLanding
+    }
+
+    /**
+     * 查找广告主诱导按钮（立即下载/立即安装/立即体验/查看详情/去购买 等）
+     *
+     * 用于：
+     * - 检测诱导弹窗存在（返回非 null 表示有诱导按钮，需配合 closeAdInstallPopup 关闭）
+     * - 配合 closeAdInstallPopup 优先点击关闭类按钮而非诱导按钮
+     *
+     * @return 第一个匹配的诱导按钮节点，或 null
+     */
+    fun findAdInstallButton(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        val trapTexts = currentPlatformConfig().adInstallButtonTexts
+        for (kw in trapTexts) {
+            val node = findNodeByText(root, kw)
+            if (node != null) {
+                debugLog("findAdInstallButton: found trap button by text='$kw'")
+                return node
+            }
+        }
+        return null
+    }
+
+    /**
+     * 关闭广告诱导弹窗（检测到立即下载等按钮时，优先点关闭/暂不/拒绝类按钮）
+     *
+     * 场景：浏览广告/游戏期间突然弹出"立即下载"诱导弹窗，遮盖页面或诱导跳转应用商店。
+     * 策略：在存在诱导按钮的页面上，优先点击"暂不下载/关闭/拒绝"等关闭类按钮，
+     *      绝不点击"立即下载/立即体验"等转化按钮。
+     *
+     * @return true 表示成功关闭了诱导弹窗
+     */
+    fun closeAdInstallPopup(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        // 关闭类按钮关键词（按优先级排序，避免误点诱导按钮）
+        // 优先更精确的"暂不X"组合，再到通用关闭类
+        val closeKeywords = listOf(
+            "暂不下载", "暂不安装", "暂不体验", "暂不试玩", "暂不购买", "暂不支付", "暂不开通",
+            "不下载", "不安装", "不体验",
+            "残忍拒绝", "残忍离别", "拒绝",
+            "以后再说", "下次再说", "稍后再说",
+            "取消", "关闭", "返回",
+            "不了", "算了", "再想想"
+        )
+        for (kw in closeKeywords) {
+            val node = findNodeByText(root, kw)
+            if (node != null) {
+                debugLog("closeAdInstallPopup: found close button by text='$kw', clicking")
+                if (performClickSafe(node)) return true
+            }
+        }
+        debugLog("closeAdInstallPopup: no close button found for install popup")
+        return false
+    }
+
+
     /**
      * 查找"放弃奖励离开"对话框按钮
      * @return 按钮节点或null
@@ -1959,14 +2066,24 @@ class FarmAccessibilityService : AccessibilityService() {
     /**
      * 查找"领取奖励"按钮（广告结束后）
      * - 不包含"关闭"（避免误关闭任务列表）
+     * - 排除广告主诱导按钮（"领取优惠"/"领取福利"/"立即领取福利"会被"领取"子串匹配，
+     *   点击后跳转交易页或下载广告主 App，违反禁止交易原则）
      * @return 按钮节点或null
      */
     fun findClaimRewardButton(): AccessibilityNodeInfo? {
         val root = rootInActiveWindowSafe() ?: return null
+        val trapTexts = currentPlatformConfig().adInstallButtonTexts
         val keywords = listOf("领取奖励", "领取", "确定", "知道了")
         for (kw in keywords) {
             val node = findNodeByText(root, kw)
             if (node != null) {
+                val text = node.text?.toString().orEmpty()
+                val desc = node.contentDescription?.toString().orEmpty()
+                // 排除广告主诱导按钮（如"领取优惠"/"领取福利"/"立即领取福利"会被"领取"子串匹配命中）
+                if (trapTexts.any { trap -> (text + desc).contains(trap) }) {
+                    debugLog("findClaimRewardButton: skip trap button text='$text' desc='$desc' (matched kw='$kw')")
+                    continue
+                }
                 Log.d(TAG, "findClaimRewardButton: found by text='$kw'")
                 return node
             }
@@ -1977,11 +2094,13 @@ class FarmAccessibilityService : AccessibilityService() {
     /**
      * 精确查找确认领取按钮（用于直接领取肥料弹窗）
      * - 仅匹配"领取奖励"、"领取"、"确定"，不匹配"关闭"
-     * - 且排除包含"施肥"的节点
+     * - 排除包含"施肥"的节点
+     * - 排除广告主诱导按钮（"领取优惠"/"领取福利"/"立即领取福利"等）
      * @return 按钮节点或null
      */
     fun findClaimRewardButtonExact(): AccessibilityNodeInfo? {
         val root = rootInActiveWindowSafe() ?: return null
+        val trapTexts = currentPlatformConfig().adInstallButtonTexts
         // "立即领取"放最前：弹窗里的确认按钮文字通常是"立即领取"，优先精确匹配
         // （"领取"为子串匹配，会命中"立即领取"，但放前面更明确，避免先命中无关的"领取"文案）
         val keywords = listOf("立即领取", "领取奖励", "领取", "确定", "知道了")
@@ -1992,6 +2111,11 @@ class FarmAccessibilityService : AccessibilityService() {
                 val desc = node.contentDescription?.toString().orEmpty()
                 // 排除包含"施肥"的节点
                 if ((text + desc).contains("施肥")) continue
+                // 排除广告主诱导按钮
+                if (trapTexts.any { trap -> (text + desc).contains(trap) }) {
+                    debugLog("findClaimRewardButtonExact: skip trap button text='$text' desc='$desc'")
+                    continue
+                }
                 Log.d(TAG, "findClaimRewardButtonExact: found by text='$kw'")
                 return node
             }
@@ -2021,10 +2145,17 @@ class FarmAccessibilityService : AccessibilityService() {
                 text.contains("已领取全部奖励") || text.contains("全部奖励已领取") ||
                 text.contains("奖励已领取")
         }
-        if (isComplete) {
-            debugLog("isTaskCompletePage: YES, sample=${allText.take(5)}")
+        if (!isComplete) return false
+        // 上下文校验：若页面同时是广告主落地页（含多个诱导按钮且无农场核心），
+        // 说明"任务完成"文字是广告伪装的诱导文案，不应识别为完成页
+        // 注意：isAdLandingPage 用 rootInActiveWindowSafe，可能取到不同 root，
+        // 但落地页伪装通常在同一窗口内，故安全
+        if (isAdLandingPage()) {
+            debugLog("isTaskCompletePage: NO (text matched but isAdLandingPage=true, suspected ad bait)")
+            return false
         }
-        return isComplete
+        debugLog("isTaskCompletePage: YES, sample=${allText.take(5)}")
+        return true
     }
 
     /**

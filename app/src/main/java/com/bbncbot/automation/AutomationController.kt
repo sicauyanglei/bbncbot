@@ -1481,6 +1481,34 @@ object AutomationController {
             return
         }
 
+        // 诱导弹窗防护：游戏过程中弹出"立即下载/立即体验"等诱导按钮
+        // 策略：优先点"关闭/暂不/拒绝"关闭弹窗，绝不点诱导按钮，避免跳转应用商店中断停留
+        // 注意：仅在停留期间检测，弹窗关闭后继续停留计时长
+        if (service.findAdInstallButton() != null) {
+            Log.w(TAG, "gamePlay: install popup detected, attempting to close (stay protection)")
+            debugLog("gamePlay: install popup trap detected during stay, trying closeAdInstallPopup")
+            val closed = service.closeAdInstallPopup()
+            if (!closed) {
+                // 找不到关闭类按钮，可能整个页面已变成落地页 → 按返回退出
+                debugLog("gamePlay: no close button for install popup, pressing back to exit")
+                service.pressBack()
+                handler.postDelayed({
+                    if (state == AutomationState.GAME_PLAYING) {
+                        currentTaskIndex++
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    }
+                }, INTERVAL_CLICK_MS)
+                return
+            }
+            // 弹窗已关闭，继续停留（不增加 elapsedMs，下一轮重新检测）
+            debugLog("gamePlay: install popup closed, continuing stay")
+            handler.postDelayed({
+                if (state == AutomationState.GAME_PLAYING) runGamePlaying(elapsedMs + GAME_ACTION_INTERVAL_MS)
+            }, GAME_ACTION_INTERVAL_MS)
+            return
+        }
+
         // 陷阱页（充值/付费/交易）→ 立即退出，跳过任务（安全优先，不领肥料）
         if (service.isRechargePage() || service.isOnAbnormalPage()) {
             Log.w(TAG, "gamePlay: trap page (recharge/abnormal) detected, exiting immediately")
@@ -2327,6 +2355,61 @@ object AutomationController {
                     }
                 }, INTERVAL_PAGE_LOAD_MS)
             }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 陷阱防护：每轮检测广告主落地页 / 诱导弹窗 / 充值页（无论是否在 farm app 内）
+        // 用户要求：深入分析广告设计者意图，避免点击陷阱，即使进入陷阱也要快速返回
+        // 1. 广告主落地页（含多个"立即下载/查看详情/去购买"等转化按钮）
+        //    → 误入即按返回退出，不点击任何按钮（避免转化收益）
+        if (service.isAdLandingPage()) {
+            Log.w(TAG, "watchAd: ad landing page detected, exiting immediately (trap defense)")
+            debugLog("watchAd: ad landing page trap detected, pressing back to exit")
+            service.setAdMode(false)
+            service.pressBack()
+            currentTaskIndex++
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) {
+                    if (!service.isOnFarmPage()) service.pressBack()
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) {
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        }
+                    }, INTERVAL_PAGE_LOAD_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+        // 2. 诱导弹窗（页面上有"立即下载"等按钮，可能是广告播放中弹出的诱导遮罩）
+        //    → 优先点"关闭/暂不/拒绝"关闭弹窗，绝不点诱导按钮
+        if (service.findAdInstallButton() != null) {
+            Log.w(TAG, "watchAd: install popup detected, trying to close it (trap defense)")
+            debugLog("watchAd: install popup trap detected, attempting closeAdInstallPopup")
+            val closed = service.closeAdInstallPopup()
+            if (!closed) {
+                // 找不到关闭类按钮，可能弹窗本身就是全屏落地页 → 按返回退出
+                debugLog("watchAd: no close button for install popup, pressing back")
+                service.pressBack()
+            }
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+            }, INTERVAL_CLICK_MS)
+            return
+        }
+        // 3. 充值/付费页（广告播放中弹出充值引导，违反禁止交易原则）
+        //    → 优先点关闭按钮，否则按返回退出
+        if (service.isRechargePage()) {
+            Log.w(TAG, "watchAd: recharge page detected, exiting immediately (trap defense)")
+            debugLog("watchAd: recharge page trap detected, clicking close on recharge page")
+            val closed = service.clickCloseOnRechargePage()
+            if (!closed) {
+                debugLog("watchAd: no close on recharge, pressing back")
+                service.pressBack()
+            }
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+            }, INTERVAL_CLICK_MS)
             return
         }
 
