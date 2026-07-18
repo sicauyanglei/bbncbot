@@ -319,6 +319,224 @@ object AiVisionClient {
         }
     }
 
+    // ---------- 肥料进度视觉识别（build529：用户要求"全部实现"） ----------
+    // 用户需求：你能获取肥料进度的窗口吗，比如浏览了多少秒，标识肥的环形进度条等 → 全部实现
+    //
+    // 与 [analyzeScreenshot] 的区别：
+    // - analyzeScreenshot 返回预定义动作（CLICK_CLOSE/WAIT 等），用于"该做什么"决策
+    // - recognizeProgressFromScreenshot 返回进度数值（百分比/剩余秒数），用于"还要等多久"决策
+    //
+    // 使用场景：浏览任务/游戏停留中，文本识别拿不到进度时，截图交给 GLM-4.6V-Flash，
+    // 让 AI 识别环形进度条的填充比例。
+
+    /**
+     * AI 视觉进度识别结果
+     *
+     * @param percent          进度百分比 0-100（0 表示刚开始，100 表示完成）
+     * @param secondsRemaining 剩余秒数（AI 估计，0 表示无倒计时或已完成）
+     * @param hasProgressBar   是否识别到进度条/进度环
+     * @param reason            AI 给出的描述（用于日志）
+     */
+    data class ProgressResult(
+        val percent: Int,
+        val secondsRemaining: Int,
+        val hasProgressBar: Boolean,
+        val reason: String
+    )
+
+    /**
+     * 让 AI 分析截图并识别环形进度条的填充比例
+     *
+     * @param context      任意 Context（用于读取 API Key）
+     * @param bitmap       截图 Bitmap（将压缩为 JPEG Base64 上传）
+     * @param sceneContext 当前场景上下文（如"浏览任务进行中"/"游戏停留中"等，帮助 AI 理解）
+     * @return [ProgressResult]；失败返回 null（API Key 未配置/网络错误等）
+     */
+    fun recognizeProgressFromScreenshot(
+        context: Context,
+        bitmap: Bitmap,
+        sceneContext: String
+    ): ProgressResult? {
+        val apiKey = QuizAnswerClient.loadApiKey(context)
+        if (apiKey.isEmpty()) {
+            Log.w(TAG, "recognizeProgressFromScreenshot: GLM API Key not configured, skip AI vision")
+            return null
+        }
+        val base64Image = encodeBitmapToBase64(bitmap)
+        if (base64Image.isEmpty()) {
+            Log.w(TAG, "recognizeProgressFromScreenshot: encode bitmap failed")
+            return null
+        }
+        val prompt = buildProgressPrompt(sceneContext)
+        // 依次尝试视觉模型列表（与 analyzeScreenshot 相同的 fallback 策略）
+        for (model in VISION_MODELS) {
+            var retry = 0
+            var result: ProgressResult? = null
+            while (retry <= 2) {
+                result = callVisionModelForProgress(apiKey, model, prompt, base64Image, sceneContext)
+                if (result != null) return result
+                if (lastErrorCode == 429 || lastErrorMessage.contains("1305") || lastErrorMessage.contains("访问量过大")) {
+                    retry++
+                    if (retry <= 2) {
+                        val backoffMs = if (retry == 1) 5000L else 10000L
+                        Log.i(TAG, "recognizeProgressFromScreenshot: $model rate-limited (429), backing off ${backoffMs}ms before retry $retry/2")
+                        try {
+                            Thread.sleep(backoffMs)
+                        } catch (ie: InterruptedException) {
+                            Thread.currentThread().interrupt()
+                            return null
+                        }
+                    }
+                } else {
+                    break
+                }
+            }
+        }
+        Log.w(TAG, "recognizeProgressFromScreenshot: all vision models failed (tried=${VISION_MODELS.joinToString()})")
+        return null
+    }
+
+    /**
+     * 调用视觉模型识别进度（与 [callVisionModel] 类似，但用进度专用提示词与解析器）
+     */
+    private fun callVisionModelForProgress(
+        apiKey: String,
+        model: String,
+        prompt: String,
+        base64Image: String,
+        sceneContext: String
+    ): ProgressResult? {
+        var conn: java.net.HttpURLConnection? = null
+        return try {
+            val url = java.net.URL(API_URL)
+            conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 20000
+                readTimeout = 45000
+                setRequestProperty("Authorization", "Bearer $apiKey")
+                setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                setRequestProperty("User-Agent", "bbncbot-app")
+                doOutput = true
+            }
+            val content = JSONArray().apply {
+                put(JSONObject().apply {
+                    put("type", "text")
+                    put("text", prompt)
+                })
+                put(JSONObject().apply {
+                    put("type", "image_url")
+                    put("image_url", JSONObject().apply {
+                        put("url", "data:image/jpeg;base64,$base64Image")
+                    })
+                })
+            }
+            val messages = JSONArray().apply {
+                put(JSONObject().apply {
+                    put("role", "system")
+                    put("content", "你是安卓自动化助手的视觉进度识别模块。" +
+                        "用户会给你一张手机屏幕截图，你需要识别屏幕上的环形进度条、进度环、倒计时进度等。" +
+                        "只返回一个 JSON 对象，不要任何额外文字。")
+                })
+                put(JSONObject().apply {
+                    put("role", "user")
+                    put("content", content)
+                })
+            }
+            val jsonBody = JSONObject().apply {
+                put("model", model)
+                put("messages", messages)
+                put("temperature", 0.1)
+                put("max_tokens", 200)
+            }.toString()
+
+            conn.outputStream.use { os ->
+                os.write(jsonBody.toByteArray(Charsets.UTF_8))
+            }
+
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                val err = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                lastErrorCode = code
+                lastErrorMessage = err
+                Log.w(TAG, "callVisionModelForProgress($model) failed (HTTP $code): ${err.take(200)}")
+                return null
+            }
+            lastErrorCode = 0
+            lastErrorMessage = ""
+
+            val response = conn.inputStream.bufferedReader().use { it.readText() }
+            val contentStr = parseContent(response)
+            if (contentStr.isBlank()) {
+                Log.w(TAG, "callVisionModelForProgress($model): empty content, response=${response.take(200)}")
+                return null
+            }
+            val result = parseProgressResult(contentStr)
+            Log.i(TAG, "callVisionModelForProgress($model) success: scene='$sceneContext', " +
+                "percent=${result.percent}%, secondsRemaining=${result.secondsRemaining}s, " +
+                "hasBar=${result.hasProgressBar}, reason='${result.reason.take(80)}'")
+            result
+        } catch (e: Exception) {
+            Log.e(TAG, "callVisionModelForProgress($model) exception: ${e.message}")
+            lastErrorCode = -1
+            lastErrorMessage = e.message ?: "exception"
+            null
+        } finally {
+            conn?.disconnect()
+        }
+    }
+
+    /**
+     * 构造进度识别提示词
+     *
+     * 约束 AI 只返回 JSON，便于代码解析。
+     */
+    private fun buildProgressPrompt(sceneContext: String): String {
+        return buildString {
+            append("当前场景上下文：").append(sceneContext).append("\n\n")
+            append("请分析这张手机截图，识别屏幕上的肥料进度信息。\n\n")
+            append("需要识别的内容：\n")
+            append("1. 是否存在环形进度条/进度环（通常是圆环形式，部分填充表示进度）\n")
+            append("2. 如果存在进度环，填充比例是多少（0-100%）\n")
+            append("3. 如果有倒计时数字（如\"15s\"\"剩余15秒\"），剩余多少秒\n\n")
+            append("返回严格的 JSON 格式：\n")
+            append("{\"has_progress_bar\": <true|false>, \"percent\": <0-100整数>, \"seconds_remaining\": <整数>, \"reason\": \"<简要描述>\"}\n\n")
+            append("说明：\n")
+            append("- has_progress_bar：是否识别到任何形式的进度条/进度环/倒计时进度\n")
+            append("- percent：进度环填充百分比（0-100，无进度条填 0）\n")
+            append("- seconds_remaining：剩余秒数（无倒计时填 0）\n")
+            append("- reason：简要描述你看到的进度元素\n\n")
+            append("只返回 JSON，不要 markdown 代码块，不要解释。")
+        }
+    }
+
+    /**
+     * 解析进度识别结果
+     *
+     * 容错策略：先 JSON 解析；失败则从原文提取数字（百分比、秒数）。
+     */
+    private fun parseProgressResult(content: String): ProgressResult {
+        try {
+            val cleaned = content
+                .replace("```json", "")
+                .replace("```", "")
+                .trim()
+            val json = JSONObject(cleaned)
+            val hasBar = json.optBoolean("has_progress_bar", false)
+            val percent = json.optInt("percent", 0).coerceIn(0, 100)
+            val secondsRemaining = json.optInt("seconds_remaining", 0).coerceAtLeast(0)
+            val reason = json.optString("reason", "")
+            return ProgressResult(percent, secondsRemaining, hasBar, reason)
+        } catch (e: Exception) {
+            Log.w(TAG, "parseProgressResult: JSON parse failed, fallback to regex: ${e.message}")
+        }
+        // 兜底：从原文提取百分比与秒数
+        val percentMatch = Regex("(\\d{1,3})\\s*%").find(content)
+        val percent = percentMatch?.groupValues?.getOrNull(1)?.toIntOrNull()?.coerceIn(0, 100) ?: 0
+        val secondsMatch = Regex("(\\d+)\\s*[秒s]").find(content)
+        val seconds = secondsMatch?.groupValues?.getOrNull(1)?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+        return ProgressResult(percent, seconds, percent > 0 || seconds > 0, content.take(100))
+    }
+
     /**
      * Bitmap → JPEG Base64
      *

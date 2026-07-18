@@ -1170,6 +1170,189 @@ class FarmAccessibilityService : AccessibilityService() {
         return 0
     }
 
+    // ---------- 肥料进度识别（build529：用户要求"全部实现"） ----------
+    // 用户需求：你能获取肥料进度的窗口吗，比如浏览了多少秒，标识肥的环形进度条等 → 全部实现
+    // 1) 文本进度识别（本节）：覆盖"已浏览15s"/"15/30秒"/"进度50%"等多种文案
+    // 2) AI 视觉识别环形进度条：见 AiVisionClient.recognizeProgressFromScreenshot
+
+    /**
+     * 肥料进度类型
+     */
+    enum class ProgressType {
+        /** 未识别到进度 */
+        NONE,
+        /** 已浏览/已观看秒数（如"已浏览15s"），可能含 total（"15/30秒"）也可能 total=0 表示未知 */
+        SECONDS,
+        /** 分子/分母型（如"15/30秒"或"2/3"） */
+        FRACTION,
+        /** 百分比型（如"进度50%"） */
+        PERCENT
+    }
+
+    /**
+     * 肥料进度信息（文本识别结果）
+     *
+     * @param type    进度类型
+     * @param current 当前进度值（SECONDS/FRACTION 时为已完成秒数/分子；PERCENT 时为百分比 0-100）
+     * @param total   总值（SECONDS/FRACTION 时为总秒数/分母，total=0 表示未知；PERCENT 时固定 100）
+     * @param rawText 命中的原始文本（用于日志）
+     */
+    data class BrowseProgressInfo(
+        val type: ProgressType,
+        val current: Int,
+        val total: Int,
+        val rawText: String
+    ) {
+        companion object {
+            val NONE = BrowseProgressInfo(ProgressType.NONE, 0, 0, "")
+        }
+
+        val isFound: Boolean get() = type != ProgressType.NONE
+        /** 进度百分比 0-100（total 未知时返回 0，调用方可降级到 AI 视觉识别） */
+        val percent: Int
+            get() = when (type) {
+                ProgressType.SECONDS, ProgressType.FRACTION ->
+                    if (total > 0) (current * 100 / total).coerceIn(0, 100) else 0
+                ProgressType.PERCENT -> current.coerceIn(0, 100)
+                ProgressType.NONE -> 0
+            }
+        /** 剩余秒数（仅 SECONDS/FRACTION 有意义，否则 0） */
+        val remainingSeconds: Int
+            get() = when (type) {
+                ProgressType.SECONDS, ProgressType.FRACTION -> (total - current).coerceAtLeast(0)
+                else -> 0
+            }
+    }
+
+    /**
+     * 解析"已浏览/已观看 xx 秒"类已浏览时长进度
+     *
+     * 用户场景：浏览任务进行中页面会显示已浏览时长，例如：
+     * - "已浏览15s" / "已浏览15秒" / "已观看15秒"
+     * - "浏览了15s" / "逛了15秒"
+     * - "已浏览15/30秒"（同时含分子分母，一并解析 total）
+     *
+     * @return [BrowseProgressInfo]；含 current（已浏览秒数），若同一文本中能解析到 total 则一并填入
+     */
+    fun findBrowseProgressSeconds(): BrowseProgressInfo {
+        val root = getRootInFarmApp() ?: return BrowseProgressInfo.NONE
+        val allText = collectAllText(root)
+        val browseDoneKeywords = listOf("已浏览", "已观看", "已逛", "浏览了", "观看了", "逛了")
+        val doneSecondsPattern = Regex("(\\d+)\\s*[秒s]")
+        val fractionPattern = Regex("(\\d+)\\s*/\\s*(\\d+)\\s*[秒s]")
+        for (text in allText) {
+            if (browseDoneKeywords.none { text.contains(it) }) continue
+            // 1) 优先匹配分子/分母（更精确，可一次性拿到 current 与 total）
+            val f = fractionPattern.find(text)
+            if (f != null) {
+                val cur = f.groupValues[1].toIntOrNull() ?: 0
+                val tot = f.groupValues[2].toIntOrNull() ?: 0
+                if (cur in 0..300 && tot in 1..300 && cur <= tot) {
+                    debugLog("findBrowseProgressSeconds: found fraction '$text', cur=$cur, tot=$tot")
+                    return BrowseProgressInfo(ProgressType.FRACTION, cur, tot, text)
+                }
+            }
+            // 2) 退化为单秒数（current only，total=0 表示未知）
+            val m = doneSecondsPattern.find(text)
+            if (m != null) {
+                val cur = m.groupValues[1].toIntOrNull() ?: 0
+                if (cur in 0..300) {
+                    debugLog("findBrowseProgressSeconds: found seconds '$text', cur=$cur, tot=0")
+                    return BrowseProgressInfo(ProgressType.SECONDS, cur, 0, text)
+                }
+            }
+        }
+        return BrowseProgressInfo.NONE
+    }
+
+    /**
+     * 解析分子/分母型进度（不要求前缀"已浏览"，更通用）
+     *
+     * 识别示例：
+     * - "15/30秒" / "15 / 30s"
+     * - "(1/1)" / "(2/2)" / "进度 2/3"
+     *
+     * 注意：与 [findBrowseProgressSeconds] 互为补充——前者要求带"已浏览"前缀更精确，
+     * 此函数对任意"X/Y"形式都识别，调用方需自行根据上下文判断是否有意义。
+     *
+     * @return [BrowseProgressInfo]；total 为分母，current 为分子
+     */
+    fun findProgressFraction(): BrowseProgressInfo {
+        val root = getRootInFarmApp() ?: return BrowseProgressInfo.NONE
+        val allText = collectAllText(root)
+        val secondsFraction = Regex("(\\d+)\\s*/\\s*(\\d+)\\s*[秒s]")
+        val plainFraction = Regex("(\\d+)\\s*/\\s*(\\d+)")
+        for (text in allText) {
+            val m1 = secondsFraction.find(text)
+            if (m1 != null) {
+                val cur = m1.groupValues[1].toIntOrNull() ?: 0
+                val tot = m1.groupValues[2].toIntOrNull() ?: 0
+                if (cur in 0..300 && tot in 1..300 && cur <= tot) {
+                    debugLog("findProgressFraction: found seconds fraction '$text', cur=$cur, tot=$tot")
+                    return BrowseProgressInfo(ProgressType.FRACTION, cur, tot, text)
+                }
+            }
+            val m2 = plainFraction.find(text)
+            if (m2 != null) {
+                val cur = m2.groupValues[1].toIntOrNull() ?: 0
+                val tot = m2.groupValues[2].toIntOrNull() ?: 0
+                if (cur in 0..300 && tot in 1..300 && cur <= tot) {
+                    debugLog("findProgressFraction: found plain fraction '$text', cur=$cur, tot=$tot")
+                    return BrowseProgressInfo(ProgressType.FRACTION, cur, tot, text)
+                }
+            }
+        }
+        return BrowseProgressInfo.NONE
+    }
+
+    /**
+     * 解析百分比型进度
+     *
+     * 识别示例：
+     * - "进度50%" / "当前进度 50%"
+     * - "已完成50%" / "完成度50%" / "完成率50%"
+     *
+     * @return [BrowseProgressInfo]；current 即百分比（0-100），total 固定 100
+     */
+    fun findProgressPercent(): BrowseProgressInfo {
+        val root = getRootInFarmApp() ?: return BrowseProgressInfo.NONE
+        val allText = collectAllText(root)
+        val percentKeywords = listOf("进度", "完成", "完成度", "完成率")
+        val percentPattern = Regex("(\\d{1,3})\\s*%")
+        for (text in allText) {
+            if (percentKeywords.none { text.contains(it) }) continue
+            val m = percentPattern.find(text)
+            if (m != null) {
+                val pct = m.groupValues[1].toIntOrNull() ?: 0
+                if (pct in 0..100) {
+                    debugLog("findProgressPercent: found '$text', percent=$pct")
+                    return BrowseProgressInfo(ProgressType.PERCENT, pct, 100, text)
+                }
+            }
+        }
+        return BrowseProgressInfo.NONE
+    }
+
+    /**
+     * 统一获取浏览任务进度信息（优先级聚合）
+     *
+     * 优先级顺序（前者命中即返回）：
+     * 1. [findBrowseProgressSeconds] - 已浏览秒数（最常见，最精确，含"15/30秒"形式）
+     * 2. [findProgressPercent]       - 百分比型
+     * 3. [findProgressFraction]      - 纯"X/Y"型（兜底）
+     *
+     * @return 命中的进度信息，未命中返回 [BrowseProgressInfo.NONE]
+     */
+    fun findBrowseProgressInfo(): BrowseProgressInfo {
+        val seconds = findBrowseProgressSeconds()
+        if (seconds.isFound) return seconds
+        val percent = findProgressPercent()
+        if (percent.isFound) return percent
+        val fraction = findProgressFraction()
+        if (fraction.isFound) return fraction
+        return BrowseProgressInfo.NONE
+    }
+
     /**
      * 解析广告页面显示的"指定观看时长"提示
      *

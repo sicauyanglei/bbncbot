@@ -235,6 +235,16 @@ object AutomationController {
     /** 单个任务最大失败次数，超过则跳过该任务 */
     private const val MAX_TASK_FAILS = 2
 
+    // ---------- build529：AI 视觉进度识别节流（用户要求"全部实现"） ----------
+    // 用于 runGamePlaying / runWatchingAd 中截屏识别环形进度条填充比例
+    // 节流：避免每次轮询都调 AI（视觉模型推理慢 + 限流），GAME/AD 期间最多 20s 调一次
+    /** 上次 AI 视觉进度识别的时间戳（ms）；0 表示本任务还未调用过 */
+    @Volatile
+    private var lastAiProgressCheckMs: Long = 0L
+
+    /** AI 视觉进度识别最小间隔（ms），避免每次轮询都打 AI */
+    private const val AI_PROGRESS_CHECK_INTERVAL_MS = 20000L
+
     /**
      * "更快拿奖"弹窗处理状态
      * - 0=未处理（等待检测"我要更快拿奖"按钮）
@@ -1312,6 +1322,8 @@ object AutomationController {
             debugLog("processTask: game task #${currentTaskIndex + 1}, text='$buttonText', staying in game to earn fertilizer")
             // 点击"去完成"进入游戏
             service.performClickSafe(button)
+            // build529：进入游戏时重置 AI 视觉进度识别节流（每个新任务独立计数）
+            lastAiProgressCheckMs = 0L
             moveTo(AutomationState.GAME_PLAYING)
             handler.postDelayed({ runGamePlaying(elapsedMs = 0L) }, INTERVAL_PAGE_LOAD_MS)
             return
@@ -1421,12 +1433,30 @@ object AutomationController {
                     debugLog("browseTask: after clicking 'go browse', page type=$pageType, onFarm=$onFarm, texts=$allText")
                     // 检测页面是否有"滑动获取肥料"提示，解析需要滑动的时间
                     val hintSeconds = service.findSwipeForFertilizerHint()
+                    // build529（用户要求"全部实现"）：同时识别"已浏览15s"/"15/30秒"/"进度50%"等进度信息
+                    // 用于动态调整滑动次数（如果 total 已知，按剩余秒数计算更精确的 swipe 上限）
+                    val progressInfo = service.findBrowseProgressInfo()
+                    if (progressInfo.isFound) {
+                        debugLog("browseTask: found progress info type=${progressInfo.type}, " +
+                            "cur=${progressInfo.current}, tot=${progressInfo.total}, " +
+                            "percent=${progressInfo.percent}%, remaining=${progressInfo.remainingSeconds}s, " +
+                            "raw='${progressInfo.rawText.take(60)}'")
+                    }
                     if (hintSeconds > 0) {
                         debugLog("browseTask: found swipe hint, need $hintSeconds seconds")
                         // 根据提示时间计算滑动次数：每次滑动间隔2秒，额外加2次余量
                         val requiredSwipes = (hintSeconds / (BROWSE_SWIPE_INTERVAL_MS / 1000)).toInt() + 2
                         browseTaskTargetSwipes = requiredSwipes.coerceAtLeast(3).coerceAtMost(30)
                         debugLog("browseTask: target swipes = $browseTaskTargetSwipes (hint=$hintSeconds seconds)")
+                    } else if (progressInfo.type == FarmAccessibilityService.ProgressType.FRACTION && progressInfo.total > 0) {
+                        // build529：没有"滑动浏览x秒"提示，但有"已浏览 15/30秒"型进度 →
+                        // 按剩余秒数计算滑动次数（每次滑动间隔2秒 + 2次余量）
+                        val remaining = progressInfo.remainingSeconds
+                        val requiredSwipes = (remaining / (BROWSE_SWIPE_INTERVAL_MS / 1000)).toInt() + 2
+                        browseTaskTargetSwipes = requiredSwipes.coerceAtLeast(3).coerceAtMost(30)
+                        debugLog("browseTask: no swipe hint but found fraction progress, " +
+                            "target swipes = $browseTaskTargetSwipes (remaining=${remaining}s, " +
+                            "cur=${progressInfo.current}/${progressInfo.total})")
                     } else {
                         // 没有找到"滑动浏览得肥料"提示：再检查其他浏览奖励指标
                         // （倒计时"再逛xx秒"、进度"每浏览x秒"、停留"浏览x分钟"）
@@ -1434,15 +1464,18 @@ object AutomationController {
                         val hasCountdown = service.findBrowseRewardCountdownHint() > 0
                         val hasProgress = service.hasBrowseRewardProgressHint()
                         val hasDuration = service.findBrowseDurationRewardHint() > 0
-                        if (!hasCountdown && !hasProgress && !hasDuration) {
-                            debugLog("browseTask: no swipe hint and no browse reward indicator (countdown=$hasCountdown, progress=$hasProgress, duration=$hasDuration), not a browse task, exiting without swiping")
+                        // build529：findBrowseProgressInfo 识别到的进度也视作 browse reward 指标
+                        // （例如"进度50%"等百分比型，避免被误判为 not_browse_task 而提前退出）
+                        val hasProgressInfo = progressInfo.isFound
+                        if (!hasCountdown && !hasProgress && !hasDuration && !hasProgressInfo) {
+                            debugLog("browseTask: no swipe hint and no browse reward indicator (countdown=$hasCountdown, progress=$hasProgress, duration=$hasDuration, progressInfo=$hasProgressInfo), not a browse task, exiting without swiping")
                             currentTaskIndex++
                             collectedCount++
                             exitBrowsePage(service, reason = "not_browse_task")
                             return@postDelayed
                         }
                         browseTaskTargetSwipes = MAX_BROWSE_SWIPES
-                        debugLog("browseTask: no swipe hint but has browse reward indicator (countdown=$hasCountdown, progress=$hasProgress, duration=$hasDuration), using default $browseTaskTargetSwipes swipes")
+                        debugLog("browseTask: no swipe hint but has browse reward indicator (countdown=$hasCountdown, progress=$hasProgress, duration=$hasDuration, progressInfo=$hasProgressInfo), using default $browseTaskTargetSwipes swipes")
                     }
                     // 不主动点击商品进入详情页：用户要求浏览任务只在商品列表页滑动，
                     // 不要进入有"加入购物车"按钮的商品详情页
@@ -1548,14 +1581,17 @@ object AutomationController {
         if (swipeCount > browseTaskTargetSwipes) {
             val countdownSeconds = service.findBrowseRewardCountdownHint()
             val hasProgressHint = service.hasBrowseRewardProgressHint()
+            // build529：同时检测"已浏览15/30秒"等具体进度信息，若 remaining > 0 说明任务未完成
+            val progressInfo = service.findBrowseProgressInfo()
+            val hasRemainingProgress = progressInfo.isFound && progressInfo.remainingSeconds > 0
             val waitLimit = browseTaskTargetSwipes + MAX_BROWSE_WAIT_SWIPES
             if (swipeCount <= waitLimit) {
                 // 还在等待上限内，继续滑动等待"任务完成"出现
-                Log.i(TAG, "browseTask: swipes reached target, keep waiting for task complete (countdown=${countdownSeconds}s, progressHint=$hasProgressHint, swipe #$swipeCount/$waitLimit)")
-                debugLog("browseTask: keep swiping within wait limit (countdown=${countdownSeconds}s, progress=$hasProgressHint, swipe #$swipeCount/$waitLimit)")
+                Log.i(TAG, "browseTask: swipes reached target, keep waiting for task complete (countdown=${countdownSeconds}s, progressHint=$hasProgressHint, remainingProgress=$hasRemainingProgress, swipe #$swipeCount/$waitLimit)")
+                debugLog("browseTask: keep swiping within wait limit (countdown=${countdownSeconds}s, progress=$hasProgressHint, remainingProgress=$hasRemainingProgress, swipe #$swipeCount/$waitLimit)")
                 // 继续走下面的滑动逻辑（不 return）
             } else {
-                debugLog("browseTask: wait limit exceeded (swipes=$swipeCount/$waitLimit, countdown=${countdownSeconds}s, progress=$hasProgressHint), exiting browse page")
+                debugLog("browseTask: wait limit exceeded (swipes=$swipeCount/$waitLimit, countdown=${countdownSeconds}s, progress=$hasProgressHint, remainingProgress=$hasRemainingProgress), exiting browse page")
                 currentTaskIndex++
                 collectedCount++
                 exitBrowsePage(service, reason = "timeout_wait_limit")
@@ -1960,6 +1996,43 @@ object AutomationController {
         } else {
             debugLog("gamePlay: staying in game (elapsed=${elapsedMs}ms, target=${GAME_STAY_TARGET_MS}ms)")
         }
+
+        // build529（用户要求"全部实现"）：AI 视觉识别环形进度条（节流到 20s 一次）
+        // 用途：游戏页面通常无可读文本进度，截图交 GLM-4.6V-Flash 识别进度环填充比例，
+        // 输出 percent/seconds_remaining 到日志，便于诊断"游戏卡在哪里、还要等多久"。
+        // 不主动触发提前退出（AI 判断存在误差），仅作信息补充；退出仍由上方既有条件负责。
+        if (elapsedMs >= GAME_LOAD_MS &&
+            state == AutomationState.GAME_PLAYING &&
+            System.currentTimeMillis() - lastAiProgressCheckMs >= AI_PROGRESS_CHECK_INTERVAL_MS) {
+            lastAiProgressCheckMs = System.currentTimeMillis()
+            val appContext = service.applicationContext
+            val snapshotElapsed = elapsedMs
+            Thread {
+                val bitmap = service.takeScreenshotBitmap()
+                if (bitmap == null) {
+                    Log.w(TAG, "gamePlay: AI progress screenshot unavailable")
+                    return@Thread
+                }
+                try {
+                    val sceneCtx = "game playing (elapsed=${snapshotElapsed}ms, target=${GAME_STAY_TARGET_MS}ms)"
+                    val result = AiVisionClient.recognizeProgressFromScreenshot(appContext, bitmap, sceneCtx)
+                    bitmap.recycle()
+                    if (result == null) {
+                        Log.w(TAG, "gamePlay: AI progress returned null")
+                    } else {
+                        Log.i(TAG, "gamePlay: AI progress percent=${result.percent}%, " +
+                            "secondsRemaining=${result.secondsRemaining}s, " +
+                            "hasBar=${result.hasProgressBar}, reason='${result.reason.take(80)}'")
+                        debugLog("gamePlay: AI progress percent=${result.percent}%, " +
+                            "remaining=${result.secondsRemaining}s, hasBar=${result.hasProgressBar}")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "gamePlay: AI progress exception: ${e.message}", e)
+                    if (!bitmap.isRecycled) bitmap.recycle()
+                }
+            }.start()
+        }
+
         handler.postDelayed({
             if (state == AutomationState.GAME_PLAYING) runGamePlaying(elapsedMs + GAME_ACTION_INTERVAL_MS)
         }, GAME_ACTION_INTERVAL_MS)
@@ -2772,6 +2845,8 @@ object AutomationController {
             fasterRewardAppPkg = null   // 重置新 App 包名记录
             fasterRewardAppEnterTimeMs = 0L  // 重置新 App 进入时间戳
             prevAdHadCountdown = false  // 重置倒计时状态，供多信号融合检测用
+            // build529：进入广告时重置 AI 视觉进度识别节流（每个广告独立计数）
+            lastAiProgressCheckMs = 0L
             watchingAdPlatform = service.currentPlatform  // 记录农场平台，强杀深链 App 后重新启动此平台
             // 按平台广告策略加载默认时长与检测间隔（UC/支付宝/淘宝差异化）
             val platformCfg = service.currentPlatformConfig()
@@ -3388,6 +3463,44 @@ object AutomationController {
 
         // 继续等待
         Log.d(TAG, "watchAd: still playing (${elapsedMs}ms/${adMaxDurationMs}ms)")
+
+        // build529（用户要求"全部实现"）：AI 视觉识别环形进度条（节流到 20s 一次）
+        // 用途：广告页面有时无可读倒计时文本，截图交 GLM-4.6V-Flash 识别进度环填充比例，
+        // 输出 percent/seconds_remaining 到日志，便于诊断"广告还要等多久"。
+        // 不主动触发提前退出（AI 判断存在误差），仅作信息补充；退出仍由上方既有条件负责。
+        if (elapsedMs >= adMinDurationMs &&
+            state == AutomationState.WATCHING_AD &&
+            System.currentTimeMillis() - lastAiProgressCheckMs >= AI_PROGRESS_CHECK_INTERVAL_MS) {
+            lastAiProgressCheckMs = System.currentTimeMillis()
+            val appContext = service.applicationContext
+            val snapshotElapsed = elapsedMs
+            Thread {
+                val bitmap = service.takeScreenshotBitmap()
+                if (bitmap == null) {
+                    Log.w(TAG, "watchAd: AI progress screenshot unavailable")
+                    return@Thread
+                }
+                try {
+                    val sceneCtx = "ad watching (elapsed=${snapshotElapsed}ms, " +
+                        "min=${adMinDurationMs}ms, max=${adMaxDurationMs}ms)"
+                    val result = AiVisionClient.recognizeProgressFromScreenshot(appContext, bitmap, sceneCtx)
+                    bitmap.recycle()
+                    if (result == null) {
+                        Log.w(TAG, "watchAd: AI progress returned null")
+                    } else {
+                        Log.i(TAG, "watchAd: AI progress percent=${result.percent}%, " +
+                            "secondsRemaining=${result.secondsRemaining}s, " +
+                            "hasBar=${result.hasProgressBar}, reason='${result.reason.take(80)}'")
+                        debugLog("watchAd: AI progress percent=${result.percent}%, " +
+                            "remaining=${result.secondsRemaining}s, hasBar=${result.hasProgressBar}")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "watchAd: AI progress exception: ${e.message}", e)
+                    if (!bitmap.isRecycled) bitmap.recycle()
+                }
+            }.start()
+        }
+
         handler.postDelayed({
             if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
         }, adEndCheckIntervalMs)
