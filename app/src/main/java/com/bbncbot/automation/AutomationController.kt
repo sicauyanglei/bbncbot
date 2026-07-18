@@ -1074,7 +1074,12 @@ object AutomationController {
             val hasPaidHint = paidHintKeywords.any { fullText.contains(it) }
             // build518 补丁：button.text 精确等于"领取"或"收下"也视为 easyClaim
             // （纯领取按钮是点击即得肥料的简单任务），但 contextText 不能含付费暗示词
-            val isPureClaimButton = (buttonText == "领取" || buttonText == "收下") && !hasPaidHint
+            // build523：扩展为所有纯领取按钮文案（与 processTask 的 isPureClaimClick 保持一致）
+            val pureClaimTexts = setOf(
+                "领取", "收下", "立即领取", "点击领取", "开心收下",
+                "立即领肥", "领取肥料", "立即领肥[料]"
+            )
+            val isPureClaimButton = buttonText in pureClaimTexts && !hasPaidHint
             val isEasyClaim = !isPaid && !hasPaidHint &&
                 (easyClaimKeywords.any { fullText.contains(it) } || isPureClaimButton)
             val priority = if (isEasyClaim) 0 else 1
@@ -1239,7 +1244,23 @@ object AutomationController {
         // 点击"领取"后弹窗会显示"肥料已发放"领取成功提示，此时必须 pressBack 关闭弹窗
         // 返回任务列表，而不是直接回 OPENING_TASK_LIST 走"找任务列表按钮"路径
         // （弹窗未关闭时 findGoCompleteButtons 找不到"去完成"按钮，会误判需要重新打开任务列表）
-        val isPureClaimClick = (buttonText == "领取" || buttonText == "收下") && !fullTaskText.let { ft ->
+        //
+        // build523 修复（debug_test_20260718_214200.log, build521-c2f9e26）：
+        // - 日志发现 task #1/1 buttonText='立即领取' bounds=[278,1660][923,1807]
+        // - isPureClaimClick 只匹配 '领取'/'收下'，'立即领取' 不匹配 → 没走 pureClaimClick 路径
+        // - 走了标准 checkTaskResult 路径，点击了左上角"返回首页"按钮（desc='返回' bounds=[26,127]）
+        // - 返回到支付宝首页，而不是 pressBack 关闭"肥料已发放"弹窗返回任务列表
+        // - 虽然 task #1/1 实际已领取成功（第二轮任务列表里"立即领取"消失了），
+        //   但 collected=0 没正确统计，且多走了"返回首页→重新进任务列表"的弯路
+        //
+        // 修复：扩展 isPureClaimClick 匹配所有 Platform.goCompleteTexts/directCollectTexts 里
+        // 定义的纯领取按钮文案（立即领取/点击领取/开心收下/立即领肥/领取肥料 等）
+        // 这些按钮都是"点击即得肥料，无需跳转"的纯领取入口，应走 pureClaimClick 路径
+        val pureClaimButtonTexts = setOf(
+            "领取", "收下", "立即领取", "点击领取", "开心收下",
+            "立即领肥", "领取肥料", "立即领肥[料]"  // 支付宝按钮文案可能带方括号占位
+        )
+        val isPureClaimClick = buttonText in pureClaimButtonTexts && !fullTaskText.let { ft ->
             // 复用 paidHintKeywords 判断，避免重复声明
             listOf("退款", "扣回", "扣减", "下单后", "购买后", "充值后", "消费满",
                 "任意下单", "下单领", "下单赢", "任意充值").any { ft.contains(it) }
