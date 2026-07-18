@@ -1153,6 +1153,23 @@ object AutomationController {
             return
         }
 
+        // 1a. 已完成任务直接跳过
+        // 用户反馈："(1/1)" "(2/2)" 这种 X/X 样式的任务已完成，不需要再点。
+        // 任务列表里 "X/Y" 表示 "当前进度/总进度"，X==Y 说明已完成。
+        // 匹配模式：(N/N) 或 （N/N），N 为正整数（也兼容无括号的 N/N 但要避免误匹配日期）
+        val taskContextText = service.collectTaskContextText(button)
+        val completedRegex = Regex("""[(（](\d+)/\1[)）]""")
+        val completedMatch = completedRegex.find(taskContextText) ?: completedRegex.find(buttonText)
+        if (completedMatch != null) {
+            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} already completed (matched '${completedMatch.value}'), skipping (text='$buttonText', context='$taskContextText')")
+            debugLog("processTask: skip completed task #$${currentTaskIndex + 1}, matched='${completedMatch.value}', context='$taskContextText'")
+            currentTaskIndex++
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
+            }, 500L)
+            return
+        }
+
         // 1b. 跳过名单：特定任务直接跳过，不点击
         // 用户要求：过滤=不点击直接跳过
         // 同时检查按钮文本和任务上下文文本（任务标题在上下文中，不在按钮文本里）
@@ -1163,7 +1180,6 @@ object AutomationController {
             "试玩", "新游", "玩游戏", "玩1局", "玩一局", "开局", "对战",
             "完成1局", "完成一局", "打一局"
         )
-        val taskContextText = service.collectTaskContextText(button)
         val shouldSkip = skipTaskTexts.any { buttonText.contains(it) || taskContextText.contains(it) }
         if (shouldSkip) {
             Log.i(TAG, "processTask: task #${currentTaskIndex + 1} in skip list, skipping (text='$buttonText', context='$taskContextText')")
