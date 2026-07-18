@@ -1137,10 +1137,11 @@ object AutomationController {
         // 用户要求：过滤=不点击直接跳过
         // 同时检查按钮文本和任务上下文文本（任务标题在上下文中，不在按钮文本里）
         val skipTaskTexts = listOf(
-            "继续玩浪漫餐厅", "继续玩农场分色瓶", "充值", "完成1局对战", "砸蛋5次",
+            "继续玩浪漫餐厅", "继续玩农场分色瓶", "充值", "砸蛋", "砸金蛋",
             "分享", "合种", "到店支付",
             // 试玩/玩游戏类任务：自动化无法玩小程序游戏，跳过
-            "试玩", "新游", "玩游戏", "玩1局", "玩一局", "开局", "对战"
+            "试玩", "新游", "玩游戏", "玩1局", "玩一局", "开局", "对战",
+            "完成1局", "完成一局", "打一局"
         )
         val taskContextText = service.collectTaskContextText(button)
         val shouldSkip = skipTaskTexts.any { buttonText.contains(it) || taskContextText.contains(it) }

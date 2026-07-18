@@ -1841,11 +1841,20 @@ class FarmAccessibilityService : AccessibilityService() {
         // 重新打开任务列表，taskButtons 会重新计算，所以屏幕外按钮不影响实际运行。
         // 如果过滤掉屏幕外按钮，taskButtons.size 会变小，processTask 会误判
         // "全部任务完成"（currentTaskIndex >= taskButtons.size），跳过剩余任务。
-        val result = raw.filter { node ->
-            // 1. 必须可点击
+        val result = raw.mapNotNull { node ->
+            // 1. 必须可点击（UC 平台"去完成"本身不可点击，向上找最近的 clickable 父节点）
+            var clickTarget = node
             if (!node.isClickable) {
-                debugLog("findGoCompleteButtons: drop non-clickable node text='${node.text?.toString()?.take(30)}'")
-                return@filter false
+                var p: AccessibilityNodeInfo? = node.parent
+                var depth = 0
+                while (p != null && depth < 5) {
+                    if (p.isClickable) { clickTarget = p; break }
+                    p = p.parent; depth++
+                }
+                if (!clickTarget.isClickable) {
+                    debugLog("findGoCompleteButtons: drop non-clickable node text='${node.text?.toString()?.take(30)}' (no clickable ancestor)")
+                    return@mapNotNull null
+                }
             }
             // 2. 文本长度过滤（防止规则条款被误识别）
             val text = node.text?.toString()?.trim().orEmpty()
@@ -1853,23 +1862,24 @@ class FarmAccessibilityService : AccessibilityService() {
             val buttonText = if (text.isNotEmpty()) text else desc
             if (buttonText.length > 50) {
                 debugLog("findGoCompleteButtons: drop long-text node (len=${buttonText.length}, text='${buttonText.take(30)}...')")
-                return@filter false
+                return@mapNotNull null
             }
             // 3. 条款编号开头过滤
             if (Regex("^[0-9]+[、.）)]").containsMatchIn(buttonText)) {
                 debugLog("findGoCompleteButtons: drop rule-clause node (text='$buttonText')")
-                return@filter false
+                return@mapNotNull null
             }
-            // 4. bounds 合法性过滤
-            //    仅过滤非法矩形（width <= 0 或 height <= 0，如 top > bottom 的过期 bounds）。
-            //    不过滤屏幕外按钮（top > 屏幕高度），原因见上方注释。
+            // 4. bounds 合法性过滤（仅过滤非法矩形，不过滤屏幕外按钮，原因见上方注释）
             val rect = android.graphics.Rect()
-            node.getBoundsInScreen(rect)
+            clickTarget.getBoundsInScreen(rect)
             if (rect.width() <= 0 || rect.height() <= 0) {
                 debugLog("findGoCompleteButtons: drop zero-size node text='$buttonText' bounds=${rect.toShortString()}")
-                return@filter false
+                return@mapNotNull null
             }
-            true
+            if (clickTarget !== node) {
+                debugLog("findGoCompleteButtons: use clickable ancestor for '$buttonText' (original not clickable, ancestor bounds=${rect.toShortString()})")
+            }
+            clickTarget
         }
         Log.d(TAG, "findGoCompleteButtons: found ${result.size} buttons (raw=${raw.size}, dropped=${raw.size - result.size})")
         return result
