@@ -2696,7 +2696,13 @@ class FarmAccessibilityService : AccessibilityService() {
                 text.contains("立即购买") || text.contains("确认支付") ||
                 text.contains("去支付") || text.contains("立即支付") ||
                 text.contains("购买道具") || text.contains("购买金币") ||
-                text.contains("充值金币") || text.contains("充值钻石")
+                text.contains("充值金币") || text.contains("充值钻石") ||
+                // build526（用户反馈）：进入其他小程序玩游戏时弹出的"完成订单"类干扰弹窗
+                // 这类弹窗诱导用户完成订单（购买），应识别为陷阱页并关闭
+                text.contains("完成订单") || text.contains("提交订单") ||
+                text.contains("去下单") || text.contains("立即下单") ||
+                text.contains("确认下单") || text.contains("去结算") ||
+                text.contains("立即结算") || text.contains("确认结算")
         }
         if (isRecharge) {
             debugLog("isRechargePage: YES, sample=${allText.take(5)}")
@@ -2714,7 +2720,10 @@ class FarmAccessibilityService : AccessibilityService() {
         // 关闭类按钮关键词（按优先级排序）
         val closeKeywords = listOf(
             "暂不充值", "暂不购买", "暂不支付", "暂不开通",
-            "不买了", "再想想", "残忍拒绝", "残忍离别",
+            // build526（用户反馈）：进入其他小程序玩游戏时弹出的"完成订单"类干扰弹窗
+            // 这类弹窗的关闭按钮可能是"暂不下单"/"暂不结算"
+            "暂不下单", "暂不结算", "暂不提交",
+            "不买了", "再想想", "再考虑", "残忍拒绝", "残忍离别",
             "取消", "关闭", "以后再说", "下次再说",
             "不了", "拒绝", "返回"
         )
