@@ -621,6 +621,26 @@ class FarmAccessibilityService : AccessibilityService() {
         if (adModeFlag) {
             return false
         }
+        // P0-2（build513 修复）：systemui 覆盖时（Honor 下拉通知栏/控制中心/锁屏），
+        // 即使支付宝后台窗口还在 windows 列表里（isFarmAppInForeground 返回 true），
+        // 用户实际看到的是 systemui，不能执行点击操作（会误触通知栏/快捷开关）。
+        // 用 rootInActiveWindowSafe().packageName 判断用户实际看到的窗口。
+        val activeRootPkg = rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+        if (activeRootPkg.isNotEmpty()) {
+            val cfg = currentPlatformConfig()
+            val isActiveFarmPkg = activeRootPkg in cfg.packageNames ||
+                cfg.internalPackagePrefixes.any { activeRootPkg.startsWith(it) } ||
+                activeRootPkg == "com.bbncbot"
+            if (!isActiveFarmPkg) {
+                // 用户实际看到的窗口不是农场包名（如 systemui），不点击
+                if (farmPageCache != false || (System.currentTimeMillis() - farmPageCacheTime) > 1000L) {
+                    debugLog("isOnFarmPage: activeRootPkg='$activeRootPkg' is not farm app, not on farm page (systemui/lock screen/other app overlay)")
+                    farmPageCache = false
+                    farmPageCacheTime = System.currentTimeMillis()
+                }
+                return false
+            }
+        }
         if (!isFarmAppInForeground()) return false
         val activity = currentActivityName?.lowercase().orEmpty()
         // 1. 如果当前活动包含广告关键词，则不在农场页
@@ -2130,20 +2150,50 @@ class FarmAccessibilityService : AccessibilityService() {
      * 收集任务按钮所在行的上下文文本
      * - 向上查找任务行容器，然后收集该容器内所有文本
      * - 任务列表中每一行结构通常是：[描述文本] + [去完成按钮]
+     *
+     * 历史问题（P0-1，build513 修复）：
+     * findGoCompleteButtons 返回 clickable 父节点（UC 平台"去完成"文本节点不可点击，找父节点）。
+     * 旧代码无脑向上 2 层，当 button 已是 clickable 父节点（任务行容器本身）时，
+     * button.parent.parent 是任务列表容器（RecyclerView/ListView），
+     * collectTextRecursive 会收集整个任务列表所有行的文本，
+     * 导致 isPaidTask/isGameTask/skipTaskTexts 误判相邻任务。
+     *
+     * 修复：根据 button 的 bounds 高度自适应向上层数。
+     * - 任务行高度通常 100~300px（描述+按钮）
+     * - 如果 button 高度 < 400px，说明 button 就是任务行容器，向上 1 层即可
+     * - 如果 button 高度 >= 400px 或向上 1 层容器高度 > 600px，说明已超出任务行，
+     *   退化到只收集 button 自身子树（至少能拿到按钮内文本）
      */
     fun collectTaskContextText(button: AccessibilityNodeInfo): String {
         val sb = StringBuilder()
-        // 向上找2层父节点作为任务行容器，避免收集整个列表的文本
-        var container: AccessibilityNodeInfo? = button.parent
-        if (container != null) {
-            container = container.parent
+        val btnRect = android.graphics.Rect()
+        button.getBoundsInScreen(btnRect)
+        val btnHeight = btnRect.height()
+
+        // 自适应选择容器：向上找第一个"合理高度"的祖先（任务行高度 < 600px）
+        var container: AccessibilityNodeInfo? = null
+        var p: AccessibilityNodeInfo? = button.parent
+        var depth = 0
+        while (p != null && depth < 4) {
+            val pRect = android.graphics.Rect()
+            p.getBoundsInScreen(pRect)
+            val pHeight = pRect.height()
+            // 任务行容器高度通常 100~500px，列表容器高度通常 > 800px
+            if (pHeight in 80..600) {
+                container = p
+                break
+            }
+            // 如果父节点太高（> 600px），说明已超出任务行，停止向上找
+            if (pHeight > 600) break
+            p = p.parent
+            depth++
         }
-        if (container != null) {
-            // 只收集该容器内的文本（深度4层，确保覆盖任务行内所有文本）
-            collectTextRecursive(container, sb, maxDepth = 4)
-        }
+
+        // 兜底：如果没找到合适的祖先容器，用 button 自己作为容器（收集子树文本）
+        val effectiveContainer = container ?: button
+        collectTextRecursive(effectiveContainer, sb, maxDepth = 4)
         val result = sb.toString()
-        debugLog("collectTaskContextText: result='$result', buttonText='${button.text}', containerFound=${container != null}")
+        debugLog("collectTaskContextText: result='$result', buttonText='${button.text}', btnHeight=$btnHeight, containerHeight=${container?.let { android.graphics.Rect().apply { it.getBoundsInScreen(this) }.height() } ?: -1}")
         return result
     }
 

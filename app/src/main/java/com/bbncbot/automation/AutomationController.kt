@@ -953,6 +953,16 @@ object AutomationController {
         }
 
         // 失败时尝试坐标候选位置
+        // P0-3（build513 修复）：加 isOnFarmPage 守卫，避免在非农场页（如 systemui 覆盖、
+        // 子小程序页、广告页）按坐标点"集肥料"位置误触其他 App 元素。
+        // 与第一处坐标兜底（行 877-890）保持一致的守卫策略。
+        if (!service.isOnFarmPage()) {
+            debugLog("openTaskList: [坐标兜底] not on farm page (findCollectFertilizerButton=null), re-navigating instead of coordinate fallback")
+            taskListOpenedThisRound = false
+            moveTo(AutomationState.NAVIGATING)
+            handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
+            return
+        }
         val candidates = collectFertilizerCandidates(service)
         val coordIndex = attempt % candidates.size
         val (xRatio, yRatio) = candidates[coordIndex]
@@ -1032,15 +1042,23 @@ object AutomationController {
         val platform = service.currentPlatform.name
         if (platform == "UNKNOWN") return buttons
         // 签到/领取类任务识别关键词（任务标题或按钮文字命中即视为"易完成任务"）
+        // P1-3（build513 修复）：收紧关键词，避免"领取后退款将扣回肥料"等付费陷阱被误判为 easyClaim。
+        // - 移除宽泛的"领取"/"收下"
+        // - 保留带动词前缀的精确短语："去签到""立即领取""点击领取""开心收下"
+        // - 额外排除"退款"/"扣回"/"下单后"等付费暗示词
         val easyClaimKeywords = listOf(
-            "签到",          // 每日签到任务
-            "去签到",
-            "领取",          // 通用领取
-            "去领取",
-            "立即领取",
+            "去签到",        // 每日签到任务（明确动词）
+            "签到领",        // "签到领肥料"等
+            "去领取",        // 明确"去领取"动作
+            "立即领取",      // 红包弹窗的立即领取
             "点击领取",      // 用户明确提到的"点击领取"
-            "开心收下",
-            "收下"
+            "开心收下",      // 红包弹窗的收下按钮
+            "签到"           // 每日签到（短词，但任务列表里"签到"通常是真的签到任务）
+        )
+        // 付费/退款暗示词：即使命中 easyClaimKeywords，若上下文含这些词也降级到 priority 1
+        val paidHintKeywords = listOf(
+            "退款", "扣回", "扣减", "下单后", "购买后", "充值后", "消费满",
+            "任意下单", "下单领", "下单赢", "任意充值"
         )
         return buttons.mapIndexed { idx, btn ->
             val taskContent = SceneFeatureExtractor.extractTaskContentText(service, btn)
@@ -1050,9 +1068,11 @@ object AutomationController {
             val fullText = "$contextText $buttonText"
             // 排除付费陷阱：即使是"领取"类，若 isPaidTask=true 也降级到 priority 1
             val isPaid = service.isPaidTask(btn)
-            val isEasyClaim = !isPaid && easyClaimKeywords.any { fullText.contains(it) }
+            // P1-3：额外检查付费暗示词，避免 isPaidTask 漏判（paidKeywords 不全）
+            val hasPaidHint = paidHintKeywords.any { fullText.contains(it) }
+            val isEasyClaim = !isPaid && !hasPaidHint && easyClaimKeywords.any { fullText.contains(it) }
             val priority = if (isEasyClaim) 0 else 1
-            debugLog("sortTaskButtons: idx=$idx task='$taskContent' priority=$priority (easyClaim=$isEasyClaim, paid=$isPaid, button='$buttonText')")
+            debugLog("sortTaskButtons: idx=$idx task='$taskContent' priority=$priority (easyClaim=$isEasyClaim, paid=$isPaid, paidHint=$hasPaidHint, button='$buttonText')")
             Triple(priority, idx, btn)
         }.sortedWith(compareBy({ it.first }, { it.second })).map { it.third }
     }
@@ -1167,8 +1187,11 @@ object AutomationController {
         }
 
         // 2b. 蚂蚁森林领落叶肥料任务：关弹窗→领奖励→逛农场得落叶肥料
-        if (buttonText.contains("森林") || buttonText.contains("落叶")) {
-            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is forest task, entering FOREST_COLLECTING (text='$buttonText')")
+        // P1-1（build513 修复）：clickable 父节点下 buttonText 可能为空，
+        // 必须同时检查 taskContextText（任务标题在上下文中）。
+        if (buttonText.contains("森林") || buttonText.contains("落叶") ||
+            taskContextText.contains("森林") || taskContextText.contains("落叶")) {
+            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is forest task, entering FOREST_COLLECTING (text='$buttonText', context='$taskContextText')")
             debugLog("processTask: forest task #${currentTaskIndex + 1}, text='$buttonText', will close popups → claim reward → 逛农场得落叶肥料")
             service.performClickSafe(button)
             moveTo(AutomationState.FOREST_COLLECTING)
@@ -1177,7 +1200,10 @@ object AutomationController {
         }
 
         // 3. 跨平台切换任务：在支付宝/淘宝/UC 之间切换获取肥料
-        val crossTarget = detectCrossPlatformTarget(buttonText)
+        // P1-2（build513 修复）：clickable 父节点下 buttonText 可能为空，
+        // 跨平台任务关键词（"淘宝"/"支付宝"/"UC"）在任务标题（上下文）中，
+        // 必须同时检查 taskContextText。
+        val crossTarget = detectCrossPlatformTarget(buttonText + " " + taskContextText)
         if (crossTarget != null && crossTarget != service.currentPlatform) {
             Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is cross-platform task, switching to $crossTarget (text='$buttonText')")
             debugLog("processTask: cross-platform task #${currentTaskIndex + 1}, text='$buttonText', from=${service.currentPlatform}, to=$crossTarget")
