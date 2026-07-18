@@ -2964,6 +2964,10 @@ class FarmAccessibilityService : AccessibilityService() {
      * - 广告观看结束后，页面弹出"肥料已发放"提示，表示奖励已到账，应立即回到芭芭农场主页
      * - 浏览任务完成后，页面显示"已获得肥料"，表示任务完成应退出
      *
+     * 用户反馈：显示了"肥料已发放"为啥还在滑动 → 增强检测：
+     * 1. 扩展关键词覆盖更多变体（"肥料已经发放"/"肥料发放成功"/"已发放肥料"等）
+     * 2. 遍历所有 windows（不仅 rootInActiveWindow），覆盖 Toast 和独立弹窗窗口
+     *
      * 注意：与 isTaskCompletePage 的区别
      * - isTaskCompletePage 故意排除了"获得肥料"关键词（进行中页面也会显示"已获得肥料 xxx"）
      * - 本方法检测"已获得肥料"（纯粹的完成提示，无数字后缀）
@@ -2971,27 +2975,68 @@ class FarmAccessibilityService : AccessibilityService() {
      *   但 "已获得肥料" 是 "已获得肥料 500" 的子串，会匹配 → 需调用方结合上下文判断）
      *
      * 识别文本示例：
-     * - "肥料已发放" / "肥料已发放到账户" / "肥料已发放成功"
-     * - "奖励已发放" / "奖励已到账"
+     * - "肥料已发放" / "肥料已发放到账户" / "肥料已发放成功" / "肥料已经发放"
+     * - "肥料发放成功" / "已发放肥料" / "肥料领取成功"
+     * - "奖励已发放" / "奖励已到账" / "奖励发放成功"
      * - "已获得肥料"（浏览任务完成提示）
      *
      * @return true 表示当前页面是肥料到账提示页
      */
     fun isFertilizerGrantedPage(): Boolean {
-        val root = rootInActiveWindowSafe() ?: return false
-        val allText = collectAllText(root)
-        val granted = allText.any { text ->
-            // "肥料已发放"/"奖励已发放"/"奖励已到账"/"肥料已到账" 是明确的到账提示，直接匹配
-            text.contains("肥料已发放") || text.contains("奖励已发放") ||
-                text.contains("奖励已到账") || text.contains("肥料已到账") ||
-                // "已获得肥料" 需精确匹配：排除"已获得肥料 500"等带数字的进行中状态
-                // 只匹配纯粹的"已获得肥料"（任务完成提示）
-                (text.contains("已获得肥料") && !text.matches(Regex(".*已获得肥料\\s*\\d+.*")))
+        // 遍历所有 windows 收集文本（覆盖 Toast 和独立弹窗窗口）
+        // rootInActiveWindow 只拿活动窗口根节点，Toast/独立弹窗在单独窗口层会漏检
+        val allTexts = mutableListOf<List<String>>()
+        try {
+            val allWindows = windows
+            for (w in allWindows) {
+                val root = w.root ?: continue
+                allTexts.add(collectAllText(root))
+            }
+        } catch (e: Exception) {
+            // windows 遍历失败时兜底用 rootInActiveWindow
+            val root = rootInActiveWindowSafe() ?: return false
+            allTexts.add(collectAllText(root))
         }
-        if (granted) {
-            debugLog("isFertilizerGrantedPage: YES, sample=${allText.take(5)}")
+        if (allTexts.isEmpty()) {
+            val root = rootInActiveWindowSafe() ?: return false
+            allTexts.add(collectAllText(root))
         }
-        return granted
+
+        // 肥料到账关键词（覆盖各种变体）
+        // "已发放"/"发放成功"/"领取成功"/"已到账" + "肥料"/"奖励" 的组合
+        val grantedKeywords = listOf(
+            // "肥料" + 到账动词
+            "肥料已发放", "肥料已经发放", "肥料发放成功", "已发放肥料",
+            "肥料已到账", "肥料已经到账", "肥料到账成功", "肥料领取成功",
+            "肥料已领取", "肥料领取完成",
+            // "奖励" + 到账动词
+            "奖励已发放", "奖励已经发放", "奖励发放成功",
+            "奖励已到账", "奖励已经到账", "奖励到账成功",
+            "奖励领取成功", "奖励已领取",
+            // 其他完成提示
+            "施肥成功", "领取成功"
+        )
+
+        for (allText in allTexts) {
+            // 1. 匹配明确的到账关键词
+            val matched = allText.any { text ->
+                grantedKeywords.any { kw -> text.contains(kw) }
+            }
+            if (matched) {
+                debugLog("isFertilizerGrantedPage: YES (matched keyword), sample=${allText.take(5)}")
+                return true
+            }
+            // 2. "已获得肥料" 需精确匹配：排除"已获得肥料 500"等带数字的进行中状态
+            // 只匹配纯粹的"已获得肥料"（任务完成提示）
+            val gained = allText.any { text ->
+                text.contains("已获得肥料") && !text.matches(Regex(".*已获得肥料\\s*\\d+.*"))
+            }
+            if (gained) {
+                debugLog("isFertilizerGrantedPage: YES (已获得肥料 without number), sample=${allText.take(5)}")
+                return true
+            }
+        }
+        return false
     }
 
     /**
