@@ -4167,57 +4167,53 @@ class FarmAccessibilityService : AccessibilityService() {
             return
         }
 
-        // 守卫：当前屏幕被非 farm 包名占用时（如下拉通知栏/控制中心/锁屏等 systemui 场景），
-        // 绝不能直接点击屏幕坐标——会误触 systemui 的元素。
+        // 守卫：判断"用户实际看到的窗口"是不是 farm App
+        //
+        // 关键：必须用 rootInActiveWindowSafe().packageName 判断，不能用 getCurrentWindowPackage()。
+        // getCurrentWindowPackage 设计目的是找广告窗口（优先返回"非 farm 包名"窗口），
+        // 但 Honor 设备上 windows 列表常含顶部状态栏（com.android.systemui）窗口，
+        // 即使支付宝在前台，getCurrentWindowPackage 也会返回 systemui → 误判为 systemui 占屏。
         //
         // 历史问题 1（debug_test_20260718_175404.log）：
-        // - 17:53:46 pkg=com.android.systemui（下拉通知栏占用屏幕）
-        // - 17:53:46 act=XRiverActivity（支付宝在后台）
-        // - isFarmAppInForeground 返回 true（windows 中还能找到支付宝后台窗口）
-        // - runNavigating 进入 else 分支调用 navigateToFarm
-        // - stepNavigateAlipayFarm 用 getRootInFarmApp 拿到支付宝后台窗口的 root
-        // - 在 root 里找到"芭芭农场"节点，bounds=[108,402][298,510]
-        // - dispatchGestureClick(203, 456) 点击屏幕坐标，但屏幕实际显示 systemui
-        // - 点击落到 systemui 上，触发某个通知/动作，4 秒后 bbncbot MainActivity 被拉到前台
+        // - 17:53:46 真正的下拉通知栏占用屏幕，rootInActiveWindow 是 systemui
+        // - getRootInFarmApp 仍能从 windows 找到支付宝后台窗口的 root
+        // - 在支付宝 root 里找到"芭芭农场"节点，bounds=[108,402][298,510]
+        // - dispatchGestureClick(203, 456) 点击屏幕坐标，但屏幕显示 systemui → 误触
+        // - 4 秒后 bbncbot MainActivity 被拉到前台
         //
-        // 历史问题 2（debug_test_20260718_193727.log，build506-c9587a5）：
-        // - 19:36:21-28 首次启动时连续 6 次 pressBack 都没关掉 systemui（Honor 系统弹窗对 back 无效）
-        // - 19:36:38 支付宝刚启动到 alipaylogin（闪屏页，root=null）
-        // - 19:36:41 stepNavigateAlipayFarm 看到 systemui 就 pressBack
-        // - 这时 pressBack 可能把支付宝退到桌面（而不是关闭 systemui）
-        // - 用户被迫手动停止自动化
+        // 历史问题 2（debug_test_20260718_193727.log，build506）：
+        // - 19:36:21-28 用 getCurrentWindowPackage 误判 systemui 占屏 → 6 次 pressBack 无效
+        // - 19:36:41 支付宝刚启动到 AlipayLogin，pressBack 误退出支付宝
         //
-        // 修复策略：
-        // - currentScreenPkg 是 systemui 时，不直接 pressBack（对 Honor 系统弹窗无效，可能误退出支付宝）
-        // - 仅在前 2 次 retry 尝试 pressBack（应对"下拉通知栏"这种可关闭场景）
-        // - retry >= 2 改为等待（让支付宝自己启动完，systemui 弹窗自己消失或用户手动处理）
-        // - 同时检查 currentActivityName：如果是 alipaylogin（启动闪屏），说明支付宝正在启动，
-        //   绝不 pressBack（会退出支付宝），只等待
-        val currentScreenPkg = getCurrentWindowPackage()
+        // 历史问题 3（debug_test_20260718_194749.log，build507）：
+        // - 19:46:58 支付宝已启动到 AlipayLogin（主容器 Activity，不是闪屏页）
+        // - sample 显示支付宝首页内容（松开刷新/天气/搜索框）
+        // - 但 getCurrentWindowPackage 误判为 systemui（顶部状态栏窗口）
+        // - act=AlipayLogin 触发"启动中"等待分支，永远等不到启动完成
+        // - 用户被迫手动停止
+        //
+        // 修复：用 rootInActiveWindowSafe().packageName 判断用户实际看到的窗口：
+        // - build507 场景：rootInActiveWindow 是支付宝首页 root → isFarmPkg=true → 继续点击"芭芭农场"
+        // - build505 场景：rootInActiveWindow 是 systemui root → isFarmPkg=false → 不点击屏幕坐标
+        val activeRootPkg = rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
         val cfg = currentPlatformConfig()
-        val isFarmPkg = currentScreenPkg != null && (
-            currentScreenPkg in cfg.packageNames ||
-            cfg.internalPackagePrefixes.any { currentScreenPkg!!.startsWith(it) }
+        val isFarmPkg = activeRootPkg.isNotEmpty() && (
+            activeRootPkg in cfg.packageNames ||
+            cfg.internalPackagePrefixes.any { activeRootPkg.startsWith(it) }
         )
         if (!isFarmPkg) {
-            val currentAct = currentActivityName?.lowercase().orEmpty()
-            val isAlipayStartup = currentAct.contains("alipaylogin") || currentAct.contains("splash")
-            if (isAlipayStartup) {
-                // 支付宝正在启动（闪屏页），绝不 pressBack（会退出支付宝），只等待
-                debugLog("navigateAlipay: current screen pkg=$currentScreenPkg, alipay startup (act=$currentAct), waiting for alipay to finish startup (retry=$retry)")
-                navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 2000L)
-                return
-            }
+            // activeRoot 不是 farm 包名（如 systemui 下拉通知栏、控制中心、锁屏等真正占屏场景）
+            // 此时绝不能点击屏幕坐标——会误触 systemui 的元素
             if (retry < 2) {
                 // 前 2 次：pressBack 尝试关闭下拉通知栏等可关闭的 systemui 弹窗
-                debugLog("navigateAlipay: current screen pkg=$currentScreenPkg (systemui popup), pressing back to dismiss (retry=$retry)")
+                debugLog("navigateAlipay: active root pkg=$activeRootPkg (systemui popup), pressing back to dismiss (retry=$retry)")
                 pressBack()
                 navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 2000L)
                 return
             }
-            // retry >= 2：pressBack 无效（Honor 系统弹窗），改为等待，让支付宝自己启动完
-            // 或 systemui 弹窗自己消失，或用户手动处理
-            debugLog("navigateAlipay: systemui still occupying screen after $retry retries, waiting (act=$currentAct, pkg=$currentScreenPkg)")
+            // retry >= 2：pressBack 无效（Honor 系统弹窗），改为等待
+            // 让支付宝自己启动完，或 systemui 弹窗自己消失，或用户手动处理
+            debugLog("navigateAlipay: systemui still occupying screen after $retry retries, waiting (pkg=$activeRootPkg)")
             navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 3000L)
             return
         }
