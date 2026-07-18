@@ -1016,8 +1016,13 @@ object AutomationController {
     /**
      * 任务按钮排序（稳定排序，保留原有视觉顺序）
      *
-     * - 对每个"去完成"按钮提取任务内容标识，用于日志诊断
-     * - priority 统一为 0，即保持原有视觉顺序（稳定排序）
+     * 优先级策略（用户需求：点击领取/签到就能完成的任务优先处理）：
+     * - priority 0：签到/领取类任务（无需跳转、点击即完成，最容易拿肥料）
+     *   识别关键词：去签到/签到、去领取/领取/立即领取/点击领取、立即完成
+     *   注意：必须排除付费陷阱（如"立即完成购买"），用 isPaidTask 兜底过滤
+     * - priority 1：其他普通任务（去完成/去逛逛/去观看 等）
+     *
+     * 同优先级内保持原有视觉顺序（稳定排序）。
      */
     private fun sortTaskButtonsByPriority(
         service: FarmAccessibilityService,
@@ -1026,10 +1031,29 @@ object AutomationController {
         if (buttons.size <= 1) return buttons
         val platform = service.currentPlatform.name
         if (platform == "UNKNOWN") return buttons
+        // 签到/领取类任务识别关键词（任务标题或按钮文字命中即视为"易完成任务"）
+        val easyClaimKeywords = listOf(
+            "签到",          // 每日签到任务
+            "去签到",
+            "领取",          // 通用领取
+            "去领取",
+            "立即领取",
+            "点击领取",      // 用户明确提到的"点击领取"
+            "开心收下",
+            "收下"
+        )
         return buttons.mapIndexed { idx, btn ->
             val taskContent = SceneFeatureExtractor.extractTaskContentText(service, btn)
-            debugLog("sortTaskButtons: idx=$idx task='$taskContent' priority=0")
-            Triple(0, idx, btn)
+            // 检查任务上下文（含任务标题）和按钮文本本身
+            val contextText = service.collectTaskContextText(btn)
+            val buttonText = btn.text?.toString().orEmpty()
+            val fullText = "$contextText $buttonText"
+            // 排除付费陷阱：即使是"领取"类，若 isPaidTask=true 也降级到 priority 1
+            val isPaid = service.isPaidTask(btn)
+            val isEasyClaim = !isPaid && easyClaimKeywords.any { fullText.contains(it) }
+            val priority = if (isEasyClaim) 0 else 1
+            debugLog("sortTaskButtons: idx=$idx task='$taskContent' priority=$priority (easyClaim=$isEasyClaim, paid=$isPaid, button='$buttonText')")
+            Triple(priority, idx, btn)
         }.sortedWith(compareBy({ it.first }, { it.second })).map { it.third }
     }
 
