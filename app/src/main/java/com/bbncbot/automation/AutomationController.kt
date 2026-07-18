@@ -2154,15 +2154,138 @@ object AutomationController {
             return
         }
 
-        // 失败次数未达上限 → 按返回退出当前页面，重新打开任务列表重试
-        debugLog("processTask: pressing back, will reopen task list (failCount=$currentTaskFailCount/$MAX_TASK_FAILS)")
-        service.pressBack()
-        handler.postDelayed({
-            if (state == AutomationState.PROCESSING_TASK) {
-                moveTo(AutomationState.OPENING_TASK_LIST)
-                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+        // 用户需求：有些不能处理的问题可以截图交给 API 来处理
+        // 未知页面兜底：截图交给智谱 GLM-4.6V-Flash 视觉模型，让 AI 决定下一步动作
+        // 不限制调用次数（用户明确选择），每次进入 UNKNOWN 都调（除非 API Key 未配置）
+        val appContext = service.applicationContext
+        val sceneContext = "task #${currentTaskIndex + 1}, failCount=$currentTaskFailCount/$MAX_TASK_FAILS, " +
+            "pkg=${service.getCurrentWindowPackage()}, act=${service.getCurrentActivityName()}"
+        debugLog("processTask: unknown page, asking AI vision for action")
+        Thread {
+            val bitmap = service.takeScreenshotBitmap()
+            if (bitmap == null) {
+                debugLog("processTask: AI vision skipped, screenshot not available")
+                handler.post {
+                    if (state != AutomationState.PROCESSING_TASK) return@post
+                    debugLog("processTask: screenshot unavailable, pressing back")
+                    service.pressBack()
+                    handler.postDelayed({
+                        if (state == AutomationState.PROCESSING_TASK) {
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        }
+                    }, INTERVAL_PAGE_LOAD_MS)
+                }
+                return@Thread
             }
-        }, INTERVAL_PAGE_LOAD_MS)
+            try {
+                val result = AiVisionClient.analyzeScreenshot(appContext, bitmap, sceneContext)
+                bitmap.recycle()
+                handler.post {
+                    if (state != AutomationState.PROCESSING_TASK) return@post
+                    if (result == null) {
+                        debugLog("processTask: AI vision returned null, pressing back")
+                        service.pressBack()
+                        handler.postDelayed({
+                            if (state == AutomationState.PROCESSING_TASK) {
+                                moveTo(AutomationState.OPENING_TASK_LIST)
+                                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                            }
+                        }, INTERVAL_PAGE_LOAD_MS)
+                        return@post
+                    }
+                    debugLog("processTask: AI vision action=${result.action}, reason='${result.reason.take(80)}'")
+                    Log.i(TAG, "processTask: AI vision action=${result.action}, reason='${result.reason.take(80)}'")
+                    executeAiVisionAction(service, result.action)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "processTask: AI vision exception: ${e.message}", e)
+                if (!bitmap.isRecycled) bitmap.recycle()
+                handler.post {
+                    if (state != AutomationState.PROCESSING_TASK) return@post
+                    debugLog("processTask: AI vision exception, pressing back")
+                    service.pressBack()
+                    handler.postDelayed({
+                        if (state == AutomationState.PROCESSING_TASK) {
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        }
+                    }, INTERVAL_PAGE_LOAD_MS)
+                }
+            }
+        }.start()
+    }
+
+    /**
+     * 执行 AI 视觉决策返回的动作
+     *
+     * 5 个预定义动作的执行逻辑：
+     * - CLICK_CLOSE  : 查找关闭按钮（×/关闭/知道了/确定）并点击，失败按返回
+     * - CLICK_CLAIM  : 查找领取按钮（领取/领取奖励/领取肥料/确定）并点击，失败按返回
+     * - PRESS_BACK   : 直接按返回键
+     * - SKIP_TASK    : 跳过当前任务（currentTaskIndex++）并打开任务列表
+     * - WAIT         : 不操作，等待后重新检测场景
+     *
+     * 所有动作执行后都通过 [checkTaskResult] 重新评估场景（WAIT 除外，WAIT 直接重试 processTask）。
+     */
+    private fun executeAiVisionAction(
+        service: FarmAccessibilityService,
+        action: AiVisionAction
+    ) {
+        when (action) {
+            AiVisionAction.CLICK_CLOSE -> {
+                debugLog("executeAiVisionAction: CLICK_CLOSE - finding close button")
+                val closeBtn = service.findAdCloseButton(enforceSceneWhitelist = false)
+                if (closeBtn != null) {
+                    service.performClickSafe(closeBtn)
+                } else {
+                    debugLog("executeAiVisionAction: no close button found, pressing back")
+                    service.pressBack()
+                }
+                handler.postDelayed({
+                    if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, 0)
+                }, INTERVAL_PAGE_LOAD_MS)
+            }
+            AiVisionAction.CLICK_CLAIM -> {
+                debugLog("executeAiVisionAction: CLICK_CLAIM - finding claim button")
+                val claimBtn = service.findClaimRewardButton(enforceSceneWhitelist = false)
+                if (claimBtn != null) {
+                    service.performClickSafe(claimBtn)
+                } else {
+                    debugLog("executeAiVisionAction: no claim button found, pressing back")
+                    service.pressBack()
+                }
+                handler.postDelayed({
+                    if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, 0)
+                }, INTERVAL_PAGE_LOAD_MS)
+            }
+            AiVisionAction.PRESS_BACK -> {
+                debugLog("executeAiVisionAction: PRESS_BACK")
+                service.pressBack()
+                handler.postDelayed({
+                    if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, 0)
+                }, INTERVAL_PAGE_LOAD_MS)
+            }
+            AiVisionAction.SKIP_TASK -> {
+                debugLog("executeAiVisionAction: SKIP_TASK - skipping task #${currentTaskIndex + 1}")
+                Log.i(TAG, "processTask: AI suggested SKIP_TASK, skipping task #${currentTaskIndex + 1}")
+                service.pressBack()
+                currentTaskIndex++
+                noProgressRounds++
+                handler.postDelayed({
+                    if (state == AutomationState.PROCESSING_TASK) {
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
+            }
+            AiVisionAction.WAIT -> {
+                debugLog("executeAiVisionAction: WAIT - will recheck scene after delay")
+                handler.postDelayed({
+                    if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, 0)
+                }, INTERVAL_PAGE_LOAD_MS * 2)
+            }
+        }
     }
 
     // ============== 阶段3c: 蚂蚁森林领落叶肥料 ==============

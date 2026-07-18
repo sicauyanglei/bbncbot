@@ -1,0 +1,283 @@
+package com.bbncbot.automation
+
+import android.content.Context
+import android.graphics.Bitmap
+import android.util.Base64
+import android.util.Log
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.ByteArrayOutputStream
+
+/**
+ * 视觉 AI 客户端（调用智谱 GLM-4.6V-Flash 免费多模态模型分析截图）
+ *
+ * 用户需求：有些不能处理的问题可以截图交给 API 来处理。
+ *
+ * 使用场景：状态机进入 UNKNOWN 场景（无法用规则识别页面内容）时，
+ * 截图当前屏幕交给 AI，让 AI 判断该执行哪个预定义动作。
+ *
+ * 实现：
+ * - 调用智谱 GLM-4.6V-Flash（免费视觉模型）chat/completions 接口
+ * - 将截图 Base64 编码 + 文本提示词发给 AI
+ * - AI 返回预定义动作之一（CLICK_CLOSE / CLICK_CLAIM / PRESS_BACK / SKIP_TASK / WAIT）
+ * - API Key 与 QuizAnswerClient 共用（同一 SharedPreferences）
+ *
+ * 必须在后台线程调用（含网络 IO + Bitmap 编码）。
+ *
+ * 智谱视觉模型 API 文档：https://docs.bigmodel.cn/cn/guide/models/free/glm-4.6v-flash
+ * - URL: https://open.bigmodel.cn/api/paas/v4/chat/completions
+ * - Auth: Bearer {api_key}
+ * - Body: { "model": "glm-4.6v-flash", "messages": [{"content": [{"type":"text",...}, {"type":"image_url",...}]}] }
+ */
+object AiVisionClient {
+
+    private const val TAG = "AiVisionClient"
+
+    /** 智谱 GLM API 端点（与文本模型共用） */
+    private const val API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+
+    /**
+     * 使用免费视觉模型 glm-4.6v-flash
+     *
+     * 模型选择说明：
+     * - glm-4.6v-flash：128K 上下文，视觉理解 SOTA，原生多模态（推荐）
+     * - 备选：glm-4v-flash（旧版，同样免费，能力稍弱）
+     */
+    private const val MODEL = "glm-4.6v-flash"
+
+    /**
+     * AI 视觉动作结果
+     *
+     * @param action 预定义动作
+     * @param reason AI 给出的判断理由（用于日志，不参与执行）
+     */
+    data class VisionResult(
+        val action: AiVisionAction,
+        val reason: String
+    )
+
+    /**
+     * 让 AI 分析截图并返回预定义动作
+     *
+     * @param context 任意 Context（用于读取 API Key）
+     * @param bitmap 截图 Bitmap（将压缩为 JPEG Base64 上传）
+     * @param sceneContext 当前场景上下文（如"广告播放中"/"任务列表页"等，帮助 AI 理解）
+     * @return VisionResult；失败返回 null
+     */
+    fun analyzeScreenshot(
+        context: Context,
+        bitmap: Bitmap,
+        sceneContext: String
+    ): VisionResult? {
+        val apiKey = QuizAnswerClient.loadApiKey(context)
+        if (apiKey.isEmpty()) {
+            Log.w(TAG, "analyzeScreenshot: GLM API Key not configured, skip AI vision")
+            return null
+        }
+
+        // Bitmap → JPEG Base64（压缩到 < 1MB 避免请求体过大）
+        val base64Image = encodeBitmapToBase64(bitmap)
+        if (base64Image.isEmpty()) {
+            Log.w(TAG, "analyzeScreenshot: encode bitmap failed")
+            return null
+        }
+
+        val prompt = buildPrompt(sceneContext)
+
+        var conn: java.net.HttpURLConnection? = null
+        return try {
+            val url = java.net.URL(API_URL)
+            conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 20000
+                readTimeout = 45000  // 视觉模型推理较慢，给足时间
+                setRequestProperty("Authorization", "Bearer $apiKey")
+                setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                setRequestProperty("User-Agent", "bbncbot-app")
+                doOutput = true
+            }
+
+            // 构造多模态请求体（OpenAI 兼容格式）
+            val content = JSONArray().apply {
+                // 文本提示词在前，图片在后（智谱推荐顺序）
+                put(JSONObject().apply {
+                    put("type", "text")
+                    put("text", prompt)
+                })
+                put(JSONObject().apply {
+                    put("type", "image_url")
+                    put("image_url", JSONObject().apply {
+                        put("url", "data:image/jpeg;base64,$base64Image")
+                    })
+                })
+            }
+            val messages = JSONArray().apply {
+                put(JSONObject().apply {
+                    put("role", "system")
+                    put("content", "你是安卓自动化助手的视觉决策模块。" +
+                        "用户会给你一张手机屏幕截图，你需要判断该执行哪个预定义动作。" +
+                        "只返回一个 JSON 对象，不要任何额外文字。")
+                })
+                put(JSONObject().apply {
+                    put("role", "user")
+                    put("content", content)
+                })
+            }
+            val jsonBody = JSONObject().apply {
+                put("model", MODEL)
+                put("messages", messages)
+                put("temperature", 0.1)  // 低温度，提高决策确定性
+                put("max_tokens", 200)   // 返回 JSON 很短
+            }.toString()
+
+            conn.outputStream.use { os ->
+                os.write(jsonBody.toByteArray(Charsets.UTF_8))
+            }
+
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                val err = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                Log.e(TAG, "analyzeScreenshot: GLM API failed (HTTP $code): ${err.take(300)}")
+                return null
+            }
+
+            val response = conn.inputStream.bufferedReader().use { it.readText() }
+            val contentStr = parseContent(response)
+            if (contentStr.isBlank()) {
+                Log.w(TAG, "analyzeScreenshot: empty content, response=${response.take(200)}")
+                return null
+            }
+
+            val result = parseAction(contentStr)
+            Log.i(TAG, "analyzeScreenshot: sceneContext='$sceneContext', " +
+                "action=${result.action}, reason='${result.reason.take(80)}'")
+            result
+        } catch (e: Exception) {
+            Log.e(TAG, "analyzeScreenshot exception: ${e.message}", e)
+            null
+        } finally {
+            conn?.disconnect()
+        }
+    }
+
+    /**
+     * 构造 AI 提示词
+     *
+     * 约束 AI 只返回 5 个预定义动作之一，便于代码解析执行。
+     */
+    private fun buildPrompt(sceneContext: String): String {
+        return buildString {
+            append("当前场景上下文：").append(sceneContext).append("\n\n")
+            append("请分析这张手机截图，判断安卓自动化机器人下一步该执行哪个动作。\n\n")
+            append("只能从以下 5 个预定义动作中选择一个，返回严格的 JSON 格式：\n")
+            append("{\"action\": \"<动作>\", \"reason\": \"<简要理由>\"}\n\n")
+            append("可选动作（action 字段值）：\n")
+            append("- CLICK_CLOSE  : 点击关闭按钮（×/关闭/知道了/确定）关闭弹窗\n")
+            append("- CLICK_CLAIM  : 点击领取/确认按钮（领取奖励/领取肥料/确定）领取奖励\n")
+            append("- PRESS_BACK   : 按返回键（无法处理或应该退出当前页）\n")
+            append("- SKIP_TASK    : 跳过当前任务（页面无肥料价值，如分享/评价/会员推销）\n")
+            append("- WAIT         : 等待（页面正在加载或倒计时中，不应操作）\n\n")
+            append("判断优先级：\n")
+            append("1. 若有\"恭喜获得/领取奖励/领取肥料\"等领取按钮 → CLICK_CLAIM\n")
+            append("2. 若有\"×/关闭/知道了/确定\"等关闭按钮且无肥料提示 → CLICK_CLOSE\n")
+            append("3. 若页面是分享/评价/会员/活动推销等无肥料价值 → SKIP_TASK\n")
+            append("4. 若页面正在加载/有倒计时/视频播放中 → WAIT\n")
+            append("5. 其他无法处理的情况 → PRESS_BACK\n\n")
+            append("只返回 JSON，不要 markdown 代码块，不要解释。")
+        }
+    }
+
+    /**
+     * 解析 GLM API 响应，提取 content 文本
+     */
+    private fun parseContent(response: String): String {
+        return try {
+            val json = JSONObject(response)
+            val choices = json.optJSONArray("choices") ?: return ""
+            if (choices.length() == 0) return ""
+            val message = choices.optJSONObject(0)?.optJSONObject("message") ?: return ""
+            message.optString("content", "").trim()
+        } catch (e: Exception) {
+            Log.e(TAG, "parseContent failed: ${e.message}")
+            ""
+        }
+    }
+
+    /**
+     * 解析 AI 返回的动作为枚举
+     *
+     * 容错策略：
+     * - 尝试解析为 JSON
+     * - 失败则在原文中匹配动作关键词
+     * - 都失败返回 PRESS_BACK（最安全的兜底）
+     */
+    private fun parseAction(content: String): VisionResult {
+        // 1. 尝试 JSON 解析
+        try {
+            // 兼容 AI 可能包裹的 markdown 代码块
+            val cleaned = content
+                .replace("```json", "")
+                .replace("```", "")
+                .trim()
+            val json = JSONObject(cleaned)
+            val actionStr = json.optString("action", "").uppercase()
+            val reason = json.optString("reason", "")
+            val action = parseActionEnum(actionStr)
+            return VisionResult(action, reason)
+        } catch (e: Exception) {
+            Log.w(TAG, "parseAction: JSON parse failed, fallback to keyword match: ${e.message}")
+        }
+
+        // 2. 关键词兜底匹配
+        val upper = content.uppercase()
+        val action = when {
+            upper.contains("CLICK_CLOSE") -> AiVisionAction.CLICK_CLOSE
+            upper.contains("CLICK_CLAIM") -> AiVisionAction.CLICK_CLAIM
+            upper.contains("SKIP_TASK") -> AiVisionAction.SKIP_TASK
+            upper.contains("WAIT") -> AiVisionAction.WAIT
+            else -> AiVisionAction.PRESS_BACK
+        }
+        return VisionResult(action, content.take(100))
+    }
+
+    private fun parseActionEnum(s: String): AiVisionAction {
+        return when (s) {
+            "CLICK_CLOSE" -> AiVisionAction.CLICK_CLOSE
+            "CLICK_CLAIM" -> AiVisionAction.CLICK_CLAIM
+            "SKIP_TASK" -> AiVisionAction.SKIP_TASK
+            "WAIT" -> AiVisionAction.WAIT
+            else -> AiVisionAction.PRESS_BACK
+        }
+    }
+
+    /**
+     * Bitmap → JPEG Base64
+     *
+     * 压缩策略：质量从 80 递减到 20，直到 < 800KB（避免请求体过大被拒绝）
+     */
+    private fun encodeBitmapToBase64(bitmap: Bitmap): String {
+        var quality = 80
+        while (quality >= 20) {
+            try {
+                val baos = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, quality, baos)
+                val bytes = baos.toByteArray()
+                if (bytes.size < 800_000) {
+                    return Base64.encodeToString(bytes, Base64.NO_WRAP)
+                }
+                quality -= 20
+            } catch (e: Exception) {
+                Log.e(TAG, "encodeBitmapToBase64 failed at quality=$quality: ${e.message}")
+                return ""
+            }
+        }
+        // 最后兜底：用最低质量编码
+        return try {
+            val baos = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 20, baos)
+            Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP)
+        } catch (e: Exception) {
+            ""
+        }
+    }
+}
