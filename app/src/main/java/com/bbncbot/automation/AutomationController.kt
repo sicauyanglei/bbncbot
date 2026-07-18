@@ -841,6 +841,22 @@ object AutomationController {
                 taskListOpenedThisRound = false
                 debugLog("openTaskList: reset taskListOpenedThisRound for new round (attempt=0)")
             }
+            // build530 修复（debug_test_20260719_045429.log, build530-9ab1929）：
+            // 历史问题：第一轮 PROCESSING_TASK 结束回 OPENING_TASK_LIST 后，currentTaskIndex
+            // 保留上一轮的值（如 currentTaskIndex=2），第二轮 processTask 从 #3 开始，
+            // 跳过了 priority=0 的 pure claim "领取"按钮（在排序后的 idx=0 位置）。
+            // 日志证据：
+            //   第一轮：currentTaskIndex=0 → skip #1 → currentTaskIndex=1 → skip #2 → currentTaskIndex=2
+            //   第二轮：processTask: current task #3/5  ← 从 #3 开始，跳过了 #1 和 #2
+            //   （#1 是排序后的 priority=0 "领取"按钮，被跳过导致肥料没领取）
+            //
+            // 修复：每轮 OPENING_TASK_LIST 开始时（attempt==0），重置 currentTaskIndex=0
+            // 并清空 taskButtons，确保 checkTaskListOpened 会重新填充并重置索引。
+            if (currentTaskIndex != 0 || taskButtons.isNotEmpty()) {
+                debugLog("openTaskList: resetting currentTaskIndex to 0 for new round (was $currentTaskIndex, taskButtons.size=${taskButtons.size})")
+                currentTaskIndex = 0
+                taskButtons = emptyList()
+            }
         }
 
         if (attempt >= MAX_TASK_LIST_ATTEMPTS) {
@@ -1225,7 +1241,27 @@ object AutomationController {
             "试玩", "新游", "玩游戏", "玩1局", "玩一局", "开局", "对战",
             "完成1局", "完成一局", "打一局"
         )
-        val shouldSkip = skipTaskTexts.any { buttonText.contains(it) || taskContextText.contains(it) }
+        // build530 修复（debug_test_20260719_045429.log, build530-9ab1929）：
+        // 历史问题：【福利】试玩热门新游 访问必得500-3500肥 的"领取"按钮被 skipTaskTexts
+        // 中的"试玩"/"新游"关键词跳过，导致 pure claim 路径没机会执行，肥料没领取。
+        // 日志证据：
+        //   sortTaskButtons: idx=3 task='' priority=0 (pureClaim=true, button='领取')
+        //   processTask: current task #1/5, text='领取', context='【福利】试玩热门新游 访问必得500-3500肥(0/3500) ...'
+        //   processTask: skip list task #1, text='领取', context='...'  ← 被 skipTaskTexts 跳过！
+        //   processTask: all ads/tasks done on ALIPAY, collected=0  ← 没拿到肥料
+        //
+        // 修复：pure claim 按钮（领取/收下/立即领取等，且非付费任务）优先于 skipTaskTexts，
+        // 不被"试玩"/"新游"等关键词跳过。pure claim 按钮点击即得肥料，与任务文案无关。
+        val pureClaimEarlyTexts = setOf(
+            "领取", "收下", "立即领取", "点击领取", "开心收下",
+            "立即领肥", "领取肥料"
+        )
+        val isPureClaimEarly = buttonText in pureClaimEarlyTexts && !fullTaskText.let { ft ->
+            listOf("退款", "扣回", "扣减", "下单后", "购买后", "充值后", "消费满",
+                "任意下单", "下单领", "下单赢", "任意充值").any { ft.contains(it) }
+        }
+        val shouldSkip = !isPureClaimEarly &&
+            skipTaskTexts.any { buttonText.contains(it) || taskContextText.contains(it) }
         if (shouldSkip) {
             Log.i(TAG, "processTask: task #${currentTaskIndex + 1} in skip list, skipping (text='$buttonText', context='$taskContextText')")
             debugLog("processTask: skip list task #${currentTaskIndex + 1}, text='$buttonText', context='$taskContextText'")
