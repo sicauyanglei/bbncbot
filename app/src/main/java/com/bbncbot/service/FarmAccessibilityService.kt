@@ -283,10 +283,17 @@ class FarmAccessibilityService : AccessibilityService() {
     fun isFarmAppInForeground(): Boolean {
         return try {
             val cfg = currentPlatformConfig()
+            // 0. 先排除本应用包名：bbncbot 自己绝不会被当作"农场 App"
+            //    原因：bbncbot 的 MainActivity 类名为 com.bbncbot.MainActivity，
+            //    小写后含 "mainactivity"，会被 farmPageActivityKeywords 误匹配，
+            //    导致自动化启动后即使没切到农场 App 也以为切到了 → 空转。
+            val BBNCBOT_PKG = "com.bbncbot"
             // 1. 优先遍历 windows 查找农场平台包名（最可靠）
             val windows = windows
             for (w in windows) {
                 val pkg = w.root?.packageName?.toString().orEmpty()
+                // 显式排除本应用包名（即使 windows 中出现也不算农场 App）
+                if (pkg == BBNCBOT_PKG) continue
                 if (pkg in cfg.packageNames || cfg.internalPackagePrefixes.any { pkg.startsWith(it) }) {
                     return true
                 }
@@ -299,6 +306,12 @@ class FarmAccessibilityService : AccessibilityService() {
             if (activity.isNotEmpty() && cfg.farmPageActivityKeywords.isNotEmpty() &&
                 cfg.farmPageActivityKeywords.any { activity.contains(it) }
             ) {
+                // 兜底场景也排除 bbncbot 自己：com.bbncbot.mainactivity 会匹配 "mainactivity" 关键词，
+                // 但这显然不是农场 App。通过判断 activity 是否以 "com.bbncbot" 开头来排除。
+                if (activity.startsWith("com.bbncbot")) {
+                    debugLog("isFarmAppInForeground: activity=$activity is bbncbot itself, NOT treat as farm app")
+                    return false
+                }
                 debugLog("isFarmAppInForeground: windows miss farm pkg, but activity=$activity matches farm keywords, treat as in farm app")
                 return true
             }
