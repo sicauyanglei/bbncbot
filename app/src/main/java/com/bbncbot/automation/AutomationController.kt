@@ -1222,6 +1222,37 @@ object AutomationController {
         }
 
         // 2. 游戏类任务：打开游戏停留玩一下即可获取肥料（无法实现过关卡，仅靠停留拿奖励）
+        // P0-D（build520 修复）：纯"领取"/"收下"按钮是 easyClaim（点击即得肥料），
+        // 必须在 isGameTask 之前短路，避免 contextText 含"蚂蚁庄园"/"蚂蚁森林"等
+        // 游戏关键词时被误判为 game task，导致进入 GAME_PLAYING 反而关闭了任务列表弹窗。
+        //
+        // 历史问题（debug_test_20260718_211741.log, build518-93f7a54）：
+        // - 蚂蚁庄园浏览任务（buttonText='领取', contextText='逛一逛蚂蚁庄园...限时加倍浏览即得500肥'）
+        // - isGameTask 检测 contextText 含"蚂蚁庄园" → 返回 true
+        // - 进入 GAME_PLAYING 后点击了任务列表弹窗的"关闭"按钮，关闭了任务列表而非领取肥料
+        // - 实际"领取"按钮就是直接点击领取，无需进入游戏流程
+        //
+        // 修复：buttonText 精确等于"领取"/"收下" 且无付费暗示 → 直接点击领取，
+        // 等待领取结果后回 OPENING_TASK_LIST（与 isPaidTask 跳过路径的等待时长保持一致）
+        val isPureClaimClick = (buttonText == "领取" || buttonText == "收下") && !fullTaskText.let { ft ->
+            // 复用 paidHintKeywords 判断，避免重复声明
+            listOf("退款", "扣回", "扣减", "下单后", "购买后", "充值后", "消费满",
+                "任意下单", "下单领", "下单赢", "任意充值").any { ft.contains(it) }
+        }
+        if (isPureClaimClick) {
+            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is pure claim button, clicking to claim (text='$buttonText', context='${taskContextText.take(60)}')")
+            debugLog("processTask: pure claim task #${currentTaskIndex + 1}, button='$buttonText', direct click to claim fertilizer")
+            service.performClickSafe(button)
+            currentTaskIndex++
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) {
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
         if (service.isGameTask(button)) {
             Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is game task, entering GAME_PLAYING (text='$buttonText')")
             debugLog("processTask: game task #${currentTaskIndex + 1}, text='$buttonText', staying in game to earn fertilizer")

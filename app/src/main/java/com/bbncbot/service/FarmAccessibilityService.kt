@@ -1889,6 +1889,17 @@ class FarmAccessibilityService : AccessibilityService() {
                 debugLog("findGoCompleteButtons: drop rule-clause node (text='$buttonText')")
                 return@mapNotNull null
             }
+            // P0-D（build520 修复）：过滤已完成任务的"已领取"按钮
+            // 历史问题（debug_test_20260718_211741.log, build518-93f7a54）：
+            // - 第一轮点击"领取"按钮成功领取蚂蚁庄园任务肥料后，第二轮任务列表刷新
+            // - 原按钮文字从"领取"变成"已领取"（clickable=true 仍可点击）
+            // - findGoCompleteButtons 用 contains 匹配"领取"关键词，"已领取"命中"领取"被误加入列表
+            // - processTask 又把"已领取"当成 game task 处理（contextText 含"蚂蚁庄园"），重复无意义流程
+            // 修复：精确匹配 buttonText == "已领取" 直接过滤（clickable=true 但任务已完成，不应再点击）
+            if (buttonText == "已领取") {
+                debugLog("findGoCompleteButtons: drop already-claimed node text='$buttonText' (task completed)")
+                return@mapNotNull null
+            }
             // 4. bounds 合法性过滤（仅过滤非法矩形，不过滤屏幕外按钮，原因见上方注释）
             val rect = android.graphics.Rect()
             clickTarget.getBoundsInScreen(rect)
