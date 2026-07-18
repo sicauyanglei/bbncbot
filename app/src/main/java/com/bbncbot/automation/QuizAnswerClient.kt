@@ -13,20 +13,22 @@ import org.json.JSONObject
  * 因此需要调用 AI API 获取答案，选择最可能正确的选项。
  *
  * 实现：
- * - 调用智谱 GLM-4-Flash-250414（免费模型）chat/completions 接口
+ * - 调用智谱 GLM-4.7-Flash（首选，推理能力强）chat/completions 接口
+ * - glm-4.7-flash 限流时自动降级到 glm-4-flash-250414（稳定兜底）
  * - 将问题 + 两个选项发给 AI，让 AI 返回正确选项的文本
  * - API Key 存储于 SharedPreferences（与 GitHub Token 同样的安全方式）
  *
  * 必须在后台线程调用（含网络 IO）。
  *
- * 智谱 API 文档：https://docs.bigmodel.cn/cn/guide/models/free/glm-4-flash-250414
+ * 智谱 API 文档：
+ * - glm-4.7-flash: https://docs.bigmodel.cn/cn/guide/models/free/glm-4.7-flash
+ * - glm-4-flash-250414: https://docs.bigmodel.cn/cn/guide/models/free/glm-4-flash-250414
  * - URL: https://open.bigmodel.cn/api/paas/v4/chat/completions
  * - Auth: Bearer {api_key}
- * - Body: { "model": "glm-4-flash-250414", "messages": [...] }
  *
- * 模型选择说明：
- * - 旧模型 ID "glm-4-flash" 已下线，需用带版本号的 "glm-4-flash-250414"
- * - 备选：glm-4.7-flash（200K 上下文，能力更强，同样免费）
+ * 关键注意：glm-4.7-flash 默认开启思考模式，会消耗大量 token（50 token 全用于 reasoning），
+ * 导致 max_tokens=100 不够返回最终答案。必须关闭思考模式（thinking.type=disabled）。
+ * 关闭后响应更快、token 更省（6 token 返回完整答案）、答案更规范。
  */
 object QuizAnswerClient {
 
@@ -35,8 +37,17 @@ object QuizAnswerClient {
     /** 智谱 GLM API 端点 */
     private const val API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
 
-    /** 使用免费模型 glm-4-flash-250414（128K 上下文，无需付费，适合答题场景） */
-    private const val MODEL = "glm-4-flash-250414"
+    /**
+     * 答题文本模型优先级列表（按能力从强到弱，依次尝试）
+     *
+     * 模型选择说明：
+     * - glm-4.7-flash：30B MoE 推理模型，AIME 91.6 分，推理能力强（首选）
+     *   注意：默认开启思考模式会消耗大量 token，必须关闭思考模式（thinking.disabled）
+     * - glm-4-flash-250414：基础免费文本模型，能力稍弱但稳定（兜底，避免 4.7 限流时失效）
+     *
+     * Fallback 策略：依次尝试列表中的模型，限流/失败时自动降级到下一个模型。
+     */
+    private val TEXT_MODELS = listOf("glm-4.7-flash", "glm-4-flash-250414")
 
     /** SharedPreferences 名称（独立于 GitHub Token 配置） */
     private const val PREFS_NAME = "ai_config"
@@ -92,6 +103,35 @@ object QuizAnswerClient {
         // 严格约束输出格式，便于解析（避免 AI 输出多余解释）
         val prompt = buildPrompt(question, option1, option2)
 
+        // 依次尝试文本模型列表（glm-4.7-flash → glm-4-flash-250414）
+        // 限流/失败时自动降级到下一个模型
+        for (model in TEXT_MODELS) {
+            val content = callTextModel(apiKey, model, prompt)
+            if (content.isNotBlank()) {
+                // 匹配到对应选项（AI 返回的文本可能不完全一致，用包含关系匹配）
+                val matched = matchOption(content, option1, option2)
+                Log.i(TAG, "askAnswer: model=$model, question='${question.take(50)}', " +
+                    "opt1='$option1', opt2='$option2', aiAnswer='$content', matched='$matched'")
+                if (matched.isNotEmpty()) {
+                    return matched
+                }
+                // 匹配失败但 AI 有返回，也继续尝试下一个模型（可能下一个模型返回更规范的文本）
+                Log.w(TAG, "askAnswer: model=$model returned '$content' but matched no option, trying next")
+            }
+        }
+        Log.w(TAG, "askAnswer: all text models failed or unmatched (tried=${TEXT_MODELS.joinToString()})")
+        return ""
+    }
+
+    /**
+     * 调用单个文本模型
+     *
+     * @param apiKey API Key
+     * @param model 模型 ID
+     * @param prompt 提示词
+     * @return AI 返回的文本；失败返回空字符串（调用方会尝试下一个模型）
+     */
+    private fun callTextModel(apiKey: String, model: String, prompt: String): String {
         var conn: java.net.HttpURLConnection? = null
         return try {
             val url = java.net.URL(API_URL)
@@ -110,7 +150,7 @@ object QuizAnswerClient {
                 put(JSONObject().apply {
                     put("role", "system")
                     put("content", "你是一个答题助手。用户会给你一道选择题（只有2个选项），你需要选出正确选项。" +
-                        "只返回正确选项的完整文本，不要解释，不要加引号，不要加前缀。")
+                        "只返回正确选项的完整文本，不要解释，不要加引号，不要加\"选项A\"等前缀。")
                 })
                 put(JSONObject().apply {
                     put("role", "user")
@@ -118,10 +158,17 @@ object QuizAnswerClient {
                 })
             }
             val jsonBody = JSONObject().apply {
-                put("model", MODEL)
+                put("model", model)
                 put("messages", messages)
                 put("temperature", 0.1)  // 低温度，提高答案确定性
                 put("max_tokens", 100)   // 答案很短，限制 token 节省费用
+                // glm-4.7-flash 默认开启思考模式会消耗大量 token（50 token 全用于 reasoning）
+                // 答题任务简单，关闭思考模式：响应更快、token 更省、答案更规范
+                if (model == "glm-4.7-flash") {
+                    put("thinking", JSONObject().apply {
+                        put("type", "disabled")
+                    })
+                }
             }.toString()
 
             conn.outputStream.use { os ->
@@ -131,7 +178,7 @@ object QuizAnswerClient {
             val code = conn.responseCode
             if (code !in 200..299) {
                 val err = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-                Log.e(TAG, "askAnswer: GLM API failed (HTTP $code): ${err.take(300)}")
+                Log.w(TAG, "callTextModel($model) failed (HTTP $code): ${err.take(200)}, will try next model")
                 return ""
             }
 
@@ -139,17 +186,13 @@ object QuizAnswerClient {
             val response = conn.inputStream.bufferedReader().use { it.readText() }
             val content = parseAnswer(response)
             if (content.isBlank()) {
-                Log.w(TAG, "askAnswer: empty answer from GLM, response=${response.take(200)}")
+                Log.w(TAG, "callTextModel($model): empty content, response=${response.take(200)}")
                 return ""
             }
-
-            // 匹配到对应选项（AI 返回的文本可能不完全一致，用包含关系匹配）
-            val matched = matchOption(content, option1, option2)
-            Log.i(TAG, "askAnswer: question='${question.take(50)}', opt1='$option1', opt2='$option2', " +
-                "aiAnswer='$content', matched='$matched'")
-            matched
+            Log.i(TAG, "callTextModel($model) success: content='${content.take(80)}'")
+            content
         } catch (e: Exception) {
-            Log.e(TAG, "askAnswer exception: ${e.message}", e)
+            Log.e(TAG, "callTextModel($model) exception: ${e.message}")
             ""
         } finally {
             conn?.disconnect()
