@@ -1,0 +1,57 @@
+=== cleared on app start (version=2.2, build=build505-f53686f, time=17:52:16) ===
+17:52:16.248 killPlatformApps: killed com.ucmobile.lite for UC
+17:52:16.249 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+17:52:16.250 killPlatformApps: killed com.taobao.taobao for TAOBAO
+17:52:26.714 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+17:52:26.720 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+17:52:26.721 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+17:52:26.723 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+17:52:30.315 navigateAlipay: found 芭芭农场 entry at [108,402][298,510], clickable=false, clicking
+17:52:30.321 performClickSafe: text='芭芭农场' desc='' bounds=[108,402][298,510] clickable=false
+17:52:30.323 performClickSafe: ACTION_CLICK failed, trying gesture
+17:52:30.326 dispatchGesture: screen=[[108,402][298,510]] window=[[0,0][0,0]]
+17:52:30.328 dispatchGesture: not in popup, screen bounds valid, click at (203.0, 456.0)
+17:52:30.332 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+17:52:38.365 saveToken: saved (len=93, head='gith', tail='McKr')
+17:52:38.368 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+17:52:38.370 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260718_175238.log, localFile=debug.log (1350 bytes)
+17:52:40.087 uploadFile resp: code=201, url=logs/debug_test_20260718_175238.log, errBody=
+17:52:40.089 uploaded: logs/debug_test_20260718_175238.log (1508 bytes)
+17:52:40.091 upload: success, remotePath=logs/debug_test_20260718_175238.log
+17:52:40.093 upload done: 1 files uploaded (tag=test), errors=[]
+17:53:43.247 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+17:53:43.248 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+17:53:43.249 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+17:53:43.250 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+17:53:44.739 === Automation v2 Started === platform=ALIPAY
+17:53:44.739 cancelNavigation: all navigation callbacks cancelled
+17:53:44.743 reset platform complete: ALIPAY
+17:53:44.743 state: IDLE -> NAVIGATING
+17:53:46.748 isOnFarmPage: no farm content, sample=[松开刷新, search_icon, 芭芭农场, 搜索, 全部, 服饰鞋包, 食品, 日用]
+17:53:46.891 [navigate-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+17:53:47.282 navigate: calling navigateToFarm, platform=ALIPAY
+17:53:48.808 navigateAlipay: found 芭芭农场 entry at [108,402][298,510], clickable=false, clicking
+17:53:48.812 performClickSafe: text='芭芭农场' desc='' bounds=[108,402][298,510] clickable=false
+17:53:48.815 performClickSafe: ACTION_CLICK failed, trying gesture
+17:53:48.817 dispatchGesture: screen=[[108,402][298,510]] window=[[0,0][0,0]]
+17:53:48.819 dispatchGesture: not in popup, screen bounds valid, click at (203.0, 456.0)
+17:53:48.821 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+17:53:52.296 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+17:53:52.328 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+17:53:52.341 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+17:53:57.352 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+17:53:57.367 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+17:53:57.379 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+17:53:57.389 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+17:53:57.390 navigate: farm app still not in foreground after relaunch (attempt=1), waiting for next retry
+17:54:02.405 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+17:54:02.430 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+17:54:02.453 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+17:54:02.472 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+17:54:02.473 navigate: farm app still not in foreground after relaunch (attempt=2), waiting for next retry
+17:54:03.363 state: NAVIGATING -> STOPPING
+17:54:03.364 cancelNavigation: all navigation callbacks cancelled
+17:54:03.365 state: STOPPING -> IDLE
+17:54:04.817 saveToken: saved (len=93, head='gith', tail='McKr')
+17:54:04.821 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+17:54:04.824 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260718_175404.log, localFile=debug.log (5144 bytes)
