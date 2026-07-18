@@ -4653,26 +4653,41 @@ class FarmAccessibilityService : AccessibilityService() {
                 rect.left < rect.right && rect.top < rect.bottom &&
                 rect.left >= 0 && rect.top >= 0
             if (boundsValid && !isSearchNode && rect.height() < 600 && rect.width() < 1000) {
-                debugLog("navigateAlipay: found 芭芭农场 entry at ${rect.toShortString()}, clickable=${farmEntry.isClickable}, clicking")
-                val clickResult = performClickSafe(farmEntry)
-                debugLog("navigateAlipay: 芭芭农场 entry click result=$clickResult (will verify navigation)")
-                // Honor 桌面下"芭芭农场"入口常 clickable=false，手势兜底点击后可能未真正进入农场页。
-                // 修复：performClickSafe 返回后等待几秒，让界面切换；
-                // 如果仍在支付宝首页（没进入芭芭农场 H5 页），下一轮 stepNavigateAlipayFarm 会重试。
-                // 这里设置 8 秒超时清除导航标志，足够 H5 加载。
+                // build534 修复（debug_test_20260719_072400.log, build534-6db91cf）：
+                // 历史问题：原逻辑只检查 bounds 合法就点击，不检查 clickable。
+                // 但日志显示在支付宝首页找到了"芭芭农场"文本节点（位置 [111,494][298,598]，
+                // 在左上角，很可能是首页顶部的标题文本），clickable=false。
+                // ACTION_CLICK failed → dispatchGesture 手势派发返回 true（仅表示派发成功）
+                // 但点击 (204.5, 546.0) 落在不可点击的标题文本上，没触发跳转。
+                // 8 秒后重试又找到同一节点，又点击，又失败——死循环 7 次直至用户停止。
                 //
-                // build533 修复（debug_test_20260719_064828.log, build532-6d5c936）：
-                // 历史问题：原逻辑只 postDelayed clearNavigatingFlag(8s) 然后 return，
-                // 8 秒后只清除导航标志，不重新调用 stepNavigateAlipayFarm 重试。
-                // 若点击的"芭芭农场"节点 clickable=false（ACTION_CLICK failed，手势兜底可能
-                // 没真正触发跳转），bot 卡死等待 8 秒后什么也不做，造成 26 秒空白直至用户停止。
-                // 修复：8 秒后除了清除标志，还要再调用一次 stepNavigateAlipayFarm(retry+1)
-                // 让 bot 检查是否仍在支付宝首页；若是则换其他策略（搜索框）重新导航。
-                navHandler.postDelayed({
-                    clearNavigatingFlag()
-                    stepNavigateAlipayFarm(retry + 1)
-                }, 8000L)
-                return
+                // 修复：跳过 clickable=false 的"芭芭农场"节点，直接走策略 2（搜索框搜索）。
+                // Honor 桌面下的"芭芭农场"快捷入口在桌面图标里（不在支付宝首页），
+                // 支付宝首页找到的"芭芭农场"文本若是不可点击的标题，不应尝试点击。
+                if (!farmEntry.isClickable) {
+                    debugLog("navigateAlipay: 芭芭农场 entry at ${rect.toShortString()} is not clickable (probably title text), skip and fallback to search")
+                } else {
+                    debugLog("navigateAlipay: found 芭芭农场 entry at ${rect.toShortString()}, clickable=${farmEntry.isClickable}, clicking")
+                    val clickResult = performClickSafe(farmEntry)
+                    debugLog("navigateAlipay: 芭芭农场 entry click result=$clickResult (will verify navigation)")
+                    // Honor 桌面下"芭芭农场"入口常 clickable=false，手势兜底点击后可能未真正进入农场页。
+                    // 修复：performClickSafe 返回后等待几秒，让界面切换；
+                    // 如果仍在支付宝首页（没进入芭芭农场 H5 页），下一轮 stepNavigateAlipayFarm 会重试。
+                    // 这里设置 8 秒超时清除导航标志，足够 H5 加载。
+                    //
+                    // build533 修复（debug_test_20260719_064828.log, build532-6d5c936）：
+                    // 历史问题：原逻辑只 postDelayed clearNavigatingFlag(8s) 然后 return，
+                    // 8 秒后只清除导航标志，不重新调用 stepNavigateAlipayFarm 重试。
+                    // 若点击的"芭芭农场"节点 clickable=false（ACTION_CLICK failed，手势兜底可能
+                    // 没真正触发跳转），bot 卡死等待 8 秒后什么也不做，造成 26 秒空白直至用户停止。
+                    // 修复：8 秒后除了清除标志，还要再调用一次 stepNavigateAlipayFarm(retry+1)
+                    // 让 bot 检查是否仍在支付宝首页；若是则换其他策略（搜索框）重新导航。
+                    navHandler.postDelayed({
+                        clearNavigatingFlag()
+                        stepNavigateAlipayFarm(retry + 1)
+                    }, 8000L)
+                    return
+                }
             }
             debugLog("navigateAlipay: 芭芭农场 entry invalid (searchNode=$isSearchNode, bounds=${rect.toShortString()}), fallback to search")
         }
