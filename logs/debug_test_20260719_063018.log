@@ -1,0 +1,164 @@
+=== cleared on app start (version=2.2, build=build531-a39eb89, time=06:26:24) ===
+06:26:24.609 killPlatformApps: killed com.ucmobile.lite for UC
+06:26:24.610 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+06:26:24.612 killPlatformApps: killed com.taobao.taobao for TAOBAO
+06:26:28.475 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+06:26:28.477 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+06:26:28.477 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+06:26:28.479 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+06:26:32.279 navigateAlipay: found 芭芭农场 entry at [484,538][716,758], clickable=true, clicking
+06:26:32.281 performClickSafe: text='' desc='' bounds=[484,538][716,758] clickable=true
+06:26:32.345 performClickSafe: ACTION_CLICK success at depth=0
+06:26:32.348 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+06:26:37.665 === Automation v2 Started === platform=ALIPAY
+06:26:37.667 cancelNavigation: all navigation callbacks cancelled
+06:26:37.676 reset platform complete: ALIPAY
+06:26:37.677 state: IDLE -> NAVIGATING
+06:26:38.301 [navigate-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:26:38.334 navigate: on farm page, platform=ALIPAY
+06:26:38.349 hasFarmContentLoaded: text count=126, sample=[松开刷新, 任务列表, 农场乐园入口, 立即领肥, 切换摇钱树, 逛农货, 我的收获, 芭芭农场,种果树得水果，助农增收, 钓红包, 亲友树]
+06:26:38.351 hasFarmContentLoaded: realContent count=101
+06:26:38.351 navigate: hasFarmContentLoaded=true, attempt=0
+06:26:38.352 state: NAVIGATING -> COLLECTING_DIRECT
+06:26:40.540 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:26:40.565 collectDirect: found 1 direct buttons, attempt=0
+06:26:40.566 collectDirect: clicking text='立即领肥' desc='' (attempt 1)
+06:26:40.566 performClickSafe: text='立即领肥' desc='' bounds=[474,1539][727,1617] clickable=true
+06:26:40.579 performClickSafe: ACTION_CLICK success at depth=0
+06:26:45.878 collectDirect: claim button found, clicking (retry left=3)
+06:26:45.879 performClickSafe: text='立即领取' desc='' bounds=[278,1660][923,1807] clickable=true
+06:26:45.888 performClickSafe: ACTION_CLICK success at depth=0
+06:26:45.890 dispatchGesture: screen=[[278,1660][923,1807]] window=[[0,0][0,0]]
+06:26:45.891 dispatchGesture: inPopup=true, trying coordinate fix
+06:26:45.895 estimateWebViewPopupOffset: no title area found, using default offset=410
+06:26:45.896 dispatchGesture: estimated popupOffset=410
+06:26:45.896 dispatchGesture: WebView popup fix, click at (600.5, 2143.5) offset=410
+06:26:48.207 findBrowseEntryInPopup: found by text='点此逛一逛', full='点此逛一逛再赚1000肥料>'
+06:26:48.210 collectDirect: browse entry found, switching to BROWSING_TASK
+06:26:48.212 state: COLLECTING_DIRECT -> BROWSING_TASK
+06:26:50.508 [browseTask-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:26:50.510 browseTask: clicking 'go browse' button, then will swipe
+06:26:50.511 performClickSafe: text='点此逛一逛再赚1000肥料>' desc='' bounds=[225,1660][975,1807] clickable=true
+06:26:50.517 performClickSafe: ACTION_CLICK success at depth=0
+06:26:50.518 dispatchGesture: screen=[[225,1660][975,1807]] window=[[0,0][0,0]]
+06:26:50.520 dispatchGesture: inPopup=true, trying coordinate fix
+06:26:50.521 estimateWebViewPopupOffset: no title area found, using default offset=410
+06:26:50.522 dispatchGesture: estimated popupOffset=410
+06:26:50.523 dispatchGesture: WebView popup fix, click at (600.0, 2143.5) offset=410
+06:27:00.572 browseTask: after clicking 'go browse', page type=farm_home, onFarm=true, texts=[松开刷新, award, 浏览15秒得1000肥料, search_icon, 芭芭农场, 搜索, img, 50支防风创意打火机, 50支防风创意打火机, ¥, 0, 1, 2, 3, 4]
+06:27:00.590 findSwipeForFertilizerHint: found hint '浏览15秒得1000肥料', seconds=15
+06:27:00.649 browseTask: found swipe hint, need 15 seconds
+06:27:00.652 browseTask: target swipes = 9 (hint=15 seconds)
+06:27:00.653 browseTask: skipping product click, swiping in list page directly
+06:27:06.157 browseTask: swipe #1/9 up (1450.0 -> 950.0), pageType=farm_home, countdown=0s, progress=false
+06:27:06.166 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:27:13.927 browseTask: swipe #2/9 down (950.0 -> 1450.0), pageType=farm_home, countdown=0s, progress=false
+06:27:13.933 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:27:22.865 browseTask: swipe #3/9 up (1450.0 -> 950.0), pageType=farm_home, countdown=0s, progress=false
+06:27:22.869 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:27:31.467 browseTask: swipe #4/9 down (950.0 -> 1450.0), pageType=farm_home, countdown=0s, progress=false
+06:27:31.469 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:27:40.588 browseTask: swipe #5/9 up (1450.0 -> 950.0), pageType=farm_home, countdown=0s, progress=false
+06:27:40.589 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:27:45.785 browseTask: swipe #6/9 down (950.0 -> 1450.0), pageType=farm_home, countdown=0s, progress=false
+06:27:45.786 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:27:50.970 browseTask: swipe #7/9 up (1450.0 -> 950.0), pageType=farm_home, countdown=0s, progress=false
+06:27:50.972 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:27:56.027 browseTask: swipe #8/9 down (950.0 -> 1450.0), pageType=farm_home, countdown=0s, progress=false
+06:27:56.031 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:28:01.248 browseTask: swipe #9/9 up (1450.0 -> 950.0), pageType=farm_home, countdown=0s, progress=false
+06:28:01.248 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:28:06.411 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #10/39)
+06:28:06.642 browseTask: swipe #10/9 down (950.0 -> 1450.0), pageType=farm_home, countdown=0s, progress=false
+06:28:06.643 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:28:11.521 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #11/39)
+06:28:11.774 browseTask: swipe #11/9 up (1450.0 -> 950.0), pageType=farm_home, countdown=0s, progress=false
+06:28:11.775 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:28:16.372 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #12/39)
+06:28:16.667 browseTask: swipe #12/9 down (950.0 -> 1450.0), pageType=farm_home, countdown=0s, progress=false
+06:28:16.668 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:28:21.960 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #13/39)
+06:28:22.277 browseTask: swipe #13/9 up (1450.0 -> 950.0), pageType=farm_home, countdown=0s, progress=false
+06:28:22.278 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:28:27.357 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #14/39)
+06:28:27.622 browseTask: swipe #14/9 down (950.0 -> 1450.0), pageType=farm_home, countdown=0s, progress=false
+06:28:27.623 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:28:32.318 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #15/39)
+06:28:32.580 browseTask: swipe #15/9 up (1450.0 -> 950.0), pageType=farm_home, countdown=0s, progress=false
+06:28:32.581 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:28:37.827 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #16/39)
+06:28:38.208 browseTask: swipe #16/9 down (950.0 -> 1450.0), pageType=farm_home, countdown=0s, progress=false
+06:28:38.209 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:28:43.439 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #17/39)
+06:28:43.720 browseTask: swipe #17/9 up (1450.0 -> 950.0), pageType=farm_home, countdown=0s, progress=false
+06:28:43.721 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:28:48.949 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #18/39)
+06:28:49.268 browseTask: swipe #18/9 down (950.0 -> 1450.0), pageType=farm_home, countdown=0s, progress=false
+06:28:49.269 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:28:53.747 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #19/39)
+06:28:54.136 browseTask: swipe #19/9 up (1450.0 -> 950.0), pageType=farm_home, countdown=0s, progress=false
+06:28:54.137 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:28:58.702 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #20/39)
+06:28:58.944 browseTask: swipe #20/9 down (950.0 -> 1450.0), pageType=farm_home, countdown=0s, progress=false
+06:28:58.944 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:29:03.642 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #21/39)
+06:29:03.909 browseTask: swipe #21/9 up (1450.0 -> 950.0), pageType=farm_home, countdown=0s, progress=false
+06:29:03.909 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:29:09.366 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #22/39)
+06:29:09.618 browseTask: swipe #22/9 down (950.0 -> 1450.0), pageType=farm_home, countdown=0s, progress=false
+06:29:09.619 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:29:14.392 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #23/39)
+06:29:14.645 browseTask: swipe #23/9 up (1450.0 -> 950.0), pageType=farm_home, countdown=0s, progress=false
+06:29:14.646 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:29:19.991 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #24/39)
+06:29:20.288 browseTask: swipe #24/9 down (950.0 -> 1450.0), pageType=farm_home, countdown=0s, progress=false
+06:29:20.289 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:29:25.608 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #25/39)
+06:29:25.912 browseTask: swipe #25/9 up (1450.0 -> 950.0), pageType=farm_home, countdown=0s, progress=false
+06:29:25.913 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:29:30.625 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #26/39)
+06:29:30.883 browseTask: swipe #26/9 down (950.0 -> 1450.0), pageType=farm_home, countdown=0s, progress=false
+06:29:30.883 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:29:36.668 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #27/39)
+06:29:36.930 browseTask: swipe #27/9 up (1450.0 -> 950.0), pageType=farm_home, countdown=0s, progress=false
+06:29:36.931 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:29:41.818 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #28/39)
+06:29:42.041 browseTask: swipe #28/9 down (950.0 -> 1450.0), pageType=farm_home, countdown=0s, progress=false
+06:29:42.042 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:29:46.815 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #29/39)
+06:29:47.063 browseTask: swipe #29/9 up (1450.0 -> 950.0), pageType=farm_home, countdown=0s, progress=false
+06:29:47.064 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:29:52.410 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #30/39)
+06:29:52.709 browseTask: swipe #30/9 down (950.0 -> 1450.0), pageType=farm_home, countdown=0s, progress=false
+06:29:52.711 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:29:57.655 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #31/39)
+06:29:58.509 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+06:29:58.543 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+06:29:58.555 browseTask: swipe #31/9 up (1450.0 -> 950.0), pageType=unknown, countdown=0s, progress=false
+06:29:58.556 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:30:01.297 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #32/39)
+06:30:01.347 isOnFarmPage: activeRootPkg='com.hihonor.hiboard' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+06:30:01.381 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+06:30:01.415 browseTask: swipe #32/9 down (950.0 -> 1450.0), pageType=unknown, countdown=0s, progress=false
+06:30:01.416 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:30:03.741 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #33/39)
+06:30:03.784 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+06:30:03.793 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+06:30:03.818 browseTask: swipe #33/9 up (1450.0 -> 950.0), pageType=unknown, countdown=0s, progress=false
+06:30:03.819 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:30:06.011 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #34/39)
+06:30:06.041 isOnFarmPage: activeRootPkg='com.hihonor.hiboard' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+06:30:06.083 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+06:30:06.101 browseTask: swipe #34/9 down (950.0 -> 1450.0), pageType=unknown, countdown=0s, progress=false
+06:30:06.103 dispatchGestureSwipe: (600.0,950.0) -> (600.0,1450.0) duration=500ms
+06:30:09.012 browseTask: keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #35/39)
+06:30:09.076 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+06:30:09.110 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+06:30:09.142 browseTask: swipe #35/9 up (1450.0 -> 950.0), pageType=unknown, countdown=0s, progress=false
+06:30:09.145 dispatchGestureSwipe: (600.0,1450.0) -> (600.0,950.0) duration=500ms
+06:30:09.339 state: BROWSING_TASK -> STOPPING
+06:30:09.340 cancelNavigation: all navigation callbacks cancelled
+06:30:09.343 state: STOPPING -> IDLE
+06:30:18.424 saveToken: saved (len=93, head='gith', tail='McKr')
+06:30:18.427 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+06:30:18.429 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260719_063018.log, localFile=debug.log (16862 bytes)
