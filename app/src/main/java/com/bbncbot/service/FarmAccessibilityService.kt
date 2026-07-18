@@ -1836,6 +1836,11 @@ class FarmAccessibilityService : AccessibilityService() {
         val seen = HashSet<Int>()
         collectNodesByText(root, keywords, raw, seen)
         // 过滤规则条款 / 不可点击 / bounds 非法的节点
+        // 注意：不过滤屏幕外的按钮（top > 屏幕高度）—— 任务列表是可滚动的，
+        // 屏幕外的按钮只是不可见，不是不存在。processTask 处理完当前任务后会
+        // 重新打开任务列表，taskButtons 会重新计算，所以屏幕外按钮不影响实际运行。
+        // 如果过滤掉屏幕外按钮，taskButtons.size 会变小，processTask 会误判
+        // "全部任务完成"（currentTaskIndex >= taskButtons.size），跳过剩余任务。
         val result = raw.filter { node ->
             // 1. 必须可点击
             if (!node.isClickable) {
@@ -1856,6 +1861,8 @@ class FarmAccessibilityService : AccessibilityService() {
                 return@filter false
             }
             // 4. bounds 合法性过滤
+            //    仅过滤非法矩形（width <= 0 或 height <= 0，如 top > bottom 的过期 bounds）。
+            //    不过滤屏幕外按钮（top > 屏幕高度），原因见上方注释。
             val rect = android.graphics.Rect()
             node.getBoundsInScreen(rect)
             if (rect.width() <= 0 || rect.height() <= 0) {
