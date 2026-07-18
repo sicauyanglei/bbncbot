@@ -163,6 +163,10 @@ object AutomationController {
     @Volatile
     private var deepLinkEnterTimeMs: Long = 0L
 
+    /** 上一轮广告检测时是否有倒计时（用于多信号融合检测倒计时消失） */
+    @Volatile
+    private var prevAdHadCountdown: Boolean = false
+
     /** 本次广告观看的农场平台（强杀深链 App 后重新启动此平台回到农场） */
     @Volatile
     private var watchingAdPlatform: Platform = Platform.UNKNOWN
@@ -652,15 +656,37 @@ object AutomationController {
         Log.i(TAG, "collectDirect: clicking '$btnText' (attempt ${attempt + 1})")
         service.performClickSafe(button)
 
-        // 等待弹窗或页面变化
-        handler.postDelayed({
-            if (state == AutomationState.COLLECTING_DIRECT) {
-                // 尝试点击确认领取按钮（精确匹配，不包含"关闭"）
-                val claimBtn = service.findClaimRewardButtonExact()
-                if (claimBtn != null) {
-                    Log.i(TAG, "collectDirect: found exact claim button, clicking")
-                    service.performClickSafe(claimBtn)
-                }
+        // 等待弹窗或页面变化（多策略领取：弹窗可能延迟出现，多次尝试找确认按钮）
+        tryClaimDirectPopup(service, attempt, maxRetry = 3)
+    }
+
+    /**
+     * 多策略领取直接肥料弹窗（优化方案）
+     *
+     * 弹窗可能延迟出现，单次查找会漏领。本方法多次尝试找确认按钮：
+     * - 每次尝试间隔 INTERVAL_CLICK_MS
+     * - 找到则点击，并继续检测浏览入口
+     * - 未找到则减少剩余重试次数，继续等待
+     * - 重试耗尽则继续下一个 direct 按钮
+     *
+     * @param service 无障碍服务
+     * @param attempt 当前 direct 按钮的尝试序号
+     * @param maxRetry 最大弹窗确认重试次数
+     */
+    private fun tryClaimDirectPopup(
+        service: FarmAccessibilityService,
+        attempt: Int,
+        maxRetry: Int
+    ) {
+        var retryLeft = maxRetry
+        fun attemptClaim() {
+            if (state != AutomationState.COLLECTING_DIRECT) return
+            // 尝试点击确认领取按钮（精确匹配，已含诱导黑名单过滤）
+            val claimBtn = service.findClaimRewardButtonExact()
+            if (claimBtn != null) {
+                Log.i(TAG, "collectDirect: found exact claim button (retry left=$retryLeft), clicking")
+                debugLog("collectDirect: claim button found, clicking (retry left=$retryLeft)")
+                service.performClickSafe(claimBtn)
                 // 领取后等待弹窗按钮文字更新（"立即领取"→"点此逛一逛再赚1000肥料"）
                 handler.postDelayed({
                     if (state != AutomationState.COLLECTING_DIRECT) return@postDelayed
@@ -680,8 +706,21 @@ object AutomationController {
                     // 没有浏览入口，继续检查下一个 direct 按钮
                     if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
                 }, INTERVAL_CLICK_MS)
+                return
             }
-        }, INTERVAL_PAGE_LOAD_MS)
+            // 未找到确认按钮，减少重试次数
+            retryLeft--
+            if (retryLeft > 0) {
+                debugLog("collectDirect: claim button not found, retrying (retry left=$retryLeft)")
+                handler.postDelayed({ attemptClaim() }, INTERVAL_CLICK_MS)
+            } else {
+                // 重试耗尽，继续下一个 direct 按钮
+                debugLog("collectDirect: claim button not found after $maxRetry retries, moving to next direct button")
+                if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
+            }
+        }
+        // 首次等待页面加载后再开始尝试
+        handler.postDelayed({ attemptClaim() }, INTERVAL_PAGE_LOAD_MS)
     }
 
     // ============== 阶段3: 打开任务列表 ==============
@@ -2156,6 +2195,7 @@ object AutomationController {
             fasterRewardStage = 0       // 重置"更快拿奖"弹窗处理状态
             fasterRewardAppPkg = null   // 重置新 App 包名记录
             fasterRewardAppEnterTimeMs = 0L  // 重置新 App 进入时间戳
+            prevAdHadCountdown = false  // 重置倒计时状态，供多信号融合检测用
             watchingAdPlatform = service.currentPlatform  // 记录农场平台，强杀深链 App 后重新启动此平台
             // 按平台广告策略加载默认时长与检测间隔（UC/支付宝/淘宝差异化）
             val platformCfg = service.currentPlatformConfig()
@@ -2602,9 +2642,17 @@ object AutomationController {
         val adEndedContent = service.isAdContentShown()
         val adEndedTexts = service.collectAllTextSnapshot(maxCount = 8)
         debugLog("watchAd: checking ad end (${elapsedMs}ms/${adMaxDurationMs}ms), pageType=$adEndedPageType, adActivity=$adEndedActivity, adPlaying=$adEndedPlaying, adContent=$adEndedContent, texts=$adEndedTexts")
-        if (service.isTaskCompletePage()) {
-            Log.i(TAG, "watchAd: task complete page detected, exiting")
-            debugLog("watchAd: task complete, exiting via close/back icon")
+
+        // 多信号融合广告结束检测（优化方案）
+        // 融合：任务完成页 + 广告Activity切换 + 领取奖励按钮 + 倒计时消失
+        // 相比单一信号检测，准确率更高，能更早发现广告结束
+        val adEnded = service.isAdEndedMultiSignal(prevAdHadCountdown)
+        // 更新上一轮倒计时状态（供下一轮多信号检测用）
+        prevAdHadCountdown = service.findAdDurationHint() > 0
+
+        if (adEnded && service.isTaskCompletePage()) {
+            Log.i(TAG, "watchAd: task complete page detected (multi-signal), exiting")
+            debugLog("watchAd: task complete (multi-signal), exiting via close/back icon")
             // 优先点右上角关闭按钮（游戏/广告退出，含平台特有关闭文本）
             val closeBtn = service.findAdCloseButton(service.currentPlatformConfig().adCloseButtonTexts)
             val backIcon = service.findBackIcon()
@@ -2626,7 +2674,7 @@ object AutomationController {
             return
         }
 
-        if (!service.isAdActivity() && !service.isAdPlaying()) {
+        if (adEnded && !service.isAdActivity() && !service.isAdPlaying()) {
             // 广告结束后检查是否进入了交易页面
             if (service.isOnAbnormalPage()) {
                 Log.i(TAG, "watchAd: abnormal/trading page after ad, exiting immediately")
@@ -2659,7 +2707,28 @@ object AutomationController {
                 return
             }
 
-            Log.i(TAG, "watchAd: ad finished (${elapsedMs}ms), closing")
+            Log.i(TAG, "watchAd: ad finished (${elapsedMs}ms, multi-signal), closing")
+            moveTo(AutomationState.CLOSING_AD)
+            handler.postDelayed({ runClosingAd(strategy = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 多信号检测到广告结束（倒计时消失等弱信号），但仍在广告 Activity
+        // 尝试找领取奖励按钮，找到则点击，否则进入关闭流程
+        if (adEnded) {
+            val claimBtn = service.findClaimRewardButton()
+            if (claimBtn != null) {
+                Log.i(TAG, "watchAd: multi-signal ad ended, claim button found, clicking")
+                debugLog("watchAd: multi-signal ad ended (countdown disappeared), clicking claim button")
+                service.performClickSafe(claimBtn)
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                }, adEndCheckIntervalMs)
+                return
+            }
+            // 倒计时消失但无领取按钮，进入关闭流程
+            Log.i(TAG, "watchAd: multi-signal ad ended (no claim button), closing")
+            debugLog("watchAd: multi-signal ad ended, no claim button, entering CLOSING_AD")
             moveTo(AutomationState.CLOSING_AD)
             handler.postDelayed({ runClosingAd(strategy = 0) }, INTERVAL_CLICK_MS)
             return

@@ -1109,6 +1109,57 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 多信号融合的广告结束检测（优化方案）
+     *
+     * 相比单一信号检测，融合多个广告结束信号，提高检测准确率：
+     *
+     * 信号1：倒计时消失（广告播放中→倒计时文字消失）
+     * 信号2：领取奖励按钮出现（广告结束后常显示"领取奖励"）
+     * 信号3：关闭按钮变为可点击（倒计时期间灰色→结束后可点击）
+     * 信号4：任务完成页（isTaskCompletePage）
+     * 信号5：广告 Activity 切换（isAdActivity 从 true→false）
+     *
+     * 任一强信号命中即认为广告结束：
+     * - 强信号：任务完成页 + 领取奖励按钮 + 广告Activity切换
+     * - 弱信号：倒计时消失（需配合仍在广告页才认定）
+     *
+     * @param prevHadCountdown 上一轮是否有倒计时（用于检测倒计时消失）
+     * @return true 表示广告已结束
+     */
+    fun isAdEndedMultiSignal(prevHadCountdown: Boolean): Boolean {
+        // 强信号1：任务完成页（已含广告陷阱防护）
+        if (isTaskCompletePage()) {
+            debugLog("isAdEndedMultiSignal: YES (task complete page)")
+            return true
+        }
+        // 强信号2：广告 Activity 切换（从广告 Activity 退出）
+        if (!isAdActivity() && !isAdPlaying()) {
+            // 进一步确认：不在农场页（避免误判回农场为广告结束）
+            if (!isOnFarmPage()) {
+                debugLog("isAdEndedMultiSignal: YES (ad activity ended, not on farm)")
+                return true
+            }
+        }
+        // 强信号3：领取奖励按钮出现（广告结束后的领取入口）
+        val claimBtn = findClaimRewardButton()
+        if (claimBtn != null) {
+            debugLog("isAdEndedMultiSignal: YES (claim reward button appeared)")
+            return true
+        }
+        // 弱信号：倒计时消失（上一轮有倒计时，本轮没有，且仍在广告页）
+        // 需配合仍在广告页才认定，单独倒计时消失可能是页面刷新
+        if (prevHadCountdown) {
+            val currentCountdown = findAdDurationHint()
+            if (currentCountdown == 0 && (isAdActivity() || isAdContentShown())) {
+                debugLog("isAdEndedMultiSignal: YES (countdown disappeared while still on ad page)")
+                return true
+            }
+        }
+        return false
+    }
+
+
+    /**
      * 查找"我要更快拿奖"按钮（UC 芭芭农场广告页第一层入口）
      *
      * 用户需求流程：
