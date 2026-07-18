@@ -910,6 +910,29 @@ object AutomationController {
                     // 在农场页才允许坐标兜底（H5 页面 WebView 文本不暴露的情况）
                     val candidates = collectFertilizerCandidates(service)
                     if (candidates.isNotEmpty()) {
+                        // build532 修复（debug_test_20260719_063933.log, build532-6d5c936）：
+                        // 历史问题：findCollectFertilizerButton 返回 null 时，原逻辑立即坐标兜底点击
+                        // (0.888, 0.771) 即 (1065, 1960)。但日志显示当时 root childCount=1，
+                        // 说明 WebView 还在加载，主页内容未渲染。提前点击该坐标可能误触发系统事件，
+                        // 导致 bot 自己切到前台（activity=com.bbncbot.mainactivity），后续 root 一直为 null。
+                        //
+                        // 修复：坐标兜底前先检查 root 内容量。若 root 子节点太少（childCount<3
+                        // 或估算后代<10），说明 WebView 还在加载，不执行坐标点击，转回 NAVIGATING
+                        // 重新等待页面加载（最多重试若干次）。
+                        val rootForGuard = service.getRootInFarmApp()
+                        val rootChildCount = rootForGuard?.childCount ?: 0
+                        val descendantEstimate = if (rootForGuard != null) {
+                            rootChildCount + (0 until rootChildCount).sumOf {
+                                (rootForGuard.getChild(it)?.childCount ?: 0)
+                            }
+                        } else 0
+                        if (rootChildCount < 3 || descendantEstimate < 10) {
+                            debugLog("openTaskList: [${service.currentPlatform}闭环] WebView not ready (rootChildCount=$rootChildCount, descendantEstimate=$descendantEstimate), skip coordinate click, re-navigate")
+                            taskListOpenedThisRound = false
+                            moveTo(AutomationState.NAVIGATING)
+                            handler.postDelayed({ runNavigating(0) }, INTERVAL_PAGE_LOAD_MS)
+                            return
+                        }
                         val coordIndex = attempt % candidates.size
                         val (xRatio, yRatio) = candidates[coordIndex]
                         debugLog("openTaskList: [${service.currentPlatform}闭环] no entry button, clicking by coordinate #$coordIndex (attempt=$attempt)")
@@ -987,6 +1010,22 @@ object AutomationController {
             taskListOpenedThisRound = false
             moveTo(AutomationState.NAVIGATING)
             handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
+            return
+        }
+        // build532 修复（与第一处坐标兜底守卫一致）：WebView 未渲染完成时（root childCount
+        // 太小）不执行坐标点击，避免误触发系统事件导致 bot 切到前台。
+        val rootForGuard = service.getRootInFarmApp()
+        val rootChildCount = rootForGuard?.childCount ?: 0
+        val descendantEstimate = if (rootForGuard != null) {
+            rootChildCount + (0 until rootChildCount).sumOf {
+                (rootForGuard.getChild(it)?.childCount ?: 0)
+            }
+        } else 0
+        if (rootChildCount < 3 || descendantEstimate < 10) {
+            debugLog("openTaskList: [坐标兜底] WebView not ready (rootChildCount=$rootChildCount, descendantEstimate=$descendantEstimate), skip coordinate click, re-navigate")
+            taskListOpenedThisRound = false
+            moveTo(AutomationState.NAVIGATING)
+            handler.postDelayed({ runNavigating(0) }, INTERVAL_PAGE_LOAD_MS)
             return
         }
         val candidates = collectFertilizerCandidates(service)
