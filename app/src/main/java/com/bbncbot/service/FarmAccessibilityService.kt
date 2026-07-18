@@ -1274,10 +1274,16 @@ class FarmAccessibilityService : AccessibilityService() {
         val root = rootInActiveWindowSafe() ?: return false
         val allText = collectAllText(root)
         // 签到页面特征文案（签到日历/连续签到/今日签到等是签到页独有，任务列表不会有）
+        // 实测日志特征（debug_test_20260715_051932.log）：
+        // - "第7天"/"已领取"/"今天" — 签到日历格子文字
+        // - "签到成功！每天来芭芭农场，更快1分钱领水果~" — 签到成功提示
+        // - "关闭做任务集肥料弹窗" — 关闭按钮（签到日历弹窗和任务列表共用）
         val signInPageKeywords = listOf(
             "立即签到", "签到领取", "今日签到", "连续签到",
             "签到日历", "签到成功", "已签到", "补签",
-            "签到得", "签到可领", "签到奖励"
+            "签到得", "签到可领", "签到奖励",
+            // 签到成功提示（签到日历弹窗自动签到后显示）
+            "签到！每天", "签到！每", "每天来芭芭农场"
         )
         // 至少匹配 1 个签到页面特征文案（这些文案足够特异，1 个即可确认）
         return allText.any { text ->

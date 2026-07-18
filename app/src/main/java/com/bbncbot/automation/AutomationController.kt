@@ -571,6 +571,40 @@ object AutomationController {
             return
         }
 
+        // 签到日历弹窗检测（进入农场页时自动弹出，遮挡农场页内容导致 isOnFarmPage=false）
+        // 实测日志（debug_test_20260715_051932.log）：
+        // - 进入农场页时弹出签到日历（"第7天"/"已领取"/"今天"）
+        // - 自动签到后显示"签到成功！每天来芭芭农场..."
+        // - isOnFarmPage 返回 false（签到日历遮挡了农场核心元素）
+        // - 若不关闭签到弹窗，runNavigating 会误判为"不在农场页"反复调用 navigateToFarm
+        val signInScene = service.identifyCurrentScene()
+        if (signInScene == FarmAccessibilityService.PageScene.SIGN_IN) {
+            Log.i(TAG, "navigate: sign-in calendar popup detected, closing it")
+            debugLog("navigate: sign-in popup detected (scene=SIGN_IN), attempting to close")
+            // 优先点击签到按钮（未签到状态可能有"立即签到"按钮）
+            val claimBtn = service.findClaimRewardButton()
+            if (claimBtn != null) {
+                debugLog("navigate: clicking sign-in button (text='${claimBtn.text}')")
+                service.performClickSafe(claimBtn)
+            } else {
+                // 已签到状态（签到成功提示），关闭弹窗：
+                // 优先找"关闭做任务集肥料弹窗"/"知道了"/"确定"按钮
+                val closeBtn = service.findAdCloseButton()
+                if (closeBtn != null) {
+                    debugLog("navigate: closing sign-in popup via close button")
+                    service.performClickSafe(closeBtn)
+                } else {
+                    debugLog("navigate: no close button for sign-in popup, pressing back")
+                    service.pressBack()
+                }
+            }
+            // 等待弹窗关闭后重新检测农场页
+            handler.postDelayed({
+                if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
         if (attempt >= 10) {
             Log.w(TAG, "navigate: failed after $attempt attempts, waiting and retrying")
             handler.postDelayed({
