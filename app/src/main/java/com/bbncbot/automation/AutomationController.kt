@@ -1234,6 +1234,11 @@ object AutomationController {
         //
         // 修复：buttonText 精确等于"领取"/"收下" 且无付费暗示 → 直接点击领取，
         // 等待领取结果后回 OPENING_TASK_LIST（与 isPaidTask 跳过路径的等待时长保持一致）
+        //
+        // build521 增强（用户反馈："显示'肥料已发放'，就应该返回之前窗口"）：
+        // 点击"领取"后弹窗会显示"肥料已发放"领取成功提示，此时必须 pressBack 关闭弹窗
+        // 返回任务列表，而不是直接回 OPENING_TASK_LIST 走"找任务列表按钮"路径
+        // （弹窗未关闭时 findGoCompleteButtons 找不到"去完成"按钮，会误判需要重新打开任务列表）
         val isPureClaimClick = (buttonText == "领取" || buttonText == "收下") && !fullTaskText.let { ft ->
             // 复用 paidHintKeywords 判断，避免重复声明
             listOf("退款", "扣回", "扣减", "下单后", "购买后", "充值后", "消费满",
@@ -1244,12 +1249,30 @@ object AutomationController {
             debugLog("processTask: pure claim task #${currentTaskIndex + 1}, button='$buttonText', direct click to claim fertilizer")
             service.performClickSafe(button)
             currentTaskIndex++
+            // 等 2 秒让"肥料已发放"弹窗渲染（点击后弹窗需要短暂时间出现）
             handler.postDelayed({
-                if (state == AutomationState.PROCESSING_TASK) {
+                if (state != AutomationState.PROCESSING_TASK) return@postDelayed
+                // 检测"肥料已发放"/"领取成功"等领取到账提示弹窗
+                if (service.isFertilizerGrantedPage()) {
+                    debugLog("processTask: pure claim success (肥料已发放 detected), pressing back to return to task list")
+                    service.pressBack()
+                    // pressBack 后等待弹窗动画关闭，再回 OPENING_TASK_LIST
+                    // OPENING_TASK_LIST 会自动检测任务列表是否已可见（findGoCompleteButtons），
+                    // 若已可见直接进入 PROCESSING_TASK 处理下一个任务，不会重复打开任务列表
+                    handler.postDelayed({
+                        if (state == AutomationState.PROCESSING_TASK) {
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        }
+                    }, INTERVAL_CLICK_MS)
+                } else {
+                    // 未检测到"肥料已发放"弹窗（可能领取失败或弹窗已自动消失）
+                    // 直接回 OPENING_TASK_LIST 兜底
+                    debugLog("processTask: pure claim but no 肥料已发放 popup detected, returning to OPENING_TASK_LIST")
                     moveTo(AutomationState.OPENING_TASK_LIST)
                     handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
                 }
-            }, INTERVAL_PAGE_LOAD_MS)
+            }, INTERVAL_CLICK_MS)
             return
         }
 
