@@ -2455,6 +2455,27 @@ object AutomationController {
             }, INTERVAL_CLICK_MS)
             return
         }
+        // 4. 小程序陷阱（支付宝/淘宝特有：误入非农场小程序，广告诱导跳转）
+        //    → 立即按返回退出，跳过任务（UC 无小程序，此检测自动跳过）
+        if (service.isMiniProgramTrap()) {
+            Log.w(TAG, "watchAd: mini-program trap detected, exiting immediately")
+            debugLog("watchAd: mini-program trap (non-farm mini-program), pressing back to exit")
+            service.setAdMode(false)
+            service.pressBack()
+            currentTaskIndex++
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) {
+                    if (!service.isOnFarmPage()) service.pressBack()
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) {
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        }
+                    }, INTERVAL_PAGE_LOAD_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
 
         // 超时强制关闭
         if (elapsedMs >= adMaxDurationMs) {

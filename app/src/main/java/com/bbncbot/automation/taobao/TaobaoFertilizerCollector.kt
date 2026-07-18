@@ -23,21 +23,8 @@ object TaobaoFertilizerCollector : FertilizerCollector {
     override val platform = Platform.TAOBAO
 
     // ---------- 任务关键词（淘宝特有） ----------
-    /** 浏览任务关键词 */
-    private val browseKeywords = listOf(
-        "浏览", "逛逛", "精选好物", "心仪", "严选推荐", "发现精选",
-        "搜一搜", "宝贝", "好物", "推荐商品", "发现", "严选", "滑动"
-    )
-
-    /** 游戏任务关键词 */
-    private val gameKeywords = listOf(
-        "玩游戏", "游戏", "挑战", "闯关", "消消乐", "斗地主",
-        "赢肥料", "玩一玩", "小游戏", "通关", "得分",
-        "大转盘", "抽奖", "摇一摇"
-    )
-
-    /** 付费任务关键词 */
-    private val paidKeywords = listOf("购买", "付款", "充值", "付费", "消费满")
+    // 淘宝广告设计特点：小程序容器 + 信息流，浏览任务最多，下单陷阱最多
+    // 任务关键词已移至 PlatformConfig（TaobaoPlatformConfig），此处保留 searchRecommendKeywords
 
     /** 搜索推荐页关键词 */
     private val searchRecommendKeywords = listOf(
@@ -64,18 +51,11 @@ object TaobaoFertilizerCollector : FertilizerCollector {
     }
 
     override fun classifyTask(service: FarmAccessibilityService, button: AccessibilityNodeInfo): TaskType {
-        val contextText = service.collectTaskContextText(button)
-
-        // 付费任务
-        if (paidKeywords.any { contextText.contains(it) }) return TaskType.PAID
-
-        // 游戏任务
-        if (gameKeywords.any { contextText.contains(it) }) return TaskType.GAME
-
-        // 浏览任务
-        if (browseKeywords.any { contextText.contains(it) }) return TaskType.BROWSE
-
-        // 默认按广告处理
+        // 淘宝平台：委托给 service.isXxxTask（已合并淘宝专属关键词）
+        // 淘宝特点：浏览任务最多（逛会场/逛店铺），下单陷阱最多（下单得肥料/当前页下单）
+        if (service.isPaidTask(button)) return TaskType.PAID
+        if (service.isGameTask(button)) return TaskType.GAME
+        if (service.isBrowseTask(button)) return TaskType.BROWSE
         return TaskType.AD
     }
 

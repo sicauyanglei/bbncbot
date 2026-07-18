@@ -22,23 +22,10 @@ object UcFertilizerCollector : FertilizerCollector {
     override val platform = Platform.UC
 
     // ---------- 任务关键词（UC 极速版特有） ----------
-    /** 浏览任务关键词 */
-    private val browseKeywords = listOf(
-        "浏览", "逛逛", "精选好物", "心仪", "严选推荐", "发现精选",
-        "搜一搜", "宝贝", "好物", "推荐商品", "发现", "严选", "滑动"
-    )
+    // UC 广告设计特点：自有广告 + 穿山甲 SDK，游戏任务少，广告任务为主
+    // 任务关键词已移至 PlatformConfig（UcPlatformConfig），此处保留 searchRecommendKeywords 供 isSearchRecommendPage 使用
 
-    /** 游戏任务关键词 */
-    private val gameKeywords = listOf(
-        "玩游戏", "游戏", "挑战", "闯关", "消消乐", "斗地主",
-        "赢肥料", "玩一玩", "小游戏", "通关", "得分",
-        "大转盘", "抽奖", "摇一摇"
-    )
-
-    /** 付费任务关键词 */
-    private val paidKeywords = listOf("购买", "付款", "充值", "付费", "消费满")
-
-    /** 搜索推荐页关键词 */
+    /** 搜索推荐页关键词（UC 特有，沿用旧逻辑） */
     private val searchRecommendKeywords = listOf(
         "下单得肥料", "当前页下单", "搜索有惊喜", "搜一搜浏览",
         "搜索有福利", "搜索后浏览立得奖励", "浏览宝贝得奖励"
@@ -63,18 +50,11 @@ object UcFertilizerCollector : FertilizerCollector {
     }
 
     override fun classifyTask(service: FarmAccessibilityService, button: AccessibilityNodeInfo): TaskType {
-        val contextText = service.collectTaskContextText(button)
-
-        // 付费任务
-        if (paidKeywords.any { contextText.contains(it) }) return TaskType.PAID
-
-        // 游戏任务
-        if (gameKeywords.any { contextText.contains(it) }) return TaskType.GAME
-
-        // 浏览任务
-        if (browseKeywords.any { contextText.contains(it) }) return TaskType.BROWSE
-
-        // 默认按广告处理
+        // UC 平台：直接委托给 service.isXxxTask（已合并平台专属关键词）
+        // UC 特点：游戏任务少，广告任务为主，付费陷阱少
+        if (service.isPaidTask(button)) return TaskType.PAID
+        if (service.isGameTask(button)) return TaskType.GAME
+        if (service.isBrowseTask(button)) return TaskType.BROWSE
         return TaskType.AD
     }
 

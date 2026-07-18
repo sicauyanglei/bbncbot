@@ -1443,6 +1443,7 @@ class FarmAccessibilityService : AccessibilityService() {
         // 注意："下单得奖励"不是花钱任务！是浏览搜索结果页面就能得肥料的任务
         // 只有明确要求花钱/交易的才是付费任务，跳过
         // 作为广告设计专家：识别广告主的真实付费意图（CPA/CPS/充值类任务）
+        // 通用付费关键词 + 平台专属付费关键词（差异化：淘宝下单陷阱多，支付宝金融陷阱多）
         val paidKeywords = listOf(
             "购买", "付款", "充值", "付费", "消费满",   // 基础交易
             "首充", "首单", "首购",                       // 首次交易引导
@@ -1452,7 +1453,7 @@ class FarmAccessibilityService : AccessibilityService() {
             "去支付", "立即支付", "确认支付",             // 支付类
             "到店支付", "线下支付",                        // 到店支付类
             "合种"                                        // 合种类（需邀请好友，非广告任务）
-        )
+        ) + currentPlatformConfig().paidTaskKeywords
         val contextText = collectTaskContextText(button)
         val isPaid = paidKeywords.any { contextText.contains(it) }
         if (isPaid) {
@@ -1468,13 +1469,14 @@ class FarmAccessibilityService : AccessibilityService() {
      * @return true 表示是游戏任务，应跳过
      */
     fun isGameTask(button: AccessibilityNodeInfo): Boolean {
+        // 通用游戏关键词 + 平台专属游戏关键词（差异化：支付宝小游戏入口最多）
         val gameKeywords = listOf(
             "玩游戏", "游戏", "挑战", "闯关", "消消乐", "斗地主",
             "赢肥料", "玩一玩", "小游戏", "通关", "得分",
             "大转盘", "抽奖", "摇一摇",
             "浪漫餐厅", "农场分色瓶", "继续玩",
             "对战", "完成1局", "完成一局", "局对战", "打一局"
-        )
+        ) + currentPlatformConfig().gameTaskKeywords
         val contextText = collectTaskContextText(button)
         val isGame = gameKeywords.any { contextText.contains(it) }
         if (isGame) {
@@ -1492,15 +1494,48 @@ class FarmAccessibilityService : AccessibilityService() {
     fun isBrowseTask(button: AccessibilityNodeInfo): Boolean {
         // "下单得奖励"是浏览搜索结果页面的任务，浏览后就能得肥料
         // "发现精选好物"、"搜一搜你心仪得宝贝"、"看严选推荐商品" 需要点击商品并滑动浏览
+        // 通用浏览关键词 + 平台专属浏览关键词（差异化：淘宝浏览任务最多）
         val browseKeywords = listOf(
             "浏览", "逛逛", "滑动", "看一看", "看商品", "下单得", "搜索",
             "精选好物", "心仪", "严选推荐", "发现精选", "搜一搜",
             "宝贝", "好物", "推荐商品", "发现", "严选"
-        )
+        ) + currentPlatformConfig().browseTaskKeywords
         val contextText = collectTaskContextText(button)
         val isBrowse = browseKeywords.any { contextText.contains(it) }
         debugLog("isBrowseTask: context='$contextText', isBrowse=$isBrowse")
         return isBrowse
+    }
+
+    /**
+     * 检测是否误入非农场小程序陷阱（支付宝/淘宝特有）
+     *
+     * 广告设计者意图：诱导用户点击后跳转到其他小程序（非芭芭农场），
+     * 通过小程序内广告/下载/购买获取转化收益。
+     * - 误入的小程序页面底部常显示"本小程序由 XXX 提供"
+     * - 且页面无农场核心文案（集肥料/施肥/芭芭农场）
+     *
+     * UC 无小程序，此方法对 UC 平台始终返回 false。
+     *
+     * @return true 表示误入了非农场小程序陷阱，应立即返回
+     */
+    fun isMiniProgramTrap(): Boolean {
+        val trapKeywords = currentPlatformConfig().miniProgramTrapKeywords
+        if (trapKeywords.isEmpty()) return false  // UC 无小程序
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        // 必须含小程序陷阱关键词 + 无农场核心文案
+        val hasTrapKeyword = allText.any { text ->
+            trapKeywords.any { kw -> text.contains(kw) }
+        }
+        if (!hasTrapKeyword) return false
+        // 农场核心文案存在则不是陷阱（说明还在芭芭农场小程序内）
+        val hasFarmCore = allText.any { text ->
+            text.contains("集肥料") || text.contains("施肥") ||
+                text.contains("芭芭农场") || text.contains("任务列表")
+        }
+        if (hasFarmCore) return false
+        debugLog("isMiniProgramTrap: YES (mini-program trap detected, no farm core)")
+        return true
     }
 
     /**

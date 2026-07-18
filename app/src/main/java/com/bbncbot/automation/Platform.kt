@@ -141,6 +141,58 @@ interface PlatformConfig {
      * - [FarmAccessibilityService.findAdInstallButton] 检测诱导弹窗
      */
     val adInstallButtonTexts: List<String>
+
+    // ---------- 平台差异化任务识别关键词 ----------
+
+    /**
+     * 平台特有的"游戏类任务"识别关键词（在通用关键词基础上追加）
+     *
+     * 各平台游戏任务设计差异：
+     * - **UC**：游戏任务较少，主要是穿山甲小游戏广告
+     * - **支付宝**：小游戏入口最多（蚂蚁庄园/蚂蚁森林小游戏/支付宝小程序游戏），
+     *   任务文案常含"本小程序"/"开始游戏"/"继续玩"等小程序标识
+     * - **淘宝**：游戏任务中等，含淘宝小游戏（消消乐/斗地主等）
+     *
+     * 用于 [FarmAccessibilityService.isGameTask] 增强游戏任务识别。
+     */
+    val gameTaskKeywords: List<String>
+
+    /**
+     * 平台特有的"浏览类任务"识别关键词（在通用关键词基础上追加）
+     *
+     * 各平台浏览任务设计差异：
+     * - **UC**：浏览任务较少，主要是搜索浏览
+     * - **支付宝**：浏览任务含"逛一逛蚂蚁庄园"/"逛一逛蚂蚁森林"等
+     * - **淘宝**：浏览任务最多，含"逛会场"/"逛店铺"/"逛榜单"/"逛商品"/"逛品类"等
+     *   （淘宝电商属性强，浏览任务是主要肥料来源）
+     *
+     * 用于 [FarmAccessibilityService.isBrowseTask] 增强浏览任务识别。
+     */
+    val browseTaskKeywords: List<String>
+
+    /**
+     * 平台特有的"付费/交易类任务"识别关键词（在通用关键词基础上追加）
+     *
+     * 各平台付费陷阱差异：
+     * - **UC**：付费陷阱较少
+     * - **支付宝**：含"充值话费"/"购买理财"/"开通会员"等金融类陷阱
+     * - **淘宝**：付费陷阱最多，含"下单得肥料"/"当前页下单"/"搜索有惊喜"/"下单赢"等
+     *   （淘宝下单任务最多，必须严格识别跳过，违反禁止交易原则）
+     *
+     * 用于 [FarmAccessibilityService.isPaidTask] 增强付费任务识别。
+     */
+    val paidTaskKeywords: List<String>
+
+    /**
+     * 小程序陷阱识别关键词（检测是否误入非农场小程序）
+     *
+     * - **UC**：无小程序，空列表
+     * - **支付宝/淘宝**：小程序容器页面底部常显示"本小程序由 XXX 提供"，
+     *   若非芭芭农场小程序，说明误入其他小程序（广告诱导跳转），应立即返回
+     *
+     * 用于 [FarmAccessibilityService.isMiniProgramTrap] 检测小程序跳转陷阱。
+     */
+    val miniProgramTrapKeywords: List<String>
 }
 
 /** UC 极速版（com.ucmobile.lite）配置 - 沿用现有 v2 实现 */
@@ -198,6 +250,13 @@ object UcPlatformConfig : PlatformConfig {
         "立即注册", "立即开通", "立即续费", "开通会员",
         "领取优惠", "领取福利", "立即领取福利"
     )
+
+    // ---------- UC 平台差异化任务关键词 ----------
+    // UC 广告设计特点：自有广告 + 穿山甲 SDK，游戏任务少，广告任务为主
+    override val gameTaskKeywords = listOf<String>()  // UC 无独立小游戏入口
+    override val browseTaskKeywords = listOf("搜索浏览", "浏览搜索")  // UC 多为搜索浏览
+    override val paidTaskKeywords = listOf<String>()  // UC 付费陷阱少
+    override val miniProgramTrapKeywords = listOf<String>()  // UC 无小程序
 }
 
 /**
@@ -282,6 +341,32 @@ object AlipayPlatformConfig : PlatformConfig {
         "立即注册", "立即开通", "立即续费", "开通会员",
         "领取优惠", "领取福利", "立即领取福利"
     )
+
+    // ---------- 支付宝平台差异化任务关键词 ----------
+    // 支付宝广告设计特点：H5 容器 + 小程序，小游戏入口多，金融类陷阱多
+    override val gameTaskKeywords = listOf(
+        // 支付宝小游戏入口最多：蚂蚁庄园/蚂蚁森林小游戏/支付宝小程序游戏
+        "本小程序", "开始游戏", "继续玩", "继续游戏",
+        "蚂蚁庄园", "蚂蚁森林", "庄园小鸡",
+        "神奇海洋", "绿色行动", "神奇物种",
+        "喂小鸡", "收能量", "浇水"
+    )
+    override val browseTaskKeywords = listOf(
+        // 支付宝浏览任务常含蚂蚁系应用导流
+        "逛一逛蚂蚁庄园", "逛一逛蚂蚁森林", "逛一逛",
+        "逛精选", "逛生活"
+    )
+    override val paidTaskKeywords = listOf(
+        // 支付宝金融类陷阱：充值/理财/保险/会员
+        "充值话费", "话费充值", "流量充值",
+        "购买理财", "买基金", "买保险", "投保",
+        "开通会员", "续费会员", "立即投保",
+        "消费满", "付款得", "支付得"
+    )
+    override val miniProgramTrapKeywords = listOf(
+        // 支付宝小程序陷阱：误入其他小程序时底部显示"本小程序由 XXX 提供"
+        "本小程序由", "本应用由", "本服务由"
+    )
 }
 
 /**
@@ -334,7 +419,10 @@ object TaobaoPlatformConfig : PlatformConfig {
     override val adEndCheckIntervalMs = 3000L         // 3s 检测间隔（更激进，快速发现广告结束）
     override val supportsFasterReward = false         // 淘宝无"更快拿奖"流程
     override val adCloseButtonTexts = listOf("跳过广告", "跳过", "关闭")
-    // 陷阱按钮黑名单（淘宝小程序/信息流广告与 UC 模式一致，沿用通用诱导文案）
+
+    // ---------- 淘宝平台差异化任务关键词 ----------
+    // 淘宝广告设计特点：小程序容器 + 信息流，浏览任务多，下单陷阱最多
+    // 注：淘宝 adInstallButtonTexts 沿用通用诱导文案（与 UC/支付宝一致）
     override val adInstallButtonTexts = listOf(
         "立即下载", "立即安装", "点击下载", "免费下载",
         "立即体验", "立即试玩", "开始试玩",
@@ -343,5 +431,29 @@ object TaobaoPlatformConfig : PlatformConfig {
         "立即抢购", "立即购买", "去购买", "立即下单",
         "立即注册", "立即开通", "立即续费", "开通会员",
         "领取优惠", "领取福利", "立即领取福利"
+    )
+    override val gameTaskKeywords = listOf(
+        // 淘宝小游戏：消消乐/斗地主/大转盘等
+        "消消乐", "斗地主", "大转盘", "抽奖",
+        "淘宝小游戏", "玩一玩"
+    )
+    override val browseTaskKeywords = listOf(
+        // 淘宝浏览任务最多：逛会场/逛店铺/逛榜单/逛商品（电商属性强）
+        "逛会场", "逛店铺", "逛榜单", "逛商品", "逛品类",
+        "逛品牌", "逛专题", "逛频道", "逛精选",
+        "浏览会场", "浏览店铺", "浏览商品",
+        "逛一逛", "滑动浏览"
+    )
+    override val paidTaskKeywords = listOf(
+        // 淘宝下单陷阱最多：下单得肥料/当前页下单/搜索有惊喜等
+        "下单得肥料", "下单得", "当前页下单", "下单赢",
+        "搜索有惊喜", "搜索有福利", "搜索后浏览立得奖励",
+        "浏览宝贝得奖励", "下单立得", "下单领取",
+        "购买得肥料", "付款得肥料", "消费得肥料",
+        "加入购物车", "去结算", "提交订单"
+    )
+    override val miniProgramTrapKeywords = listOf(
+        // 淘宝小程序陷阱：误入其他小程序时显示"本小程序由 XXX 提供"
+        "本小程序由", "本应用由", "本服务由"
     )
 }
