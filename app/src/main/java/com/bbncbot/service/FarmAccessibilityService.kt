@@ -1199,6 +1199,7 @@ class FarmAccessibilityService : AccessibilityService() {
         REWARD_POPUP,        // 奖励领取弹窗（恭喜获得/领取奖励）
         SIGN_IN,             // 签到页面（立即签到/签到领取）
         GENERIC_POPUP,       // 未知弹窗（无肥料提示，需主动关闭）
+        QUIZ_PAGE,           // 答题页面（问题 + 2个选项，需网络请求获取答案）
         TRAP_LANDING,        // 广告主落地页陷阱
         TRAP_INSTALL,        // 诱导弹窗陷阱（立即下载）
         TRAP_REPLAY,         // 复看陷阱（再看一个/加倍领取）
@@ -1232,33 +1233,36 @@ class FarmAccessibilityService : AccessibilityService() {
         // 5. 签到页面（必须在 FARM_PAGE 之前检测：签到页在农场 App 的 WebView 内，
         //    isOnFarmPage 会返回 true，但签到页有专属签到按钮需要点击领取签到肥料）
         if (isSignInPage()) return PageScene.SIGN_IN
-        // 6. 农场主页（正常状态，优先识别避免误判为广告）
+        // 6. 答题页面（必须在 FARM_PAGE 之前检测：答题页在农场 App 的 WebView 内，
+        //    恰好 2 个选项 + 问题文本，需调用 AI API 获取答案）
+        if (isQuizPage()) return PageScene.QUIZ_PAGE
+        // 7. 农场主页（正常状态，优先识别避免误判为广告）
         if (isOnFarmPage()) return PageScene.FARM_PAGE
-        // 7. 诱导弹窗陷阱（立即下载/去购买，需检测是否在广告页上弹出）
+        // 8. 诱导弹窗陷阱（立即下载/去购买，需检测是否在广告页上弹出）
         val installBtn = findAdInstallButton()
         if (installBtn != null) {
             // 诱导弹窗：有诱导按钮 + 无倒计时（倒计时存在说明广告还在播放，诱导按钮是广告CTA）
             val hasCountdown = findAdDurationHint() > 0
             if (!hasCountdown) return PageScene.TRAP_INSTALL
         }
-        // 8. 复看陷阱（再看一个/加倍领取）
+        // 9. 复看陷阱（再看一个/加倍领取）
         if (isReplayTrapPage()) return PageScene.TRAP_REPLAY
-        // 9. 奖励领取弹窗（恭喜获得 + 领取按钮）
+        // 10. 奖励领取弹窗（恭喜获得 + 领取按钮）
         if (isRewardPopupPage()) return PageScene.REWARD_POPUP
-        // 10. 广告已结束（任务完成页 或 无倒计时且不在广告Activity）
+        // 11. 广告已结束（任务完成页 或 无倒计时且不在广告Activity）
         if (isTaskCompletePage()) return PageScene.AD_ENDED
-        // 11. 广告播放中（有倒计时 或 在广告Activity）
+        // 12. 广告播放中（有倒计时 或 在广告Activity）
         if (isAdPlaying() || isAdContentShown()) {
             val hasCountdown = findAdDurationHint() > 0
             if (hasCountdown) return PageScene.AD_PLAYING
             // 在广告页但无倒计时，可能是广告已结束等待用户操作
             return PageScene.AD_ENDED
         }
-        // 12. 通用弹窗（无肥料提示，需主动关闭）
+        // 13. 通用弹窗（无肥料提示，需主动关闭）
         // 用户需求：弹框窗口如何没有肥料提示，需要关闭弹窗
         // 注意：必须放在 UNKNOWN 之前，避免未知弹窗被保守等待卡住
         if (isGenericPopup()) return PageScene.GENERIC_POPUP
-        // 13. 未知场景（保守等待）
+        // 14. 未知场景（保守等待）
         return PageScene.UNKNOWN
     }
 
@@ -1397,6 +1401,129 @@ class FarmAccessibilityService : AccessibilityService() {
             closeKeywords.any { kw -> text.contains(kw) }
         }
         return hasCloseButton
+    }
+
+    /**
+     * 检测答题页面（问题 + 2个选项，需网络请求获取答案）
+     *
+     * 用户需求：回答问题就可以领取肥料，可以思考下认真回答问题。
+     * 答题任务特征：
+     * - 有问题文本（含"？"问号，或"以下哪个"/"哪个是"/"是否"/"对吗"等疑问词）
+     * - 恰好 2 个可点击的选项按钮（用户确认只有两个选项）
+     * - 通常在农场 App 的 WebView 内（与签到页类似）
+     *
+     * 排除（已在前置场景识别中过滤）：
+     * - 奖励领取弹窗（恭喜获得 + 领取按钮，不是答题）
+     * - 签到页面（签到日历特征文案）
+     * - 通用弹窗（无肥料提示的关闭类弹窗）
+     * - 陷阱页面（充值/交易/小程序/落地页/诱导弹窗）
+     *
+     * 安全策略：
+     * - 必须恰好 2 个选项（用户明确说"只有两个选项"）
+     * - 必须有问题文本（含"？"或疑问词）
+     * - 不含陷阱按钮文案（立即下载/去购买等）
+     *
+     * @return true 表示当前是答题页面
+     */
+    private fun isQuizPage(): Boolean {
+        val options = findQuizOptions()
+        if (options.size != 2) return false
+        val question = findQuizQuestion()
+        return question.isNotEmpty()
+    }
+
+    /**
+     * 查找答题问题文本
+     *
+     * 答题问题特征：
+     * - 含"？"问号（中文/英文问号）
+     * - 或含疑问词："以下哪个"/"哪个是"/"哪个不是"/"是否"/"对吗"/"是什么"/"哪一项"
+     *
+     * @return 问题文本（找不到返回空字符串）
+     */
+    fun findQuizQuestion(): String {
+        val root = rootInActiveWindowSafe() ?: return ""
+        val allText = collectAllText(root)
+        // 疑问词特征（足够特异，命中即视为问题）
+        val questionKeywords = listOf(
+            "以下哪个", "以下哪项", "以下哪一", "哪个是", "哪个不是",
+            "哪一项", "哪项是", "是否", "对吗", "对不对", "是什么",
+            "是多少", "是真是假", "正确的是", "错误的是"
+        )
+        for (text in allText) {
+            if (text.isBlank()) continue
+            // 含问号（中/英）且长度足够（避免短文本误匹配）
+            if ((text.contains("？") || text.contains("?")) && text.length >= 5) {
+                return text.trim()
+            }
+            // 含疑问词
+            if (questionKeywords.any { kw -> text.contains(kw) } && text.length >= 5) {
+                return text.trim()
+            }
+        }
+        return ""
+    }
+
+    /**
+     * 查找答题选项按钮（恰好 2 个）
+     *
+     * 用户确认：答题只有两个选项（对/错、是/否、A/B 等）。
+     *
+     * 选项按钮特征：
+     * - 可点击的节点（clickable=true）
+     * - 有文本（非空）或 contentDescription
+     * - 排除陷阱按钮（立即下载/去购买/查看详情等）
+     * - 排除关闭按钮（×/关闭/知道了 等，这些是弹窗关闭按钮不是答题选项）
+     *
+     * @return 选项按钮列表（按页面顺序，通常 2 个；其他数量返回空列表）
+     */
+    fun findQuizOptions(): List<AccessibilityNodeInfo> {
+        val root = rootInActiveWindowSafe() ?: return emptyList()
+        // 陷阱按钮文案（来自平台配置 + 通用诱导文案）
+        val trapTexts = currentPlatformConfig().adInstallButtonTexts + listOf(
+            "立即下载", "去购买", "查看详情", "立即购买", "立即开通",
+            "去安装", "立即安装", "下载应用"
+        )
+        // 关闭类按钮文案（不是答题选项）
+        val closeTexts = listOf(
+            "×", "关闭", "close", "知道了", "我知道了", "确定", "取消",
+            "暂不", "以后再说", "残忍拒绝", "拒绝", "关闭弹窗", "不再提示",
+            "返回", "back"
+        )
+        // 排除文案（陷阱 + 关闭 + 任务入口）
+        val excludeTexts = trapTexts + closeTexts + listOf(
+            "去完成", "去逛逛", "去签到", "去答题", "去观看", "立即观看",
+            "领取奖励", "领取肥料", "领取", "签到", "提交"
+        )
+
+        val options = mutableListOf<AccessibilityNodeInfo>()
+        val seenTexts = mutableSetOf<String>()
+
+        // 递归遍历查找可点击的文字节点
+        fun walk(node: AccessibilityNodeInfo?) {
+            if (node == null) return
+            val text = node.text?.toString()?.trim().orEmpty()
+            val desc = node.contentDescription?.toString()?.trim().orEmpty()
+            val combined = if (text.isNotEmpty()) text else desc
+            if (combined.isNotEmpty() && node.isClickable) {
+                // 排除陷阱/关闭/任务入口按钮
+                val isExcluded = excludeTexts.any { combined.contains(it) }
+                if (!isExcluded && !seenTexts.contains(combined)) {
+                    // 选项文本通常较短（< 50 字符），且不是长段描述
+                    if (combined.length <= 50) {
+                        options.add(node)
+                        seenTexts.add(combined)
+                    }
+                }
+            }
+            for (i in 0 until node.childCount) {
+                walk(node.getChild(i))
+            }
+        }
+        walk(root)
+
+        // 恰好 2 个选项才返回（用户确认只有两个选项）
+        return if (options.size == 2) options else emptyList()
     }
 
     /**

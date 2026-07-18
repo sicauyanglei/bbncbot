@@ -42,6 +42,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvGhTokenStatus: TextView
     private lateinit var btnTestUpload: Button
     private lateinit var tvUploadResult: TextView
+    private lateinit var etGlmApiKey: EditText
+    private lateinit var btnSaveGlmApiKey: Button
+    private lateinit var tvGlmApiKeyStatus: TextView
 
     /**
      * 待执行的平台快捷方式（来自桌面快捷方式或 shortcut intent）
@@ -83,6 +86,9 @@ class MainActivity : AppCompatActivity() {
         tvGhTokenStatus = findViewById(R.id.tvGhTokenStatus)
         btnTestUpload = findViewById(R.id.btnTestUpload)
         tvUploadResult = findViewById(R.id.tvUploadResult)
+        etGlmApiKey = findViewById(R.id.etGlmApiKey)
+        btnSaveGlmApiKey = findViewById(R.id.btnSaveGlmApiKey)
+        tvGlmApiKeyStatus = findViewById(R.id.tvGlmApiKeyStatus)
 
         // 加载已保存的 GitHub Token（日志上传用）
         val savedGhToken = com.bbncbot.automation.LogUploader.loadToken(this)
@@ -103,6 +109,28 @@ class MainActivity : AppCompatActivity() {
                 com.bbncbot.automation.LogUploader.saveToken(this, "")
                 tvGhTokenStatus.text = "日志上传：未配置"
                 Toast.makeText(this, "GitHub Token 已清除", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // 加载已保存的智谱 GLM API Key（答题 AI 用）
+        val savedGlmKey = com.bbncbot.automation.QuizAnswerClient.loadApiKey(this)
+        if (savedGlmKey.isNotEmpty()) {
+            etGlmApiKey.setText(savedGlmKey)
+            tvGlmApiKeyStatus.text = "答题 AI：已配置（${savedGlmKey.take(4)}...${savedGlmKey.takeLast(4)}）"
+        } else {
+            tvGlmApiKeyStatus.text = "答题 AI：未配置（答题任务会跳过）"
+        }
+
+        btnSaveGlmApiKey.setOnClickListener {
+            val key = etGlmApiKey.text.toString().trim()
+            if (key.isNotEmpty()) {
+                com.bbncbot.automation.QuizAnswerClient.saveApiKey(this, key)
+                tvGlmApiKeyStatus.text = "答题 AI：已配置（${key.take(4)}...${key.takeLast(4)}）"
+                Toast.makeText(this, "GLM API Key 已保存", Toast.LENGTH_SHORT).show()
+            } else {
+                com.bbncbot.automation.QuizAnswerClient.saveApiKey(this, "")
+                tvGlmApiKeyStatus.text = "答题 AI：未配置"
+                Toast.makeText(this, "GLM API Key 已清除", Toast.LENGTH_SHORT).show()
             }
         }
 

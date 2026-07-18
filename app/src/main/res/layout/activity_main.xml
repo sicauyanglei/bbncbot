@@ -127,5 +127,45 @@
             android:textColor="#888888"
             android:text="点上面按钮立即上传当前日志，验证 Token 是否有效" />
 
+        <!-- 答题 AI 配置 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="答题 AI（智谱 GLM）"
+            android:textStyle="bold"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="12sp"
+            android:textColor="#888888"
+            android:text="答题任务只有两个选项且仅一次机会，调用智谱 GLM-4-Flash（免费）获取答案后作答。API Key 仅本地存储，需在智谱开放平台申请。" />
+
+        <EditText
+            android:id="@+id/etGlmApiKey"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="智谱 GLM API Key"
+            android:inputType="textPassword" />
+
+        <Button
+            android:id="@+id/btnSaveGlmApiKey"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="保存 GLM API Key" />
+
+        <TextView
+            android:id="@+id/tvGlmApiKeyStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="12sp"
+            android:textColor="#888888" />
+
     </LinearLayout>
 </ScrollView>

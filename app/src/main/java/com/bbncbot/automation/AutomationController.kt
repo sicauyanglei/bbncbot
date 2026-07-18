@@ -1966,6 +1966,90 @@ object AutomationController {
         // 或签到页面（签到页在农场 App WebView 内，但 isOnFarmPage 可能返回 false，
         // 因为签到页没有"集肥料"/"施肥"等农场核心元素；用场景识别 SIGN_IN 兜底进入此分支）
         val scene = service.identifyCurrentScene()
+
+        // 答题页面检测（问题 + 2 个选项，需调用 AI API 获取答案）
+        // 用户需求：回答问题就可以领取肥料，可以思考下认真回答问题
+        // 答题只有一次机会，不能试错，必须调用 AI 获取正确答案后再点击
+        if (scene == FarmAccessibilityService.PageScene.QUIZ_PAGE) {
+            val question = service.findQuizQuestion()
+            val options = service.findQuizOptions()
+            if (question.isBlank() || options.size != 2) {
+                Log.w(TAG, "processTask: QUIZ_PAGE but question/options invalid (q='$question', opts=${options.size}), skipping")
+                debugLog("processTask: quiz page but invalid question/options, skipping task")
+                service.pressBack()
+                currentTaskIndex++
+                handler.postDelayed({
+                    if (state == AutomationState.PROCESSING_TASK) {
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+
+            val opt1Text = options[0].text?.toString().orEmpty().ifBlank {
+                options[0].contentDescription?.toString().orEmpty()
+            }
+            val opt2Text = options[1].text?.toString().orEmpty().ifBlank {
+                options[1].contentDescription?.toString().orEmpty()
+            }
+            Log.i(TAG, "processTask: quiz page detected (q='${question.take(60)}', opt1='$opt1Text', opt2='$opt2Text'), asking AI")
+            debugLog("processTask: quiz detected (q='${question.take(60)}', opt1='$opt1Text', opt2='$opt2Text'), calling GLM API")
+
+            // 网络请求必须在后台线程（QuizAnswerClient.askAnswer 含网络 IO）
+            // 保存节点引用的文本和索引，避免后台线程返回后节点失效
+            val context = service.applicationContext
+            val opt1NodeText = opt1Text
+            val opt2NodeText = opt2Text
+            Thread {
+                val aiAnswer = QuizAnswerClient.askAnswer(context, question, opt1NodeText, opt2NodeText)
+                handler.post {
+                    if (state != AutomationState.PROCESSING_TASK) return@post
+                    if (aiAnswer.isBlank()) {
+                        // AI 获取答案失败：默认选第一个选项（兜底，避免放弃任务）
+                        Log.w(TAG, "processTask: AI answer empty, defaulting to first option '$opt1NodeText'")
+                        debugLog("processTask: AI answer failed, defaulting to first option")
+                        val opts = service.findQuizOptions()
+                        if (opts.isNotEmpty()) {
+                            service.performClickSafe(opts[0])
+                        } else {
+                            debugLog("processTask: quiz options gone after AI call, pressing back")
+                            service.pressBack()
+                        }
+                    } else {
+                        // AI 返回了答案，重新查找选项节点（后台线程期间节点可能已失效）
+                        val opts = service.findQuizOptions()
+                        val target = opts.firstOrNull { opt ->
+                            val t = opt.text?.toString().orEmpty().ifBlank {
+                                opt.contentDescription?.toString().orEmpty()
+                            }
+                            t == aiAnswer
+                        }
+                        if (target != null) {
+                            Log.i(TAG, "processTask: clicking AI-selected answer '$aiAnswer'")
+                            debugLog("processTask: clicking AI answer '$aiAnswer'")
+                            service.performClickSafe(target)
+                        } else {
+                            // 文本匹配失败，按位置兜底（AI 答案是 opt1 则点第一个，否则点第二个）
+                            val fallbackIndex = if (aiAnswer == opt1NodeText) 0 else 1
+                            Log.w(TAG, "processTask: AI answer '$aiAnswer' node not found, fallback to option #$fallbackIndex")
+                            debugLog("processTask: AI answer node not found, fallback to option #$fallbackIndex")
+                            if (opts.isNotEmpty() && fallbackIndex < opts.size) {
+                                service.performClickSafe(opts[fallbackIndex])
+                            } else {
+                                service.pressBack()
+                            }
+                        }
+                    }
+                    // 点击答案后，等待答题结果（答对领取肥料 / 答错提示）
+                    handler.postDelayed({
+                        if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt + 1)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                }
+            }.start()
+            return
+        }
+
         if (service.isOnFarmPage() || scene == FarmAccessibilityService.PageScene.SIGN_IN) {
             // 尝试点击"返回首页"按钮（任务完成弹窗）
             val backBtn = service.findBackToHomeButton()
