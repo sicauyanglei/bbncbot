@@ -4660,7 +4660,18 @@ class FarmAccessibilityService : AccessibilityService() {
                 // 修复：performClickSafe 返回后等待几秒，让界面切换；
                 // 如果仍在支付宝首页（没进入芭芭农场 H5 页），下一轮 stepNavigateAlipayFarm 会重试。
                 // 这里设置 8 秒超时清除导航标志，足够 H5 加载。
-                navHandler.postDelayed({ clearNavigatingFlag() }, 8000L)
+                //
+                // build533 修复（debug_test_20260719_064828.log, build532-6d5c936）：
+                // 历史问题：原逻辑只 postDelayed clearNavigatingFlag(8s) 然后 return，
+                // 8 秒后只清除导航标志，不重新调用 stepNavigateAlipayFarm 重试。
+                // 若点击的"芭芭农场"节点 clickable=false（ACTION_CLICK failed，手势兜底可能
+                // 没真正触发跳转），bot 卡死等待 8 秒后什么也不做，造成 26 秒空白直至用户停止。
+                // 修复：8 秒后除了清除标志，还要再调用一次 stepNavigateAlipayFarm(retry+1)
+                // 让 bot 检查是否仍在支付宝首页；若是则换其他策略（搜索框）重新导航。
+                navHandler.postDelayed({
+                    clearNavigatingFlag()
+                    stepNavigateAlipayFarm(retry + 1)
+                }, 8000L)
                 return
             }
             debugLog("navigateAlipay: 芭芭农场 entry invalid (searchNode=$isSearchNode, bounds=${rect.toShortString()}), fallback to search")
