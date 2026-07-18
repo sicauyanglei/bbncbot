@@ -2807,6 +2807,82 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 查找"肥料图标 + 领取按钮"组合，绕过场景白名单直接领取
+     *
+     * 用户需求：如果有带肥图标，并有"领取"的按钮，可以直接点击领取。
+     *
+     * 设计原理：
+     * - 肥料图标/文案 + 领取按钮 = 强信号，几乎可确定是肥料奖励弹窗
+     * - 比场景识别（identifyCurrentScene）更直接可靠
+     * - 绕过 isClaimRewardAllowedScene 白名单，避免被场景识别失败卡住
+     *
+     * 检测条件（全部满足才返回）：
+     * 1. 页面有"领取"按钮（复用 findClaimRewardButtonExact，已排除陷阱按钮）
+     * 2. 页面有肥料相关文案（肥料图标代理信号）：
+     *    "肥料"/"得肥"/"集肥"/"领肥"/"肥"等
+     * 3. 排除任务列表场景（任务列表有"做任务集肥料"/"去完成"等特征，不是领取弹窗）
+     * 4. 排除农场主页（避免误点农场主页的"集肥料"按钮）
+     * 5. 排除广告播放中（广告播放中的"领取"几乎都是诱导按钮）
+     *
+     * @return 领取按钮节点；不满足条件返回 null
+     */
+    fun findFertilizerClaimButton(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+
+        // 1. 排除农场主页（避免误点"集肥料"按钮）
+        if (isOnFarmPage()) {
+            debugLog("findFertilizerClaimButton: on farm page, skip (avoid clicking 集肥料 button)")
+            return null
+        }
+
+        // 2. 排除广告播放中（广告播放中的"领取"几乎都是诱导按钮）
+        val scene = identifyCurrentScene()
+        if (scene == PageScene.AD_PLAYING) {
+            debugLog("findFertilizerClaimButton: ad playing, skip (领取 button likely trap)")
+            return null
+        }
+
+        val allText = collectAllText(root)
+
+        // 3. 排除任务列表场景（任务列表有"做任务集肥料"/"任务列表"/"去完成"等特征）
+        //    任务列表里虽然有很多"得肥料"文案，但按钮是"去完成"不是"领取"
+        val taskListKeywords = listOf(
+            "做任务集肥料", "关闭做任务集肥料弹窗", "任务列表",
+            "去完成", "去逛逛", "去分享", "去邀请"
+        )
+        val isTaskList = allText.any { text ->
+            taskListKeywords.any { kw -> text.contains(kw) }
+        }
+        if (isTaskList) {
+            debugLog("findFertilizerClaimButton: task list detected, skip (not a claim popup)")
+            return null
+        }
+
+        // 4. 必须有肥料相关文案（肥料图标代理信号）
+        //    注意：用广泛的"肥"字匹配，覆盖"肥料"/"得肥"/"集肥"/"领肥"等所有变体
+        val hasFertilizerText = allText.any { text ->
+            text.contains("肥")
+        }
+        if (!hasFertilizerText) {
+            debugLog("findFertilizerClaimButton: no fertilizer text, skip")
+            return null
+        }
+
+        // 5. 查找"领取"按钮（复用 findClaimRewardButtonExact，已排除陷阱按钮）
+        //    enforceSceneWhitelist=false 绕过场景白名单（本函数已自行做场景排除）
+        val claimBtn = findClaimRewardButtonExact()
+        if (claimBtn == null) {
+            debugLog("findFertilizerClaimButton: has fertilizer text but no claim button, skip")
+            return null
+        }
+
+        val claimText = claimBtn.text?.toString().orEmpty()
+        Log.i(TAG, "findFertilizerClaimButton: found fertilizer claim button (text='$claimText', scene=$scene)")
+        debugLog("findFertilizerClaimButton: fertilizer text + claim button '$claimText' detected (scene=$scene), bypassing scene whitelist")
+        return claimBtn
+    }
+
+    /**
      * 判断是否显示"任务完成"页面（得到肥料后的完成页）
      * - 检测页面是否包含"任务完成"、"已完成"、"全部完成"、"已领取全部奖励"等关键词
      * - 滑动浏览任务中，出现这些标志表示可以退出浏览页返回主界面

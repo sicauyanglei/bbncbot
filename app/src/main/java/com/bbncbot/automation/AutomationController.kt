@@ -1726,6 +1726,23 @@ object AutomationController {
 
         logPageSnapshot(service, "checkTaskResult")
 
+        // 最高优先级：肥料图标 + 领取按钮 → 直接点击领取（绕过场景白名单）
+        // 用户需求：如果有带肥图标，并有"领取"的按钮，可以直接点击领取
+        // 比任务完成/肥料到账检测更早，因为领取按钮还没点就没有"完成"状态
+        // findFertilizerClaimButton 已自行排除农场主页/广告播放中/任务列表场景
+        val fertClaimBtn = service.findFertilizerClaimButton()
+        if (fertClaimBtn != null) {
+            val claimText = fertClaimBtn.text?.toString().orEmpty()
+            Log.i(TAG, "processTask: fertilizer claim button found (text='$claimText'), clicking directly")
+            debugLog("processTask: fertilizer icon + claim button detected (text='$claimText'), clicking directly (bypass scene whitelist)")
+            service.performClickSafe(fertClaimBtn)
+            // 点击领取后，等待肥料到账/任务完成提示，重新评估场景
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt + 1)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
         // 优先检测：是否显示"任务完成"页面 → 得到肥料后立即退出
         if (service.isTaskCompletePage()) {
             Log.i(TAG, "processTask: task complete page detected, exiting")
