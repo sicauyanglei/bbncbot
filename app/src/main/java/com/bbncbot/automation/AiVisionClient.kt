@@ -93,15 +93,41 @@ object AiVisionClient {
         // 依次尝试视觉模型列表（glm-4.6v-flash → glm-4v-flash）
         // 遇到限流（1305）等可恢复错误时自动降级到下一个模型
         for (model in VISION_MODELS) {
-            val result = callVisionModel(apiKey, model, prompt, base64Image, sceneContext)
-            if (result != null) {
-                return result
+            // P-429：单个模型限流时退避重试 2 次（5s + 10s），避免两个模型都限流时直接失败
+            var retry = 0
+            var result: VisionResult? = null
+            while (retry <= 2) {
+                result = callVisionModel(apiKey, model, prompt, base64Image, sceneContext)
+                if (result != null) return result
+                // result == null 时判断是否是限流（429/1305），是则退避后重试
+                if (lastErrorCode == 429 || lastErrorMessage.contains("1305") || lastErrorMessage.contains("访问量过大")) {
+                    retry++
+                    if (retry <= 2) {
+                        val backoffMs = if (retry == 1) 5000L else 10000L
+                        Log.i(TAG, "analyzeScreenshot: $model rate-limited (429), backing off ${backoffMs}ms before retry $retry/2")
+                        try {
+                            Thread.sleep(backoffMs)
+                        } catch (ie: InterruptedException) {
+                            Thread.currentThread().interrupt()
+                            return null
+                        }
+                    }
+                } else {
+                    // 非限流错误（网络/解析失败/其他 HTTP 错误），不重试，直接换下一个模型
+                    break
+                }
             }
-            // result == null 时继续尝试下一个模型（可能是限流/网络错误）
+            // 限流重试耗尽或非限流错误，继续尝试下一个模型
         }
         Log.w(TAG, "analyzeScreenshot: all vision models failed (tried=${VISION_MODELS.joinToString()})")
         return null
     }
+
+    /** 记录上一次调用的错误码/消息，供调用方判断是否限流（429/1305）决定是否退避重试 */
+    @Volatile
+    private var lastErrorCode: Int = 0
+    @Volatile
+    private var lastErrorMessage: String = ""
 
     /**
      * 调用单个视觉模型
@@ -169,11 +195,17 @@ object AiVisionClient {
             val code = conn.responseCode
             if (code !in 200..299) {
                 val err = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-                // 1305: 访问量过大（限流）→ 返回 null 让调用方尝试下一个模型
+                // 记录错误信息，供调用方判断是否限流决定是否退避重试
+                lastErrorCode = code
+                lastErrorMessage = err
+                // 1305: 访问量过大（限流）→ 返回 null 让调用方决定是否退避重试
                 // 其他错误也返回 null，统一由调用方 fallback
-                Log.w(TAG, "callVisionModel($model) failed (HTTP $code): ${err.take(200)}, will try next model")
+                Log.w(TAG, "callVisionModel($model) failed (HTTP $code): ${err.take(200)}")
                 return null
             }
+            // 成功响应，清空错误状态
+            lastErrorCode = 0
+            lastErrorMessage = ""
 
             val response = conn.inputStream.bufferedReader().use { it.readText() }
             val contentStr = parseContent(response)
@@ -188,6 +220,9 @@ object AiVisionClient {
             result
         } catch (e: Exception) {
             Log.e(TAG, "callVisionModel($model) exception: ${e.message}")
+            // 网络异常等：非限流错误，不退避重试，直接换下一个模型
+            lastErrorCode = -1
+            lastErrorMessage = e.message ?: "exception"
             null
         } finally {
             conn?.disconnect()
