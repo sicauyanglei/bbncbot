@@ -1153,6 +1153,30 @@ object AutomationController {
             return
         }
 
+        // 1a-bis. "下单"字眼任务一律跳过（用户明确要求）
+        // 用户反馈："任意下单领大额肥料"这个任务为啥还点击，"下单"字眼任务都不点击
+        // 注意：必须排除"下单得"（浏览搜索结果得肥料，无需下单），但"任意下单"/"下单领"/"下单赢"都要跳过
+        // 同时检查 buttonText 和 taskContextText（任务标题在上下文中）
+        val taskContextText = service.collectTaskContextText(button)
+        val fullTaskText = "$buttonText $taskContextText"
+        // 明确要求下单的文案（"下单"前后跟动词/量词，不是单独的"下单得"）
+        val hasPaidOrderKeyword = fullTaskText.contains("任意下单") ||
+            fullTaskText.contains("下单领") ||
+            fullTaskText.contains("下单赢") ||
+            fullTaskText.contains("下单返") ||
+            fullTaskText.contains("下单得大额") ||
+            fullTaskText.contains("下单购买") ||
+            fullTaskText.contains("立即下单")
+        if (hasPaidOrderKeyword) {
+            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} has paid order keyword (下单), skipping (text='$buttonText', context='$taskContextText')")
+            debugLog("processTask: skip order task #$${currentTaskIndex + 1}, button='$buttonText', context='$taskContextText'")
+            currentTaskIndex++
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
+            }, 500L)
+            return
+        }
+
         // 1a. 已完成任务直接跳过
         // 用户反馈："(1/1)" "(2/2)" 这种 X/X 样式的任务已完成，不需要再点。
         // 任务列表里 "X/Y" 表示 "当前进度/总进度"，X==Y 说明已完成。
