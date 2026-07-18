@@ -4306,6 +4306,29 @@ class FarmAccessibilityService : AccessibilityService() {
         if (!isFarmPkg) {
             // activeRoot 不是 farm 包名（如 systemui 下拉通知栏、控制中心、锁屏等真正占屏场景）
             // 此时绝不能点击屏幕坐标——会误触 systemui 的元素
+            //
+            // build522 修复：区分"系统弹窗"和"用户主动切换到其他 App"
+            // 历史问题（debug_test_20260718_212740.log, build518-93f7a54）：
+            // - 用户在分析日志时切到 TRAE Code 编辑器（com.bytedance.trae.cn）查看代码
+            // - bot 调用 navigateAlipay 时 rootInActiveWindow 是 TRAE 编辑器 root
+            // - isFarmPkg=false → 当成 systemui 弹窗，pressBack 想关闭"弹窗"
+            // - 但 TRAE 编辑器不是弹窗，pressBack 切到后台又拉起其他 App
+            // - 同时 isRechargePage/isAdContentShown 把 TRAE 编辑器界面文字（"立即支付"等
+            //   被 contains 误匹配）当成陷阱页 → 反复 pressBack → 最终 STOPPING
+            //
+            // 修复：识别真实的"非系统弹窗的其他 App"（activeRootPkg 不是 systemui/android/launcher
+            // 等系统包名，而是真实用户 App），这种情况说明用户主动切走了，bot 应该安静等待用户切回，
+            // 不要 pressBack 干扰用户操作。只有真正的 systemui 弹窗才 pressBack 尝试关闭。
+            val isSystemPopupPkg = activeRootPkg == "com.android.systemui" ||
+                activeRootPkg == "android" ||
+                activeRootPkg.isEmpty() ||
+                activeRootPkg.endsWith(".launcher")  // 桌面 launcher（如 com.hihonor.android.launcher）
+            if (!isSystemPopupPkg) {
+                // 用户切到了其他真实 App（如 TRAE 编辑器、微信等），不 pressBack，安静等待
+                debugLog("navigateAlipay: active root pkg=$activeRootPkg is another user app (not systemui/launcher), waiting silently for user to switch back to farm app")
+                navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 3000L)
+                return
+            }
             if (retry < 2) {
                 // 前 2 次：pressBack 尝试关闭下拉通知栏等可关闭的 systemui 弹窗
                 debugLog("navigateAlipay: active root pkg=$activeRootPkg (systemui popup), pressing back to dismiss (retry=$retry)")
