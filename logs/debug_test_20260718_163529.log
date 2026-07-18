@@ -1,0 +1,25 @@
+=== cleared on app start (version=2.2, build=build502-e4141a1, time=16:35:07) ===
+16:35:07.823 killPlatformApps: killed com.ucmobile.lite for UC
+16:35:07.824 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+16:35:07.825 killPlatformApps: killed com.taobao.taobao for TAOBAO
+16:35:13.046 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:35:13.048 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+16:35:13.048 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+16:35:13.050 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+16:35:16.630 navigateAlipay: found 芭芭农场 entry at [108,402][298,510], clicking
+16:35:16.637 performClickSafe: text='芭芭农场' desc='' bounds=[108,402][298,510] clickable=false
+16:35:16.639 performClickSafe: ACTION_CLICK failed, trying gesture
+16:35:16.640 dispatchGesture: screen=[[108,402][298,510]] window=[[0,0][0,0]]
+16:35:16.642 dispatchGesture: not in popup, screen bounds valid, click at (203.0, 456.0)
+16:35:23.084 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:35:23.086 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+16:35:23.086 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+16:35:23.088 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+16:35:26.648 navigateAlipay: found 芭芭农场 entry at [108,402][298,510], clicking
+16:35:26.649 performClickSafe: text='芭芭农场' desc='' bounds=[108,402][298,510] clickable=false
+16:35:26.650 performClickSafe: ACTION_CLICK failed, trying gesture
+16:35:26.651 dispatchGesture: screen=[[108,402][298,510]] window=[[0,0][0,0]]
+16:35:26.652 dispatchGesture: not in popup, screen bounds valid, click at (203.0, 456.0)
+16:35:29.636 saveToken: saved (len=93, head='gith', tail='GP1v')
+16:35:29.639 upload start: tag=test, token=***len=93, head='gith', tail='GP1v', hasNewline=false, hasSpace=false
+16:35:29.641 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260718_163529.log, localFile=debug.log (2017 bytes)
