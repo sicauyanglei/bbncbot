@@ -1269,7 +1269,21 @@ object AutomationController {
             Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is pure claim button, clicking to claim (text='$buttonText', context='${taskContextText.take(60)}')")
             debugLog("processTask: pure claim task #${currentTaskIndex + 1}, button='$buttonText', direct click to claim fertilizer")
             service.performClickSafe(button)
-            currentTaskIndex++
+            // build524 修复（debug_test_20260719_025229.log, build522-bdb61fe）：
+            // 历史问题：pureClaimClick 后 currentTaskIndex++ 导致下一轮跳过 priority=0 的"领取"按钮
+            // - 第一轮点击"领取"成功 → currentTaskIndex++ → currentTaskIndex=1
+            // - 第二轮任务列表刷新，排序后 idx=0 是新的 priority=0 "领取"按钮
+            // - 但 currentTaskIndex=1 跳过了 idx=0 的"领取"按钮，直接处理 idx=1
+            // - 导致多个"领取"按钮只处理了第一个，后面的被跳过
+            //
+            // 修复：pureClaimClick 后不 currentTaskIndex++，而是重置 currentTaskIndex=0
+            // 因为任务列表会刷新（"领取"按钮消失或变成"已领取"），新的任务列表里：
+            // - 已领取的按钮变成"已领取"被 findGoCompleteButtons 过滤
+            // - 新的"领取"按钮（如浏览任务完成后出现）会被识别为 priority=0 优先处理
+            // - 已处理的浏览任务进度会更新（0/3 → 1/3），isBrowseTask 检测进度决定是否继续
+            // 不会死循环：每次 pureClaimClick 后任务列表都会变化（至少"领取"按钮消失）
+            currentTaskIndex = 0
+            collectedCount++
             // 等 2 秒让"肥料已发放"弹窗渲染（点击后弹窗需要短暂时间出现）
             handler.postDelayed({
                 if (state != AutomationState.PROCESSING_TASK) return@postDelayed
@@ -1287,11 +1301,18 @@ object AutomationController {
                         }
                     }, INTERVAL_CLICK_MS)
                 } else {
-                    // 未检测到"肥料已发放"弹窗（可能领取失败或弹窗已自动消失）
-                    // 直接回 OPENING_TASK_LIST 兜底
-                    debugLog("processTask: pure claim but no 肥料已发放 popup detected, returning to OPENING_TASK_LIST")
-                    moveTo(AutomationState.OPENING_TASK_LIST)
-                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    // build524：未检测到"肥料已发放"弹窗也 pressBack 一次尝试关闭可能的弹窗
+                    // 历史问题：签到任务的弹窗文字可能不是"肥料已发放"而是"签到成功"等，
+                    // isFertilizerGrantedPage 没匹配到，但不 pressBack 弹窗会遮挡任务列表
+                    // 修复：无论是否检测到弹窗，都 pressBack 一次尝试关闭可能的弹窗
+                    debugLog("processTask: pure claim but no 肥料已发放 popup detected, pressing back to dismiss possible popup then returning to OPENING_TASK_LIST")
+                    service.pressBack()
+                    handler.postDelayed({
+                        if (state == AutomationState.PROCESSING_TASK) {
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        }
+                    }, INTERVAL_CLICK_MS)
                 }
             }, INTERVAL_CLICK_MS)
             return

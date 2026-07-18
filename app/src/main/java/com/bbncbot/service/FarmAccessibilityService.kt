@@ -4316,17 +4316,32 @@ class FarmAccessibilityService : AccessibilityService() {
             // - 同时 isRechargePage/isAdContentShown 把 TRAE 编辑器界面文字（"立即支付"等
             //   被 contains 误匹配）当成陷阱页 → 反复 pressBack → 最终 STOPPING
             //
-            // 修复：识别真实的"非系统弹窗的其他 App"（activeRootPkg 不是 systemui/android/launcher
+            // 修复：识别真实的"非系统弹窗的其他 App"（activeRootPkg 不是 systemui/android
             // 等系统包名，而是真实用户 App），这种情况说明用户主动切走了，bot 应该安静等待用户切回，
             // 不要 pressBack 干扰用户操作。只有真正的 systemui 弹窗才 pressBack 尝试关闭。
+            //
+            // build524 修复（debug_test_20260719_025229.log, build522-bdb61fe）：
+            // - 历史问题：build522 把 launcher（com.hihonor.android.launcher）归到 isSystemPopupPkg，
+            //   走 pressBack 路径。但 launcher 不是弹窗，pressBack 关不掉
+            // - 场景：RETURNING 后 reopenFarmByDeepLink kill 了支付宝，支付宝启动中 launcher 在前台
+            // - navigateAlipay 检测到 launcher → pressBack → 无效（回到桌面）→ 用户停止
+            // - 修复：launcher 归到"等待"分支（不 pressBack），等支付宝启动完自动切回
             val isSystemPopupPkg = activeRootPkg == "com.android.systemui" ||
                 activeRootPkg == "android" ||
-                activeRootPkg.isEmpty() ||
-                activeRootPkg.endsWith(".launcher")  // 桌面 launcher（如 com.hihonor.android.launcher）
-            if (!isSystemPopupPkg) {
+                activeRootPkg.isEmpty()
+            // launcher（桌面）单独处理：不 pressBack，等待 app 启动或用户切回
+            val isLauncherPkg = activeRootPkg.endsWith(".launcher")
+            if (!isSystemPopupPkg && !isLauncherPkg) {
                 // 用户切到了其他真实 App（如 TRAE 编辑器、微信等），不 pressBack，安静等待
                 debugLog("navigateAlipay: active root pkg=$activeRootPkg is another user app (not systemui/launcher), waiting silently for user to switch back to farm app")
                 navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 3000L)
+                return
+            }
+            if (isLauncherPkg) {
+                // launcher 在前台：可能是 RETURNING 后 kill 了 app，app 正在启动中
+                // 不 pressBack（pressBack 对 launcher 无效），等待 app 启动完自动切回
+                debugLog("navigateAlipay: active root pkg=$activeRootPkg is launcher (app probably restarting), waiting for app to come to foreground (retry=$retry)")
+                navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 2000L)
                 return
             }
             if (retry < 2) {
