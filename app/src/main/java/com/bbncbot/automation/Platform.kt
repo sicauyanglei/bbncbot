@@ -285,7 +285,11 @@ object AlipayPlatformConfig : PlatformConfig {
         // "领取肥料"也移除：它会误匹配"2027.12.31前可领取肥料礼包"等直接领取入口，
         // 这类入口点击后弹窗，需在弹窗里点"立即领取"才能领到肥料，应走 directCollect 流程
     )
-    override val goCompleteTexts = listOf("去完成", "去逛逛", "去观看", "立即完成", "去领取", "去赚", "去签到", "去答题", "去挑战", "开始挑战")
+    override val goCompleteTexts = listOf(
+        "去完成", "去逛逛", "去观看", "立即完成", "去领取", "去赚", "去签到", "去答题", "去挑战", "开始挑战",
+        // 纯"领取"类按钮（点击即得肥料，无需跳转，优先级最高，见 sortTaskButtonsByPriority）
+        "立即领取", "点击领取", "开心收下", "收下", "领取"
+    )
     override val directCollectTexts = listOf(
         "可领取", "挖肥料",
         // 支付宝芭芭农场：按钮锁定时显示"还差3次领肥[料]"，达到阈值后变成"立即领肥[料]"可点击领取

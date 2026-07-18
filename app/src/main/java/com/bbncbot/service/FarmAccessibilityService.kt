@@ -2043,7 +2043,9 @@ class FarmAccessibilityService : AccessibilityService() {
             "赢肥料", "玩一玩", "小游戏", "通关", "得分",
             "大转盘", "抽奖", "摇一摇",
             "浪漫餐厅", "农场分色瓶", "继续玩",
-            "对战", "完成1局", "完成一局", "局对战", "打一局"
+            "对战", "完成1局", "完成一局", "局对战", "打一局",
+            // 砸蛋类任务（砸蛋N次/砸金蛋）：需要在小游戏里过关，自动化无法完成，跳过
+            "砸蛋", "砸金蛋"
         ) + currentPlatformConfig().gameTaskKeywords
         val contextText = collectTaskContextText(button)
         val isGame = gameKeywords.any { contextText.contains(it) }
