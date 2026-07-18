@@ -836,6 +836,26 @@ class FarmAccessibilityService : AccessibilityService() {
             return dispatchGestureClick(x, y)
         }
 
+        // build531 修复（debug_test_20260719_063018.log, build531-a39eb89）：
+        // 历史问题：在 WebView 弹窗内（如任务列表弹窗），即使节点的 getBoundsInScreen
+        // 返回了合法坐标（如 [225,1660][975,1807]，中心 (600,1733)），原逻辑也跳过
+        // 直接使用 screen bounds 的路径，强制走 popup offset 修正路径：
+        //   - estimateWebViewPopupOffset 找不到锚点 → 用默认 offset=410
+        //   - 点击坐标变成 (600, 1733+410)=(600, 2143) ← 偏离按钮实际位置 410px！
+        //   - 错误坐标点击没触发跳转，bot 在农场主页滑动 35 次直到超时
+        //   - 用户看到"已到倒计时时间还在上下移动"
+        //
+        // 修复：在弹窗内时，先验证 screen bounds 是否落在合理屏幕范围内
+        // （width>0, height>0, top<bottom, y 在屏幕内），若是则直接使用 screen bounds 中心，
+        // 不再盲目加 popup offset。popup offset 仅在 screen bounds 明显非法时使用。
+        if (isInPopup && rectScreen.width() > 0 && rectScreen.height() > 0 &&
+            rectScreen.top < rectScreen.bottom && rectScreen.top in 50..2600 && rectScreen.bottom in 100..2664) {
+            val x = rectScreen.exactCenterX()
+            val y = rectScreen.exactCenterY()
+            debugLog("dispatchGesture: in popup but screen bounds valid, click at ($x, $y) (no popup offset)")
+            return dispatchGestureClick(x, y)
+        }
+
         // 2. 在弹窗内或 screen bounds 无效，需要修正坐标
         debugLog("dispatchGesture: inPopup=$isInPopup, trying coordinate fix")
 
@@ -1130,6 +1150,21 @@ class FarmAccessibilityService : AccessibilityService() {
                 if (secondsMatch != null) {
                     val seconds = secondsMatch.groupValues[1].toIntOrNull() ?: 0
                     if (seconds > 0 && seconds <= 300) {  // 合理范围：1-300秒
+                        // build531 修复（debug_test_20260719_063018.log, build531-a39eb89）：
+                        // 历史问题：bot 点击"点此逛一逛"按钮后没成功跳转到浏览页面（仍停在农场主页），
+                        // 但 findSwipeForFertilizerHint 识别到任务列表的描述文案"浏览15秒得1000肥料"
+                        // 误以为是浏览页面的进度提示，于是在农场主页滑动 35 次，countdown=0s 一直没变。
+                        //
+                        // 修复：排除任务列表的奖励描述文案——"浏览N秒得X肥料"/"浏览N秒得X肥"是
+                        // 任务列表里的任务描述（"浏览15秒得1000肥料"），不是浏览页面的进度提示。
+                        // 浏览页面的提示通常是"每浏览N秒得一次奖励"/"滑动浏览N秒"等。
+                        val isTaskDescription = text.contains("得") && (
+                            text.contains("肥料") || text.contains("肥") || text.contains("奖励")
+                        )
+                        if (isTaskDescription) {
+                            debugLog("findSwipeForFertilizerHint: skip task description '$text'")
+                            continue
+                        }
                         debugLog("findSwipeForFertilizerHint: found hint '$text', seconds=$seconds")
                         return seconds
                     }
