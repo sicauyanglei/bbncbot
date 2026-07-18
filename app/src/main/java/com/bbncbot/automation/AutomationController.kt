@@ -844,7 +844,20 @@ object AutomationController {
                     debugLog("openTaskList: [${service.currentPlatform}闭环] clicking entry button by text (attempt=$attempt)")
                     service.performClickSafe(entryButton)
                 } else {
-                    // 文本也没找到，用坐标候选兜底
+                    // 坐标兜底前必须确认在农场页：
+                    // 历史问题——当 gamePlay 后未真正回到农场页（仍在蚂蚁庄园等小程序页）时，
+                    // findCollectFertilizerButton 返回 null，但代码会继续按坐标点击"集肥料"按钮位置，
+                    // 结果点开了相邻页面的入口（如"小鸡乐园活动规则"页），打开无关规则条款页 → 误识别为
+                    // 任务按钮 → isPaidTask 误判 → 整个平台被错误标记为"已完成"。
+                    // 修复：不在农场页时禁用坐标兜底，转回 NAVIGATING 重新导航到农场页。
+                    if (!service.isOnFarmPage()) {
+                        debugLog("openTaskList: [${service.currentPlatform}闭环] not on farm page (no entry button and not on farm), re-navigating instead of coordinate fallback")
+                        taskListOpenedThisRound = false  // 重置，让导航回农场后下一轮还能尝试
+                        moveTo(AutomationState.NAVIGATING)
+                        handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
+                        return
+                    }
+                    // 在农场页才允许坐标兜底（H5 页面 WebView 文本不暴露的情况）
                     val candidates = collectFertilizerCandidates(service)
                     if (candidates.isNotEmpty()) {
                         val coordIndex = attempt % candidates.size
