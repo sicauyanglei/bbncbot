@@ -13,16 +13,20 @@ import org.json.JSONObject
  * 因此需要调用 AI API 获取答案，选择最可能正确的选项。
  *
  * 实现：
- * - 调用智谱 GLM-4-Flash（免费模型）chat/completions 接口
+ * - 调用智谱 GLM-4-Flash-250414（免费模型）chat/completions 接口
  * - 将问题 + 两个选项发给 AI，让 AI 返回正确选项的文本
  * - API Key 存储于 SharedPreferences（与 GitHub Token 同样的安全方式）
  *
  * 必须在后台线程调用（含网络 IO）。
  *
- * 智谱 API 文档：https://open.bigmodel.cn/dev/api/normal-model/glm-4
+ * 智谱 API 文档：https://docs.bigmodel.cn/cn/guide/models/free/glm-4-flash-250414
  * - URL: https://open.bigmodel.cn/api/paas/v4/chat/completions
  * - Auth: Bearer {api_key}
- * - Body: { "model": "glm-4-flash", "messages": [...] }
+ * - Body: { "model": "glm-4-flash-250414", "messages": [...] }
+ *
+ * 模型选择说明：
+ * - 旧模型 ID "glm-4-flash" 已下线，需用带版本号的 "glm-4-flash-250414"
+ * - 备选：glm-4.7-flash（200K 上下文，能力更强，同样免费）
  */
 object QuizAnswerClient {
 
@@ -31,8 +35,8 @@ object QuizAnswerClient {
     /** 智谱 GLM API 端点 */
     private const val API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
 
-    /** 使用免费模型 glm-4-flash（无需付费，适合答题场景） */
-    private const val MODEL = "glm-4-flash"
+    /** 使用免费模型 glm-4-flash-250414（128K 上下文，无需付费，适合答题场景） */
+    private const val MODEL = "glm-4-flash-250414"
 
     /** SharedPreferences 名称（独立于 GitHub Token 配置） */
     private const val PREFS_NAME = "ai_config"
