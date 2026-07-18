@@ -121,6 +121,26 @@ interface PlatformConfig {
 
     /** 平台特有的广告关闭按钮文本/描述提示（除通用的"×"/"关闭"外） */
     val adCloseButtonTexts: List<String>
+
+    /**
+     * 广告主转化按钮黑名单（陷阱按钮关键词）
+     *
+     * 广告设计者意图：诱导用户点击进入广告主落地页（下载/购买/注册），
+     * 获取广告转化收益。这些按钮绝不能点击：
+     * - "立即下载"/"立即安装" — 跳应用商店下载广告主 App
+     * - "立即体验"/"立即试玩" — 跳广告主应用内试玩页
+     * - "前往应用"/"打开应用" — 拉起广告主 App
+     * - "查看详情"/"了解更多" — 跳广告主落地页
+     * - "立即抢购"/"立即购买"/"去购买" — 跳商品交易页（违反禁止交易原则）
+     * - "立即注册"/"立即开通" — 跳注册/开通会员页
+     *
+     * 用于：
+     * - [FarmAccessibilityService.findClaimRewardButton] 排除诱导按钮（避免误识别为肥料领取按钮）
+     * - [FarmAccessibilityService.findAdCloseButton] 排除诱导按钮（避免误识别为关闭按钮）
+     * - [FarmAccessibilityService.isAdLandingPage] 检测误入广告主落地页
+     * - [FarmAccessibilityService.findAdInstallButton] 检测诱导弹窗
+     */
+    val adInstallButtonTexts: List<String>
 }
 
 /** UC 极速版（com.ucmobile.lite）配置 - 沿用现有 v2 实现 */
@@ -169,6 +189,15 @@ object UcPlatformConfig : PlatformConfig {
     override val adEndCheckIntervalMs = 5000L         // 5s 检测间隔（"更快拿奖"流程需较稳定轮询）
     override val supportsFasterReward = true          // UC 特有："我要更快拿奖"跳转流程
     override val adCloseButtonTexts = listOf("跳过广告", "跳过视频", "关闭广告")
+    override val adInstallButtonTexts = listOf(
+        "立即下载", "立即安装", "点击下载", "免费下载",
+        "立即体验", "立即试玩", "开始试玩",
+        "前往应用", "打开应用", "前往查看",
+        "查看详情", "了解更多", "查看更多",
+        "立即抢购", "立即购买", "去购买", "立即下单",
+        "立即注册", "立即开通", "立即续费", "开通会员",
+        "领取优惠", "领取福利", "立即领取福利"
+    )
 }
 
 /**
