@@ -4170,7 +4170,7 @@ class FarmAccessibilityService : AccessibilityService() {
         // 守卫：当前屏幕被非 farm 包名占用时（如下拉通知栏/控制中心/锁屏等 systemui 场景），
         // 绝不能直接点击屏幕坐标——会误触 systemui 的元素。
         //
-        // 历史问题（debug_test_20260718_175404.log）：
+        // 历史问题 1（debug_test_20260718_175404.log）：
         // - 17:53:46 pkg=com.android.systemui（下拉通知栏占用屏幕）
         // - 17:53:46 act=XRiverActivity（支付宝在后台）
         // - isFarmAppInForeground 返回 true（windows 中还能找到支付宝后台窗口）
@@ -4180,7 +4180,19 @@ class FarmAccessibilityService : AccessibilityService() {
         // - dispatchGestureClick(203, 456) 点击屏幕坐标，但屏幕实际显示 systemui
         // - 点击落到 systemui 上，触发某个通知/动作，4 秒后 bbncbot MainActivity 被拉到前台
         //
-        // 修复：先检查 currentScreenPkg，如果是 systemui 或非 farm 包名，先按返回键关闭它再重试。
+        // 历史问题 2（debug_test_20260718_193727.log，build506-c9587a5）：
+        // - 19:36:21-28 首次启动时连续 6 次 pressBack 都没关掉 systemui（Honor 系统弹窗对 back 无效）
+        // - 19:36:38 支付宝刚启动到 alipaylogin（闪屏页，root=null）
+        // - 19:36:41 stepNavigateAlipayFarm 看到 systemui 就 pressBack
+        // - 这时 pressBack 可能把支付宝退到桌面（而不是关闭 systemui）
+        // - 用户被迫手动停止自动化
+        //
+        // 修复策略：
+        // - currentScreenPkg 是 systemui 时，不直接 pressBack（对 Honor 系统弹窗无效，可能误退出支付宝）
+        // - 仅在前 2 次 retry 尝试 pressBack（应对"下拉通知栏"这种可关闭场景）
+        // - retry >= 2 改为等待（让支付宝自己启动完，systemui 弹窗自己消失或用户手动处理）
+        // - 同时检查 currentActivityName：如果是 alipaylogin（启动闪屏），说明支付宝正在启动，
+        //   绝不 pressBack（会退出支付宝），只等待
         val currentScreenPkg = getCurrentWindowPackage()
         val cfg = currentPlatformConfig()
         val isFarmPkg = currentScreenPkg != null && (
@@ -4188,9 +4200,25 @@ class FarmAccessibilityService : AccessibilityService() {
             cfg.internalPackagePrefixes.any { currentScreenPkg!!.startsWith(it) }
         )
         if (!isFarmPkg) {
-            debugLog("navigateAlipay: current screen pkg=$currentScreenPkg is not farm app (likely systemui popup/lock screen), pressing back to dismiss and retry (retry=$retry)")
-            pressBack()
-            navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 1500L)
+            val currentAct = currentActivityName?.lowercase().orEmpty()
+            val isAlipayStartup = currentAct.contains("alipaylogin") || currentAct.contains("splash")
+            if (isAlipayStartup) {
+                // 支付宝正在启动（闪屏页），绝不 pressBack（会退出支付宝），只等待
+                debugLog("navigateAlipay: current screen pkg=$currentScreenPkg, alipay startup (act=$currentAct), waiting for alipay to finish startup (retry=$retry)")
+                navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 2000L)
+                return
+            }
+            if (retry < 2) {
+                // 前 2 次：pressBack 尝试关闭下拉通知栏等可关闭的 systemui 弹窗
+                debugLog("navigateAlipay: current screen pkg=$currentScreenPkg (systemui popup), pressing back to dismiss (retry=$retry)")
+                pressBack()
+                navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 2000L)
+                return
+            }
+            // retry >= 2：pressBack 无效（Honor 系统弹窗），改为等待，让支付宝自己启动完
+            // 或 systemui 弹窗自己消失，或用户手动处理
+            debugLog("navigateAlipay: systemui still occupying screen after $retry retries, waiting (act=$currentAct, pkg=$currentScreenPkg)")
+            navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 3000L)
             return
         }
 
