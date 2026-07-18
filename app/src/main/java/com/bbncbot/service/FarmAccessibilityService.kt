@@ -1189,7 +1189,8 @@ class FarmAccessibilityService : AccessibilityService() {
      * 9. AD_ENDED        — 广告已结束（可关闭/领取奖励）
      * 10. AD_PLAYING     — 广告播放中（等待，勿点诱导按钮）
      * 11. FARM_PAGE      — 农场主页（正常状态）
-     * 12. UNKNOWN        — 未知场景（保守等待）
+     * 12. GENERIC_POPUP  — 未知弹窗（无肥料提示，需主动关闭）
+     * 13. UNKNOWN        — 未知场景（保守等待）
      */
     enum class PageScene {
         FARM_PAGE,           // 农场主页
@@ -1197,6 +1198,7 @@ class FarmAccessibilityService : AccessibilityService() {
         AD_ENDED,            // 广告已结束（无倒计时，可能有领取按钮）
         REWARD_POPUP,        // 奖励领取弹窗（恭喜获得/领取奖励）
         SIGN_IN,             // 签到页面（立即签到/签到领取）
+        GENERIC_POPUP,       // 未知弹窗（无肥料提示，需主动关闭）
         TRAP_LANDING,        // 广告主落地页陷阱
         TRAP_INSTALL,        // 诱导弹窗陷阱（立即下载）
         TRAP_REPLAY,         // 复看陷阱（再看一个/加倍领取）
@@ -1252,7 +1254,11 @@ class FarmAccessibilityService : AccessibilityService() {
             // 在广告页但无倒计时，可能是广告已结束等待用户操作
             return PageScene.AD_ENDED
         }
-        // 12. 未知场景（保守等待）
+        // 12. 通用弹窗（无肥料提示，需主动关闭）
+        // 用户需求：弹框窗口如何没有肥料提示，需要关闭弹窗
+        // 注意：必须放在 UNKNOWN 之前，避免未知弹窗被保守等待卡住
+        if (isGenericPopup()) return PageScene.GENERIC_POPUP
+        // 13. 未知场景（保守等待）
         return PageScene.UNKNOWN
     }
 
@@ -1337,6 +1343,63 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 检测通用弹窗（无肥料提示的弹窗）
+     *
+     * 用户需求：弹框窗口如何没有肥料提示，需要关闭弹窗。
+     *
+     * 用于处理未知弹窗（如分享好友/开通会员/评价/更新/活动等弹窗）：
+     * - 弹窗存在（有"关闭/×/知道了/确定/取消"等关闭按钮文案）
+     * - 但不包含肥料领取/奖励/签到等提示文案
+     *
+     * 此类弹窗需要主动关闭，避免 bot 卡在 UNKNOWN 场景保守等待。
+     *
+     * 排除（已在前置场景识别中过滤，这里兜底防御）：
+     * - 奖励领取弹窗（isRewardPopupPage）
+     * - 签到页面（isSignInPage）
+     * - 复看陷阱（isReplayTrapPage）
+     * - 诱导弹窗陷阱（findAdInstallButton）
+     * - 充值/交易/小程序/落地页陷阱
+     *
+     * 安全策略：含肥料相关文案的弹窗不视为通用弹窗（保守不关闭），
+     * 避免误关闭正在显示肥料领取的奖励弹窗。
+     *
+     * @return true 表示当前是通用弹窗（无肥料提示，需主动关闭）
+     */
+    private fun isGenericPopup(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        if (allText.isEmpty()) return false
+
+        // 肥料/奖励相关文案：存在则不视为通用弹窗（保守不关闭）
+        // 注意：包含"肥料"/"得肥"等广泛关键词，覆盖所有可能含肥料提示的场景
+        val fertilizerKeywords = listOf(
+            "肥料", "得肥", "集肥", "领肥",
+            "恭喜获得", "获得奖励", "领取奖励", "领取成功", "奖励已到账",
+            "签到",  // 签到日历弹窗（含签到肥料）
+            "再看一个", "加倍领取", "翻倍领取", "翻倍奖励",  // 复看陷阱文案
+            "去完成", "去逛逛", "去签到", "去做任务",  // 任务列表入口
+            "做任务集肥料", "关闭做任务集肥料弹窗",  // 任务列表弹窗
+            "任务列表", "任务规则"
+        )
+        val hasFertilizerText = allText.any { text ->
+            fertilizerKeywords.any { kw -> text.contains(kw) }
+        }
+        if (hasFertilizerText) return false
+
+        // 关闭按钮文案：存在则视为弹窗
+        // 注意：使用足够特异的关闭文案，避免把"立即关闭下载"等诱导按钮文案误识别
+        val closeKeywords = listOf(
+            "×", "关闭", "close", "知道了", "我知道了",
+            "确定", "取消", "暂不", "以后再说", "稍后再说",
+            "残忍拒绝", "拒绝", "关闭弹窗", "不再提示"
+        )
+        val hasCloseButton = allText.any { text ->
+            closeKeywords.any { kw -> text.contains(kw) }
+        }
+        return hasCloseButton
+    }
+
+    /**
      * 判断当前场景是否允许点击"领取奖励"按钮（场景白名单）
      *
      * 聪明思考：只在确认是"广告已结束"/"奖励弹窗"/"签到页面"场景才允许点击领取按钮，
@@ -1354,16 +1417,18 @@ class FarmAccessibilityService : AccessibilityService() {
     /**
      * 判断当前场景是否允许点击"关闭广告"按钮（场景白名单）
      *
-     * 聪明思考：只在"广告播放中"或"广告已结束"或"奖励弹窗"或"签到页面"场景才允许点击关闭按钮，
+     * 聪明思考：只在"广告播放中"或"广告已结束"或"奖励弹窗"或"签到页面"或"通用弹窗"场景才允许点击关闭按钮，
      * 避免在农场页/陷阱页误点"关闭"导致退出农场或掉入陷阱。
      * 签到页面领取后需要点关闭/确定退出，必须放行。
+     * 通用弹窗（无肥料提示）需要主动关闭，必须放行。
      *
      * @return true 表示当前场景允许点击关闭按钮
      */
     fun isCloseAdAllowedScene(): Boolean {
         val scene = identifyCurrentScene()
         return scene == PageScene.AD_PLAYING || scene == PageScene.AD_ENDED ||
-            scene == PageScene.REWARD_POPUP || scene == PageScene.SIGN_IN
+            scene == PageScene.REWARD_POPUP || scene == PageScene.SIGN_IN ||
+            scene == PageScene.GENERIC_POPUP
     }
 
     /**

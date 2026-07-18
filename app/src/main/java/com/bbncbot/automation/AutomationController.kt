@@ -605,6 +605,26 @@ object AutomationController {
             return
         }
 
+        // 通用弹窗检测（无肥料提示的弹窗，如分享好友/开通会员/评价/活动等）
+        // 用户需求：弹框窗口如何没有肥料提示，需要关闭弹窗
+        // 策略：主动关闭弹窗，避免 bot 卡在 UNKNOWN 场景反复调用 navigateToFarm
+        if (signInScene == FarmAccessibilityService.PageScene.GENERIC_POPUP) {
+            Log.i(TAG, "navigate: generic popup detected (no fertilizer hint), closing it")
+            debugLog("navigate: generic popup (no fertilizer), attempting to close")
+            val closeBtn = service.findAdCloseButton()
+            if (closeBtn != null) {
+                debugLog("navigate: clicking close button on generic popup (text='${closeBtn.text}')")
+                service.performClickSafe(closeBtn)
+            } else {
+                debugLog("navigate: no close button found for generic popup, pressing back")
+                service.pressBack()
+            }
+            handler.postDelayed({
+                if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
         if (attempt >= 10) {
             Log.w(TAG, "navigate: failed after $attempt attempts, waiting and retrying")
             handler.postDelayed({
@@ -2611,6 +2631,25 @@ object AutomationController {
                 Log.w(TAG, "watchAd: ad replay trap detected (scene=$scene), closing (再看一个/加倍领取)")
                 debugLog("watchAd: replay trap handled, continuing to check ad end")
                 service.closeAdReplayTrap()
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                }, INTERVAL_CLICK_MS)
+                return
+            }
+            // 通用弹窗（无肥料提示，需主动关闭）
+            // 用户需求：弹框窗口如何没有肥料提示，需要关闭弹窗
+            // 策略：优先点关闭按钮（×/关闭/知道了/确定等），否则按返回键，继续轮询等待广告恢复
+            PageScene.GENERIC_POPUP -> {
+                Log.i(TAG, "watchAd: generic popup detected (no fertilizer hint), closing it")
+                debugLog("watchAd: generic popup (no fertilizer), attempting to close")
+                val closeBtn = service.findAdCloseButton()
+                if (closeBtn != null) {
+                    debugLog("watchAd: clicking close button on generic popup (text='${closeBtn.text}')")
+                    service.performClickSafe(closeBtn)
+                } else {
+                    debugLog("watchAd: no close button found for generic popup, pressing back")
+                    service.pressBack()
+                }
                 handler.postDelayed({
                     if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
                 }, INTERVAL_CLICK_MS)
