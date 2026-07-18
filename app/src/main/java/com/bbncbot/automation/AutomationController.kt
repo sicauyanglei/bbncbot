@@ -2250,6 +2250,39 @@ object AutomationController {
                             debugLog("watchAd: faster reward app '$currentPkg' opened, staying 16s")
                         }
                     }
+                    // 陷阱防护：停留期间检测诱导弹窗（立即下载等）→ 优先关闭
+                    if (service.findAdInstallButton() != null) {
+                        Log.w(TAG, "watchAd: faster reward stay interrupted by install popup, closing it")
+                        debugLog("watchAd: install popup during faster reward stay, attempting close")
+                        service.closeAdInstallPopup()
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                        }, INTERVAL_CLICK_MS)
+                        return
+                    }
+                    // 陷阱防护：停留期间检测交易页（违反禁止交易原则）→ 立即结束流程
+                    if (service.isOnAbnormalPage() || service.isRechargePage()) {
+                        Log.w(TAG, "watchAd: faster reward stay hit abnormal/recharge page, aborting")
+                        debugLog("watchAd: faster reward stay hit trap page, killing new app immediately")
+                        service.setAdMode(false)
+                        if (watchingAdPlatform != Platform.UNKNOWN) {
+                            service.launchPlatformApp(watchingAdPlatform)
+                        }
+                        val killedPkg = fasterRewardAppPkg
+                        if (killedPkg != null) {
+                            service.forceKillApp(killedPkg, pressBackFirst = false)
+                        } else {
+                            service.pressBack()
+                        }
+                        currentTaskIndex++
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) {
+                                moveTo(AutomationState.OPENING_TASK_LIST)
+                                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                            }
+                        }, INTERVAL_PAGE_LOAD_MS)
+                        return
+                    }
                     // 计算停留时间
                     val stayedMs = if (fasterRewardAppEnterTimeMs > 0) {
                         System.currentTimeMillis() - fasterRewardAppEnterTimeMs
@@ -2290,6 +2323,16 @@ object AutomationController {
                 }
                 3 -> {
                     // 阶段3：已关闭新 App，等待"恭喜获得奖励提升"窗口，点右上角关闭
+                    // 陷阱防护：阶段3 等待期间也可能误入落地页/诱导弹窗
+                    if (service.isAdLandingPage()) {
+                        Log.w(TAG, "watchAd: faster reward stage3 hit landing page, closing via closeAdLandingPage")
+                        debugLog("watchAd: stage3 landing page trap, using closeAdLandingPage")
+                        service.closeAdLandingPage()
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                        }, INTERVAL_CLICK_MS)
+                        return
+                    }
                     if (service.isRewardUpgradePopupShown()) {
                         Log.i(TAG, "watchAd: reward upgrade popup detected, clicking close")
                         debugLog("watchAd: '恭喜获得奖励提升' popup detected, clicking top-right close")
@@ -2642,6 +2685,33 @@ object AutomationController {
             debugLog("closeAd: start closing, pageType=$closePageType, texts=$closeTexts")
         }
         Log.i(TAG, "closeAd: trying strategy #$strategy")
+
+        // 陷阱防护：策略0 之前先检测是否误入广告主落地页
+        // 落地页的"×"位置可能不同于广告关闭按钮，使用专门的 closeAdLandingPage（已内置诱导黑名单过滤）
+        if (strategy == 0 && service.isAdLandingPage()) {
+            Log.w(TAG, "closeAd: ad landing page detected during closing, using closeAdLandingPage")
+            debugLog("closeAd: landing page trap detected, using specialized close")
+            service.closeAdLandingPage()
+            handler.postDelayed({
+                if (state == AutomationState.CLOSING_AD) checkAdClosed(service, 0)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 陷阱防护：策略0 之前先检测诱导弹窗（立即下载弹窗）
+        // 若存在诱导弹窗，优先用 closeAdInstallPopup 关闭弹窗，再尝试常规关闭
+        if (strategy == 0 && service.findAdInstallButton() != null) {
+            Log.w(TAG, "closeAd: install popup detected during closing, trying closeAdInstallPopup first")
+            debugLog("closeAd: install popup trap detected, attempting closeAdInstallPopup")
+            val closed = service.closeAdInstallPopup()
+            handler.postDelayed({
+                if (state == AutomationState.CLOSING_AD) {
+                    // 弹窗关闭成功 → 继续常规策略0；失败 → 跳过策略0直接走坐标策略
+                    if (closed) checkAdClosed(service, 0) else runClosingAd(1)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
 
         when (strategy) {
             0 -> {

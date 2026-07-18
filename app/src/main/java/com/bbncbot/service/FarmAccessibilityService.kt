@@ -922,22 +922,45 @@ class FarmAccessibilityService : AccessibilityService() {
     /**
      * 检测游戏完成页面
      * - 游戏完成信号：领取奖励/恭喜/完成/升级/通关/挑战成功/获得肥料/任务完成
+     *
+     * 上下文校验（防广告陷阱）：
+     * - 若页面同时是广告主落地页（含多个诱导按钮且无农场/游戏核心），说明"恭喜/完成任务"
+     *   是广告伪装的诱导文案，不应识别为游戏完成
+     * - 严格匹配"恭喜获得"等关键词，避免"恭喜获得优惠券"等诱导文案误判
+     *
      * @return true 表示当前是游戏完成页面
      */
     fun isGameCompletePage(): Boolean {
         val root = rootInActiveWindowSafe() ?: return false
         val allText = collectAllText(root)
+        // 收紧完成关键词：移除过宽的"恭喜"（"恭喜您获得优惠券"等广告文案会误匹配）
+        // 保留更明确的"恭喜获得"/"挑战成功"/"通关"等组合
         val isComplete = allText.any { text ->
-            text.contains("领取奖励") || text.contains("恭喜") ||
+            text.contains("领取奖励") ||
                 text.contains("挑战成功") || text.contains("通关") ||
                 text.contains("升级成功") || text.contains("获得肥料") ||
                 text.contains("任务完成") || text.contains("已完成") ||
                 text.contains("恭喜获得") || text.contains("游戏结束")
         }
-        if (isComplete) {
-            debugLog("isGameCompletePage: YES, sample=${allText.take(5)}")
+        if (!isComplete) return false
+        // 上下文校验：若同时是广告主落地页（含多个诱导按钮且无农场/游戏核心文案），
+        // 说明"恭喜获得/任务完成"是广告伪装，不识别为游戏完成
+        if (isAdLandingPage()) {
+            debugLog("isGameCompletePage: NO (text matched but isAdLandingPage=true, suspected ad bait)")
+            return false
         }
-        return isComplete
+        // 进一步校验：页面必须存在游戏/农场相关文案（避免纯诱导文案被误判）
+        val hasGameOrFarmContext = allText.any { text ->
+            text.contains("肥料") || text.contains("游戏") || text.contains("挑战") ||
+                text.contains("关卡") || text.contains("升级") || text.contains("通关") ||
+                text.contains("芭芭农场") || text.contains("任务")
+        }
+        if (!hasGameOrFarmContext) {
+            debugLog("isGameCompletePage: NO (no game/farm context, suspected ad bait)")
+            return false
+        }
+        debugLog("isGameCompletePage: YES, sample=${allText.take(5)}")
+        return true
     }
 
     /**
@@ -1978,12 +2001,22 @@ class FarmAccessibilityService : AccessibilityService() {
                 text.contains("已领取全部奖励")
         }
         if (hasFarmCore) return false
+        // 广告正常播放页特征：含倒计时/跳过提示（如"剩余15秒"/"跳过广告"），不算落地页
+        // （广告播放页通常也有"立即下载"按钮，但页面主体是视频而非落地页布局）
+        val isAdPlayingPage = allText.any { text ->
+            text.contains("跳过广告") || text.contains("跳过视频") ||
+                text.contains("关闭广告") ||
+                // 倒计时模式：XX秒后可关闭 / 剩余XX秒
+                text.matches(Regex(".*\\d+\\s*[秒s].*(可关闭|后可关闭|后跳过|后关闭).*")) ||
+                text.matches(Regex(".*(剩余|还有)\\s*\\d+\\s*[秒s].*"))
+        }
+        if (isAdPlayingPage) return false
         // 统计广告主转化按钮出现次数（来自平台配置的陷阱按钮黑名单）
         val trapTexts = currentPlatformConfig().adInstallButtonTexts
         val matchCount = allText.count { text ->
             trapTexts.any { trap -> text.contains(trap) }
         }
-        // ≥2 个转化按钮 + 无农场核心 = 高度疑似广告主落地页
+        // ≥2 个转化按钮 + 无农场核心 + 非广告播放页 = 广告主落地页
         val isLanding = matchCount >= 2
         if (isLanding) {
             debugLog("isAdLandingPage: YES, matchCount=$matchCount (advertiser landing page)")
@@ -2043,6 +2076,40 @@ class FarmAccessibilityService : AccessibilityService() {
         }
         debugLog("closeAdInstallPopup: no close button found for install popup")
         return false
+    }
+
+    /**
+     * 关闭广告主落地页（误入落地页时优先点右上角关闭，而非按返回）
+     *
+     * 设计理由：
+     * - 落地页通常有"返回"诱导按钮（如"返回领奖励"等组合文案），按返回可能触发隐藏跳转
+     * - 右上角"×"是落地页唯一安全的退出入口（应用商店规范要求）
+     * - 找不到"×"时再 fallback 到物理返回键
+     *
+     * @return true 表示成功点击了关闭按钮或已按返回
+     */
+    fun closeAdLandingPage(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        // 1. 优先找平台特有关闭按钮文本（关闭/跳过广告等）
+        val platformCloseTexts = currentPlatformConfig().adCloseButtonTexts
+        for (kw in platformCloseTexts) {
+            val node = findNodeByText(root, kw)
+            if (node != null) {
+                debugLog("closeAdLandingPage: found platform close button by text='$kw'")
+                if (performClickSafe(node)) return true
+            }
+        }
+        // 2. 找通用关闭按钮文本（×/关闭/close/skip），排除诱导按钮
+        //    （findAdCloseButton 已内置诱导黑名单过滤）
+        val closeBtn = findAdCloseButton(platformCloseTexts)
+        if (closeBtn != null) {
+            debugLog("closeAdLandingPage: found close button via findAdCloseButton")
+            if (performClickSafe(closeBtn)) return true
+        }
+        // 3. 兜底：按物理返回键
+        debugLog("closeAdLandingPage: no close button found, pressing back as fallback")
+        pressBack()
+        return true
     }
 
 
@@ -2155,6 +2222,35 @@ class FarmAccessibilityService : AccessibilityService() {
             return false
         }
         debugLog("isTaskCompletePage: YES, sample=${allText.take(5)}")
+        return true
+    }
+
+    /**
+     * 严格版任务完成页检测（含农场上下文 + 肥料到账证据）
+     *
+     * 用于关键决策点（如：决定回农场/计数肥料），避免被诱导文案欺骗。
+     * 相比 [isTaskCompletePage]，额外要求：
+     * - 页面必须有农场/任务上下文文案（集肥料/施肥/任务/已领取/已发放 等）
+     * - 排除广告主落地页（已包含在 isTaskCompletePage 内）
+     *
+     * @return true 表示是真实任务完成页（不是广告伪装）
+     */
+    fun isRealTaskCompletePage(): Boolean {
+        if (!isTaskCompletePage()) return false
+        val root = getRootInFarmApp() ?: return false
+        val allText = collectAllText(root)
+        // 上下文校验：必须有农场/任务相关文案，且不能仅含纯诱导文案
+        val hasFarmOrTaskContext = allText.any { text ->
+            text.contains("肥料") || text.contains("芭芭农场") ||
+                text.contains("任务") || text.contains("集肥料") ||
+                text.contains("施肥") || text.contains("已发放") ||
+                text.contains("已领取") || text.contains("奖励")
+        }
+        if (!hasFarmOrTaskContext) {
+            debugLog("isRealTaskCompletePage: NO (no farm/task context)")
+            return false
+        }
+        debugLog("isRealTaskCompletePage: YES (farm context verified)")
         return true
     }
 
