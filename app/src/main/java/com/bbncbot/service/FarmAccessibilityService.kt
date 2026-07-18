@@ -4167,6 +4167,33 @@ class FarmAccessibilityService : AccessibilityService() {
             return
         }
 
+        // 守卫：当前屏幕被非 farm 包名占用时（如下拉通知栏/控制中心/锁屏等 systemui 场景），
+        // 绝不能直接点击屏幕坐标——会误触 systemui 的元素。
+        //
+        // 历史问题（debug_test_20260718_175404.log）：
+        // - 17:53:46 pkg=com.android.systemui（下拉通知栏占用屏幕）
+        // - 17:53:46 act=XRiverActivity（支付宝在后台）
+        // - isFarmAppInForeground 返回 true（windows 中还能找到支付宝后台窗口）
+        // - runNavigating 进入 else 分支调用 navigateToFarm
+        // - stepNavigateAlipayFarm 用 getRootInFarmApp 拿到支付宝后台窗口的 root
+        // - 在 root 里找到"芭芭农场"节点，bounds=[108,402][298,510]
+        // - dispatchGestureClick(203, 456) 点击屏幕坐标，但屏幕实际显示 systemui
+        // - 点击落到 systemui 上，触发某个通知/动作，4 秒后 bbncbot MainActivity 被拉到前台
+        //
+        // 修复：先检查 currentScreenPkg，如果是 systemui 或非 farm 包名，先按返回键关闭它再重试。
+        val currentScreenPkg = getCurrentWindowPackage()
+        val cfg = currentPlatformConfig()
+        val isFarmPkg = currentScreenPkg != null && (
+            currentScreenPkg in cfg.packageNames ||
+            cfg.internalPackagePrefixes.any { currentScreenPkg!!.startsWith(it) }
+        )
+        if (!isFarmPkg) {
+            debugLog("navigateAlipay: current screen pkg=$currentScreenPkg is not farm app (likely systemui popup/lock screen), pressing back to dismiss and retry (retry=$retry)")
+            pressBack()
+            navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 1500L)
+            return
+        }
+
         val root = getRootInFarmApp() ?: rootInActiveWindowSafe()
         if (root == null) {
             debugLog("navigateAlipay: root is null, retry=$retry")
