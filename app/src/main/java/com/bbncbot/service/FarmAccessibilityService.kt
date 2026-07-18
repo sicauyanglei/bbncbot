@@ -1184,17 +1184,19 @@ class FarmAccessibilityService : AccessibilityService() {
      * 4. TRAP_LANDING    — 广告主落地页（下载/安装/应用商店，立即退出）
      * 5. TRAP_INSTALL    — 诱导弹窗（立即下载/去购买，关闭后继续）
      * 6. TRAP_REPLAY     — 复看陷阱（再看一个/加倍领取，关闭后继续）
-     * 7. REWARD_POPUP    — 奖励领取弹窗（可点击领取奖励）
-     * 8. AD_ENDED        — 广告已结束（可关闭/领取奖励）
-     * 9. AD_PLAYING      — 广告播放中（等待，勿点诱导按钮）
-     * 10. FARM_PAGE      — 农场主页（正常状态）
-     * 11. UNKNOWN        — 未知场景（保守等待）
+     * 7. SIGN_IN         — 签到页面（可点击签到/领取签到奖励）
+     * 8. REWARD_POPUP    — 奖励领取弹窗（可点击领取奖励）
+     * 9. AD_ENDED        — 广告已结束（可关闭/领取奖励）
+     * 10. AD_PLAYING     — 广告播放中（等待，勿点诱导按钮）
+     * 11. FARM_PAGE      — 农场主页（正常状态）
+     * 12. UNKNOWN        — 未知场景（保守等待）
      */
     enum class PageScene {
         FARM_PAGE,           // 农场主页
         AD_PLAYING,          // 广告播放中（有倒计时/跳过按钮）
         AD_ENDED,            // 广告已结束（无倒计时，可能有领取按钮）
         REWARD_POPUP,        // 奖励领取弹窗（恭喜获得/领取奖励）
+        SIGN_IN,             // 签到页面（立即签到/签到领取）
         TRAP_LANDING,        // 广告主落地页陷阱
         TRAP_INSTALL,        // 诱导弹窗陷阱（立即下载）
         TRAP_REPLAY,         // 复看陷阱（再看一个/加倍领取）
@@ -1225,30 +1227,62 @@ class FarmAccessibilityService : AccessibilityService() {
         if (isMiniProgramTrap()) return PageScene.TRAP_MINIPROGRAM
         // 4. 广告主落地页陷阱（下载/安装/应用商店）
         if (isAdLandingPage()) return PageScene.TRAP_LANDING
-        // 5. 农场主页（正常状态，优先识别避免误判为广告）
+        // 5. 签到页面（必须在 FARM_PAGE 之前检测：签到页在农场 App 的 WebView 内，
+        //    isOnFarmPage 会返回 true，但签到页有专属签到按钮需要点击领取签到肥料）
+        if (isSignInPage()) return PageScene.SIGN_IN
+        // 6. 农场主页（正常状态，优先识别避免误判为广告）
         if (isOnFarmPage()) return PageScene.FARM_PAGE
-        // 6. 诱导弹窗陷阱（立即下载/去购买，需检测是否在广告页上弹出）
+        // 7. 诱导弹窗陷阱（立即下载/去购买，需检测是否在广告页上弹出）
         val installBtn = findAdInstallButton()
         if (installBtn != null) {
             // 诱导弹窗：有诱导按钮 + 无倒计时（倒计时存在说明广告还在播放，诱导按钮是广告CTA）
             val hasCountdown = findAdDurationHint() > 0
             if (!hasCountdown) return PageScene.TRAP_INSTALL
         }
-        // 7. 复看陷阱（再看一个/加倍领取）
+        // 8. 复看陷阱（再看一个/加倍领取）
         if (isReplayTrapPage()) return PageScene.TRAP_REPLAY
-        // 8. 奖励领取弹窗（恭喜获得 + 领取按钮）
+        // 9. 奖励领取弹窗（恭喜获得 + 领取按钮）
         if (isRewardPopupPage()) return PageScene.REWARD_POPUP
-        // 9. 广告已结束（任务完成页 或 无倒计时且不在广告Activity）
+        // 10. 广告已结束（任务完成页 或 无倒计时且不在广告Activity）
         if (isTaskCompletePage()) return PageScene.AD_ENDED
-        // 10. 广告播放中（有倒计时 或 在广告Activity）
+        // 11. 广告播放中（有倒计时 或 在广告Activity）
         if (isAdPlaying() || isAdContentShown()) {
             val hasCountdown = findAdDurationHint() > 0
             if (hasCountdown) return PageScene.AD_PLAYING
             // 在广告页但无倒计时，可能是广告已结束等待用户操作
             return PageScene.AD_ENDED
         }
-        // 11. 未知场景（保守等待）
+        // 12. 未知场景（保守等待）
         return PageScene.UNKNOWN
+    }
+
+    /**
+     * 检测签到页面（供场景识别引擎用）
+     *
+     * 签到页面特征：含"签到"/"立即签到"/"签到领取"/"今日签到"/"连续签到"等文案
+     * - 签到页面通常在农场 App 的 WebView 内（Activity 是农场 H5 容器，isOnFarmPage 返回 true）
+     * - 签到页面有专属签到按钮需要点击才能领取签到肥料
+     * - 必须在 FARM_PAGE 之前识别，否则会被 isOnFarmPage 误判为农场主页
+     *
+     * 排除：
+     * - 任务列表里的"去签到"任务按钮（任务列表不在签到页面，且"去签到"是任务入口文案）
+     * - 广告主落地页（已在前置场景识别中过滤）
+     *
+     * @return true 表示当前是签到页面
+     */
+    private fun isSignInPage(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        // 签到页面特征文案（签到日历/连续签到/今日签到等是签到页独有，任务列表不会有）
+        val signInPageKeywords = listOf(
+            "立即签到", "签到领取", "今日签到", "连续签到",
+            "签到日历", "签到成功", "已签到", "补签",
+            "签到得", "签到可领", "签到奖励"
+        )
+        // 至少匹配 1 个签到页面特征文案（这些文案足够特异，1 个即可确认）
+        return allText.any { text ->
+            signInPageKeywords.any { kw -> text.contains(kw) }
+        }
     }
 
     /**
@@ -1299,28 +1333,31 @@ class FarmAccessibilityService : AccessibilityService() {
     /**
      * 判断当前场景是否允许点击"领取奖励"按钮（场景白名单）
      *
-     * 聪明思考：只在确认是"广告已结束"或"奖励弹窗"场景才允许点击领取按钮，
+     * 聪明思考：只在确认是"广告已结束"/"奖励弹窗"/"签到页面"场景才允许点击领取按钮，
      * 避免广告播放中的"领取优惠"/"领取福利"诱导按钮被误点击。
+     * 签到页面有专属签到按钮（立即签到/签到领取）需要点击才能领取签到肥料，必须放行。
      *
      * @return true 表示当前场景允许点击领取按钮
      */
     fun isClaimRewardAllowedScene(): Boolean {
         val scene = identifyCurrentScene()
-        return scene == PageScene.AD_ENDED || scene == PageScene.REWARD_POPUP
+        return scene == PageScene.AD_ENDED || scene == PageScene.REWARD_POPUP ||
+            scene == PageScene.SIGN_IN
     }
 
     /**
      * 判断当前场景是否允许点击"关闭广告"按钮（场景白名单）
      *
-     * 聪明思考：只在"广告播放中"或"广告已结束"场景才允许点击关闭按钮，
+     * 聪明思考：只在"广告播放中"或"广告已结束"或"奖励弹窗"或"签到页面"场景才允许点击关闭按钮，
      * 避免在农场页/陷阱页误点"关闭"导致退出农场或掉入陷阱。
+     * 签到页面领取后需要点关闭/确定退出，必须放行。
      *
      * @return true 表示当前场景允许点击关闭按钮
      */
     fun isCloseAdAllowedScene(): Boolean {
         val scene = identifyCurrentScene()
         return scene == PageScene.AD_PLAYING || scene == PageScene.AD_ENDED ||
-            scene == PageScene.REWARD_POPUP
+            scene == PageScene.REWARD_POPUP || scene == PageScene.SIGN_IN
     }
 
     /**
@@ -2507,7 +2544,7 @@ class FarmAccessibilityService : AccessibilityService() {
      * @return 按钮节点或null
      */
     fun findClaimRewardButton(enforceSceneWhitelist: Boolean = true): AccessibilityNodeInfo? {
-        // 场景白名单：只在广告已结束或奖励弹窗场景才允许点击领取按钮
+        // 场景白名单：只在广告已结束/奖励弹窗/签到页面场景才允许点击领取按钮
         // 聪明思考：广告播放中出现的"领取"文字几乎都是诱导按钮，不应点击
         if (enforceSceneWhitelist && !isClaimRewardAllowedScene()) {
             debugLog("findClaimRewardButton: scene not allowed for claim (scene=${identifyCurrentScene()}), skip")
@@ -2515,7 +2552,13 @@ class FarmAccessibilityService : AccessibilityService() {
         }
         val root = rootInActiveWindowSafe() ?: return null
         val trapTexts = currentPlatformConfig().adInstallButtonTexts
-        val keywords = listOf("领取奖励", "领取", "确定", "知道了")
+        // 签到专属关键词放最前：签到页面的"立即签到"/"签到领取"按钮需要优先匹配，
+        // 避免"领取"子串先命中无关文案。签到按钮不是诱导按钮，无需 trapTexts 过滤。
+        // 通用关键词"领取奖励"/"领取"/"确定"/"知道了"用于广告结束/奖励弹窗。
+        val keywords = listOf(
+            "立即签到", "签到领取", "签到",
+            "领取奖励", "领取", "确定", "知道了"
+        )
         for (kw in keywords) {
             val node = findNodeByText(root, kw)
             if (node != null) {

@@ -1909,7 +1909,10 @@ object AutomationController {
         }
 
         // 检测是否还在农场页（点击无效果 / 签到答题弹窗 / 任务完成弹窗）
-        if (service.isOnFarmPage()) {
+        // 或签到页面（签到页在农场 App WebView 内，但 isOnFarmPage 可能返回 false，
+        // 因为签到页没有"集肥料"/"施肥"等农场核心元素；用场景识别 SIGN_IN 兜底进入此分支）
+        val scene = service.identifyCurrentScene()
+        if (service.isOnFarmPage() || scene == FarmAccessibilityService.PageScene.SIGN_IN) {
             // 尝试点击"返回首页"按钮（任务完成弹窗）
             val backBtn = service.findBackToHomeButton()
             if (backBtn != null) {
@@ -1926,17 +1929,21 @@ object AutomationController {
                 return
             }
             // 尝试点击签到确认/答题/领取奖励按钮
+            // 场景白名单已放行 SIGN_IN，findClaimRewardButton 会匹配"立即签到"/"签到领取"/"签到"
             val claimBtn = service.findClaimRewardButton()
             if (claimBtn != null) {
-                Log.i(TAG, "processTask: found claim/confirm button on farm page, clicking")
-                debugLog("processTask: claim button on farm, clicking")
+                val claimText = claimBtn.text?.toString().orEmpty()
+                Log.i(TAG, "processTask: found claim/confirm button on farm page (text='$claimText'), clicking")
+                debugLog("processTask: claim button on farm (text='$claimText', scene=$scene), clicking")
                 service.performClickSafe(claimBtn)
+                // 点击签到/领取按钮后，不立即跳下一个任务：
+                // 签到按钮点击后会弹出"签到成功，获得 xxx 肥料"提示，需要先关闭弹窗才能继续。
+                // 改为 checkTaskResult(attempt+1) 重新检测，让 isFertilizerGrantedPage 分支
+                // 检测签到成功弹窗并关闭，那个分支会 currentTaskIndex++ 前进到下一个任务。
+                // （答题确认等场景同样安全：点击确认后重新检测，确认任务真的完成了再前进）
                 handler.postDelayed({
-                    if (state == AutomationState.PROCESSING_TASK) {
-                        currentTaskIndex++
-                        runProcessingTask(0)
-                    }
-                }, INTERVAL_CLICK_MS)
+                    if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt + 1)
+                }, INTERVAL_PAGE_LOAD_MS)
                 return
             }
             // WebView 中 performClickSafe 已经尝试了 ACTION_CLICK + dispatchGesture 修正坐标
