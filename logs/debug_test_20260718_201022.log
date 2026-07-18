@@ -1,0 +1,431 @@
+=== cleared on app start (version=2.2, build=build510-e9c383b, time=20:04:31) ===
+20:04:31.918 killPlatformApps: killed com.ucmobile.lite for UC
+20:04:31.919 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+20:04:31.921 killPlatformApps: killed com.taobao.taobao for TAOBAO
+20:04:36.412 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:04:36.417 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+20:04:36.418 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+20:04:36.419 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+20:04:40.011 navigateAlipay: found 芭芭农场 entry at [225,281][975,510], clickable=false, clicking
+20:04:40.019 performClickSafe: text='芭芭农场,种果树得水果，助农增收' desc='' bounds=[225,281][975,510] clickable=false
+20:04:40.021 performClickSafe: ACTION_CLICK failed, trying gesture
+20:04:40.022 dispatchGesture: screen=[[225,281][975,510]] window=[[0,0][0,0]]
+20:04:40.025 dispatchGesture: not in popup, screen bounds valid, click at (600.0, 395.5)
+20:04:40.031 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+20:04:42.001 === Automation v2 Started === platform=ALIPAY
+20:04:42.003 cancelNavigation: all navigation callbacks cancelled
+20:04:42.012 reset platform complete: ALIPAY
+20:04:42.014 state: IDLE -> NAVIGATING
+20:04:42.280 [navigate-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:04:42.294 navigate: on farm page, platform=ALIPAY
+20:04:42.311 hasFarmContentLoaded: text count=87, sample=[松开刷新, 任务列表, 农场乐园入口, 还差3次领肥料, 切换摇钱树, 逛农货, 我的收获, 芭芭农场,种果树得水果，助农增收, 钓红包, 亲友树]
+20:04:42.313 hasFarmContentLoaded: realContent count=74
+20:04:42.314 navigate: hasFarmContentLoaded=true, attempt=0
+20:04:42.315 state: NAVIGATING -> COLLECTING_DIRECT
+20:04:44.441 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:04:44.455 collectDirect: found 0 direct buttons, attempt=0
+20:04:44.456 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+20:04:46.625 [openTaskList-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:04:46.642 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+20:04:46.642 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+20:04:46.655 findCollectFertilizerButton: found by text='任务列表' bounds=[949,1945][1175,2171]
+20:04:46.655 openTaskList: [ALIPAY闭环] clicking entry button by text (attempt=0)
+20:04:46.656 performClickSafe: text='任务列表' desc='' bounds=[949,1945][1175,2171] clickable=true
+20:04:46.659 performClickSafe: ACTION_CLICK success at depth=0
+20:04:52.709 findGoCompleteButtons: drop zero-size node text='去逛逛' bounds=[884,2823][1113,2666]
+20:04:52.711 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3238][1113,2666]
+20:04:52.714 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3448][1113,2666]
+20:04:52.716 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3658][1113,2666]
+20:04:52.718 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3864][1113,2666]
+20:04:52.719 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4283][1113,2666]
+20:04:52.721 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4490][1113,2666]
+20:04:52.726 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4699][1113,2666]
+20:04:52.730 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4905][1113,2666]
+20:04:52.733 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5115][1113,2666]
+20:04:52.735 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5321][1113,2666]
+20:04:52.737 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5531][1113,2666]
+20:04:52.739 findGoCompleteButtons: drop zero-size node text='去逛逛' bounds=[884,5741][1113,2666]
+20:04:52.741 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5947][1113,2666]
+20:04:52.743 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6157][1113,2666]
+20:04:52.745 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6366][1113,2666]
+20:04:52.746 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6572][1113,2666]
+20:04:52.747 checkTaskListOpened: found 5 goComplete buttons, checkAttempt=0, currentIndex=0
+20:04:52.748 taskButton[0]: text='去完成', desc='', bounds=[884,1575][1113,1657], clickable=true
+20:04:52.749 taskButton[1]: text='去完成', desc='', bounds=[884,1991][1113,2073], clickable=true
+20:04:52.749 taskButton[2]: text='去完成', desc='', bounds=[884,2200][1113,2282], clickable=true
+20:04:52.750 taskButton[3]: text='去完成', desc='', bounds=[884,2407][1113,2492], clickable=true
+20:04:52.750 taskButton[4]: text='去完成', desc='', bounds=[884,2616][1113,2666], clickable=true
+20:04:52.751 checkTaskListOpened: resetting currentTaskIndex to 0 (was 0, taskButtons was empty=true)
+20:04:52.752 collectTaskContextText: result=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 ', buttonText='去完成', containerFound=true
+20:04:52.753 collectTaskContextText: result=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 ', buttonText='去完成', containerFound=true
+20:04:52.757 collectTaskContextText: result=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 ', buttonText='去完成', containerFound=true
+20:04:52.757 isPaidTask: YES, context=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 '
+20:04:52.758 sortTaskButtons: idx=0 task='任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料' priority=1 (easyClaim=false, paid=true, button='去完成')
+20:04:52.759 collectTaskContextText: result=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 ', buttonText='去完成', containerFound=true
+20:04:52.760 collectTaskContextText: result=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 ', buttonText='去完成', containerFound=true
+20:04:52.761 collectTaskContextText: result=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 ', buttonText='去完成', containerFound=true
+20:04:52.761 sortTaskButtons: idx=1 task='砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会' priority=1 (easyClaim=false, paid=false, button='去完成')
+20:04:52.762 collectTaskContextText: result=' 王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', containerFound=true
+20:04:52.763 collectTaskContextText: result=' 王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', containerFound=true
+20:04:52.764 collectTaskContextText: result=' 王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', containerFound=true
+20:04:52.764 sortTaskButtons: idx=2 task='王者之弈1局对战当前进度0，总进度1 可得500肥' priority=1 (easyClaim=false, paid=false, button='去完成')
+20:04:52.765 collectTaskContextText: result='【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成 ', buttonText='去完成', containerFound=true
+20:04:52.765 collectTaskContextText: result='【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成 ', buttonText='去完成', containerFound=true
+20:04:52.766 collectTaskContextText: result='【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成 ', buttonText='去完成', containerFound=true
+20:04:52.767 sortTaskButtons: idx=3 task='【福利】试玩热门新游 访问必得500 - 3500肥' priority=1 (easyClaim=false, paid=false, button='去完成')
+20:04:52.767 collectTaskContextText: result=' 任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领 去完成 ', buttonText='去完成', containerFound=true
+20:04:52.768 collectTaskContextText: result=' 任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领 去完成 ', buttonText='去完成', containerFound=true
+20:04:52.769 collectTaskContextText: result=' 任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领 去完成 ', buttonText='去完成', containerFound=true
+20:04:52.769 isPaidTask: YES, context=' 任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领 去完成 '
+20:04:52.769 sortTaskButtons: idx=4 task='任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领' priority=1 (easyClaim=false, paid=true, button='去完成')
+20:04:52.770 state: OPENING_TASK_LIST -> PROCESSING_TASK
+20:04:54.967 [processTask-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:04:55.011 processTask: current task #1/5, text='去完成', bounds=[884,1575][1113,1657], attempt=0
+20:04:55.013 collectTaskContextText: result=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 ', buttonText='去完成', containerFound=true
+20:04:55.014 isPaidTask: YES, context=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 '
+20:04:55.015 processTask: skip paid task #$1, text='去完成'
+20:04:55.663 [processTask-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:04:55.674 processTask: current task #2/5, text='去完成', bounds=[884,1991][1113,2073], attempt=0
+20:04:55.678 collectTaskContextText: result=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 ', buttonText='去完成', containerFound=true
+20:04:55.680 collectTaskContextText: result=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 ', buttonText='去完成', containerFound=true
+20:04:55.682 collectTaskContextText: result=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 ', buttonText='去完成', containerFound=true
+20:04:55.684 isGameTask: YES, context=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 '
+20:04:55.687 processTask: game task #2, text='去完成', staying in game to earn fertilizer
+20:04:55.690 performClickSafe: text='去完成' desc='' bounds=[884,1991][1113,2073] clickable=true
+20:04:55.702 performClickSafe: ACTION_CLICK success at depth=0
+20:04:55.705 state: PROCESSING_TASK -> GAME_PLAYING
+20:05:01.339 [gamePlay-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:05:01.430 isRechargePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差3次领肥料, 切换摇钱树]
+20:05:01.432 gamePlay: trap page detected, trying to click close button
+20:05:01.472 clickCloseOnRechargePage: found close button by text='关闭', clicking
+20:05:01.473 performClickSafe: text='关闭农场乐园弹窗' desc='' bounds=[1070,481][1172,582] clickable=true
+20:05:01.477 performClickSafe: ACTION_CLICK success at depth=0
+20:05:08.794 gamePlay: exited trap page, skipping task (no fertilizer)
+20:05:08.803 state: GAME_PLAYING -> OPENING_TASK_LIST
+20:05:10.969 [openTaskList-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:05:10.971 openTaskList: reset taskListOpenedThisRound for new round (attempt=0)
+20:05:10.984 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+20:05:10.985 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+20:05:11.002 findCollectFertilizerButton: found by text='任务列表' bounds=[949,1945][1175,2171]
+20:05:11.003 openTaskList: [ALIPAY闭环] clicking entry button by text (attempt=0)
+20:05:11.003 performClickSafe: text='任务列表' desc='' bounds=[949,1945][1175,2171] clickable=true
+20:05:11.013 performClickSafe: ACTION_CLICK success at depth=0
+20:05:17.294 findGoCompleteButtons: drop zero-size node text='去逛逛' bounds=[884,2823][1113,2666]
+20:05:17.298 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3238][1113,2666]
+20:05:17.300 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3448][1113,2666]
+20:05:17.304 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3658][1113,2666]
+20:05:17.306 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3864][1113,2666]
+20:05:17.308 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4283][1113,2666]
+20:05:17.310 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4490][1113,2666]
+20:05:17.313 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4699][1113,2666]
+20:05:17.315 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4905][1113,2666]
+20:05:17.316 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5115][1113,2666]
+20:05:17.317 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5321][1113,2666]
+20:05:17.319 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5531][1113,2666]
+20:05:17.321 findGoCompleteButtons: drop zero-size node text='去逛逛' bounds=[884,5741][1113,2666]
+20:05:17.323 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5947][1113,2666]
+20:05:17.324 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6157][1113,2666]
+20:05:17.326 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6366][1113,2666]
+20:05:17.327 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6572][1113,2666]
+20:05:17.328 checkTaskListOpened: found 5 goComplete buttons, checkAttempt=0, currentIndex=2
+20:05:17.328 taskButton[0]: text='去完成', desc='', bounds=[884,1575][1113,1657], clickable=true
+20:05:17.329 taskButton[1]: text='去完成', desc='', bounds=[884,1991][1113,2073], clickable=true
+20:05:17.330 taskButton[2]: text='去完成', desc='', bounds=[884,2200][1113,2282], clickable=true
+20:05:17.330 taskButton[3]: text='去完成', desc='', bounds=[884,2407][1113,2492], clickable=true
+20:05:17.331 taskButton[4]: text='去完成', desc='', bounds=[884,2616][1113,2666], clickable=true
+20:05:17.331 collectTaskContextText: result=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 ', buttonText='去完成', containerFound=true
+20:05:17.333 collectTaskContextText: result=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 ', buttonText='去完成', containerFound=true
+20:05:17.333 collectTaskContextText: result=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 ', buttonText='去完成', containerFound=true
+20:05:17.334 isPaidTask: YES, context=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 '
+20:05:17.335 sortTaskButtons: idx=0 task='任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料' priority=1 (easyClaim=false, paid=true, button='去完成')
+20:05:17.337 collectTaskContextText: result=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 ', buttonText='去完成', containerFound=true
+20:05:17.339 collectTaskContextText: result=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 ', buttonText='去完成', containerFound=true
+20:05:17.340 collectTaskContextText: result=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 ', buttonText='去完成', containerFound=true
+20:05:17.341 sortTaskButtons: idx=1 task='砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会' priority=1 (easyClaim=false, paid=false, button='去完成')
+20:05:17.342 collectTaskContextText: result=' 王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', containerFound=true
+20:05:17.343 collectTaskContextText: result=' 王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', containerFound=true
+20:05:17.344 collectTaskContextText: result=' 王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', containerFound=true
+20:05:17.344 sortTaskButtons: idx=2 task='王者之弈1局对战当前进度0，总进度1 可得500肥' priority=1 (easyClaim=false, paid=false, button='去完成')
+20:05:17.345 collectTaskContextText: result='【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成 ', buttonText='去完成', containerFound=true
+20:05:17.346 collectTaskContextText: result='【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成 ', buttonText='去完成', containerFound=true
+20:05:17.346 collectTaskContextText: result='【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成 ', buttonText='去完成', containerFound=true
+20:05:17.347 sortTaskButtons: idx=3 task='【福利】试玩热门新游 访问必得500 - 3500肥' priority=1 (easyClaim=false, paid=false, button='去完成')
+20:05:17.347 collectTaskContextText: result=' 任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领 去完成 ', buttonText='去完成', containerFound=true
+20:05:17.348 collectTaskContextText: result=' 任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领 去完成 ', buttonText='去完成', containerFound=true
+20:05:17.348 collectTaskContextText: result=' 任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领 去完成 ', buttonText='去完成', containerFound=true
+20:05:17.349 isPaidTask: YES, context=' 任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领 去完成 '
+20:05:17.349 sortTaskButtons: idx=4 task='任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领' priority=1 (easyClaim=false, paid=true, button='去完成')
+20:05:17.350 state: OPENING_TASK_LIST -> PROCESSING_TASK
+20:05:19.560 [processTask-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:05:19.571 processTask: current task #3/5, text='去完成', bounds=[884,2200][1113,2282], attempt=0
+20:05:19.573 collectTaskContextText: result=' 王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', containerFound=true
+20:05:19.575 collectTaskContextText: result=' 王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', containerFound=true
+20:05:19.576 processTask: skip list task #3, text='去完成', context=' 王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 '
+20:05:20.258 [processTask-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:05:20.272 processTask: current task #4/5, text='去完成', bounds=[884,2407][1113,2492], attempt=0
+20:05:20.274 collectTaskContextText: result='【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成 ', buttonText='去完成', containerFound=true
+20:05:20.275 collectTaskContextText: result='【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成 ', buttonText='去完成', containerFound=true
+20:05:20.276 processTask: skip list task #4, text='去完成', context='【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成 '
+20:05:20.954 [processTask-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:05:20.968 processTask: current task #5/5, text='去完成', bounds=[884,2616][1113,2666], attempt=0
+20:05:20.971 collectTaskContextText: result=' 任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领 去完成 ', buttonText='去完成', containerFound=true
+20:05:20.972 isPaidTask: YES, context=' 任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领 去完成 '
+20:05:20.973 processTask: skip paid task #$5, text='去完成'
+20:05:21.657 [processTask-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:05:21.659 processTask: all ads/tasks done on ALIPAY, collected=0
+20:05:21.662 marked platform complete: ALIPAY
+20:05:21.663 platform status: UC=false, ALIPAY=true, TAOBAO=false
+20:05:21.667 state: PROCESSING_TASK -> FERTILIZING
+20:05:23.865 [fertilize-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:05:30.181 fertilize: findFertilizeButton=false, clickCount=1
+20:05:32.217 fertilize: findFertilizeButton=false, clickCount=2
+20:05:34.269 fertilize: findFertilizeButton=false, clickCount=3
+20:05:34.274 state: FERTILIZING -> WAITING
+20:05:39.275 state: WAITING -> NAVIGATING
+20:05:39.334 isOnFarmPage: no farm content, sample=[松开刷新, 深圳, 小雨 28℃, 搜索框, 搜索, 泰和新材, 更多操作, ]
+20:05:39.522 isNonAdTaskPage: YES, matched non-ad task in [松开刷新, 深圳, 小雨 28℃, 搜索框, 搜索, 泰和新材, 更多操作, ]
+20:05:39.610 [navigate-start] snapshot: pkg=com.android.systemui, act=com.eg.android.AlipayGphone.AlipayLogin, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+20:05:39.903 navigate: calling navigateToFarm, platform=ALIPAY
+20:05:41.439 navigateAlipay: found 芭芭农场 entry at [484,941][716,1161], clickable=true, clicking
+20:05:41.442 performClickSafe: text='' desc='' bounds=[484,941][716,1161] clickable=true
+20:05:41.473 performClickSafe: ACTION_CLICK success at depth=0
+20:05:41.476 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+20:05:45.211 navigate: on farm page, platform=ALIPAY
+20:05:45.234 hasFarmContentLoaded: text count=125, sample=[松开刷新, 任务列表, 农场乐园入口, 还差3次领肥料, 切换摇钱树, 逛农货, 我的收获, 芭芭农场,种果树得水果，助农增收, 钓红包, 亲友树]
+20:05:45.236 hasFarmContentLoaded: realContent count=98
+20:05:45.237 navigate: hasFarmContentLoaded=true, attempt=1
+20:05:45.238 state: NAVIGATING -> COLLECTING_DIRECT
+20:05:47.380 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:05:47.411 collectDirect: found 0 direct buttons, attempt=0
+20:05:47.413 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+20:05:49.592 [openTaskList-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:05:49.594 openTaskList: reset taskListOpenedThisRound for new round (attempt=0)
+20:05:49.605 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+20:05:49.605 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+20:05:49.630 findCollectFertilizerButton: found by text='任务列表' bounds=[949,1945][1175,2171]
+20:05:49.631 openTaskList: [ALIPAY闭环] clicking entry button by text (attempt=0)
+20:05:49.631 performClickSafe: text='任务列表' desc='' bounds=[949,1945][1175,2171] clickable=true
+20:05:49.637 performClickSafe: ACTION_CLICK success at depth=0
+20:05:55.534 findGoCompleteButtons: drop zero-size node text='去逛逛' bounds=[884,2823][1113,2666]
+20:05:55.537 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3238][1113,2666]
+20:05:55.540 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3448][1113,2666]
+20:05:55.541 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3658][1113,2666]
+20:05:55.543 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3864][1113,2666]
+20:05:55.546 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4283][1113,2666]
+20:05:55.548 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4490][1113,2666]
+20:05:55.550 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4699][1113,2666]
+20:05:55.553 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4905][1113,2666]
+20:05:55.554 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5115][1113,2666]
+20:05:55.556 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5321][1113,2666]
+20:05:55.558 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5531][1113,2666]
+20:05:55.560 findGoCompleteButtons: drop zero-size node text='去逛逛' bounds=[884,5741][1113,2666]
+20:05:55.562 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5947][1113,2666]
+20:05:55.564 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6157][1113,2666]
+20:05:55.566 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6366][1113,2666]
+20:05:55.568 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6572][1113,2666]
+20:05:55.570 checkTaskListOpened: found 5 goComplete buttons, checkAttempt=0, currentIndex=0
+20:05:55.570 taskButton[0]: text='去完成', desc='', bounds=[884,1575][1113,1657], clickable=true
+20:05:55.571 taskButton[1]: text='去完成', desc='', bounds=[884,1991][1113,2073], clickable=true
+20:05:55.572 taskButton[2]: text='去完成', desc='', bounds=[884,2200][1113,2282], clickable=true
+20:05:55.572 taskButton[3]: text='去完成', desc='', bounds=[884,2407][1113,2492], clickable=true
+20:05:55.572 taskButton[4]: text='去完成', desc='', bounds=[884,2616][1113,2666], clickable=true
+20:05:55.573 checkTaskListOpened: resetting currentTaskIndex to 0 (was 0, taskButtons was empty=true)
+20:05:55.574 collectTaskContextText: result=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 ', buttonText='去完成', containerFound=true
+20:05:55.575 collectTaskContextText: result=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 ', buttonText='去完成', containerFound=true
+20:05:55.576 collectTaskContextText: result=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 ', buttonText='去完成', containerFound=true
+20:05:55.578 isPaidTask: YES, context=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 '
+20:05:55.579 sortTaskButtons: idx=0 task='任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料' priority=1 (easyClaim=false, paid=true, button='去完成')
+20:05:55.581 collectTaskContextText: result=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 ', buttonText='去完成', containerFound=true
+20:05:55.582 collectTaskContextText: result=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 ', buttonText='去完成', containerFound=true
+20:05:55.583 collectTaskContextText: result=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 ', buttonText='去完成', containerFound=true
+20:05:55.584 sortTaskButtons: idx=1 task='砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会' priority=1 (easyClaim=false, paid=false, button='去完成')
+20:05:55.585 collectTaskContextText: result=' 王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', containerFound=true
+20:05:55.586 collectTaskContextText: result=' 王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', containerFound=true
+20:05:55.587 collectTaskContextText: result=' 王者之弈完成1局对战当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', containerFound=true
+20:05:55.588 sortTaskButtons: idx=2 task='王者之弈1局对战当前进度0，总进度1 可得500肥' priority=1 (easyClaim=false, paid=false, button='去完成')
+20:05:55.588 collectTaskContextText: result='【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成 ', buttonText='去完成', containerFound=true
+20:05:55.589 collectTaskContextText: result='【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成 ', buttonText='去完成', containerFound=true
+20:05:55.590 collectTaskContextText: result='【福利】试玩热门新游 访问必得500 - 3500肥(0/3500) 去完成 ', buttonText='去完成', containerFound=true
+20:05:55.591 sortTaskButtons: idx=3 task='【福利】试玩热门新游 访问必得500 - 3500肥' priority=1 (easyClaim=false, paid=false, button='去完成')
+20:05:55.591 collectTaskContextText: result=' 任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领 去完成 ', buttonText='去完成', containerFound=true
+20:05:55.593 collectTaskContextText: result=' 任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领 去完成 ', buttonText='去完成', containerFound=true
+20:05:55.594 collectTaskContextText: result=' 任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领 去完成 ', buttonText='去完成', containerFound=true
+20:05:55.595 isPaidTask: YES, context=' 任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领 去完成 '
+20:05:55.596 sortTaskButtons: idx=4 task='任意充值得100000肥当前进度0，总进度1 去青云诀之伏魔充值可领' priority=1 (easyClaim=false, paid=true, button='去完成')
+20:05:55.597 state: OPENING_TASK_LIST -> PROCESSING_TASK
+20:05:57.753 [processTask-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:05:57.767 processTask: current task #1/5, text='去完成', bounds=[884,1575][1113,1657], attempt=0
+20:05:57.770 collectTaskContextText: result=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 ', buttonText='去完成', containerFound=true
+20:05:57.772 isPaidTask: YES, context=' 任意下单领大额肥料当前进度0，总进度2 产生任何退款均将扣回肥料 去完成 '
+20:05:57.774 processTask: skip paid task #$1, text='去完成'
+20:05:58.467 [processTask-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:05:58.479 processTask: current task #2/5, text='去完成', bounds=[884,1991][1113,2073], attempt=0
+20:05:58.482 collectTaskContextText: result=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 ', buttonText='去完成', containerFound=true
+20:05:58.484 collectTaskContextText: result=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 ', buttonText='去完成', containerFound=true
+20:05:58.487 collectTaskContextText: result=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 ', buttonText='去完成', containerFound=true
+20:05:58.489 isGameTask: YES, context=' 砸蛋10次得10000肥料当前进度0，总进度1 去玩小游戏得砸蛋机会 去完成 '
+20:05:58.492 processTask: game task #2, text='去完成', staying in game to earn fertilizer
+20:05:58.494 performClickSafe: text='去完成' desc='' bounds=[884,1991][1113,2073] clickable=true
+20:05:58.507 performClickSafe: ACTION_CLICK success at depth=0
+20:05:58.511 state: PROCESSING_TASK -> GAME_PLAYING
+20:06:04.234 [gamePlay-start] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:06:04.316 isRechargePage: YES, sample=[松开刷新, 任务列表, 农场乐园入口, 还差3次领肥料, 切换摇钱树]
+20:06:04.316 gamePlay: trap page detected, trying to click close button
+20:06:04.364 clickCloseOnRechargePage: found close button by text='关闭', clicking
+20:06:04.365 performClickSafe: text='关闭农场乐园弹窗' desc='' bounds=[1070,481][1172,582] clickable=true
+20:06:04.368 performClickSafe: ACTION_CLICK success at depth=0
+20:06:07.167 state: GAME_PLAYING -> STOPPING
+20:06:07.170 cancelNavigation: all navigation callbacks cancelled
+20:06:07.175 state: STOPPING -> IDLE
+20:08:59.148 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:08:59.152 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+20:08:59.153 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+20:09:13.393 === Automation v2 Started === platform=UC
+20:09:13.447 cancelNavigation: all navigation callbacks cancelled
+20:09:13.450 reset platform complete: UC
+20:09:13.453 state: IDLE -> NAVIGATING
+20:09:14.472 isOnFarmPage: no farm content, sample=[后退, 智能组件, 菜单, 多窗口, 1, 首页]
+20:09:15.983 [navigate-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:09:16.355 navigate: calling navigateToFarm, platform=UC
+20:09:18.221 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+20:09:18.228 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+20:09:18.229 performClickSafe: ACTION_CLICK failed, trying gesture
+20:09:18.230 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+20:09:18.231 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+20:09:21.375 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+20:09:22.004 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+20:09:22.174 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+20:09:27.212 isOnFarmPage: activity=com.uc.base.push.permission.guide.e not in farm keywords, not on farm page
+20:09:27.329 isOnFarmPage: activity=com.uc.base.push.permission.guide.e not in farm keywords, not on farm page
+20:09:27.412 isOnFarmPage: activity=com.uc.base.push.permission.guide.e not in farm keywords, not on farm page
+20:09:27.528 navigate: calling navigateToFarm, platform=UC
+20:09:29.050 navigate stepTab: 芭芭农场 not found (retry=0), pressing back to go home
+20:09:32.239 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+20:09:32.241 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+20:09:32.242 performClickSafe: ACTION_CLICK failed, trying gesture
+20:09:32.243 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+20:09:32.244 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+20:09:32.571 navigate: on farm page, platform=UC
+20:09:32.589 hasFarmContentLoaded: text count=40, sample=[后退, 智能组件, 菜单, 多窗口, 1, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+20:09:32.590 hasFarmContentLoaded: realContent count=37
+20:09:32.591 navigate: hasFarmContentLoaded=true, attempt=2
+20:09:32.592 state: NAVIGATING -> COLLECTING_DIRECT
+20:09:34.802 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:09:34.818 collectDirect: found 0 direct buttons, attempt=0
+20:09:34.819 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+20:09:36.982 [openTaskList-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:09:36.984 openTaskList: reset taskListOpenedThisRound for new round (attempt=0)
+20:09:36.998 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+20:09:37.000 openTaskList: [UC闭环] heuristic text search (attempt=0)
+20:09:37.013 findCollectFertilizerButton: found by text='集肥料' bounds=[949,2380][1129,2509]
+20:09:37.016 openTaskList: [UC闭环] clicking entry button by text (attempt=0)
+20:09:37.019 performClickSafe: text='集肥料' desc='' bounds=[949,2380][1129,2509] clickable=false
+20:09:37.021 performClickSafe: ACTION_CLICK failed, trying gesture
+20:09:37.022 dispatchGesture: screen=[[949,2380][1129,2509]] window=[[0,0][0,0]]
+20:09:37.024 dispatchGesture: not in popup, screen bounds valid, click at (1039.0, 2444.5)
+20:09:42.900 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:42.903 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:42.905 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:42.907 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:42.908 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:42.910 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:42.912 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:42.914 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:42.916 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:42.918 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:42.920 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:42.921 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:42.922 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:42.923 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+20:09:44.958 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:44.961 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:44.965 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:44.967 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:44.968 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:44.969 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:44.970 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:44.972 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:44.973 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:44.974 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:44.975 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:44.977 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:44.979 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:44.981 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+20:09:46.999 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:47.000 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:47.001 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:47.001 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:47.002 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:47.003 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:47.003 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:47.004 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:47.004 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:47.005 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:47.005 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:47.006 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:47.006 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:47.006 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+20:09:49.039 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:49.041 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:49.044 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:49.045 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:49.047 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:49.049 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:49.051 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:49.052 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:49.054 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:49.057 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:49.058 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:49.060 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:49.061 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:49.062 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=3, currentIndex=0
+20:09:51.096 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:51.098 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:51.100 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:51.102 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:51.105 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:51.106 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:51.108 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:51.109 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:51.111 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:51.114 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:51.117 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:51.119 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:51.121 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:51.125 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=4, currentIndex=0
+20:09:53.148 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:53.155 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:53.157 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:53.159 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:53.160 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:53.162 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:53.167 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:53.169 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:53.170 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:53.170 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:53.171 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:53.171 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:53.172 findGoCompleteButtons: drop non-clickable node text='去完成'
+20:09:53.201 findCollectFertilizerButton: found by text='集肥料' bounds=[949,2380][1129,2509]
+20:09:53.202 openTaskList: findCollectFertilizerButton=true, attempt=1
+20:09:53.202 performClickSafe: text='集肥料' desc='' bounds=[949,2380][1129,2509] clickable=false
+20:09:53.203 performClickSafe: ACTION_CLICK failed, trying gesture
+20:09:53.204 dispatchGesture: screen=[[949,2380][1129,2509]] window=[[0,0][0,0]]
+20:09:53.204 dispatchGesture: not in popup, screen bounds valid, click at (1039.0, 2444.5)
+20:09:58.255 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+20:10:00.275 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+20:10:02.287 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+20:10:04.301 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=3, currentIndex=0
+20:10:06.311 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=4, currentIndex=0
+20:10:08.337 findCollectFertilizerButton: not found by text, root childCount=1
+20:10:08.345 openTaskList: findCollectFertilizerButton=false, attempt=2
+20:10:08.347 集肥料: click at (222.0, 264.47202), ratio=(0.185, 0.104), screen=1200x2543
+20:10:13.369 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+20:10:15.389 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+20:10:17.406 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+20:10:18.467 state: OPENING_TASK_LIST -> STOPPING
+20:10:18.470 cancelNavigation: all navigation callbacks cancelled
+20:10:18.473 state: STOPPING -> IDLE
+20:10:22.078 saveToken: saved (len=93, head='gith', tail='McKr')
+20:10:22.082 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+20:10:22.084 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260718_201022.log, localFile=debug.log (48420 bytes)
