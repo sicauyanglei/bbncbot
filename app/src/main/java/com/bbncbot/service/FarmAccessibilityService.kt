@@ -4340,7 +4340,19 @@ class FarmAccessibilityService : AccessibilityService() {
             if (isLauncherPkg) {
                 // launcher 在前台：可能是 RETURNING 后 kill 了 app，app 正在启动中
                 // 不 pressBack（pressBack 对 launcher 无效），等待 app 启动完自动切回
-                debugLog("navigateAlipay: active root pkg=$activeRootPkg is launcher (app probably restarting), waiting for app to come to foreground (retry=$retry)")
+                //
+                // build525 修复（debug_test_20260719_030452.log, build523-6b7f55f）：
+                // - 历史问题：build524 只等待不主动拉起，但支付宝 kill 后可能没真正重启
+                //   （bbncbot 自己在前台，launcher 一直在前台，支付宝没被拉起）
+                // - 日志：retry=0..7 一直 isLauncherPkg，最终 max retries reached, abort
+                // - 修复：retry % 3 == 0 时主动调用 reopenFarmByDeepLink 拉起支付宝
+                //   避免支付宝 kill 后没重启导致死循环等待
+                if (retry % 3 == 0) {
+                    debugLog("navigateAlipay: active root pkg=$activeRootPkg is launcher, retry=$retry, actively relaunching farm app")
+                    reopenFarmByDeepLink()
+                } else {
+                    debugLog("navigateAlipay: active root pkg=$activeRootPkg is launcher (app probably restarting), waiting for app to come to foreground (retry=$retry)")
+                }
                 navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 2000L)
                 return
             }
