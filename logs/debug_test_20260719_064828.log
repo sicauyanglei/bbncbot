@@ -1,0 +1,17 @@
+=== cleared on app start (version=2.2, build=build532-6d5c936, time=06:47:54) ===
+06:47:54.997 killPlatformApps: killed com.ucmobile.lite for UC
+06:47:54.998 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+06:47:55.000 killPlatformApps: killed com.taobao.taobao for TAOBAO
+06:47:58.816 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+06:47:58.817 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+06:47:58.818 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+06:47:58.819 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+06:48:02.401 navigateAlipay: found 芭芭农场 entry at [111,494][298,598], clickable=false, clicking
+06:48:02.408 performClickSafe: text='芭芭农场' desc='' bounds=[111,494][298,598] clickable=false
+06:48:02.409 performClickSafe: ACTION_CLICK failed, trying gesture
+06:48:02.411 dispatchGesture: screen=[[111,494][298,598]] window=[[0,0][0,0]]
+06:48:02.412 dispatchGesture: not in popup, screen bounds valid, click at (204.5, 546.0)
+06:48:02.418 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+06:48:28.338 saveToken: saved (len=93, head='gith', tail='McKr')
+06:48:28.341 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+06:48:28.343 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260719_064828.log, localFile=debug.log (1350 bytes)
