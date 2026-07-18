@@ -6,6 +6,7 @@ import android.os.Looper
 import android.util.Log
 import android.view.accessibility.AccessibilityNodeInfo
 import com.bbncbot.service.FarmAccessibilityService
+import com.bbncbot.service.FarmAccessibilityService.PageScene
 import java.lang.ref.WeakReference
 
 /**
@@ -2441,90 +2442,143 @@ object AutomationController {
             return
         }
 
-        // 陷阱防护：每轮检测广告主落地页 / 诱导弹窗 / 充值页（无论是否在 farm app 内）
-        // 用户要求：深入分析广告设计者意图，避免点击陷阱，即使进入陷阱也要快速返回
-        // 1. 广告主落地页（含多个"立即下载/查看详情/去购买"等转化按钮）
-        //    → 误入即按返回退出，不点击任何按钮（避免转化收益）
-        if (service.isAdLandingPage()) {
-            Log.w(TAG, "watchAd: ad landing page detected, exiting immediately (trap defense)")
-            debugLog("watchAd: ad landing page trap detected, pressing back to exit")
-            service.setAdMode(false)
-            service.pressBack()
-            currentTaskIndex++
-            handler.postDelayed({
-                if (state == AutomationState.WATCHING_AD) {
-                    if (!service.isOnFarmPage()) service.pressBack()
-                    handler.postDelayed({
-                        if (state == AutomationState.WATCHING_AD) {
-                            moveTo(AutomationState.OPENING_TASK_LIST)
-                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
-                        }
-                    }, INTERVAL_PAGE_LOAD_MS)
+        // 场景识别驱动：陷阱防护统一调度（聪明思考，识别各种场景）
+        //
+        // 用户反馈："学会聪明思考，需要识别各种场景"
+        // 重构思路：从"关键词黑名单驱动 + 被动检测"升级为"场景识别驱动 + 白名单优先"。
+        // 一次性调用 identifyCurrentScene() 识别当前页面场景（多信号指纹融合），
+        // 基于场景类型统一决策动作，替代零散的 if-else 检测。
+        //
+        // 优势：
+        // 1. 场景优先级（充值→交易→小程序→落地页→诱导弹窗→复看）确保最危险的陷阱先处理
+        //    （充值陷阱造成金钱损失，优先级最高；落地页只是浪费时间，优先级较低）
+        // 2. 一次识别 + 短路返回，避免 5 次 isXxx() 重复遍历节点树
+        // 3. 调用方基于场景类型决策，意图清晰，新增陷阱场景只需扩展 PageScene 枚举
+        // 4. 与 findClaimRewardButton/findAdCloseButton 的场景白名单形成闭环防护
+        val scene = service.identifyCurrentScene()
+        debugLog("watchAd: scene=$scene, elapsed=${elapsedMs}ms/${adMaxDurationMs}ms")
+        when (scene) {
+            // 陷阱1：充值/付费页（最高优先级，违反禁止交易原则，可能造成金钱损失）
+            // 策略：优先点关闭按钮，否则按返回退出，继续轮询（不退出任务，可能是广告内弹窗）
+            PageScene.TRAP_RECHARGE -> {
+                Log.w(TAG, "watchAd: recharge page detected (scene=$scene), exiting immediately (trap defense)")
+                debugLog("watchAd: recharge page trap detected, clicking close on recharge page")
+                val closed = service.clickCloseOnRechargePage()
+                if (!closed) {
+                    debugLog("watchAd: no close on recharge, pressing back")
+                    service.pressBack()
                 }
-            }, INTERVAL_PAGE_LOAD_MS)
-            return
-        }
-        // 2. 诱导弹窗（页面上有"立即下载"等按钮，可能是广告播放中弹出的诱导遮罩）
-        //    → 优先点"关闭/暂不/拒绝"关闭弹窗，绝不点诱导按钮
-        if (service.findAdInstallButton() != null) {
-            Log.w(TAG, "watchAd: install popup detected, trying to close it (trap defense)")
-            debugLog("watchAd: install popup trap detected, attempting closeAdInstallPopup")
-            val closed = service.closeAdInstallPopup()
-            if (!closed) {
-                // 找不到关闭类按钮，可能弹窗本身就是全屏落地页 → 按返回退出
-                debugLog("watchAd: no close button for install popup, pressing back")
-                service.pressBack()
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                }, INTERVAL_CLICK_MS)
+                return
             }
-            handler.postDelayed({
-                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
-            }, INTERVAL_CLICK_MS)
-            return
-        }
-        // 3. 充值/付费页（广告播放中弹出充值引导，违反禁止交易原则）
-        //    → 优先点关闭按钮，否则按返回退出
-        if (service.isRechargePage()) {
-            Log.w(TAG, "watchAd: recharge page detected, exiting immediately (trap defense)")
-            debugLog("watchAd: recharge page trap detected, clicking close on recharge page")
-            val closed = service.clickCloseOnRechargePage()
-            if (!closed) {
-                debugLog("watchAd: no close on recharge, pressing back")
-                service.pressBack()
-            }
-            handler.postDelayed({
-                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
-            }, INTERVAL_CLICK_MS)
-            return
-        }
-        // 4. 小程序陷阱（支付宝/淘宝特有：误入非农场小程序，广告诱导跳转）
-        //    → 立即按返回退出，跳过任务（UC 无小程序，此检测自动跳过）
-        if (service.isMiniProgramTrap()) {
-            Log.w(TAG, "watchAd: mini-program trap detected, exiting immediately")
-            debugLog("watchAd: mini-program trap (non-farm mini-program), pressing back to exit")
-            service.setAdMode(false)
-            service.pressBack()
-            currentTaskIndex++
-            handler.postDelayed({
-                if (state == AutomationState.WATCHING_AD) {
-                    if (!service.isOnFarmPage()) service.pressBack()
+            // 陷阱2：交易/下单页（违反禁止交易原则）
+            // 策略：保留 5s 等待避免深链跳转期间页面切换的误判，确认后退出任务
+            // 注意：用 currentTaskIndex++（而非 advanceTaskIndex）— 陷阱任务直接跳过，不重玩
+            PageScene.TRAP_ABNORMAL -> {
+                if (elapsedMs < 5000L) {
+                    // 未满 5s，可能是页面切换中的瞬时状态，继续轮询等待页面稳定
+                    debugLog("watchAd: TRAP_ABNORMAL scene but elapsed=${elapsedMs}ms < 5000ms, waiting for page to stabilize")
                     handler.postDelayed({
-                        if (state == AutomationState.WATCHING_AD) {
-                            moveTo(AutomationState.OPENING_TASK_LIST)
-                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
-                        }
-                    }, INTERVAL_PAGE_LOAD_MS)
+                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                    }, adEndCheckIntervalMs)
+                    return
                 }
-            }, INTERVAL_PAGE_LOAD_MS)
-            return
-        }
-        // 5. 广告复看陷阱（"再看一个"/"加倍领取"诱导继续看广告）
-        //    → 优先点关闭类按钮，绝不点诱导按钮，避免被套娃看更多广告
-        if (service.closeAdReplayTrap()) {
-            Log.w(TAG, "watchAd: ad replay trap detected and closed (再看一个/加倍领取)")
-            debugLog("watchAd: replay trap handled, continuing to check ad end")
-            handler.postDelayed({
-                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
-            }, INTERVAL_CLICK_MS)
-            return
+                Log.w(TAG, "watchAd: abnormal/trading page detected (scene=$scene, elapsed=${elapsedMs}ms), exiting immediately")
+                debugLog("watchAd: abnormal page trap detected, pressing back to exit")
+                service.setAdMode(false)
+                service.pressBack()
+                currentTaskIndex++  // 陷阱任务直接跳过，不重玩（避免再次掉入同一陷阱）
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) {
+                        if (!service.isOnFarmPage()) service.pressBack()
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) {
+                                moveTo(AutomationState.OPENING_TASK_LIST)
+                                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                            }
+                        }, INTERVAL_PAGE_LOAD_MS)
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            // 陷阱3：非农场小程序（支付宝/淘宝特有，广告诱导跳转）
+            // 策略：立即按返回退出，跳过任务（UC 无小程序，此场景不会触发）
+            // 注意：用 currentTaskIndex++（而非 advanceTaskIndex）— 陷阱任务直接跳过，不重玩
+            PageScene.TRAP_MINIPROGRAM -> {
+                Log.w(TAG, "watchAd: mini-program trap detected (scene=$scene), exiting immediately")
+                debugLog("watchAd: mini-program trap (non-farm mini-program), pressing back to exit")
+                service.setAdMode(false)
+                service.pressBack()
+                currentTaskIndex++  // 陷阱任务直接跳过，不重玩（避免再次掉入同一陷阱）
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) {
+                        if (!service.isOnFarmPage()) service.pressBack()
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) {
+                                moveTo(AutomationState.OPENING_TASK_LIST)
+                                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                            }
+                        }, INTERVAL_PAGE_LOAD_MS)
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            // 陷阱4：广告主落地页（含多个"立即下载/查看详情/去购买"等转化按钮）
+            // 策略：误入即按返回退出，绝不点击任何按钮（避免转化收益），跳过任务
+            // 注意：用 currentTaskIndex++（而非 advanceTaskIndex）— 陷阱任务直接跳过，不重玩
+            PageScene.TRAP_LANDING -> {
+                Log.w(TAG, "watchAd: ad landing page detected (scene=$scene), exiting immediately (trap defense)")
+                debugLog("watchAd: ad landing page trap detected, pressing back to exit")
+                service.setAdMode(false)
+                service.pressBack()
+                currentTaskIndex++  // 陷阱任务直接跳过，不重玩（避免再次掉入同一陷阱）
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) {
+                        if (!service.isOnFarmPage()) service.pressBack()
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) {
+                                moveTo(AutomationState.OPENING_TASK_LIST)
+                                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                            }
+                        }, INTERVAL_PAGE_LOAD_MS)
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            // 陷阱5：诱导弹窗（页面上有"立即下载"等按钮，可能是广告播放中弹出的诱导遮罩）
+            // 策略：优先点"关闭/暂不/拒绝"关闭弹窗，绝不点诱导按钮，继续轮询
+            PageScene.TRAP_INSTALL -> {
+                Log.w(TAG, "watchAd: install popup detected (scene=$scene), trying to close it (trap defense)")
+                debugLog("watchAd: install popup trap detected, attempting closeAdInstallPopup")
+                val closed = service.closeAdInstallPopup()
+                if (!closed) {
+                    // 找不到关闭类按钮，可能弹窗本身就是全屏落地页 → 按返回退出
+                    debugLog("watchAd: no close button for install popup, pressing back")
+                    service.pressBack()
+                }
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                }, INTERVAL_CLICK_MS)
+                return
+            }
+            // 陷阱6：广告复看陷阱（"再看一个"/"加倍领取"诱导继续看广告）
+            // 策略：优先点关闭类按钮，绝不点诱导按钮，避免被套娃看更多广告，继续轮询
+            PageScene.TRAP_REPLAY -> {
+                Log.w(TAG, "watchAd: ad replay trap detected (scene=$scene), closing (再看一个/加倍领取)")
+                debugLog("watchAd: replay trap handled, continuing to check ad end")
+                service.closeAdReplayTrap()
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                }, INTERVAL_CLICK_MS)
+                return
+            }
+            // 非陷阱场景（FARM_PAGE / AD_PLAYING / AD_ENDED / REWARD_POPUP / UNKNOWN），
+            // 继续后续流程检测（超时、深链、最短等待、广告结束等）
+            else -> {
+                // 场景识别未命中陷阱，由后续超时/深链/广告结束检测处理
+            }
         }
 
         // 超时强制关闭
@@ -2555,28 +2609,10 @@ object AutomationController {
             return
         }
 
-        // 深链跳转任务：检测其他App内的异常交易页（付款/收银台），确保不产生交易
-        if (elapsedMs >= 5000L && service.isOnAbnormalPage()) {
-            Log.w(TAG, "watchAd: abnormal/trading page in other app, exiting immediately")
-            debugLog("watchAd: abnormal page in deep-linked app, pressing back to exit")
-            service.pressBack()
-            service.setAdMode(false)
-            currentTaskIndex++
-            handler.postDelayed({
-                if (!service.isOnFarmPage()) service.pressBack()
-                handler.postDelayed({
-                    if (state == AutomationState.WATCHING_AD) {
-                        moveTo(AutomationState.OPENING_TASK_LIST)
-                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
-                    }
-                }, INTERVAL_CLICK_MS)
-            }, INTERVAL_PAGE_LOAD_MS)
-            return
-        }
-
         // 深链跳转任务：广告任务跳转到其他 App（如快手，非农场/非广告Activity/非异常页）
         // 用户要求：等其它app打开后等2秒，把主界面激活到前台，同时kill掉打开的app
         // 注意：此检查在"最短等待时间"检查之前，确保深链任务用 2s 超时（而非默认 30s 广告等待）
+        // 注：异常交易页（isOnAbnormalPage）已在上方场景识别 TRAP_ABNORMAL 中统一处理
         if (elapsedMs >= 5000L && !service.isOnFarmPage() && !service.isAdActivity() &&
             !service.isAdPlaying() && !service.isOnAbnormalPage()) {
             val currentPkg = service.getCurrentWindowPackage()

@@ -1158,6 +1158,158 @@ class FarmAccessibilityService : AccessibilityService() {
         return false
     }
 
+    /**
+     * 页面场景类型（场景识别引擎）
+     *
+     * 聪明思考的核心：先理解"当前页面是什么场景"，再决定动作。
+     * 相比关键词黑名单驱动，场景识别能防御未知文案陷阱——
+     * 广告设计者换个诱导文案，但页面场景特征不变，仍能被正确识别。
+     *
+     * 场景优先级（从高到低，先识别陷阱场景再识别正常场景）：
+     * 1. TRAP_RECHARGE   — 充值/付费页（违反禁止交易原则，立即退出）
+     * 2. TRAP_ABNORMAL   — 交易/下单页（违反禁止交易原则，立即退出）
+     * 3. TRAP_MINIPROGRAM — 非农场小程序陷阱（支付宝/淘宝，立即退出）
+     * 4. TRAP_LANDING    — 广告主落地页（下载/安装/应用商店，立即退出）
+     * 5. TRAP_INSTALL    — 诱导弹窗（立即下载/去购买，关闭后继续）
+     * 6. TRAP_REPLAY     — 复看陷阱（再看一个/加倍领取，关闭后继续）
+     * 7. REWARD_POPUP    — 奖励领取弹窗（可点击领取奖励）
+     * 8. AD_ENDED        — 广告已结束（可关闭/领取奖励）
+     * 9. AD_PLAYING      — 广告播放中（等待，勿点诱导按钮）
+     * 10. FARM_PAGE      — 农场主页（正常状态）
+     * 11. UNKNOWN        — 未知场景（保守等待）
+     */
+    enum class PageScene {
+        FARM_PAGE,           // 农场主页
+        AD_PLAYING,          // 广告播放中（有倒计时/跳过按钮）
+        AD_ENDED,            // 广告已结束（无倒计时，可能有领取按钮）
+        REWARD_POPUP,        // 奖励领取弹窗（恭喜获得/领取奖励）
+        TRAP_LANDING,        // 广告主落地页陷阱
+        TRAP_INSTALL,        // 诱导弹窗陷阱（立即下载）
+        TRAP_REPLAY,         // 复看陷阱（再看一个/加倍领取）
+        TRAP_RECHARGE,       // 充值/付费页陷阱
+        TRAP_ABNORMAL,       // 交易/下单页陷阱
+        TRAP_MINIPROGRAM,    // 非农场小程序陷阱
+        UNKNOWN              // 未知场景
+    }
+
+    /**
+     * 识别当前页面场景（场景识别引擎核心）
+     *
+     * 多信号指纹融合，按优先级返回第一个匹配的场景：
+     * - 陷阱场景优先识别（安全第一，宁可不领肥料也不能掉陷阱）
+     * - 正常场景按广告生命周期识别（播放中→已结束→奖励弹窗）
+     *
+     * 相比零散的 isXxx() 检测，本方法提供统一的场景视图，
+     * 调用方基于场景类型决策，而非分散的 if-else。
+     *
+     * @return 当前页面场景类型
+     */
+    fun identifyCurrentScene(): PageScene {
+        // 1. 充值/付费页（最高优先级，违反禁止交易原则）
+        if (isRechargePage()) return PageScene.TRAP_RECHARGE
+        // 2. 交易/下单页（违反禁止交易原则）
+        if (isOnAbnormalPage()) return PageScene.TRAP_ABNORMAL
+        // 3. 非农场小程序陷阱（支付宝/淘宝）
+        if (isMiniProgramTrap()) return PageScene.TRAP_MINIPROGRAM
+        // 4. 广告主落地页陷阱（下载/安装/应用商店）
+        if (isAdLandingPage()) return PageScene.TRAP_LANDING
+        // 5. 农场主页（正常状态，优先识别避免误判为广告）
+        if (isOnFarmPage()) return PageScene.FARM_PAGE
+        // 6. 诱导弹窗陷阱（立即下载/去购买，需检测是否在广告页上弹出）
+        val installBtn = findAdInstallButton()
+        if (installBtn != null) {
+            // 诱导弹窗：有诱导按钮 + 无倒计时（倒计时存在说明广告还在播放，诱导按钮是广告CTA）
+            val hasCountdown = findAdDurationHint() > 0
+            if (!hasCountdown) return PageScene.TRAP_INSTALL
+        }
+        // 7. 复看陷阱（再看一个/加倍领取）
+        if (isReplayTrapPage()) return PageScene.TRAP_REPLAY
+        // 8. 奖励领取弹窗（恭喜获得 + 领取按钮）
+        if (isRewardPopupPage()) return PageScene.REWARD_POPUP
+        // 9. 广告已结束（任务完成页 或 无倒计时且不在广告Activity）
+        if (isTaskCompletePage()) return PageScene.AD_ENDED
+        // 10. 广告播放中（有倒计时 或 在广告Activity）
+        if (isAdPlaying() || isAdContentShown()) {
+            val hasCountdown = findAdDurationHint() > 0
+            if (hasCountdown) return PageScene.AD_PLAYING
+            // 在广告页但无倒计时，可能是广告已结束等待用户操作
+            return PageScene.AD_ENDED
+        }
+        // 11. 未知场景（保守等待）
+        return PageScene.UNKNOWN
+    }
+
+    /**
+     * 检测复看陷阱页面（供场景识别引擎用）
+     * @return true 表示当前页面是复看陷阱弹窗
+     */
+    private fun isReplayTrapPage(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        val replayTrapKeywords = listOf(
+            "再看一个", "再看看", "再看视频", "再看一次",
+            "加倍领取", "翻倍领取", "翻倍奖励", "双倍奖励",
+            "看视频翻倍", "看视频加倍", "看广告翻倍",
+            "立即翻倍", "立即加倍", "领取双倍",
+            "再看15秒", "再看30秒", "再看视频领"
+        )
+        return allText.any { text ->
+            replayTrapKeywords.any { kw -> text.contains(kw) }
+        }
+    }
+
+    /**
+     * 检测奖励领取弹窗页面（供场景识别引擎用）
+     *
+     * 特征：含"恭喜获得"/"奖励"/"领取"等文案 + 领取按钮
+     * 排除：广告主落地页（已在前置场景识别中过滤）
+     * @return true 表示当前是奖励领取弹窗
+     */
+    private fun isRewardPopupPage(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        // 奖励弹窗特征文案
+        val rewardPopupKeywords = listOf(
+            "恭喜获得", "获得奖励", "领取成功", "奖励已到账",
+            "完成任务", "全部完成", "已完成"
+        )
+        val hasRewardText = allText.any { text ->
+            rewardPopupKeywords.any { kw -> text.contains(kw) }
+        }
+        if (!hasRewardText) return false
+        // 进一步确认：有领取/确定/知道了按钮（排除诱导按钮）
+        // 注意：必须传 enforceSceneWhitelist=false，否则会与 identifyCurrentScene 形成无限递归
+        // （findClaimRewardButton → isClaimRewardAllowedScene → identifyCurrentScene → isRewardPopupPage）
+        val claimBtn = findClaimRewardButton(enforceSceneWhitelist = false)
+        return claimBtn != null
+    }
+
+    /**
+     * 判断当前场景是否允许点击"领取奖励"按钮（场景白名单）
+     *
+     * 聪明思考：只在确认是"广告已结束"或"奖励弹窗"场景才允许点击领取按钮，
+     * 避免广告播放中的"领取优惠"/"领取福利"诱导按钮被误点击。
+     *
+     * @return true 表示当前场景允许点击领取按钮
+     */
+    fun isClaimRewardAllowedScene(): Boolean {
+        val scene = identifyCurrentScene()
+        return scene == PageScene.AD_ENDED || scene == PageScene.REWARD_POPUP
+    }
+
+    /**
+     * 判断当前场景是否允许点击"关闭广告"按钮（场景白名单）
+     *
+     * 聪明思考：只在"广告播放中"或"广告已结束"场景才允许点击关闭按钮，
+     * 避免在农场页/陷阱页误点"关闭"导致退出农场或掉入陷阱。
+     *
+     * @return true 表示当前场景允许点击关闭按钮
+     */
+    fun isCloseAdAllowedScene(): Boolean {
+        val scene = identifyCurrentScene()
+        return scene == PageScene.AD_PLAYING || scene == PageScene.AD_ENDED ||
+            scene == PageScene.REWARD_POPUP
+    }
 
     /**
      * 查找"我要更快拿奖"按钮（UC 芭芭农场广告页第一层入口）
@@ -1699,10 +1851,23 @@ class FarmAccessibilityService : AccessibilityService() {
      * - 其次查找通用"×"、"关闭"、"close"、"跳过"、"skip"节点
      * - 最后查找右上角可点击小图标
      * - 失败时返回null，由调用方尝试坐标候选
+     * - 场景白名单：默认只在 AD_PLAYING/AD_ENDED/REWARD_POPUP 场景才返回按钮（聪明思考）
+     *   避免在农场页/陷阱页误点"关闭"导致退出农场或掉入陷阱（如落地页的"关闭交易"按钮）
      * @param platformTexts 平台特有的广告关闭按钮文本（如 UC 的"跳过广告"/"关闭广告"）
+     * @param enforceSceneWhitelist 是否强制场景白名单（默认 true）
      * @return 按钮节点或null
      */
-    fun findAdCloseButton(platformTexts: List<String> = emptyList()): AccessibilityNodeInfo? {
+    fun findAdCloseButton(
+        platformTexts: List<String> = emptyList(),
+        enforceSceneWhitelist: Boolean = true
+    ): AccessibilityNodeInfo? {
+        // 场景白名单：只在广告播放中/已结束/奖励弹窗场景才允许点击关闭按钮
+        // 聪明思考：陷阱页面的"关闭"按钮可能是"关闭交易"/"关闭订单"等诱导文案，
+        // 农场主页的"关闭"按钮会退出农场，都不应点击
+        if (enforceSceneWhitelist && !isCloseAdAllowedScene()) {
+            debugLog("findAdCloseButton: scene not allowed for close (scene=${identifyCurrentScene()}), skip")
+            return null
+        }
         val root = rootInActiveWindowSafe() ?: return null
         // 陷阱按钮黑名单（来自平台配置）：避免把"立即下载/去购买/查看详情"等诱导按钮误识别为关闭
         val trapTexts = currentPlatformConfig().adInstallButtonTexts
@@ -2189,7 +2354,9 @@ class FarmAccessibilityService : AccessibilityService() {
         }
         // 2. 找通用关闭按钮文本（×/关闭/close/skip），排除诱导按钮
         //    （findAdCloseButton 已内置诱导黑名单过滤）
-        val closeBtn = findAdCloseButton(platformCloseTexts)
+        //    注意：必须传 enforceSceneWhitelist=false，因为本方法专门处理 TRAP_LANDING 场景，
+        //    而 isCloseAdAllowedScene 在 TRAP_LANDING 场景返回 false（默认白名单只允许广告场景关闭）
+        val closeBtn = findAdCloseButton(platformCloseTexts, enforceSceneWhitelist = false)
         if (closeBtn != null) {
             debugLog("closeAdLandingPage: found close button via findAdCloseButton")
             if (performClickSafe(closeBtn)) return true
@@ -2322,9 +2489,18 @@ class FarmAccessibilityService : AccessibilityService() {
      * - 不包含"关闭"（避免误关闭任务列表）
      * - 排除广告主诱导按钮（"领取优惠"/"领取福利"/"立即领取福利"会被"领取"子串匹配，
      *   点击后跳转交易页或下载广告主 App，违反禁止交易原则）
+     * - 场景白名单：默认只在 AD_ENDED/REWARD_POPUP 场景才返回按钮（聪明思考）
+     *   避免广告播放中的"领取优惠"诱导按钮被误点击
+     * @param enforceSceneWhitelist 是否强制场景白名单（默认 true）
      * @return 按钮节点或null
      */
-    fun findClaimRewardButton(): AccessibilityNodeInfo? {
+    fun findClaimRewardButton(enforceSceneWhitelist: Boolean = true): AccessibilityNodeInfo? {
+        // 场景白名单：只在广告已结束或奖励弹窗场景才允许点击领取按钮
+        // 聪明思考：广告播放中出现的"领取"文字几乎都是诱导按钮，不应点击
+        if (enforceSceneWhitelist && !isClaimRewardAllowedScene()) {
+            debugLog("findClaimRewardButton: scene not allowed for claim (scene=${identifyCurrentScene()}), skip")
+            return null
+        }
         val root = rootInActiveWindowSafe() ?: return null
         val trapTexts = currentPlatformConfig().adInstallButtonTexts
         val keywords = listOf("领取奖励", "领取", "确定", "知道了")
