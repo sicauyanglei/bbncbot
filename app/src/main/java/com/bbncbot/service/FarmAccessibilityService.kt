@@ -279,13 +279,25 @@ class FarmAccessibilityService : AccessibilityService() {
     /** 当前农场 App 是否在前台（是否有当前平台窗口） */
     fun isFarmAppInForeground(): Boolean {
         return try {
-            val windows = windows
             val cfg = currentPlatformConfig()
+            // 1. 优先遍历 windows 查找农场平台包名（最可靠）
+            val windows = windows
             for (w in windows) {
                 val pkg = w.root?.packageName?.toString().orEmpty()
                 if (pkg in cfg.packageNames || cfg.internalPackagePrefixes.any { pkg.startsWith(it) }) {
                     return true
                 }
+            }
+            // 2. Activity 类名兜底：kill+relaunch 期间 windows 可能短暂不含农场包名窗口，
+            //    但 currentActivityName 已通过 TYPE_WINDOW_STATE_CHANGED 更新为农场 Activity。
+            //    若 Activity 类名匹配农场平台 farmPageActivityKeywords，认为仍在农场 App 内。
+            //    （forceKillApp 已清除 currentActivityName，所以此处非 null 一定是 kill 后新事件设置的）
+            val activity = currentActivityName?.lowercase().orEmpty()
+            if (activity.isNotEmpty() && cfg.farmPageActivityKeywords.isNotEmpty() &&
+                cfg.farmPageActivityKeywords.any { activity.contains(it) }
+            ) {
+                debugLog("isFarmAppInForeground: windows miss farm pkg, but activity=$activity matches farm keywords, treat as in farm app")
+                return true
             }
             false
         } catch (e: Exception) {
@@ -3507,7 +3519,12 @@ class FarmAccessibilityService : AccessibilityService() {
             val am = getSystemService(android.content.Context.ACTIVITY_SERVICE)
                 as android.app.ActivityManager
             am.killBackgroundProcesses(pkg)
-            debugLog("forceKillApp: killBackgroundProcesses($pkg) called")
+            // 清除残留的 Activity/包名缓存：kill 后旧窗口失效，但 currentActivityName
+            // 只在 TYPE_WINDOW_STATE_CHANGED 事件中更新，残留旧值会导致 isOnFarmPage 等判断矛盾
+            // （日志现象：act=xriveractivity 但 onFarm=false，因为 windows 里已无农场包名窗口）
+            currentActivityName = null
+            currentEventPkg = null
+            debugLog("forceKillApp: killBackgroundProcesses($pkg) called, cleared currentActivityName/currentEventPkg")
             true
         } catch (e: Exception) {
             debugLog("forceKillApp: failed to kill $pkg, ${e.message}")

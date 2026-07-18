@@ -604,6 +604,7 @@ object AutomationController {
             service.pressBack()
         } else if (!service.isFarmAppInForeground()) {
             Log.w(TAG, "navigate: farm app not in foreground (platform=${service.currentPlatform}), waiting")
+            debugLog("navigate: farm app not in foreground (platform=${service.currentPlatform}, attempt=$attempt), waiting for relaunch")
         } else {
             // 在农场 App 内但不在农场页（如淘宝主页），主动导航到芭芭农场
             Log.i(TAG, "navigate: in farm app but not farm page (platform=${service.currentPlatform}), calling navigateToFarm")
