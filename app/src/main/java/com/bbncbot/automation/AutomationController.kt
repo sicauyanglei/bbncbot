@@ -222,6 +222,10 @@ object AutomationController {
     @Volatile
     private var noProgressStreak: Int = 0
 
+    // build549：上一轮施肥时的 remainCount（"还差X次领肥料"中的 X），用于检测施肥是否生效
+    @Volatile
+    private var lastRemainCount: Int = -1
+
     /**
      * 当前任务剩余重玩次数（多次点击任务）
      * - 用户要求：有些任务按钮上有次数（如 1/3），表示可以多次点击
@@ -4077,6 +4081,7 @@ object AutomationController {
         currentTaskIndex = 0
         noProgressRounds = 0
         noProgressStreak = 0  // build545：重置施肥无进展计数
+        lastRemainCount = -1  // build549：重置施肥 remainCount 跟踪
         taskButtons = emptyList()
         moveTo(AutomationState.NAVIGATING)
         handler.post { runNavigating(0) }
