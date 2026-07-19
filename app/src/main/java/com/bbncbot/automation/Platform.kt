@@ -296,7 +296,16 @@ object AlipayPlatformConfig : PlatformConfig {
         // 用"立即领肥"精确匹配可领取状态，不会误匹配"还差3次领肥"
         "立即领肥",
         // "领取肥料"匹配"领取肥料礼包"、"立即领取肥料"等弹窗领取入口（点击后弹窗，需再点"立即领取"）
-        "领取肥料"
+        "领取肥料",
+        // build535 修复（用户反馈"芭芭农场主页上的'点击领取'为啥不点击"）：
+        // 历史问题：directCollectTexts 只含 ["可领取","挖肥料","立即领肥","领取肥料"]，
+        // "点击领取"不含其中任一子串，导致主页上的"点击领取"按钮不会被 findDirectCollectButtons 找到，
+        // COLLECTING_DIRECT 阶段直接跳到 OPENING_TASK_LIST，主页直接领取入口被漏掉。
+        // "点击领取"虽也在 goCompleteTexts 里，但那是任务列表的"去完成"按钮文案，
+        // 主页独立的"点击领取"奖励按钮（如每日登录奖励/7天奖励）不在任务列表结构内，
+        // 不会被 OPENING_TASK_LIST 找到。这里加入 directCollectTexts 让 COLLECTING_DIRECT 识别。
+        // 过滤逻辑已排除"已领取"/"还差"/"明日"/"施肥"/"生产中"等锁定状态，"点击领取"加入是安全的。
+        "点击领取"
     )
     override val collectFertilizerCoords = listOf(
         Pair(0.888f, 0.771f),  // 右侧浮动"肥料"按钮（OCR+颜色分析确认，1200x2664 屏幕）
