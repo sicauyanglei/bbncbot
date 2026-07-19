@@ -3903,6 +3903,10 @@ object AutomationController {
 
         if (clickCount == 0) {
             logPageSnapshot(service, "fertilize-start")
+            // build548：dump 所有 clickable 节点，用于诊断施肥按钮真实坐标
+            // 历史问题：H5 未暴露施肥按钮文本，findFertilizeButton 找不到；
+            // 只能从 dump 里反推真实施肥按钮坐标，下次根据日志修正坐标兜底
+            service.dumpClickableNodes("fertilize-start")
         }
 
         // 检测异常页面（交易页面等），按返回退出并重新导航
@@ -3993,23 +3997,23 @@ object AutomationController {
             }
         }
 
-        // 没找到施肥按钮（H5 未暴露"施肥"文本），尝试点击"还差X次领肥料"按钮本身施肥
+        // 没找到施肥按钮（H5 未暴露"施肥"文本），尝试通过"还差X次领肥料"提示文字定位真实施肥按钮
         Log.d(TAG, "fertilize: no 施肥 button found (clickCount=$clickCount)")
-        // build547 修复（用户反馈"还差3次施肥，那我们就施肥3次，然后还差3次施肥会变成'立即领取'"）：
-        // 历史问题：
+        // build548 修复（用户反馈"'还差x次施肥'，不是让你去点击这个按钮，而是去点击施肥按钮"）：
+        // 历史问题（build547-1e07e0e）：
         // - build543 用坐标兜底点击 (0.501, 0.761)，但日志（debug_test_20260719_130559.log,
         //   build546-c55eb0b）证明这个坐标不是施肥按钮，点击会触发 gameTaskSuspend.html 弹窗：
         //     13:02:39.929 fertilize-coord: click at (601.2, 1935.2229)
         //     13:02:51.518 sample=[更多, 关闭, gameTaskSuspend.html?caprMode=sync]
         //   导致 FERTILIZING 退出主页 → NAVIGATING → 反复循环 4 次无进展。
-        // - build545 又改"500/3500 还能施肥获取"逻辑，但实际主页没有施肥按钮（H5 未暴露），
-        //   仍走坐标兜底，同样触发 gameTaskSuspend 弹窗。
+        // - build547 改为直接点击"还差X次领肥料"按钮本身（clickable=true），但用户反馈：
+        //   "'还差x次施肥'，不是让你去点击这个按钮，而是去点击施肥按钮" —— 这是提示文字，
+        //   点击它本身不会施肥，应该点击它附近的真实施肥按钮。
         //
-        // 修复：放弃坐标兜底。改为点击"还差X次领肥料"按钮本身（它是 clickable=true 的真实
-        // 可点击节点，bounds=[442,1539][759,1617]），每次点击就施肥一次。
-        // - remainCount > 0：点击该按钮，等 2 秒后重试，remainCount 会递减
-        // - remainCount == 0：按钮已变成"立即领取"，切 COLLECTING_DIRECT 领取
-        // - 没找到"还差X次领肥料"按钮（且无 direct 按钮）：进入 WAITING/startNextRound
+        // 修复：用"还差X次领肥料"提示文字作为定位锚点，找它附近（半径 300px 内）最近的
+        // clickable=true 节点（真实施肥按钮，H5 未暴露文本）。点击该节点施肥，等 2.5 秒后重试，
+        // remainCount 会递减。若 hint 附近找不到 clickable 节点，dump 全部 clickable 节点供
+        // 下次诊断修正坐标，并兜底点击 hint 中心下方（施肥按钮通常在 hint 下方）。
         val onFarm = service.isOnFarmPage()
         if (!onFarm) {
             debugLog("fertilize: not on farm page, re-navigate")
@@ -4026,20 +4030,41 @@ object AutomationController {
             handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
             return
         }
-        // 找"还差X次领肥料"按钮（clickable=true 的真实可点击节点）
-        val remainButton = service.findRemainingFertilizerButton()
-        if (remainButton != null) {
+        // 找"还差X次领肥料"提示文字节点（hint，用于定位施肥按钮附近位置，不点击它本身）
+        val hintNode = service.findRemainingFertilizerHintNode()
+        if (hintNode != null) {
             val remainCount = service.parseFertilizeRemainingCount()
-            debugLog("fertilize: found 还差${remainCount}次领肥料 button, clicking it (clickCount=$clickCount)")
-            Log.i(TAG, "fertilize: click 还差${remainCount}次领肥料 button (clickCount=${clickCount + 1})")
-            service.performClickSafe(remainButton)
+            // 在 hint 附近找真正的施肥按钮（clickable=true 节点，排除领取/工具/任务/诱导类按钮）
+            val fertButton = service.findNearbyClickableFertilizeNode(hintNode)
+            if (fertButton != null) {
+                val btnRect = android.graphics.Rect()
+                fertButton.getBoundsInScreen(btnRect)
+                debugLog("fertilize: found clickable fertilize button near hint (还差${remainCount}次), bounds=${btnRect.toShortString()}, clicking (clickCount=$clickCount)")
+                Log.i(TAG, "fertilize: click nearby fertilize button (还差${remainCount}次领肥, clickCount=${clickCount + 1})")
+                service.performClickSafe(fertButton)
+                handler.postDelayed({
+                    if (state == AutomationState.FERTILIZING) runFertilizing(clickCount + 1)
+                }, 2500L)  // 2.5 秒等待施肥动画
+                return
+            }
+            // hint 附近没有 clickable 节点，dump 所有 clickable 节点用于诊断真实施肥按钮坐标
+            debugLog("fertilize: hint found (还差${remainCount}次) but no nearby clickable button, dump for diagnosis")
+            service.dumpClickableNodes("fertilize-no-button")
+            // 兜底：在 hint 中心下方一点点击（施肥按钮通常在 hint 文字下方）
+            val hintRect = android.graphics.Rect()
+            hintNode.getBoundsInScreen(hintRect)
+            val cx = hintRect.exactCenterX()
+            val cy = hintRect.exactCenterY() + (hintRect.height() * 1.5f)  // hint 下方 1.5 倍高度
+            debugLog("fertilize: fallback click below hint at ($cx, $cy)")
+            Log.i(TAG, "fertilize: fallback click below hint at ($cx, $cy) (clickCount=${clickCount + 1})")
+            service.dispatchGestureClick(cx, cy)
             handler.postDelayed({
                 if (state == AutomationState.FERTILIZING) runFertilizing(clickCount + 1)
-            }, 2500L)  // 2.5 秒等待动画
+            }, 2500L)
             return
         }
-        // 没有"还差X次领肥料"按钮，也没有 direct 按钮，认为施肥完成
-        Log.i(TAG, "fertilize: no remaining-fertilizer button and no direct button, done")
+        // 没有"还差X次领肥料"提示，也没有 direct 按钮，也没有施肥按钮，认为施肥完成
+        Log.i(TAG, "fertilize: no remaining-fertilizer hint and no direct button, done")
         moveTo(AutomationState.WAITING)
         handler.postDelayed({ startNextRound() }, INTERVAL_WAIT_MS)
     }

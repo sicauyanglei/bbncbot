@@ -3745,29 +3745,31 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * 找主页"还差X次领肥料"按钮节点（clickable=true 的真实可点击节点）
+     * 找主页"还差X次领肥料"提示文字节点（用于定位施肥按钮附近位置）
      *
-     * build547 添加：
-     * - 用户反馈"还差3次施肥，那我们就施肥3次，然后还差3次施肥会变成'立即领取'"
-     * - 该按钮 clickable=true（日志 bounds=[442,1539][759,1617] clickable=true）
-     * - 点击该按钮本身就是施肥一次（不是打开任务列表，是真实的施肥操作）
-     * - 多次点击后按钮文字会从"还差3次领肥料"递减到"还差0次"，最终变成"立即领取"
+     * build548 添加（用户反馈"'还差x次施肥'，不是让你去点击这个按钮，而是去点击施肥按钮"）：
+     * - "还差X次领肥料"是提示文字，不是施肥按钮，点击它本身不会施肥
+     * - 真正的施肥按钮在它附近（H5 未暴露文本，无法用文本查找）
+     * - 本方法只找提示文字位置，调用方根据该位置推算施肥按钮坐标
      *
-     * @return 按钮节点或null
+     * 历史问题（build547-1e07e0e）：曾用 findRemainingFertilizerButton 直接 performClickSafe
+     * 该 hint 文字本身（clickable=true 但不是施肥按钮），不会施肥，必须改为找附近真正的施肥按钮。
+     *
+     * @return 提示文字节点或null
      */
-    fun findRemainingFertilizerButton(): AccessibilityNodeInfo? {
+    fun findRemainingFertilizerHintNode(): AccessibilityNodeInfo? {
         val root = getRootInFarmApp() ?: return null
         val pattern = Regex("""还差\s*\d+\s*次.*肥""")
         fun walk(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
             val text = node.text?.toString().orEmpty()
             val desc = node.contentDescription?.toString().orEmpty()
             for (s in listOf(text, desc)) {
-                if (pattern.containsMatchIn(s) && node.isClickable) {
+                if (pattern.containsMatchIn(s)) {
                     val rect = android.graphics.Rect()
                     node.getBoundsInScreen(rect)
                     val boundsValid = rect.width() > 0 && rect.height() > 0 && rect.top < rect.bottom
                     if (boundsValid) {
-                        debugLog("findRemainingFertilizerButton: found '$s' bounds=${rect.toShortString()} clickable=true")
+                        debugLog("findRemainingFertilizerHintNode: found '$s' bounds=${rect.toShortString()}")
                         return node
                     }
                 }
@@ -3780,9 +3782,122 @@ class FarmAccessibilityService : AccessibilityService() {
         }
         val node = walk(root)
         if (node == null) {
-            debugLog("findRemainingFertilizerButton: no clickable 还差X次领肥 node found")
+            debugLog("findRemainingFertilizerHintNode: no '还差X次领肥' hint node found")
         }
         return node
+    }
+
+    /**
+     * 在"还差X次领肥料"提示文字节点附近找最近的 clickable=true 节点（真正的施肥按钮）
+     *
+     * build548 添加（用户反馈"'还差x次施肥'，不是让你去点击这个按钮，而是去点击施肥按钮"）：
+     * - "还差X次领肥料"是提示文字（hint），不是施肥按钮，点击它本身不会施肥
+     * - 真正的施肥按钮是 hint 附近的某个 clickable=true 节点（H5 未暴露文本，无法用文本查找）
+     * - 本方法在 hint bounds 中心周围 maxDistancePx 像素内找最近的 clickable 节点
+     *
+     * 排除按钮（非施肥按钮，避免误点）：
+     * - 领取类："立即领取"/"点击领取"/"领取"/"收下"等（由 COLLECTING_DIRECT 阶段处理）
+     * - 工具类："关闭"/"返回"/"刷新"/"任务"/"签到"/"规则"/"记录"/"商店"/"商城"/"抽奖"/"更多"
+     * - 任务类："去完成"/"去逛逛"/"去观看"/"去赚"等（任务列表按钮）
+     * - 诱导类："立即下载"/"立即安装"/"立即体验"等（广告陷阱）
+     *
+     * 排序：距离最近 > bounds 面积大（施肥按钮通常较大）
+     *
+     * @param hintNode 提示文字节点（如"还差3次领肥料"）
+     * @param maxDistancePx 最大搜索半径（像素），默认 300
+     * @return 最近的 clickable 节点或 null
+     */
+    fun findNearbyClickableFertilizeNode(hintNode: AccessibilityNodeInfo, maxDistancePx: Int = 300): AccessibilityNodeInfo? {
+        val root = getRootInFarmApp() ?: return null
+        val hintRect = android.graphics.Rect()
+        hintNode.getBoundsInScreen(hintRect)
+        val hintCx = hintRect.exactCenterX()
+        val hintCy = hintRect.exactCenterY()
+
+        // 排除文本：领取类按钮（由 COLLECTING_DIRECT 处理）/ 工具按钮 / 任务按钮 / 诱导按钮
+        val excludeKeywords = listOf(
+            "领取", "收下", "立即领", "点击领",
+            "关闭", "返回", "回首页", "更多",
+            "刷新", "任务", "签到", "规则", "记录", "商店", "商城", "抽奖",
+            "去完成", "去逛逛", "去观看", "去赚", "去签到", "去答题", "去挑战",
+            "立即下载", "立即安装", "立即体验", "立即购买", "去购买"
+        )
+
+        data class Candidate(val node: AccessibilityNodeInfo, val distSq: Float, val text: String, val bounds: android.graphics.Rect)
+        val candidates = mutableListOf<Candidate>()
+
+        fun walk(node: AccessibilityNodeInfo) {
+            if (node !== hintNode && node.isClickable) {
+                val rect = android.graphics.Rect()
+                node.getBoundsInScreen(rect)
+                if (rect.width() > 0 && rect.height() > 0 && rect.top < rect.bottom) {
+                    val text = node.text?.toString().orEmpty()
+                    val desc = node.contentDescription?.toString().orEmpty()
+                    val nodeText = if (text.isNotEmpty()) text else desc
+                    val isExcluded = excludeKeywords.any { nodeText.contains(it) }
+                    if (!isExcluded) {
+                        val cx = rect.exactCenterX()
+                        val cy = rect.exactCenterY()
+                        val dx = cx - hintCx
+                        val dy = cy - hintCy
+                        val distSq = dx * dx + dy * dy
+                        if (distSq <= maxDistancePx * maxDistancePx) {
+                            candidates.add(Candidate(node, distSq, nodeText, rect))
+                        }
+                    }
+                }
+            }
+            for (i in 0 until node.childCount) {
+                node.getChild(i)?.let { walk(it) }
+            }
+        }
+        walk(root)
+
+        if (candidates.isEmpty()) {
+            debugLog("findNearbyClickableFertilizeNode: no clickable node within ${maxDistancePx}px of hint at ($hintCx, $hintCy)")
+            return null
+        }
+        // 距离最近优先；距离相同时 bounds 面积更大的优先（施肥按钮通常较大）
+        candidates.sortWith(
+            compareBy<Candidate> { it.distSq }
+                .thenByDescending { it.bounds.width() * it.bounds.height() }
+        )
+        val best = candidates.first()
+        debugLog("findNearbyClickableFertilizeNode: best='${best.text}' bounds=${best.bounds.toShortString()} distSq=${best.distSq} (from ${candidates.size} candidates)")
+        return best.node
+    }
+
+    /**
+     * 转储主页所有 clickable=true 的节点（bounds + text/desc），用于诊断施肥按钮位置
+     *
+     * build548 添加：用户反馈"还差x次施肥不是点击这个按钮，而是去点击施肥按钮"。
+     * 但 H5 未暴露施肥按钮文本，无法用文本查找。本方法 dump 所有可点击节点，
+     * 帮助从日志里定位施肥按钮的真实坐标。
+     */
+    fun dumpClickableNodes(tag: String) {
+        val root = getRootInFarmApp() ?: run {
+            debugLog("[$tag] dumpClickableNodes: root is null")
+            return
+        }
+        data class Clickable(val text: String, val desc: String, val bounds: android.graphics.Rect)
+        val list = mutableListOf<Clickable>()
+        fun walk(node: AccessibilityNodeInfo) {
+            if (node.isClickable) {
+                val rect = android.graphics.Rect()
+                node.getBoundsInScreen(rect)
+                if (rect.width() > 0 && rect.height() > 0 && rect.top < rect.bottom) {
+                    list.add(Clickable(node.text?.toString().orEmpty(), node.contentDescription?.toString().orEmpty(), rect))
+                }
+            }
+            for (i in 0 until node.childCount) {
+                node.getChild(i)?.let { walk(it) }
+            }
+        }
+        walk(root)
+        debugLog("[$tag] clickable nodes (count=${list.size}):")
+        for (c in list) {
+            debugLog("[$tag]   text='${c.text}' desc='${c.desc}' bounds=${c.bounds.toShortString()}")
+        }
     }
 
     /**
