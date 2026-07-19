@@ -739,40 +739,45 @@ object AutomationController {
         val buttons = service.findDirectCollectButtons()
         debugLog("collectDirect: found ${buttons.size} direct buttons, attempt=$attempt")
         if (buttons.isEmpty()) {
-            // build536 修复（用户反馈"'点击领取'在主页下方"）：
-            // 历史问题：主页下方的"点击领取"按钮（每日登录/7天奖励等）在屏幕外，
-            // H5 WebView 未渲染该区域，accessibility tree 里也找不到对应节点。
-            // 直接跳到 OPENING_TASK_LIST 会漏掉这些主页下方的领取入口。
+            // build536 修复（用户反馈"'点击领取'在领肥料上方"）：
+            // 历史问题：主页"点击领取"按钮（每日登录/7天奖励等）在 H5 WebView 内渲染，
+            // accessibility tree 没暴露其文本节点，findDirectCollectButtons 找不到。
+            // 直接跳到 OPENING_TASK_LIST 会漏掉主页这个领取入口。
             //
             // 日志证据（debug_test_20260719_091413.log, build536-3bd28a1）：
             //   09:10:09.812 collectDirect: found 0 direct buttons, attempt=0
             //   主页 sample=[松开刷新, 任务列表, 农场乐园入口, 还差3次领肥料, 切换摇钱树,
             //             逛农货, 我的收获, 芭芭农场,种果树得水果，助农增收, 钓红包, 亲友树]
-            //   主页第一屏根本没有"点击领取"——在屏幕下方未渲染。
+            //   文本 sample 里没有"点击领取"——它在 H5 内未暴露给 accessibility tree。
             //
-            // 修复：找不到 direct 按钮时，先滚动主页让下方内容进入可见区域，再重试。
-            // 滚动策略（双重兜底）：
-            //   - 优先 NodeFinder.scrollDown（performAction ACTION_SCROLL_FORWARD，精确）
-            //   - 失败回退 dispatchGestureSwipe（手势滑动，兼容 H5 WebView）
-            //   - 向上滑（startY > endY）让页面向下滚动，露出下方内容
-            //   - attempt 0~3 各滚动一次（共 4 次），相当于露出主页下方约 4 屏内容；
-            //     attempt 4 仍找不到才进入 OPENING_TASK_LIST。
-            if (attempt < 4) {
-                val root = service.getRootInFarmApp()
-                val scrolled = NodeFinder.scrollDown(root)
-                if (!scrolled) {
-                    // 手势兜底：从屏幕下部 (600, 1800) 向上滑到 (600, 600)，
-                    // 页面向下滚动约 1200 像素，露出下方内容。
-                    // 屏幕 1200x2664，baseY=1800 在屏幕下半部（避开顶部状态栏和底部 tab 栏）。
-                    service.dispatchGestureSwipe(600f, 1800f, 600f, 600f, 500L)
-                    debugLog("collectDirect: no scrollable node, used gesture swipe down (attempt=$attempt)")
-                } else {
-                    debugLog("collectDirect: scrolled via ACTION_SCROLL_FORWARD (attempt=$attempt)")
+            // 用户反馈："点击领取"在"领肥料"按钮上方。
+            // Platform.kt 里 ALIPAY collectFertilizerCoords 第 9 项
+            //   Pair(0.917f, 0.657f)  // 今日可领（右侧领取入口）
+            // 位置：x=0.917 在右侧，y=0.657 < 0.771（"肥料"按钮 y），与用户描述一致。
+            //
+            // 修复：attempt=0 找不到 direct 按钮时，先坐标兜底点击 (0.917, 0.657)。
+            // 点击后走 tryClaimDirectPopup 流程：
+            //   - 若出现弹窗（findClaimRewardButtonExact 找到"立即领取"等）→ 领取
+            //   - 若点击后无弹窗（坐标不是"点击领取"，可能是其他入口）→ 不重复点击，
+            //     tryClaimDirectPopup 重试耗尽后 runCollectingDirect(attempt+1)，
+            //     attempt>=1 时不再坐标点击，直接进 OPENING_TASK_LIST。
+            // 这样误点风险可控，不会循环振荡。
+            if (attempt == 0 && service.currentPlatform == Platform.ALIPAY) {
+                val coords = service.currentPlatformConfig().collectFertilizerCoords
+                // 找"今日可领"坐标：x > 0.9（右侧）且 y 在 0.6~0.7 之间（"肥料"按钮 0.771 上方）
+                val todayClaimCoord = coords.firstOrNull {
+                    it.first > 0.9f && it.second in 0.6f..0.7f
                 }
-                handler.postDelayed({ runCollectingDirect(attempt + 1) }, INTERVAL_PAGE_LOAD_MS)
-                return
+                if (todayClaimCoord != null) {
+                    debugLog("collectDirect: no direct button found, trying coordinate fallback (今日可领) at (${todayClaimCoord.first}, ${todayClaimCoord.second})")
+                    Log.i(TAG, "collectDirect: coordinate fallback click (今日可领) at (${todayClaimCoord.first}, ${todayClaimCoord.second})")
+                    clickAtRatio(service, todayClaimCoord.first, todayClaimCoord.second, "collectDirect-todayClaim")
+                    // 点击后等待弹窗，走 tryClaimDirectPopup 流程
+                    tryClaimDirectPopup(service, attempt, maxRetry = 3)
+                    return
+                }
             }
-            Log.i(TAG, "collectDirect: no direct collect buttons found after scrolling, opening task list")
+            Log.i(TAG, "collectDirect: no direct collect buttons found, opening task list")
             moveTo(AutomationState.OPENING_TASK_LIST)
             handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
             return
