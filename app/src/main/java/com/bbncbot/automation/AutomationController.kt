@@ -3959,9 +3959,27 @@ object AutomationController {
                 taskListKeywords.any { kw -> text.contains(kw) }
             }
             if (isTaskListOpen) {
-                debugLog("fertilize: task list popup detected (含任务列表/去完成等), pressBack to close it")
-                Log.i(TAG, "fertilize: task list popup detected, pressBack to close it and show farm page")
-                service.pressBack()
+                // build555 修复（debug_test_20260719_143107.log, build553-0218141）：
+                //   14:25:19.989 fertilize: task list popup detected, pressBack to close it
+                //   14:25:26.009 fertilize: findFertilizeButton=false, clickCount=1 (pressBack 后 hint 消失)
+                //   14:25:26.072 fertilize: not on farm page, re-navigate (误判退出主页)
+                //   14:25:26.073 state: FERTILIZING -> NAVIGATING
+                // 根因：pressBack 一次既关弹窗又退出主页，导致 hint 消失，被误判为"不在主页"切回 NAVIGATING，
+                //   形成 FERTILIZING → NAVIGATING → COLLECTING_DIRECT → OPENING_TASK_LIST → PROCESSING_TASK → FERTILIZING 无限循环
+                //
+                // 修复：优先点击任务列表弹窗的专用"关闭做任务集肥料弹窗"按钮（不退主页），
+                //   找不到再用 pressBack 兜底。
+                // 日志证据：dumpClickableNodes 含 '关闭做任务集肥料弹窗' bounds=[1051,854][1152,953]
+                val closeButton = if (root != null) service.findNodeByText(root, "关闭做任务集肥料弹窗") else null
+                if (closeButton != null) {
+                    debugLog("fertilize: task list popup detected, click '关闭做任务集肥料弹窗' button to close it")
+                    Log.i(TAG, "fertilize: task list popup detected, click '关闭做任务集肥料弹窗' button to close it")
+                    service.performClickSafe(closeButton)
+                } else {
+                    debugLog("fertilize: task list popup detected but no close button, pressBack to close it")
+                    Log.i(TAG, "fertilize: task list popup detected but no close button, pressBack to close it")
+                    service.pressBack()
+                }
                 handler.postDelayed({
                     if (state == AutomationState.FERTILIZING) runFertilizing(clickCount + 1)
                 }, INTERVAL_PAGE_LOAD_MS)
