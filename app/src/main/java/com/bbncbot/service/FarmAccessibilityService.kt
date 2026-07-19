@@ -3745,6 +3745,47 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 找主页"还差X次领肥料"按钮节点（clickable=true 的真实可点击节点）
+     *
+     * build547 添加：
+     * - 用户反馈"还差3次施肥，那我们就施肥3次，然后还差3次施肥会变成'立即领取'"
+     * - 该按钮 clickable=true（日志 bounds=[442,1539][759,1617] clickable=true）
+     * - 点击该按钮本身就是施肥一次（不是打开任务列表，是真实的施肥操作）
+     * - 多次点击后按钮文字会从"还差3次领肥料"递减到"还差0次"，最终变成"立即领取"
+     *
+     * @return 按钮节点或null
+     */
+    fun findRemainingFertilizerButton(): AccessibilityNodeInfo? {
+        val root = getRootInFarmApp() ?: return null
+        val pattern = Regex("""还差\s*\d+\s*次.*肥""")
+        fun walk(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+            val text = node.text?.toString().orEmpty()
+            val desc = node.contentDescription?.toString().orEmpty()
+            for (s in listOf(text, desc)) {
+                if (pattern.containsMatchIn(s) && node.isClickable) {
+                    val rect = android.graphics.Rect()
+                    node.getBoundsInScreen(rect)
+                    val boundsValid = rect.width() > 0 && rect.height() > 0 && rect.top < rect.bottom
+                    if (boundsValid) {
+                        debugLog("findRemainingFertilizerButton: found '$s' bounds=${rect.toShortString()} clickable=true")
+                        return node
+                    }
+                }
+            }
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                walk(child)?.let { return it }
+            }
+            return null
+        }
+        val node = walk(root)
+        if (node == null) {
+            debugLog("findRemainingFertilizerButton: no clickable 还差X次领肥 node found")
+        }
+        return node
+    }
+
+    /**
      * 读取农场主页施肥大按钮上的当前肥料数值
      *
      * 施肥按钮的 text/contentDescription 形如：

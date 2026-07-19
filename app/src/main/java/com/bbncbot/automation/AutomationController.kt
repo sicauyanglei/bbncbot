@@ -3993,41 +3993,31 @@ object AutomationController {
             }
         }
 
-        // 没找到施肥按钮（H5 未暴露"施肥"文本），用坐标兜底点击施肥按钮位置
+        // 没找到施肥按钮（H5 未暴露"施肥"文本），尝试点击"还差X次领肥料"按钮本身施肥
         Log.d(TAG, "fertilize: no 施肥 button found (clickCount=$clickCount)")
-        // build545 修复（用户反馈"(500/3500) 肥料还可以继续获取"）：
-        // 历史问题（build543）：只在主页有"还差X次领肥料"按钮时才坐标兜底施肥，
-        // 一旦施肥使该按钮消失（变成"立即领取"），就停止施肥。但实际上：
-        //   - "还差X次领肥"只是某个奖励的解锁条件（如签到奖励）
-        //   - 肥料数值 500/3500 表示当前已有 500 肥料，上限 3500，还能继续施肥获取
-        //   - 施肥一次获得 X 肥料，只要没到上限就应继续施肥
-        // 用户反馈："500/3500 肥料还可以继续获取"
+        // build547 修复（用户反馈"还差3次施肥，那我们就施肥3次，然后还差3次施肥会变成'立即领取'"）：
+        // 历史问题：
+        // - build543 用坐标兜底点击 (0.501, 0.761)，但日志（debug_test_20260719_130559.log,
+        //   build546-c55eb0b）证明这个坐标不是施肥按钮，点击会触发 gameTaskSuspend.html 弹窗：
+        //     13:02:39.929 fertilize-coord: click at (601.2, 1935.2229)
+        //     13:02:51.518 sample=[更多, 关闭, gameTaskSuspend.html?caprMode=sync]
+        //   导致 FERTILIZING 退出主页 → NAVIGATING → 反复循环 4 次无进展。
+        // - build545 又改"500/3500 还能施肥获取"逻辑，但实际主页没有施肥按钮（H5 未暴露），
+        //   仍走坐标兜底，同样触发 gameTaskSuspend 弹窗。
         //
-        // 修复：只要在主页（onFarm=true）就尝试坐标兜底点击施肥按钮。
-        // 停止条件改为：
-        //   1. 不在主页（被踢出/异常页）→ NAVIGATING
-        //   2. 达到 MAX_FERTILIZE_CLICKS（30 次）→ WAITING/startNextRound
-        //   3. 连续 3 次施肥后肥料数值无变化（防卡死）→ WAITING
-        //   4. 检测到"立即领取"/"立即领肥"按钮可领取 → 切 COLLECTING_DIRECT 领取
+        // 修复：放弃坐标兜底。改为点击"还差X次领肥料"按钮本身（它是 clickable=true 的真实
+        // 可点击节点，bounds=[442,1539][759,1617]），每次点击就施肥一次。
+        // - remainCount > 0：点击该按钮，等 2 秒后重试，remainCount 会递减
+        // - remainCount == 0：按钮已变成"立即领取"，切 COLLECTING_DIRECT 领取
+        // - 没找到"还差X次领肥料"按钮（且无 direct 按钮）：进入 WAITING/startNextRound
         val onFarm = service.isOnFarmPage()
         if (!onFarm) {
-            debugLog("fertilize: not on farm page, no coordinate fallback, re-navigate")
+            debugLog("fertilize: not on farm page, re-navigate")
             moveTo(AutomationState.NAVIGATING)
             handler.postDelayed({ runNavigating(0) }, INTERVAL_PAGE_LOAD_MS)
             return
         }
-        val coords = service.currentPlatformConfig().collectFertilizerCoords
-        val fertilizeCoord = coords.firstOrNull {
-            // ALIPAY 第 8 项 (0.501, 0.761) 是施肥按钮，位置在屏幕中下部
-            it.first in 0.45f..0.55f && it.second in 0.7f..0.8f
-        }
-        if (fertilizeCoord == null) {
-            debugLog("fertilize: no fertilize coord in collectFertilizerCoords")
-            moveTo(AutomationState.WAITING)
-            handler.postDelayed({ startNextRound() }, INTERVAL_WAIT_MS)
-            return
-        }
-        // 检测是否有可领取的按钮（"立即领取"/"立即领肥"/"点击领取"等）→ 先领取再施肥
+        // 检测是否有可领取的按钮（"立即领取"/"立即领肥"/"点击领取"等）→ 切 COLLECTING_DIRECT 领取
         val directButtons = service.findDirectCollectButtons()
         if (directButtons.isNotEmpty()) {
             debugLog("fertilize: found ${directButtons.size} direct collect buttons, switch to COLLECTING_DIRECT")
@@ -4036,35 +4026,22 @@ object AutomationController {
             handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
             return
         }
-        // 读取施肥前肥料数值，用于后续判断是否还有进展
-        val beforeAmount = service.findCurrentFertilizerAmount()
-        debugLog("fertilize: coordinate fallback click at ($fertilizeCoord), beforeAmount=$beforeAmount, clickCount=$clickCount")
-        Log.i(TAG, "fertilize: coordinate fallback click (施肥) at ($fertilizeCoord) beforeAmount=$beforeAmount clickCount=${clickCount + 1}")
-        clickAtRatio(service, fertilizeCoord.first, fertilizeCoord.second, "fertilize-coord")
-        handler.postDelayed({
-            if (state != AutomationState.FERTILIZING) return@postDelayed
-            // 检查施肥后是否解锁了"立即领取"
-            val newDirectButtons = service.findDirectCollectButtons()
-            if (newDirectButtons.isNotEmpty()) {
-                debugLog("fertilize: direct collect buttons found after click, switch to COLLECTING_DIRECT")
-                Log.i(TAG, "fertilize: direct collect found after fertilize click, switch to COLLECTING_DIRECT")
-                moveTo(AutomationState.COLLECTING_DIRECT)
-                handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
-                return@postDelayed
-            }
-            // 检查肥料数值是否增加（连续 3 次无增加则停止，防卡死）
-            val afterAmount = service.findCurrentFertilizerAmount()
-            val noProgress = (beforeAmount > 0 && afterAmount > 0 && afterAmount <= beforeAmount)
-            noProgressStreak = if (noProgress) noProgressStreak + 1 else 0
-            debugLog("fertilize: afterAmount=$afterAmount, noProgressStreak=$noProgressStreak")
-            if (noProgressStreak >= 3) {
-                Log.i(TAG, "fertilize: 3 consecutive no-progress, done")
-                moveTo(AutomationState.WAITING)
-                handler.postDelayed({ startNextRound() }, INTERVAL_WAIT_MS)
-                return@postDelayed
-            }
-            runFertilizing(clickCount + 1)
-        }, 2500L)  // 2.5 秒等待施肥动画 + 数值更新
+        // 找"还差X次领肥料"按钮（clickable=true 的真实可点击节点）
+        val remainButton = service.findRemainingFertilizerButton()
+        if (remainButton != null) {
+            val remainCount = service.parseFertilizeRemainingCount()
+            debugLog("fertilize: found 还差${remainCount}次领肥料 button, clicking it (clickCount=$clickCount)")
+            Log.i(TAG, "fertilize: click 还差${remainCount}次领肥料 button (clickCount=${clickCount + 1})")
+            service.performClickSafe(remainButton)
+            handler.postDelayed({
+                if (state == AutomationState.FERTILIZING) runFertilizing(clickCount + 1)
+            }, 2500L)  // 2.5 秒等待动画
+            return
+        }
+        // 没有"还差X次领肥料"按钮，也没有 direct 按钮，认为施肥完成
+        Log.i(TAG, "fertilize: no remaining-fertilizer button and no direct button, done")
+        moveTo(AutomationState.WAITING)
+        handler.postDelayed({ startNextRound() }, INTERVAL_WAIT_MS)
     }
 
     /** 开始下一轮（集肥料→施肥循环） */
