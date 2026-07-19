@@ -4026,7 +4026,7 @@ object AutomationController {
             handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
             return
         }
-        // 找"还差X次领肥料"提示文字节点，点击它弹出"施肥"大按钮
+        // 找"还差X次领肥料"提示文字节点，根据其 bounds 推算施肥按钮坐标
         val hintNode = service.findRemainingFertilizerHintNode()
         if (hintNode != null) {
             val remainCount = service.parseFertilizeRemainingCount()
@@ -4046,12 +4046,29 @@ object AutomationController {
                 noProgressStreak = 0
                 lastRemainCount = remainCount
             }
-            // 点击 hint "还差X次领肥料"触发弹窗，弹窗里有"施肥"大按钮
-            Log.i(TAG, "fertilize: click hint '还差${remainCount}次领肥料' to pop up 施肥 (clickCount=${clickCount + 1})")
-            service.performClickSafe(hintNode)
+            // build551 修复（用户反馈"'施肥'按钮就在芭芭农场主页面上"）：
+            // 历史问题（build548/549）：
+            // - 误以为施肥按钮要通过点击 hint 弹窗触发，实际上"施肥"按钮就在主页上
+            // - 但 H5 没暴露施肥按钮的 accessibility 节点（无 text/desc/clickable），
+            //   dumpClickableNodes 里 23 个节点都没"施肥"按钮
+            // - 用户确认：施肥按钮在"还差X次领肥料"提示文字的下方
+            //
+            // 修复：用 hint bounds 推算施肥按钮坐标（hint 下方），用 dispatchGestureClick 点击
+            // 日志证据（debug_test_20260719_134803.log）：
+            //   hint bounds=[442,1539][759,1617]，中心 (600, 1578)
+            //   点击 hint 弹出的弹窗里"施肥"按钮 bounds=[278,1660][923,1807]，中心 (600, 1733)
+            //   → 弹窗按钮和主页施肥按钮位置接近，主页施肥按钮中心约在 hint 下方 ~150px
+            // 主页施肥按钮坐标：hint 中心 X，hint 下方 1.8 倍 hint 高度（hint 高 78px，下方 ~140px）
+            val hintRect = android.graphics.Rect()
+            hintNode.getBoundsInScreen(hintRect)
+            val fertCx = hintRect.exactCenterX()
+            val fertCy = hintRect.exactCenterY() + (hintRect.height() * 1.8f)  // hint 下方 1.8 倍 hint 高度
+            debugLog("fertilize: hint at (${hintRect.exactCenterX()}, ${hintRect.exactCenterY()}), click 施肥 button below at ($fertCx, $fertCy) (clickCount=$clickCount)")
+            Log.i(TAG, "fertilize: click 主页施肥 button at ($fertCx, $fertCy) (还差${remainCount}次领肥, clickCount=${clickCount + 1})")
+            service.dispatchGestureClick(fertCx, fertCy)
             handler.postDelayed({
                 if (state == AutomationState.FERTILIZING) runFertilizing(clickCount + 1)
-            }, 2000L)  // 2 秒等弹窗弹出
+            }, 2500L)  // 2.5 秒等待施肥动画/结算
             return
         }
         // 没有"还差X次领肥料"提示，也没有 direct 按钮，也没有施肥按钮，认为施肥完成
