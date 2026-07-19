@@ -3932,31 +3932,51 @@ object AutomationController {
 
         // 第一步：关闭任务列表回到农场主页（仅第一次）
         if (clickCount == 0) {
-            // build544 修复：fertilize-start 时若已在主页（onFarm=true），不 pressBack。
-            // 历史问题（debug_test_20260719_124334.log, build543-dbadab3）：
-            // FERTILIZING 状态从 PROCESSING_TASK 切入时，可能已在主页而非任务列表，
-            // 无条件 pressBack 反而把主页按返回键退出，导致：
-            //   12:42:51.510 [fertilize-start] snapshot: onFarm=true (已在主页)
-            //   12:42:51.531 [fertilize-start]   text='还差3次领肥料' bounds=[442,1539][759,1617] clickable=true
-            //   12:42:56.822 fertilize: findFertilizeButton=false, clickCount=1 (pressBack 后节点消失)
-            //   12:42:56.840 parseFertilizeRemainingCount: no '还差X次' node found
-            //   12:42:58.882 isOnFarmPage: no farm content, sample=[松开刷新, 深圳, 小雨 27℃...]
-            //   12:42:58.967 [collectDirect-start] snapshot: act=AlipayLogin onFarm=false (退到支付宝首页)
-            // 修复：若 isOnFarmPage()=true，跳过 pressBack 直接进入 clickCount=1 的施肥逻辑。
-            val onFarm = service.isOnFarmPage()
-            if (onFarm) {
-                debugLog("fertilize: already on farm page (onFarm=true), skip pressBack")
-                Log.i(TAG, "fertilize: already on farm page, skip pressBack, go fertilize directly")
+            // build553 修复（用户反馈"'施肥'按钮就在芭芭农场主页面上"）：
+            // 历史问题（debug_test_20260719_140819.log, build552-f036a26）：
+            //   14:07:12.119 fertilize: hint at (600.5, 1578.0), click 施肥 button below at (600.5, 1718.4)
+            //   14:07:14.718 findRemainingFertilizerHintNode: no '还差X次领肥' hint node found
+            //   14:07:14.720 state: FERTILIZING -> WAITING (误判施肥完成)
+            //   14:07:22.950 [navigate-start] sample=[search_icon, 芭芭农场, 搜索...] (跳到搜索页)
+            // 根因：FERTILIZING 从 PROCESSING_TASK 切入时，任务列表弹窗仍展开（dumpClickableNodes
+            //   含"任务列表"/"去完成"/"已领取"/"更多肥料"等节点），弹窗遮住了主页"施肥"按钮。
+            //   点击坐标 (600.5, 1718.4) 落在任务列表弹窗的空白区域，触发 H5 跳转到搜索页。
+            //   build544 误以为 isOnFarmPage()=true 就不需要 pressBack，但任务列表弹窗还在屏幕上。
+            //
+            // 修复：FERTILIZING 进入时检测任务列表是否展开，若展开先 pressBack 关闭弹窗。
+            // 任务列表展开特征：dumpClickableNodes 含"做任务集肥料"/"关闭做任务集肥料弹窗"/
+            //   "任务列表"/"去完成"等关键词（任务列表弹窗独有）。
+            val taskListKeywords = listOf(
+                "做任务集肥料", "关闭做任务集肥料弹窗", "任务列表",
+                "去完成", "去逛逛", "去分享", "去邀请", "更多肥料"
+            )
+            val root = service.getRootInFarmApp()
+            val allText = if (root != null) service.collectAllText(root) else emptyList()
+            val isTaskListOpen = allText.any { text ->
+                taskListKeywords.any { kw -> text.contains(kw) }
+            }
+            if (isTaskListOpen) {
+                debugLog("fertilize: task list popup detected (含任务列表/去完成等), pressBack to close it")
+                Log.i(TAG, "fertilize: task list popup detected, pressBack to close it and show farm page")
+                service.pressBack()
                 handler.postDelayed({
                     if (state == AutomationState.FERTILIZING) runFertilizing(clickCount + 1)
-                }, INTERVAL_CLICK_MS)
+                }, INTERVAL_PAGE_LOAD_MS)
                 return
             }
-            Log.i(TAG, "fertilize: not on farm page, closing task list, returning to farm page")
-            service.pressBack()
+            // 任务列表未展开，已在主页，直接进入施肥逻辑
+            val onFarm = service.isOnFarmPage()
+            if (!onFarm) {
+                debugLog("fertilize: not on farm page and no task list popup, re-navigate")
+                moveTo(AutomationState.NAVIGATING)
+                handler.postDelayed({ runNavigating(0) }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            debugLog("fertilize: on farm page (no task list popup), go fertilize directly")
+            Log.i(TAG, "fertilize: on farm page (no task list popup), go fertilize directly")
             handler.postDelayed({
                 if (state == AutomationState.FERTILIZING) runFertilizing(clickCount + 1)
-            }, INTERVAL_PAGE_LOAD_MS)
+            }, INTERVAL_CLICK_MS)
             return
         }
 
