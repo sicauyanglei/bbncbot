@@ -734,7 +734,7 @@ object AutomationController {
             // 其他平台(支付宝/淘宝)保留原 pressBack 行为(可能是可关闭的横幅/H5 广告)。
             if (service.currentPlatform == Platform.UC) {
                 Log.i(TAG, "navigate: UC reward video ad playing, waiting for it to finish (not pressing back)")
-                debugLog("navigate: UC ad (act=${service.currentActivityName}), waiting instead of pressBack")
+                debugLog("navigate: UC ad (act=${service.getCurrentActivityName()}), waiting instead of pressBack")
             } else {
                 Log.w(TAG, "navigate: in ad, trying to close")
                 service.pressBack()
@@ -1176,7 +1176,7 @@ object AutomationController {
             val now = System.currentTimeMillis()
             if (adWaitStartMs == 0L) {
                 adWaitStartMs = now
-                debugLog("checkTaskListOpened: ad detected (act=${service.currentActivityName}), start waiting for ad to finish (taskListCheckAttempt=$taskListCheckAttempt not incremented)")
+                debugLog("checkTaskListOpened: ad detected (act=${service.getCurrentActivityName()}), start waiting for ad to finish (taskListCheckAttempt=$taskListCheckAttempt not incremented)")
             }
             val maxWaitMs = service.currentPlatformConfig().adDefaultMaxDurationMs
             val elapsed = now - adWaitStartMs
