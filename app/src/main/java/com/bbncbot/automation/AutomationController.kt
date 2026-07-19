@@ -724,8 +724,21 @@ object AutomationController {
             return
         }
         if (service.isAdPlaying() || service.isAdActivity()) {
-            Log.w(TAG, "navigate: in ad, trying to close")
-            service.pressBack()
+            // build559 修复（debug_test_20260719_153945.log, build558-44cd648）：
+            // 历史问题：UC 平台"集肥料"点击后弹激励视频广告(穿山甲/汇川),广告期间 runNavigating
+            // 检测到 adActivity=true → pressBack 想关闭广告。但 UC 配置明确说广告需完整观看
+            // (adDefaultMinDurationMs=30s, supportsFasterReward=true),pressBack 对激励视频无效,
+            // 反而可能干扰广告流程或误关闭导致拿不到肥料奖励。
+            //
+            // 修复：UC 平台(激励视频广告)不 pressBack,只等待广告自然结束。
+            // 其他平台(支付宝/淘宝)保留原 pressBack 行为(可能是可关闭的横幅/H5 广告)。
+            if (service.currentPlatform == Platform.UC) {
+                Log.i(TAG, "navigate: UC reward video ad playing, waiting for it to finish (not pressing back)")
+                debugLog("navigate: UC ad (act=${service.currentActivityName}), waiting instead of pressBack")
+            } else {
+                Log.w(TAG, "navigate: in ad, trying to close")
+                service.pressBack()
+            }
         } else if (service.isSearchRecommendPage()) {
             // 搜索推荐页 — 芭芭农场H5页没有加载出来
             // 关闭搜索页，下次导航改用"我的淘宝"路径（更可靠）
@@ -933,6 +946,12 @@ object AutomationController {
                 taskListOpenedThisRound = false
                 debugLog("openTaskList: reset taskListOpenedThisRound for new round (attempt=0)")
             }
+            // 重置广告等待时间戳：每轮开始时清零,避免上一轮残留的 adWaitStartMs
+            // 影响本轮的广告等待计时(如上一轮广告已结束但 adWaitStartMs 未清)
+            if (adWaitStartMs != 0L) {
+                debugLog("openTaskList: resetting adWaitStartMs for new round (was non-zero)")
+                adWaitStartMs = 0L
+            }
             // build530 修复（debug_test_20260719_045429.log, build530-9ab1929）：
             // 历史问题：第一轮 PROCESSING_TASK 结束回 OPENING_TASK_LIST 后，currentTaskIndex
             // 保留上一轮的值（如 currentTaskIndex=2），第二轮 processTask 从 #3 开始，
@@ -1133,8 +1152,48 @@ object AutomationController {
     /** 检查任务列表是否已打开（带等待重试） */
     private var taskListCheckAttempt: Int = 0
 
+    /**
+     * 广告等待起始时间戳（仅用于 [checkTaskListOpened] 中检测集肥料点击后弹出的激励视频广告）
+     *
+     * - 0L 表示当前未在广告等待中
+     * - 非 0 表示检测到广告时记录的时间戳,用于限制广告等待上限(避免无限等待)
+     */
+    private var adWaitStartMs: Long = 0L
+
     private fun checkTaskListOpened(service: FarmAccessibilityService, openingAttempt: Int) {
         if (state != AutomationState.OPENING_TASK_LIST) return
+
+        // build559 修复（debug_test_20260719_153945.log, build558-44cd648）：
+        // 历史问题：UC 平台"集肥料"按钮点击后会弹激励视频广告(穿山甲/汇川,30~42s),
+        // 广告期间 rootInActiveWindow 是广告 Activity,findGoCompleteButtons 找不到"去完成"按钮。
+        // checkTaskListOpened 5 次重试(10s)超时 → NAVIGATING → 在广告 Activity 上 pressBack
+        // (对激励视频无效) → 等广告结束回主页 → 又点集肥料又弹新广告 → 死循环直至超时停止。
+        //
+        // 修复：检测到广告时,延长等待时间直到广告结束(不增加 taskListCheckAttempt,避免 5 次超时)。
+        // 等待上限使用平台的 adDefaultMaxDurationMs(UC=90s),超过则放弃等待走原超时逻辑。
+        // 广告结束后(检测不到广告)重置 adWaitStartMs,继续找 goComplete 按钮。
+        if (service.isAdActivity() || service.isAdPlaying()) {
+            val now = System.currentTimeMillis()
+            if (adWaitStartMs == 0L) {
+                adWaitStartMs = now
+                debugLog("checkTaskListOpened: ad detected (act=${service.currentActivityName}), start waiting for ad to finish (taskListCheckAttempt=$taskListCheckAttempt not incremented)")
+            }
+            val maxWaitMs = service.currentPlatformConfig().adDefaultMaxDurationMs
+            val elapsed = now - adWaitStartMs
+            if (elapsed < maxWaitMs) {
+                debugLog("checkTaskListOpened: ad still playing (elapsed=${elapsed}ms, max=${maxWaitMs}ms), waiting...")
+                handler.postDelayed({
+                    if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, openingAttempt)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            debugLog("checkTaskListOpened: ad wait timeout (elapsed=${elapsed}ms >= max=${maxWaitMs}ms), giving up ad wait, fall through to normal check")
+            // 超时后不立即 return,继续走下面的 findGoCompleteButtons 逻辑(可能广告刚好结束)
+        } else if (adWaitStartMs != 0L) {
+            // 广告刚结束,重置等待时间戳
+            debugLog("checkTaskListOpened: ad finished (waited ${System.currentTimeMillis() - adWaitStartMs}ms), resetting adWaitStartMs")
+            adWaitStartMs = 0L
+        }
 
         // 查找"去完成"按钮
         val buttons = service.findGoCompleteButtons()
