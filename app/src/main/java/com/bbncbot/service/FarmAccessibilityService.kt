@@ -3666,6 +3666,51 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 解析主页"还差X次领肥料"按钮上的剩余施肥次数 X
+     *
+     * build543 添加（用户反馈"还差3次施肥，那我们就施肥3次，然后还差3次施肥会变成'立即领取'"）：
+     * - 主页"还差3次领肥料"按钮表示需要再施肥 3 次才能解锁领取
+     * - 施肥 3 次后按钮会变成"立即领取"/"立即领肥"（被 directCollectTexts 识别）
+     * - 本方法递归遍历 accessibility tree 找含"还差"且含"次"的文本节点，解析其中的数字
+     *
+     * 匹配格式：
+     * - "还差3次领肥料" / "还差 3 次领肥料" / "还差3次领肥"
+     * - "还差3次" / "还差 3 次"
+     *
+     * @return 剩余施肥次数（≥1）；找不到返回 0
+     */
+    fun parseFertilizeRemainingCount(): Int {
+        val root = getRootInFarmApp() ?: return 0
+        val pattern = Regex("""还差\s*(\d+)\s*次""")
+        // 递归遍历所有节点的 text 和 contentDescription
+        fun walk(node: AccessibilityNodeInfo): Int {
+            val text = node.text?.toString().orEmpty()
+            val desc = node.contentDescription?.toString().orEmpty()
+            for (s in listOf(text, desc)) {
+                val m = pattern.find(s)
+                if (m != null) {
+                    val n = m.groupValues[1].toIntOrNull() ?: 0
+                    if (n > 0) {
+                        debugLog("parseFertilizeRemainingCount: found '$s' → $n")
+                        return n
+                    }
+                }
+            }
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                val r = walk(child)
+                if (r > 0) return r
+            }
+            return 0
+        }
+        val n = walk(root)
+        if (n == 0) {
+            debugLog("parseFertilizeRemainingCount: no '还差X次' node found")
+        }
+        return n
+    }
+
+    /**
      * 读取农场主页施肥大按钮上的当前肥料数值
      *
      * 施肥按钮的 text/contentDescription 形如：
