@@ -2715,6 +2715,82 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 检测当前广告页是否为"点击商品，领取奖励"类型激励视频
+     *
+     * 场景（debug_test_20260719_153945.log, build558）：
+     * - UC 集肥料点击后弹激励视频（穿山甲/汇川）
+     * - 顶部出现"点击商品，领取奖励"提示文字（clickable=false）
+     * - 用户必须主动点击广告中的商品（图片/卡片）才能触发奖励
+     * - 不点击商品的话广告结束不发肥料
+     *
+     * @return true 表示当前是"点击商品,领取奖励"广告
+     */
+    fun isClickProductAd(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        return allText.any { it.contains("点击商品") }
+    }
+
+    /**
+     * 在"点击商品，领取奖励"广告页中查找可点击的商品节点
+     *
+     * 选择策略：
+     * - 必须是 isClickable=true 的节点（广告商品通常是可点击的卡片/图片）
+     * - 排除陷阱按钮（立即下载/立即购买/查看详情 等 adInstallButtonTexts）
+     * - 排除关闭/跳过按钮（×/关闭/跳过/skip 等）
+     * - 排除提示文字本身（含"点击商品"的节点）
+     * - bounds 必须合法（width>0, height>0, top<=bottom）
+     * - 优先屏幕中部节点（y 在 500~2400 区域，避免点到顶部提示或底部导航）
+     *
+     * @return 商品节点或 null
+     */
+    fun findAdProductNode(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        val trapTexts = currentPlatformConfig().adInstallButtonTexts
+        val closeTexts = listOf("×", "关闭", "close", "跳过", "skip", "关闭广告", "跳过广告", "跳过视频", "领取奖励")
+
+        val candidates = mutableListOf<AccessibilityNodeInfo>()
+        fun walk(node: AccessibilityNodeInfo) {
+            if (node.isClickable) {
+                val text = node.text?.toString().orEmpty()
+                val desc = node.contentDescription?.toString().orEmpty()
+                val combined = "$text $desc"
+                // 排除陷阱按钮（立即下载/立即购买 等）
+                if (trapTexts.any { combined.contains(it) }) {
+                    return
+                }
+                // 排除关闭/跳过/领取奖励按钮
+                if (closeTexts.any { combined.contains(it, ignoreCase = true) }) {
+                    return
+                }
+                // 排除提示文字本身
+                if (combined.contains("点击商品")) return
+                // bounds 合法性
+                val rect = android.graphics.Rect()
+                node.getBoundsInScreen(rect)
+                if (rect.width() <= 0 || rect.height() <= 0 || rect.top > rect.bottom) return
+                // 优先屏幕中部的可点击节点
+                if (rect.top >= 500 && rect.bottom <= 2400) {
+                    candidates.add(node)
+                }
+            }
+            for (i in 0 until node.childCount) {
+                node.getChild(i)?.let { walk(it) }
+            }
+        }
+        walk(root)
+        return candidates.firstOrNull().also {
+            if (it != null) {
+                val rect = android.graphics.Rect()
+                it.getBoundsInScreen(rect)
+                debugLog("findAdProductNode: found clickable product node bounds=${rect.toShortString()}")
+            } else {
+                debugLog("findAdProductNode: no clickable product node found")
+            }
+        }
+    }
+
+    /**
      * 查找"下单得奖励"等浏览页面的左上角返回图标
      * - 淘宝搜索结果页面的返回按钮通常在左上角，是一个可点击的小图标
      * @return 返回按钮节点或null

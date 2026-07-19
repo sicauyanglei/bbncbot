@@ -952,6 +952,12 @@ object AutomationController {
                 debugLog("openTaskList: resetting adWaitStartMs for new round (was non-zero)")
                 adWaitStartMs = 0L
             }
+            // 重置"点击商品"广告的标记:每轮开始时清零,避免上一轮残留状态影响本轮
+            if (adProductClicked) {
+                debugLog("openTaskList: resetting adProductClicked for new round")
+                adProductClicked = false
+                adProductClickTimeMs = 0L
+            }
             // build530 修复（debug_test_20260719_045429.log, build530-9ab1929）：
             // 历史问题：第一轮 PROCESSING_TASK 结束回 OPENING_TASK_LIST 后，currentTaskIndex
             // 保留上一轮的值（如 currentTaskIndex=2），第二轮 processTask 从 #3 开始，
@@ -1160,6 +1166,24 @@ object AutomationController {
      */
     private var adWaitStartMs: Long = 0L
 
+    /**
+     * "点击商品,领取奖励"广告的商品点击状态
+     *
+     * 场景：UC 集肥料点击后弹激励视频广告,顶部提示"点击商品,领取奖励",
+     * 必须主动点击广告中的商品才能触发肥料奖励,广告结束后不发肥料。
+     *
+     * - false=未点击商品(或已重置)
+     * - true=已点击商品,等待奖励触发后关闭广告
+     */
+    private var adProductClicked: Boolean = false
+
+    /**
+     * "点击商品,领取奖励"广告中商品点击的时间戳
+     *
+     * 用于在点击商品后等待一段时间(5s)再关闭广告,让广告主落地页加载/奖励触发
+     */
+    private var adProductClickTimeMs: Long = 0L
+
     private fun checkTaskListOpened(service: FarmAccessibilityService, openingAttempt: Int) {
         if (state != AutomationState.OPENING_TASK_LIST) return
 
@@ -1178,6 +1202,57 @@ object AutomationController {
                 adWaitStartMs = now
                 debugLog("checkTaskListOpened: ad detected (act=${service.getCurrentActivityName()}), start waiting for ad to finish (taskListCheckAttempt=$taskListCheckAttempt not incremented)")
             }
+
+            // build560 修复（debug_test_20260719_153945.log, build558-44cd648）：
+            // UC"点击商品,领取奖励"激励视频广告:必须主动点击广告中的商品才能触发肥料奖励。
+            // 不点击商品的话广告结束不发肥料,且广告结束后会重新弹新广告,死循环。
+            // 用户需求:点击商品 → 等待几秒(让奖励触发) → 关闭广告窗口
+            if (service.isClickProductAd()) {
+                if (!adProductClicked) {
+                    // 阶段1:找商品节点点击
+                    val productNode = service.findAdProductNode()
+                    if (productNode != null) {
+                        val rect = Rect()
+                        productNode.getBoundsInScreen(rect)
+                        Log.i(TAG, "checkTaskListOpened: clicking ad product to trigger reward (bounds=${rect.toShortString()})")
+                        debugLog("checkTaskListOpened: clicking ad product bounds=${rect.toShortString()}")
+                        service.performClickSafe(productNode)
+                        adProductClicked = true
+                        adProductClickTimeMs = now
+                    } else {
+                        // 找不到可点击商品节点:可能是页面还没渲染,或商品是 WebView 内不可访问节点
+                        // 等待 2s 后重试(不立即放弃,广告可能还在加载商品卡)
+                        debugLog("checkTaskListOpened: 点击商品 ad detected but no clickable product node, retrying in 2s")
+                    }
+                } else {
+                    // 阶段2:已点击商品,等待 5s 让奖励触发后关闭广告
+                    val sinceClick = now - adProductClickTimeMs
+                    if (sinceClick >= 5000L) {
+                        Log.i(TAG, "checkTaskListOpened: 5s after clicking ad product, closing ad window (sinceClick=${sinceClick}ms)")
+                        debugLog("checkTaskListOpened: closing ad window 5s after product click")
+                        // 优先找关闭按钮,找不到 pressBack
+                        val closeBtn = service.findAdCloseButton(service.currentPlatformConfig().adCloseButtonTexts, enforceSceneWhitelist = false)
+                        if (closeBtn != null) {
+                            debugLog("checkTaskListOpened: clicking close button on ad (text='${closeBtn.text}')")
+                            service.performClickSafe(closeBtn)
+                        } else {
+                            debugLog("checkTaskListOpened: no close button, pressing back to close ad")
+                            service.pressBack()
+                        }
+                        // 重置标记:下一轮如果还在广告中,会重新尝试点击商品
+                        adProductClicked = false
+                        adProductClickTimeMs = 0L
+                    } else {
+                        debugLog("checkTaskListOpened: waiting ${sinceClick}ms/5000ms after clicking ad product")
+                    }
+                }
+                // 点击商品广告:用较短间隔(2s)轮询,而非 INTERVAL_PAGE_LOAD_MS(5s)
+                handler.postDelayed({
+                    if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, openingAttempt)
+                }, INTERVAL_CLICK_MS)
+                return
+            }
+
             val maxWaitMs = service.currentPlatformConfig().adDefaultMaxDurationMs
             val elapsed = now - adWaitStartMs
             if (elapsed < maxWaitMs) {
@@ -1193,6 +1268,12 @@ object AutomationController {
             // 广告刚结束,重置等待时间戳
             debugLog("checkTaskListOpened: ad finished (waited ${System.currentTimeMillis() - adWaitStartMs}ms), resetting adWaitStartMs")
             adWaitStartMs = 0L
+            // 同时重置商品点击标记(避免跨广告残留)
+            if (adProductClicked) {
+                debugLog("checkTaskListOpened: resetting adProductClicked (ad finished)")
+                adProductClicked = false
+                adProductClickTimeMs = 0L
+            }
         }
 
         // 查找"去完成"按钮
