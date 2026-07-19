@@ -343,6 +343,28 @@ object AutomationController {
             val taskComplete = service.isTaskCompletePage()
             val searchRec = service.isSearchRecommendPage()
             debugLog("[$tag] snapshot: pkg=$pkg, act=$activity, onFarm=$onFarm, adActivity=$adActivity, adPlaying=$adPlaying, adContent=$adContent, abnormal=$abnormal, nonAdTask=$nonAdTask, nonAdPkg=$nonAdPkg, taskComplete=$taskComplete, searchRec=$searchRec")
+            // build539 诊断（用户反馈"芭芭农场主页上的'点击领取'看不到吗"）：
+            // 原日志只打印前 10 个文本（take(10)），无法判断"点击领取"是否在 accessibility tree 里。
+            // 这里 dump 所有含"领取"/"领肥"/"立即领"/"点击领"/"可领取"的文本节点（含 bounds 和 clickable），
+            // 用于诊断"点击领取"按钮是否被 accessibility 暴露，以及它的 bounds 是否合法、是否可点击。
+            // 注意：H5 WebView 内的按钮若未暴露给 accessibility，这里也找不到 → 需要坐标兜底或 AiVision。
+            try {
+                val root = service.getRootInFarmApp()
+                if (root != null) {
+                    val claimTexts = mutableListOf<String>()
+                    service.collectClaimTextNodesForDiag(root, claimTexts)
+                    if (claimTexts.isNotEmpty()) {
+                        debugLog("[$tag] claim-text-nodes (count=${claimTexts.size}):")
+                        for (line in claimTexts) {
+                            debugLog("[$tag]   $line")
+                        }
+                    } else {
+                        debugLog("[$tag] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)")
+                    }
+                }
+            } catch (e: Exception) {
+                debugLog("[$tag] claim-text-nodes dump error: ${e.message}")
+            }
         } catch (e: Exception) {
             debugLog("[$tag] snapshot error: ${e.message}")
         }

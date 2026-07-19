@@ -4059,6 +4059,39 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 诊断用：递归遍历节点树，收集所有含"领取"/"领肥"/"立即领"/"点击领"/"可领取"等关键字的
+     * 文本节点信息（text/desc/bounds/clickable）。
+     *
+     * build539 添加（用户反馈"芭芭农场主页上的'点击领取'看不到吗"）：
+     * - 旧日志只打印前 10 个文本（take(10)），无法判断"点击领取"是否在 accessibility tree 里
+     * - 此函数 dump 所有领取相关文本节点，用于：
+     *   1. 确认"点击领取"是否被 H5 WebView 暴露给 accessibility
+     *   2. 若暴露，检查其 bounds 是否合法（非 zero-size）
+     *   3. 若 bounds 合法，检查 clickable 字段，确认 findClickableSelfOrParentInternal 是否能找到
+     *
+     * 调用方：[AutomationController.logPageSnapshot]
+     *
+     * @param out 输出列表，每项格式 "text='xxx' desc='yyy' bounds=[a,b][c,d] clickable=true/false"
+     */
+    fun collectClaimTextNodesForDiag(node: AccessibilityNodeInfo, out: MutableList<String>) {
+        val text = node.text?.toString()?.trim().orEmpty()
+        val desc = node.contentDescription?.toString()?.trim().orEmpty()
+        val combined = text + desc
+        if (combined.isNotEmpty()) {
+            val kws = listOf("领取", "领肥", "立即领", "点击领", "可领取", "领取肥料", "点击领取")
+            if (kws.any { combined.contains(it) }) {
+                val rect = android.graphics.Rect()
+                node.getBoundsInScreen(rect)
+                out.add("text='$text' desc='$desc' bounds=${rect.toShortString()} clickable=${node.isClickable}")
+            }
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            collectClaimTextNodesForDiag(child, out)
+        }
+    }
+
+    /**
      * 判断当前是否在广告Activity
      * - 通用广告活动识别（适用于所有平台）
      */
