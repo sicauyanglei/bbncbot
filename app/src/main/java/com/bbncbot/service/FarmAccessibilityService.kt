@@ -880,6 +880,27 @@ class FarmAccessibilityService : AccessibilityService() {
             }
         }
 
+        // build557 兜底（debug_test_20260719_125715.log）：节点 bounds 倒置/越界且无 popup 偏移可用时，
+        // 尝试向上找最近一个 bounds 合法的祖先节点，用其中心点击。
+        // 适用场景：WebView 内部子节点 bounds 是内容坐标（如 [72,4038][890,2666]），
+        // 但其外层容器/祖先的 bounds 可能是真实屏幕坐标（WebView 容器自身的 bounds）。
+        var ancestor: AccessibilityNodeInfo? = node.parent
+        var ancDepth = 0
+        while (ancestor != null && ancDepth < 8) {
+            val ancRect = android.graphics.Rect()
+            ancestor.getBoundsInScreen(ancRect)
+            if (ancRect.width() > 0 && ancRect.height() > 0 &&
+                ancRect.top < ancRect.bottom && ancRect.left < ancRect.right &&
+                ancRect.top in 50..2600 && ancRect.bottom in 100..2664) {
+                val x = ancRect.exactCenterX()
+                val y = ancRect.exactCenterY()
+                debugLog("dispatchGesture: ancestor bounds valid at depth=$ancDepth, click at ($x, $y) ancBounds=${ancRect.toShortString()}")
+                return dispatchGestureClick(x, y)
+            }
+            ancestor = ancestor.parent
+            ancDepth++
+        }
+
         debugLog("dispatchGestureClick: all methods failed, node bounds ${rectScreen.toShortString()}")
         return false
     }
@@ -2073,11 +2094,26 @@ class FarmAccessibilityService : AccessibilityService() {
             return null
         }
         val keywords = currentPlatformConfig().collectFertilizerTexts
+        // build557 修复：跳过 bounds 严重非法的节点（WebView 内部内容坐标会导致点击失败）。
+        // 不过滤屏幕外但 bounds 合法的节点（任务列表可滚动，屏幕外按钮下一帧可能滚入屏幕）。
+        val screenHeight = try {
+            resources.displayMetrics.heightPixels
+        } catch (_: Exception) { 2664 }
         for (kw in keywords) {
             val node = findNodeByText(root, kw)
             if (node != null) {
                 val rect = android.graphics.Rect()
                 node.getBoundsInScreen(rect)
+                // bounds 合法性：width>0、height>0、top<bottom（不倒置）、top 不严重越出屏幕
+                // 容许小幅越界（+200）应对弹窗滚动偏移，但 top 远超屏幕高度（如 4038）说明是
+                // WebView 内容坐标，dispatchGesture 无法转换 → 跳过此节点继续找下一个 keyword
+                val boundsValid = rect.width() > 0 && rect.height() > 0 &&
+                    rect.top < rect.bottom && rect.left < rect.right &&
+                    rect.top in 0..(screenHeight + 200)
+                if (!boundsValid) {
+                    debugLog("findCollectFertilizerButton: drop invalid-bounds node text='$kw' bounds=${rect.toShortString()}")
+                    continue
+                }
                 debugLog("findCollectFertilizerButton: found by text='$kw' bounds=${rect.toShortString()}")
                 Log.d(TAG, "findCollectFertilizerButton: found by text='$kw'")
                 return node
@@ -3694,7 +3730,17 @@ class FarmAccessibilityService : AccessibilityService() {
             compareByDescending<Candidate> { it.clickable }
                 .thenByDescending { it.boundsValid }
                 .thenBy { it.textLen }
-        ).first()
+        ).first()  // candidates 已确认非空（上方 isEmpty 检查）
+        // build557 修复（debug_test_20260719_125715.log, build545-2da7d39）：
+        // 历史问题：候选节点可能 bounds 倒置/越界（如 [72,4038][890,2666]，top>bottom 且
+        // top 超出屏幕高度），这是 WebView 内部内容坐标，dispatchGestureClickWithWebViewFix
+        // 无法转换为屏幕坐标，performClickSafe 会连续 19 次 "all methods failed" 浪费时间。
+        // 修复：不返回 boundsValid=false 的节点，让调用方走坐标兜底或重新导航。
+        if (!selected.boundsValid) {
+            debugLog("findFertilizeButton: best candidate has invalid bounds, skip (text='${selected.text.take(30)}' boundsInvalid)")
+            Log.d(TAG, "findFertilizeButton: skip invalid-bounds candidate (clickable=${selected.clickable})")
+            return null
+        }
         Log.d(TAG, "findFertilizeButton: selected '${selected.text}' clickable=${selected.clickable} boundsValid=${selected.boundsValid} (from ${candidates.size} candidates)")
         return selected.node
     }
@@ -5045,18 +5091,86 @@ class FarmAccessibilityService : AccessibilityService() {
 
     /**
      * 处理权限对话框 - 点击"允许"/"同意"等按钮
+     *
+     * build557 修复（debug_test_20260719_145710.log, build556-d5f334c）：
+     * 历史问题：UC 浏览器弹出系统级"是否允许打开"对话框时，整段文本节点形如
+     *   '"UC浏览器极速版" 想要打开 "美团"，是否允许？' (clickable=false, bounds=[131,1920][1069,2058])
+     * findNodeByText 用 contains 匹配"允许"会命中"是否允许"中的"允许"，把整段文本节点
+     * （而非真正的"允许"按钮）当作目标，performClickSafe 连续 8 次手势点击文本中心均无效。
+     *
+     * 修复策略：
+     * 1. 优先精确匹配短文本按钮（buttonText == "允许" / "同意" 等，长度 ≤ 8），
+     *    避免匹配到包含"允许"字样的整段弹窗文本。
+     * 2. 找到候选节点后再次校验 isClickable（向上找父节点也算）。
+     * 3. 仅当所有精确匹配都失败时，才允许 contains 兜底匹配（保守起见保留旧行为）。
+     *
      * @return true 表示处理了权限对话框（点击了允许按钮）
      */
     private fun handlePermissionDialog(root: AccessibilityNodeInfo): Boolean {
-        val allowTexts = listOf("允许", "同意", "始终允许", "仅在使用中允许", "确定", "我知道了")
+        // 短文本按钮（系统权限对话框的标准按钮文案）
+        val allowTexts = listOf("始终允许", "仅在使用中允许", "允许", "同意", "确定", "我知道了")
+        // 第一阶段：精确匹配 buttonText == 关键词（且节点 isClickable 或有 clickable 父节点）
         for (text in allowTexts) {
-            val node = findNodeByText(root, text)
+            val node = findExactClickableNodeByText(root, text)
             if (node != null) {
-                Log.i(TAG, "handlePermissionDialog: click '$text'")
+                debugLog("handlePermissionDialog: click '$text' (exact match)")
+                Log.i(TAG, "handlePermissionDialog: click '$text' (exact)")
                 performClickSafe(node)
                 return true
             }
         }
+        // 第二阶段：兜底用旧 contains 匹配（仅在精确匹配全失败时使用，并要求结果 isClickable）
+        // 注：这是为了兼容某些厂商 ROM 自定义的按钮文案（如"始终允许"被拆成"始终"+"允许"等）
+        for (text in allowTexts) {
+            val node = findNodeByText(root, text) ?: continue
+            // 校验：整段文本节点（如"是否允许？"）的 isClickable=false 且父节点链路无可点击节点，
+            // findNodeByText 已向上找 clickable 父节点；若返回的 node 仍不可点击，则跳过
+            // （避免把弹窗整段文本当成按钮）
+            if (!node.isClickable) {
+                debugLog("handlePermissionDialog: skip non-clickable contains-match '$text' (likely popup text, not button)")
+                continue
+            }
+            // 校验文本长度：真正的按钮文案 ≤ 8 字符，整段弹窗文本一般 > 20 字符
+            val btnText = node.text?.toString()?.trim().orEmpty()
+            if (btnText.length > 8) {
+                debugLog("handlePermissionDialog: skip long-text contains-match '$text' (len=${btnText.length}, text='${btnText.take(20)}')")
+                continue
+            }
+            debugLog("handlePermissionDialog: click '$text' (contains fallback, text='$btnText')")
+            Log.i(TAG, "handlePermissionDialog: click '$text' (fallback)")
+            performClickSafe(node)
+            return true
+        }
         return false
+    }
+
+    /**
+     * 精确匹配节点文本/内容描述等于 [exactText] 的可点击节点
+     * - 用于权限对话框按钮识别，避免 contains 误匹配整段弹窗文本（如"是否允许？"命中"允许"）
+     * - 优先返回自身匹配且 isClickable=true 的节点；其次返回自身匹配且最近父节点可点击的节点
+     */
+    private fun findExactClickableNodeByText(root: AccessibilityNodeInfo, exactText: String): AccessibilityNodeInfo? {
+        return findExactClickableNodeByTextInternal(root, exactText)
+    }
+
+    private fun findExactClickableNodeByTextInternal(
+        node: AccessibilityNodeInfo,
+        exactText: String
+    ): AccessibilityNodeInfo? {
+        val text = node.text?.toString()?.trim().orEmpty()
+        val desc = node.contentDescription?.toString()?.trim().orEmpty()
+        val selfMatched = text == exactText || desc == exactText
+        if (selfMatched && node.isClickable) {
+            return node
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val matched = findExactClickableNodeByTextInternal(child, exactText)
+            if (matched != null) return matched
+        }
+        if (selfMatched) {
+            return findClickableSelfOrParentInternal(node)
+        }
+        return null
     }
 }

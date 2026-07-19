@@ -92,8 +92,12 @@ object FarmShortcutLauncher {
         platform: Platform,
         logger: (String) -> Unit = { Log.d(TAG, it) }
     ): Boolean {
+        // build557 降噪：非默认启动器时 isDefaultLauncher 内部已通过 logger 输出
+        //   "isDefaultLauncher: false (resolver=...)" 诊断信息，
+        //   这里不再重复输出 "not default launcher, cannot enumerate shortcuts"。
+        //   历史日志每个文件都出现 2 条冗余的 FarmShortcut 失败日志（41 条/20 文件），
+        //   实际行为正常（已 fallback 到 deep link / 启动 App + 导航），仅日志噪音。
         if (!isDefaultLauncher(context, logger)) {
-            logger("startFarmShortcut: not default launcher, cannot enumerate shortcuts")
             return false
         }
 
