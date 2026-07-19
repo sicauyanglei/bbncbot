@@ -1,0 +1,107 @@
+=== cleared on app start (version=2.2, build=build556-d5f334c, time=14:51:22) ===
+14:51:22.098 killPlatformApps: killed com.ucmobile.lite for UC
+14:51:22.099 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+14:51:22.100 killPlatformApps: killed com.taobao.taobao for TAOBAO
+14:51:27.689 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+14:51:27.693 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
+14:51:27.694 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+14:51:32.563 === Automation v2 Started === platform=UC
+14:51:32.567 cancelNavigation: all navigation callbacks cancelled
+14:51:32.584 reset platform complete: UC
+14:51:32.586 state: IDLE -> NAVIGATING
+14:51:33.482 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 2]
+14:51:33.514 [navigate-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+14:51:33.552 [navigate-start] claim-text-nodes (count=2):
+14:51:33.554 [navigate-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+14:51:33.560 [navigate-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+14:51:33.616 navigate: on farm page, platform=UC
+14:51:33.649 hasFarmContentLoaded: text count=147, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 7.23内完成3天即领, 1天, 2天]
+14:51:33.650 hasFarmContentLoaded: realContent count=133
+14:51:33.651 navigate: hasFarmContentLoaded=true, attempt=0
+14:51:33.652 state: NAVIGATING -> COLLECTING_DIRECT
+14:51:35.997 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 2]
+14:51:36.030 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+14:51:36.066 [collectDirect-start] claim-text-nodes (count=2):
+14:51:36.068 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+14:51:36.070 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+14:51:36.107 collectDirect: found 0 direct buttons, attempt=0
+14:51:36.109 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+14:51:38.342 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 2]
+14:51:38.358 [openTaskList-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+14:51:38.376 [openTaskList-start] claim-text-nodes (count=2):
+14:51:38.377 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+14:51:38.378 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+14:51:38.397 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+14:51:38.397 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+14:51:38.398 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+14:51:38.399 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+14:51:38.399 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+14:51:38.400 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+14:51:38.400 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+14:51:38.401 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+14:51:38.403 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+14:51:38.404 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+14:51:38.405 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+14:51:38.405 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+14:51:38.406 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+14:51:38.407 openTaskList: [UC闭环] heuristic text search (attempt=0)
+14:51:38.420 findCollectFertilizerButton: found by text='集肥料' bounds=[949,2380][1129,2509]
+14:51:38.422 openTaskList: [UC闭环] clicking entry button by text (attempt=0)
+14:51:38.423 performClickSafe: text='集肥料' desc='' bounds=[949,2380][1129,2509] clickable=false
+14:51:38.424 performClickSafe: ACTION_CLICK failed, trying gesture
+14:51:38.425 dispatchGesture: screen=[[949,2380][1129,2509]] window=[[0,0][0,0]]
+14:51:38.425 dispatchGesture: not in popup, screen bounds valid, click at (1039.0, 2444.5)
+14:51:43.441 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+14:51:45.451 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+14:51:47.462 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+14:51:49.473 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=3, currentIndex=0
+14:51:51.485 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=4, currentIndex=0
+14:51:53.529 findCollectFertilizerButton: root is null!
+14:51:53.532 openTaskList: findCollectFertilizerButton=false, attempt=1
+14:51:53.537 isOnFarmPage: activeRootPkg='com.hihonor.systemmanager' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+14:51:53.539 openTaskList: [坐标兜底] not on farm page (findCollectFertilizerButton=null), re-navigating instead of coordinate fallback
+14:51:53.540 state: OPENING_TASK_LIST -> NAVIGATING
+14:51:55.554 isOnFarmPage: activeRootPkg='com.hihonor.systemmanager' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+14:51:55.605 [navigate-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:51:55.658 isFarmAppInForeground: windows miss farm pkg, but activity=com.uc.browser.innerucmobile matches farm keywords, treat as in farm app (weak signal, requires content check)
+14:51:55.661 navigate: calling navigateToFarm, platform=UC
+14:51:57.168 performClickSafe: text='“UC浏览器极速版” 想要打开 “美团”，是否允许？' desc='' bounds=[131,1920][1069,2058] clickable=false
+14:51:57.171 performClickSafe: ACTION_CLICK failed, trying gesture
+14:51:57.173 dispatchGesture: screen=[[131,1920][1069,2058]] window=[[131,376][1069,514]]
+14:51:57.176 dispatchGesture: not in popup, screen bounds valid, click at (600.0, 1989.0)
+14:51:59.186 performClickSafe: text='“UC浏览器极速版” 想要打开 “美团”，是否允许？' desc='' bounds=[131,1920][1069,2058] clickable=false
+14:51:59.188 performClickSafe: ACTION_CLICK failed, trying gesture
+14:51:59.190 dispatchGesture: screen=[[131,1920][1069,2058]] window=[[131,376][1069,514]]
+14:51:59.193 dispatchGesture: not in popup, screen bounds valid, click at (600.0, 1989.0)
+14:52:00.669 isOnFarmPage: activeRootPkg='com.hihonor.systemmanager' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+14:52:01.199 performClickSafe: text='“UC浏览器极速版” 想要打开 “美团”，是否允许？' desc='' bounds=[131,1920][1069,2058] clickable=false
+14:52:01.200 performClickSafe: ACTION_CLICK failed, trying gesture
+14:52:01.201 dispatchGesture: screen=[[131,1920][1069,2058]] window=[[131,376][1069,514]]
+14:52:01.204 dispatchGesture: not in popup, screen bounds valid, click at (600.0, 1989.0)
+14:52:03.211 performClickSafe: text='“UC浏览器极速版” 想要打开 “美团”，是否允许？' desc='' bounds=[131,1920][1069,2058] clickable=false
+14:52:03.214 performClickSafe: ACTION_CLICK failed, trying gesture
+14:52:03.216 dispatchGesture: screen=[[131,1920][1069,2058]] window=[[131,376][1069,514]]
+14:52:03.217 dispatchGesture: not in popup, screen bounds valid, click at (600.0, 1989.0)
+14:52:05.228 performClickSafe: text='“UC浏览器极速版” 想要打开 “美团”，是否允许？' desc='' bounds=[131,1920][1069,2058] clickable=false
+14:52:05.231 performClickSafe: ACTION_CLICK failed, trying gesture
+14:52:05.233 dispatchGesture: screen=[[131,1920][1069,2058]] window=[[131,376][1069,514]]
+14:52:05.236 dispatchGesture: not in popup, screen bounds valid, click at (600.0, 1989.0)
+14:52:05.701 isOnFarmPage: activeRootPkg='com.hihonor.systemmanager' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+14:52:07.248 performClickSafe: text='“UC浏览器极速版” 想要打开 “美团”，是否允许？' desc='' bounds=[131,1920][1069,2058] clickable=false
+14:52:07.251 performClickSafe: ACTION_CLICK failed, trying gesture
+14:52:07.255 dispatchGesture: screen=[[131,1920][1069,2058]] window=[[131,376][1069,514]]
+14:52:07.258 dispatchGesture: not in popup, screen bounds valid, click at (600.0, 1989.0)
+14:52:09.270 performClickSafe: text='“UC浏览器极速版” 想要打开 “美团”，是否允许？' desc='' bounds=[131,1920][1069,2058] clickable=false
+14:52:09.272 performClickSafe: ACTION_CLICK failed, trying gesture
+14:52:09.275 dispatchGesture: screen=[[131,1920][1069,2058]] window=[[131,376][1069,514]]
+14:52:09.278 dispatchGesture: not in popup, screen bounds valid, click at (600.0, 1989.0)
+14:52:10.737 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+14:52:11.301 navigate stepTab: exactDesc node too large [1200,0][1200,2241], skipping
+14:52:11.303 navigate stepTab: text node too large [1200,0][1200,2241], skipping
+14:52:11.303 navigate stepTab: 芭芭农场 not found (retry=0), pressing back to go home
+14:52:11.611 state: NAVIGATING -> STOPPING
+14:52:11.613 cancelNavigation: all navigation callbacks cancelled
+14:52:11.613 state: STOPPING -> IDLE
+14:57:10.727 saveToken: saved (len=93, head='gith', tail='McKr')
+14:57:10.734 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+14:57:10.736 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260719_145710.log, localFile=debug.log (10559 bytes)
