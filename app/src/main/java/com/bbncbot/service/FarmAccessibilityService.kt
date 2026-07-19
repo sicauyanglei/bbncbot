@@ -703,7 +703,12 @@ class FarmAccessibilityService : AccessibilityService() {
                 // 支付宝农场页特有关键词（H5 页面，文本可能不暴露，需多重兜底）
                 text.contains("领肥料") || text.contains("限时挑战") ||
                 text.contains("得1000肥") || text.contains("赚肥料") ||
-                text.contains("得肥料")
+                text.contains("得肥料") ||
+                // 签到成功弹窗（仅在签到后短暂显示，是农场页强信号；
+                // 实测日志 debug_sess_949197_20260715_051916.log 显示
+                // "签到成功！每天来芭芭农场，更快1分钱领水果~" 不匹配任何上面关键词，
+                // 导致 isOnFarmPage 误判为 false，触发 AutomationController 重新导航）
+                text.contains("签到成功") || text.contains("1分钱领水果")
         }
         val searchPageKeywords = listOf(
             "下单得肥料", "当前页下单", "搜索有惊喜", "搜一搜浏览",
@@ -733,7 +738,9 @@ class FarmAccessibilityService : AccessibilityService() {
                 // 支付宝农场页特有关键词（H5 页面，文本可能不暴露，需多重兜底）
                 text.contains("领肥料") || text.contains("限时挑战") ||
                 text.contains("得1000肥") || text.contains("赚肥料") ||
-                text.contains("得肥料")
+                text.contains("得肥料") ||
+                // 签到成功弹窗（与 hasFarmCore 同步添加，保持两者判定一致）
+                text.contains("签到成功") || text.contains("1分钱领水果")
         }
         // 单独的"芭芭农场"不算，搜索推荐页也会有这个文字
         if (!hasFarmContent) {
