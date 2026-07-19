@@ -566,6 +566,31 @@ object AutomationController {
         }
 
         if (service.isOnFarmPage()) {
+            // build538 修复（日志 debug_test_20260719_092915.log 暴露的问题）：
+            // 历史问题：isOnFarmPage() 对 H5 商品详情页判断为 true（XRiverActivity 是农场
+            // H5 容器 Activity，包名是支付宝，且 hasFarmContentLoaded=true 因为商品页也有
+            // 大量文本），直接进入 COLLECTING_DIRECT 死循环：
+            //   NAVIGATING → COLLECTING_DIRECT(空) → OPENING_TASK_LIST → NAVIGATING → ...
+            // 日志证据：
+            //   09:27:56.251 isProductDetailPage: YES (hasAddToCart=true, hasBuyNow=true)
+            //   09:27:56.252 isOnAbnormalPage: YES, product detail page detected by content
+            //   09:27:56.350 [openTaskList-start] snapshot: ... abnormal=true
+            //   sample=[1/6, 距结束还有14时32分, ¥, 100, 抵扣后约, ¥, 52.9, 全网热销100万+,
+            //         官方立减40.1元]
+            //   这是商品详情页（"1/6"图片切换 + "距结束还有"倒计时 + "加入购物车"+"立即购买"），
+            //   非农场页。
+            //
+            // 修复：进入 COLLECTING_DIRECT 前先检查 isOnAbnormalPage，若是异常页则按返回退出，
+            // 不进入死循环。原 L671 的 isOnAbnormalPage 分支永远到不了，因为 isOnFarmPage 先命中。
+            if (service.isOnAbnormalPage()) {
+                Log.w(TAG, "navigate: on farm app but abnormal page (product detail/trading), pressing back to exit")
+                debugLog("navigate: abnormal page in farm app, pressing back (isOnFarmPage=true but isOnAbnormalPage=true)")
+                service.pressBack()
+                handler.postDelayed({
+                    if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
             Log.i(TAG, "navigate: on farm page, collecting direct fertilizer first")
             debugLog("navigate: on farm page, platform=${service.currentPlatform}")
             collectedCount = 0
