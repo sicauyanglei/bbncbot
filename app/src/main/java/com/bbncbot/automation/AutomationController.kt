@@ -3956,23 +3956,41 @@ object AutomationController {
         val fertilizeButton = service.findFertilizeButton()
         debugLog("fertilize: findFertilizeButton=${fertilizeButton != null}, clickCount=$clickCount")
         if (fertilizeButton != null) {
-            Log.i(TAG, "fertilize: found 施肥 button, clicking (count=${clickCount + 1})")
-            service.performClickSafe(fertilizeButton)
-            handler.postDelayed({
-                if (state == AutomationState.FERTILIZING) {
-                    // 检查是否还有肥料可施
-                    val stillHasButton = service.findFertilizeButton()
-                    if (stillHasButton != null) {
-                        Log.d(TAG, "fertilize: still has fertilize button, continue")
-                        runFertilizing(clickCount + 1)
-                    } else {
-                        Log.i(TAG, "fertilize: no more fertilizer button, done")
-                        moveTo(AutomationState.WAITING)
-                        handler.postDelayed({ startNextRound() }, INTERVAL_WAIT_MS)
-                    }
+            // build546 修复：检查按钮是否可点击且 bounds 合法，否则转坐标兜底。
+            // 历史问题（debug_test_20260719_125715.log, build545-2da7d39）：
+            //   findFertilizeButton 误匹配"合种/帮帮种多人施肥当前进度0..."进度文本
+            //   clickable=false, bounds=[72,4038][890,2666]（top>bottom 非法）
+            //   performClickSafe 失败 19 次仍重试同一节点。
+            // 修复：若按钮不可点击或 performClickSafe 失败，立即转坐标兜底。
+            val canClick = fertilizeButton.isClickable
+            if (!canClick) {
+                debugLog("fertilize: found node but not clickable (text='${fertilizeButton.text}'), switch to coordinate fallback")
+                Log.i(TAG, "fertilize: found node not clickable, switch to coordinate fallback (clickCount=$clickCount)")
+                // 跳到下面的坐标兜底逻辑
+            } else {
+                Log.i(TAG, "fertilize: found 施肥 button, clicking (count=${clickCount + 1})")
+                val clickResult = service.performClickSafe(fertilizeButton)
+                if (clickResult) {
+                    handler.postDelayed({
+                        if (state == AutomationState.FERTILIZING) {
+                            // 检查是否还有肥料可施
+                            val stillHasButton = service.findFertilizeButton()
+                            if (stillHasButton != null) {
+                                Log.d(TAG, "fertilize: still has fertilize button, continue")
+                                runFertilizing(clickCount + 1)
+                            } else {
+                                Log.i(TAG, "fertilize: no more fertilizer button, done")
+                                moveTo(AutomationState.WAITING)
+                                handler.postDelayed({ startNextRound() }, INTERVAL_WAIT_MS)
+                            }
+                        }
+                    }, INTERVAL_CLICK_MS)
+                    return
                 }
-            }, INTERVAL_CLICK_MS)
-            return
+                debugLog("fertilize: performClickSafe failed, switch to coordinate fallback")
+                Log.i(TAG, "fertilize: performClickSafe failed, switch to coordinate fallback (clickCount=$clickCount)")
+                // 落到下面的坐标兜底逻辑
+            }
         }
 
         // 没找到施肥按钮（H5 未暴露"施肥"文本），用坐标兜底点击施肥按钮位置

@@ -3653,16 +3653,50 @@ class FarmAccessibilityService : AccessibilityService() {
      */
     fun findFertilizeButton(): AccessibilityNodeInfo? {
         val root = getRootInFarmApp() ?: return null
-        val keywords = listOf("施肥")
-        for (kw in keywords) {
-            val node = findNodeByText(root, kw)
-            if (node != null) {
-                Log.d(TAG, "findFertilizeButton: found by text='$kw'")
-                return node
+        // build546 修复：排除"合种/帮帮种多人施肥当前进度X，总进度Y 得Z肥，需N"这种进度文本节点。
+        // 历史问题（debug_test_20260719_125715.log, build545-2da7d39）：
+        //   12:56:26.272 performClickSafe: text=' 合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2'
+        //     desc='' bounds=[72,4038][890,2666] clickable=false
+        //   performClickSafe 失败 19 次（clickCount=1 到 19），每次都点这个 progress 节点。
+        // 原因：该进度文本含"施肥"二字，被 findNodeByText 匹配为"施肥按钮"。
+        // 修复：跳过含"进度"/"总进度"/"当前进度"/"得X肥"/"需N"等进度描述特征的节点。
+        //       同时跳过 clickable=false 和 zero-size bounds 的节点。
+        val progressKeywords = listOf("进度", "总进度", "当前进度", "得", "肥，需", "需", "合种", "帮帮种")
+        // 收集所有含"施肥"的候选节点，按优先级选择：clickable=true > bounds 合法 > 长度短
+        data class Candidate(val node: AccessibilityNodeInfo, val text: String, val clickable: Boolean, val boundsValid: Boolean, val textLen: Int)
+        val candidates = mutableListOf<Candidate>()
+        fun walk(node: AccessibilityNodeInfo) {
+            val text = node.text?.toString().orEmpty()
+            val desc = node.contentDescription?.toString().orEmpty()
+            for (s in listOf(text, desc)) {
+                if (s.contains("施肥")) {
+                    val isProgress = progressKeywords.any { s.contains(it) }
+                    if (!isProgress) {
+                        val rect = android.graphics.Rect()
+                        node.getBoundsInScreen(rect)
+                        val boundsValid = rect.width() > 0 && rect.height() > 0 && rect.top < rect.bottom
+                        candidates.add(Candidate(node, s, node.isClickable, boundsValid, s.length))
+                        break
+                    }
+                }
+            }
+            for (i in 0 until node.childCount) {
+                node.getChild(i)?.let { walk(it) }
             }
         }
-        Log.d(TAG, "findFertilizeButton: not found")
-        return null
+        walk(root)
+        if (candidates.isEmpty()) {
+            Log.d(TAG, "findFertilizeButton: not found (no non-progress 施肥 node)")
+            return null
+        }
+        // 优先级：clickable=true > bounds 合法 > 文本短（"施肥"按钮文本通常很短）
+        val selected = candidates.sortedWith(
+            compareByDescending<Candidate> { it.clickable }
+                .thenByDescending { it.boundsValid }
+                .thenBy { it.textLen }
+        ).first()
+        Log.d(TAG, "findFertilizeButton: selected '${selected.text}' clickable=${selected.clickable} boundsValid=${selected.boundsValid} (from ${candidates.size} candidates)")
+        return selected.node
     }
 
     /**
