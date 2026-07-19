@@ -786,44 +786,14 @@ object AutomationController {
         val buttons = service.findDirectCollectButtons()
         debugLog("collectDirect: found ${buttons.size} direct buttons, attempt=$attempt")
         if (buttons.isEmpty()) {
-            // build536 修复（用户反馈"'点击领取'在领肥料上方"）：
-            // 历史问题：主页"点击领取"按钮（每日登录/7天奖励等）在 H5 WebView 内渲染，
-            // accessibility tree 没暴露其文本节点，findDirectCollectButtons 找不到。
-            // 直接跳到 OPENING_TASK_LIST 会漏掉主页这个领取入口。
-            //
-            // 日志证据（debug_test_20260719_091413.log, build536-3bd28a1）：
-            //   09:10:09.812 collectDirect: found 0 direct buttons, attempt=0
-            //   主页 sample=[松开刷新, 任务列表, 农场乐园入口, 还差3次领肥料, 切换摇钱树,
-            //             逛农货, 我的收获, 芭芭农场,种果树得水果，助农增收, 钓红包, 亲友树]
-            //   文本 sample 里没有"点击领取"——它在 H5 内未暴露给 accessibility tree。
-            //
-            // 用户反馈："点击领取"在"领肥料"按钮上方。
-            // Platform.kt 里 ALIPAY collectFertilizerCoords 第 9 项
-            //   Pair(0.917f, 0.657f)  // 今日可领（右侧领取入口）
-            // 位置：x=0.917 在右侧，y=0.657 < 0.771（"肥料"按钮 y），与用户描述一致。
-            //
-            // 修复：attempt=0 找不到 direct 按钮时，先坐标兜底点击 (0.917, 0.657)。
-            // 点击后走 tryClaimDirectPopup 流程：
-            //   - 若出现弹窗（findClaimRewardButtonExact 找到"立即领取"等）→ 领取
-            //   - 若点击后无弹窗（坐标不是"点击领取"，可能是其他入口）→ 不重复点击，
-            //     tryClaimDirectPopup 重试耗尽后 runCollectingDirect(attempt+1)，
-            //     attempt>=1 时不再坐标点击，直接进 OPENING_TASK_LIST。
-            // 这样误点风险可控，不会循环振荡。
-            if (attempt == 0 && service.currentPlatform == Platform.ALIPAY) {
-                val coords = service.currentPlatformConfig().collectFertilizerCoords
-                // 找"今日可领"坐标：x > 0.9（右侧）且 y 在 0.6~0.7 之间（"肥料"按钮 0.771 上方）
-                val todayClaimCoord = coords.firstOrNull {
-                    it.first > 0.9f && it.second in 0.6f..0.7f
-                }
-                if (todayClaimCoord != null) {
-                    debugLog("collectDirect: no direct button found, trying coordinate fallback (今日可领) at (${todayClaimCoord.first}, ${todayClaimCoord.second})")
-                    Log.i(TAG, "collectDirect: coordinate fallback click (今日可领) at (${todayClaimCoord.first}, ${todayClaimCoord.second})")
-                    clickAtRatio(service, todayClaimCoord.first, todayClaimCoord.second, "collectDirect-todayClaim")
-                    // 点击后等待弹窗，走 tryClaimDirectPopup 流程
-                    tryClaimDirectPopup(service, attempt, maxRetry = 3)
-                    return
-                }
-            }
+            // 历史说明（build538 → build542 撤销）：
+            // 用户反馈"点击领取在领肥料上方"，build538 加了坐标兜底点击 (0.917, 0.657)。
+            // 但日志（debug_test_20260719_113316.log, build541-801abe4）显示：
+            //   - 主页 claim-text-nodes 只有 1 项：'还差3次领肥料'（锁定状态，已过滤）
+            //   - 坐标兜底点击 (1100.4, 1670.751) 两次都没找到弹窗（claim button not found）
+            // 用户反馈："点击领取每天只能点击一次"——已领过则主页根本不显示"点击领取"按钮
+            // （会变成"明日7点可领"/"还差X次领肥"等锁定状态文本，被 !contains("明日")/"还差"过滤）。
+            // 所以找不到 direct 按钮是正常的，直接进入 OPENING_TASK_LIST，不再坐标兜底空点。
             Log.i(TAG, "collectDirect: no direct collect buttons found, opening task list")
             moveTo(AutomationState.OPENING_TASK_LIST)
             handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
