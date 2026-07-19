@@ -3960,7 +3960,7 @@ object AutomationController {
             return
         }
 
-        // 查找并点击"施肥"按钮（主页上若可见 / 点击 hint 后弹出的"立即施肥"大按钮）
+        // 查找并点击"施肥"按钮（主页上若可见 / 点击 hint 后弹出的"施肥"大按钮）
         val fertilizeButton = service.findFertilizeButton()
         debugLog("fertilize: findFertilizeButton=${fertilizeButton != null}, clickCount=$clickCount")
         if (fertilizeButton != null && fertilizeButton.isClickable) {
@@ -3968,15 +3968,16 @@ object AutomationController {
             // 历史问题（build548-aed53e2, debug_test_20260719_134803.log）：
             //   13:46:46.733 performClickSafe: text='还差3次领肥料' (点击 hint)
             //   13:46:49.918 performClickSafe: text='立即施肥' bounds=[278,1660][923,1807] (大按钮，645x147)
+            //     注：accessibility 报告 text='立即施肥'，但 UI 实际显示"施肥"两字（用户确认）
             //   13:46:49.930 ACTION_CLICK success
             //   13:46:52.996 state: FERTILIZING -> WAITING  ← 错误：施肥成功却切 WAITING
-            // 原因：build548 点击"立即施肥"后调 findFertilizeButton 检查 stillHasButton，
+            // 原因：build548 点击"施肥"后调 findFertilizeButton 检查 stillHasButton，
             //   弹窗关闭后主页暂时没"施肥"按钮（要再点 hint 才会弹出）→ 误判"施肥完成"切 WAITING。
             //   导致每次只施 1 次肥就退出，3 轮循环里始终是"还差3次领肥料"，从没施够 3 次。
             // 用户反馈："还差3次施肥，那我们就施肥3次，然后还差3次施肥会变成'立即领取'"
             //   ——需要连续施肥直到 hint 变成"立即领取"，由 hint 状态驱动终止，而非按钮存在与否。
             //
-            // 修复：移除 stillHasButton 检查，点击"立即施肥"后等 2.5 秒（动画/施肥结算）后递归继续。
+            // 修复：移除 stillHasButton 检查，点击"施肥"后等 2.5 秒（动画/施肥结算）后递归继续。
             // 终止条件改为 hint 状态：
             //   - hint 变"立即领取"/"立即领肥"/"点击领取"等 → findDirectCollectButtons 命中 → 切 COLLECTING_DIRECT
             //   - hint 消失且无 direct 按钮 → 切 WAITING
@@ -4005,8 +4006,8 @@ object AutomationController {
         //   点击它本身不会施肥，应该点击它附近的真实施肥按钮。
         //
         // build549 实测发现（debug_test_20260719_134803.log）：
-        // - 点击 hint "还差3次领肥料"会弹出"立即施肥"大按钮（645x147），点击即施肥
-        // - 所以 hint 是入口，点击 hint → 弹"立即施肥" → 点击"立即施肥" → 施肥一次 → 回主页
+        // - 点击 hint "还差3次领肥料"会弹出"施肥"大按钮（645x147），点击即施肥
+        // - 所以 hint 是入口，点击 hint → 弹"施肥" → 点击"施肥" → 施肥一次 → 回主页
         // - 循环此过程直到 hint 变成"立即领取"
         val onFarm = service.isOnFarmPage()
         if (!onFarm) {
@@ -4025,7 +4026,7 @@ object AutomationController {
             handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
             return
         }
-        // 找"还差X次领肥料"提示文字节点，点击它弹出"立即施肥"大按钮
+        // 找"还差X次领肥料"提示文字节点，点击它弹出"施肥"大按钮
         val hintNode = service.findRemainingFertilizerHintNode()
         if (hintNode != null) {
             val remainCount = service.parseFertilizeRemainingCount()
@@ -4045,8 +4046,8 @@ object AutomationController {
                 noProgressStreak = 0
                 lastRemainCount = remainCount
             }
-            // 点击 hint "还差X次领肥料"触发弹窗，弹窗里有"立即施肥"大按钮
-            Log.i(TAG, "fertilize: click hint '还差${remainCount}次领肥料' to pop up 立即施肥 (clickCount=${clickCount + 1})")
+            // 点击 hint "还差X次领肥料"触发弹窗，弹窗里有"施肥"大按钮
+            Log.i(TAG, "fertilize: click hint '还差${remainCount}次领肥料' to pop up 施肥 (clickCount=${clickCount + 1})")
             service.performClickSafe(hintNode)
             handler.postDelayed({
                 if (state == AutomationState.FERTILIZING) runFertilizing(clickCount + 1)
