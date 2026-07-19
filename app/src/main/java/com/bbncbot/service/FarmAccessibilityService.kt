@@ -2151,6 +2151,18 @@ class FarmAccessibilityService : AccessibilityService() {
                 debugLog("findGoCompleteButtons: drop already-claimed node text='$buttonText' (task completed)")
                 return@mapNotNull null
             }
+            // build540 修复（用户反馈"'明日7点可领'这种就不要点击了，这是明天的"）：
+            // 历史问题：ALIPAY goCompleteTexts 含"领取"（contains 匹配），会匹配到
+            // "明日7点可领取"/"明日可领取"/"明天可领取"等未来时间按钮，被当成任务按钮点击。
+            // 点击后通常弹窗提示"明日再来"或无响应，浪费一轮任务尝试。
+            // 修复：过滤含"明日"/"明天"/"后天"/"次日"等未来时间提示的按钮。
+            // 注意：findDirectCollectButtons 已有 !contains("明日") 过滤，
+            //       此处同步给 findGoCompleteButtons 加上同样过滤，避免任务列表也误点。
+            val futureTimeKeywords = listOf("明日", "明天", "后天", "次日")
+            if (futureTimeKeywords.any { buttonText.contains(it) }) {
+                debugLog("findGoCompleteButtons: drop future-time node text='$buttonText' (not claimable today)")
+                return@mapNotNull null
+            }
             // 4. bounds 合法性过滤（仅过滤非法矩形，不过滤屏幕外按钮，原因见上方注释）
             val rect = android.graphics.Rect()
             clickTarget.getBoundsInScreen(rect)
