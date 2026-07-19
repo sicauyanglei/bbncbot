@@ -1,0 +1,127 @@
+=== cleared on app start (version=2.2, build=build558-44cd648, time=15:34:25) ===
+15:34:25.428 killPlatformApps: killed com.ucmobile.lite for UC
+15:34:25.430 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+15:34:25.432 killPlatformApps: killed com.taobao.taobao for TAOBAO
+15:34:30.612 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+15:34:30.613 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+15:34:38.493 === Automation v2 Started === platform=UC
+15:34:38.500 cancelNavigation: all navigation callbacks cancelled
+15:34:38.519 reset platform complete: UC
+15:34:38.521 state: IDLE -> NAVIGATING
+15:34:39.235 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 5]
+15:34:39.247 [navigate-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+15:34:39.264 [navigate-start] claim-text-nodes (count=2):
+15:34:39.265 [navigate-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+15:34:39.266 [navigate-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2230][694,2299] clickable=false
+15:34:39.297 navigate: on farm page, platform=UC
+15:34:39.315 hasFarmContentLoaded: text count=152, sample=[后退, 智能组件, 菜单, 多窗口, 5, 首页, UC芭芭农场, 7.23内完成3天即领, 1天, 2天]
+15:34:39.316 hasFarmContentLoaded: realContent count=138
+15:34:39.317 navigate: hasFarmContentLoaded=true, attempt=0
+15:34:39.317 state: NAVIGATING -> COLLECTING_DIRECT
+15:34:41.478 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 5]
+15:34:41.491 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+15:34:41.510 [collectDirect-start] claim-text-nodes (count=2):
+15:34:41.511 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+15:34:41.512 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2230][694,2299] clickable=false
+15:34:41.524 collectDirect: found 0 direct buttons, attempt=0
+15:34:41.525 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+15:34:43.709 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 5]
+15:34:43.729 [openTaskList-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+15:34:43.745 [openTaskList-start] claim-text-nodes (count=2):
+15:34:43.746 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+15:34:43.747 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2230][694,2299] clickable=false
+15:34:43.775 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:34:43.776 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:34:43.776 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:34:43.777 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:34:43.777 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:34:43.778 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:34:43.778 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:34:43.779 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:34:43.779 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:34:43.779 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:34:43.780 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:34:43.780 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:34:43.781 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+15:34:43.781 openTaskList: [UC闭环] heuristic text search (attempt=0)
+15:34:43.790 findCollectFertilizerButton: found by text='集肥料' bounds=[949,2380][1129,2509]
+15:34:43.791 openTaskList: [UC闭环] clicking entry button by text (attempt=0)
+15:34:43.791 performClickSafe: text='集肥料' desc='' bounds=[949,2380][1129,2509] clickable=false
+15:34:43.792 performClickSafe: ACTION_CLICK failed, trying gesture
+15:34:43.792 dispatchGesture: screen=[[949,2380][1129,2509]] window=[[0,0][0,0]]
+15:34:43.793 dispatchGesture: not in popup, screen bounds valid, click at (1039.0, 2444.5)
+15:34:49.014 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+15:34:51.244 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+15:34:53.440 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+15:34:55.464 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=3, currentIndex=0
+15:34:57.493 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=4, currentIndex=0
+15:34:59.596 findCollectFertilizerButton: not found by text, root childCount=1
+15:34:59.601 openTaskList: findCollectFertilizerButton=false, attempt=1
+15:34:59.634 openTaskList: [坐标兜底] not on farm page (findCollectFertilizerButton=null), re-navigating instead of coordinate fallback
+15:34:59.637 state: OPENING_TASK_LIST -> NAVIGATING
+15:35:01.795 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+15:35:01.805 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+15:35:01.915 findAdDurationHint: found countdown '10秒', seconds=10
+15:35:07.247 findAdDurationHint: found countdown '10秒', seconds=10
+15:35:25.355 navigate: on farm page, platform=UC
+15:35:25.712 hasFarmContentLoaded: text count=152, sample=[后退, 智能组件, 菜单, 多窗口, 5, 首页, UC芭芭农场, 7.23内完成3天即领, 1天, 2天]
+15:35:25.717 hasFarmContentLoaded: realContent count=138
+15:35:25.720 navigate: hasFarmContentLoaded=true, attempt=4
+15:35:25.724 state: NAVIGATING -> COLLECTING_DIRECT
+15:35:28.874 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 5]
+15:35:28.912 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+15:35:28.947 [collectDirect-start] claim-text-nodes (count=2):
+15:35:28.952 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+15:35:28.954 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2230][694,2299] clickable=false
+15:35:28.976 collectDirect: found 0 direct buttons, attempt=0
+15:35:28.980 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+15:35:31.273 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 5]
+15:35:31.309 [openTaskList-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+15:35:31.340 [openTaskList-start] claim-text-nodes (count=2):
+15:35:31.343 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+15:35:31.346 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2230][694,2299] clickable=false
+15:35:31.371 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:35:31.372 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:35:31.373 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:35:31.373 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:35:31.374 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:35:31.374 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:35:31.375 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:35:31.375 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:35:31.376 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:35:31.378 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:35:31.379 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:35:31.381 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+15:35:31.382 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+15:35:31.383 openTaskList: [UC闭环] heuristic text search (attempt=0)
+15:35:31.397 findCollectFertilizerButton: found by text='集肥料' bounds=[949,2380][1129,2509]
+15:35:31.398 openTaskList: [UC闭环] clicking entry button by text (attempt=0)
+15:35:31.398 performClickSafe: text='集肥料' desc='' bounds=[949,2380][1129,2509] clickable=false
+15:35:31.399 performClickSafe: ACTION_CLICK failed, trying gesture
+15:35:31.400 dispatchGesture: screen=[[949,2380][1129,2509]] window=[[0,0][0,0]]
+15:35:31.400 dispatchGesture: not in popup, screen bounds valid, click at (1039.0, 2444.5)
+15:35:36.598 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+15:35:39.243 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+15:35:41.421 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+15:35:43.452 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=3, currentIndex=0
+15:35:45.483 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=4, currentIndex=0
+15:35:47.573 findCollectFertilizerButton: not found by text, root childCount=1
+15:35:47.577 openTaskList: findCollectFertilizerButton=false, attempt=1
+15:35:47.588 openTaskList: [坐标兜底] not on farm page (findCollectFertilizerButton=null), re-navigating instead of coordinate fallback
+15:35:47.590 state: OPENING_TASK_LIST -> NAVIGATING
+15:35:49.655 isAdContentShown: YES, matched ad signal in [淘宝精选, 盼盼家庭号薯片虾条超 正品保证 七天退换 ¥ 19.69, O1CN01psSqjo1UxWOv4queX_!!0-item_pic.jpg_310x310xzq90.jpg_, 盼盼家庭号薯片虾条超, 正品保证, 七天退换, ¥19.69, 盼盼家庭号薯片虾条办 正品保证 七天退换 ¥ 9.38]
+15:35:49.689 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+15:35:49.700 [navigate-start] claim-text-nodes (count=1):
+15:35:49.701 [navigate-start]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+15:36:47.193 isAdContentShown: YES, matched ad signal in [淘宝精选, 盼盼家庭号薯片虾条超 正品保证 七天退换 ¥ 19.69, O1CN01psSqjo1UxWOv4queX_!!0-item_pic.jpg_310x310xzq90.jpg_, 盼盼家庭号薯片虾条超, 正品保证, 七天退换, ¥19.69, 盼盼家庭号薯片虾条办 正品保证 七天退换 ¥ 9.38]
+15:36:47.233 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+15:36:47.248 [navigate-start] claim-text-nodes (count=1):
+15:36:47.251 [navigate-start]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+15:37:18.564 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+15:37:20.398 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+15:37:24.291 state: NAVIGATING -> STOPPING
+15:37:24.294 cancelNavigation: all navigation callbacks cancelled
+15:37:24.295 state: STOPPING -> IDLE
+15:37:29.236 saveToken: saved (len=93, head='gith', tail='McKr')
+15:37:29.239 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+15:37:29.241 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260719_153729.log, localFile=debug.log (13074 bytes)
