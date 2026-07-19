@@ -766,6 +766,26 @@ object AutomationController {
             }
         } else {
             // 在农场 App 内但不在农场页（如淘宝主页），主动导航到芭芭农场
+            // build558 修复（debug_test_20260719_152545.log, build557-1a9b06f）：
+            // 历史问题：UC 平台集肥料按钮点击后,UC 浏览器内的 H5 跳转拉起美团/中国移动 10086
+            // 等第三方 App,这些 App 以 overlay 覆盖在 UC 上。isFarmAppInForeground 通过
+            // activity 兜底(com.uc.browser.innerucmobile)判定为"在农场 App",进入此 else 分支。
+            // 原 else 直接调用 navigateToFarm() → stepClickFarmTab,但当前活动 root 是美团/10086,
+            // 找不到"芭芭农场"tab → fallback 到 stepClickFarmTabByGesture(淘宝专用,UC 无效)
+            // → 反复重试 90 秒后超时停止,任务失败。
+            //
+            // 修复：进入 navigateToFarm 前先检测第三方 App overlay,识别到则 forceKillApp
+            // 结束该 App,让 UC 浏览器重新成为活动窗口,下一轮 runNavigating 正常导航。
+            val overlayPkg = service.getThirdPartyOverlayPkg()
+            if (overlayPkg != null) {
+                Log.i(TAG, "navigate: third-party app overlay detected (pkg=$overlayPkg), killing it to restore farm app foreground")
+                debugLog("navigate: third-party overlay pkg=$overlayPkg detected, forceKillApp(pressBackFirst=false) to dismiss")
+                service.forceKillApp(overlayPkg, pressBackFirst = false)
+                handler.postDelayed({
+                    if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
             Log.i(TAG, "navigate: in farm app but not farm page (platform=${service.currentPlatform}), calling navigateToFarm")
             debugLog("navigate: calling navigateToFarm, platform=${service.currentPlatform}")
             service.navigateToFarm()

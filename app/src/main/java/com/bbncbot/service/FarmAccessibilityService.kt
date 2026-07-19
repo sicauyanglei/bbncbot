@@ -2981,6 +2981,46 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 检测当前是否有第三方 App 覆盖在农场 App 上方
+     *
+     * 场景（debug_test_20260719_152545.log, build557-1a9b06f）：
+     * - UC 平台集肥料按钮点击后,UC 浏览器内的 H5 跳转拉起了美团/中国移动 10086 等第三方 App
+     * - 这些 App 以 overlay 形式覆盖在 UC 浏览器上方
+     * - rootInActiveWindow 返回第三方 App 的 root,但 currentActivityName 仍是 UC 的 Activity
+     *   (com.uc.browser.innerucmobile,通过 isFarmAppInForeground 的 activity 兜底被判定为"在农场 App")
+     * - runNavigating 的 else 分支调用 navigateToFarm() → stepClickFarmTab
+     *   只在当前页找"芭芭农场"tab,找不到就 fallback 到 stepClickFarmTabByGesture(淘宝专用,UC 无效)
+     * - 最终超时停止,任务失败
+     *
+     * 修复策略：
+     * - 检测 activeRootPkg 不是农场包名、不是 systemui/android、不是 launcher、不是 bbncbot
+     * - 返回该包名,由调用方 forceKillApp 结束该 App,使其从 UC 浏览器上消失
+     * - UC 浏览器重新成为活动窗口后,正常导航流程继续
+     *
+     * @return 第三方 App 的包名,无 overlay 时返回 null
+     */
+    fun getThirdPartyOverlayPkg(): String? {
+        val activeRootPkg = rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+        if (activeRootPkg.isEmpty()) return null
+        val cfg = currentPlatformConfig()
+        // 农场 App 自身或内部包前缀: 不是 overlay
+        val isFarmPkg = activeRootPkg in cfg.packageNames ||
+            cfg.internalPackagePrefixes.any { activeRootPkg.startsWith(it) }
+        if (isFarmPkg) return null
+        // 系统/桌面/bbncbot 自身: 不是 overlay
+        // (systemui 弹窗走 isOnFarmPage=false 的 pressBack 分支;launcher 走等待分支;
+        //  bbncbot 是本应用,出现在 ROOT 时说明用户切到设置界面,不应 kill)
+        val isSystemPkg = activeRootPkg == "com.android.systemui" ||
+            activeRootPkg == "android" ||
+            activeRootPkg == "com.bbncbot" ||
+            activeRootPkg.endsWith(".launcher")
+        if (isSystemPkg) return null
+        // 其他用户 App(美团/10086/微信等): 是 overlay
+        debugLog("getThirdPartyOverlayPkg: detected overlay pkg=$activeRootPkg (platform=$currentPlatform)")
+        return activeRootPkg
+    }
+
+    /**
      * 检测当前页面是否为充值/付费页面（内容级检测，用于游戏内充值引导页）
      * - 检测页面文本中的充值/购买/付费关键词
      * @return true 表示当前是充值页面
