@@ -126,6 +126,15 @@ object AutomationController {
     private var browseFromSearchBrowse: Boolean = false
 
     /**
+     * 当前 GAME_PLAYING 任务的目标停留时长（毫秒）
+     * - 默认 [GAME_STAY_TARGET_MS]（30s，普通"打开游戏停留玩一下"任务）
+     * - "试玩热门新游"等需长停留任务设为 10 分钟（用户反馈：试玩热门新游需等待 10 分钟退出）
+     * - 每次进入新的 GAME_PLAYING 前重置
+     */
+    @Volatile
+    private var gamePlayingStayTargetMs: Long = GAME_STAY_TARGET_MS
+
+    /**
      * 当前广告的最短观看时长（毫秒）
      * - 进入 WATCHING_AD 时按平台广告策略 + 页面提示动态设置（页面提示的秒数 + 缓冲）
      * - 无提示时使用平台默认值 [PlatformConfig.adDefaultMinDurationMs]
@@ -1459,11 +1468,32 @@ object AutomationController {
         }
 
         if (service.isGameTask(button)) {
-            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is game task, entering GAME_PLAYING (text='$buttonText')")
-            debugLog("processTask: game task #${currentTaskIndex + 1}, text='$buttonText', staying in game to earn fertilizer")
+            // build556 修复（用户反馈"试玩热门新游，需要等待10分钟退出"）：
+            // "试玩热门新游"等访问时长类任务需在游戏页停留 10 分钟才得肥料，
+            // 不是普通游戏 30 秒停留即可。这类任务文案含"试玩"/"新游"关键词。
+            // 用 gamePlayingStayTargetMs 区分：
+            // - 含"试玩"/"新游" → 10 分钟
+            // - 其他普通游戏 → 30 秒（GAME_STAY_TARGET_MS）
+            val isTrialPlayTask = fullTaskText.contains("试玩") || fullTaskText.contains("新游")
+            gamePlayingStayTargetMs = if (isTrialPlayTask) 10 * 60 * 1000L else GAME_STAY_TARGET_MS
+            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is game task, entering GAME_PLAYING (text='$buttonText', stayTarget=${gamePlayingStayTargetMs}ms, trialPlay=$isTrialPlayTask)")
+            debugLog("processTask: game task #${currentTaskIndex + 1}, text='$buttonText', trialPlay=$isTrialPlayTask, stayTargetMs=$gamePlayingStayTargetMs")
             // 点击"去完成"进入游戏
             service.performClickSafe(button)
             // build529：进入游戏时重置 AI 视觉进度识别节流（每个新任务独立计数）
+            lastAiProgressCheckMs = 0L
+            moveTo(AutomationState.GAME_PLAYING)
+            handler.postDelayed({ runGamePlaying(elapsedMs = 0L) }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // build556：试玩热门新游任务（含"试玩"/"新游"关键词，但不是 isGameTask）
+        // 也按 10 分钟停留处理。文案如"【福利】试玩热门新游 访问必得500 - 3500肥"
+        if (fullTaskText.contains("试玩") || fullTaskText.contains("新游")) {
+            gamePlayingStayTargetMs = 10 * 60 * 1000L
+            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is trial-play task, entering GAME_PLAYING (text='$buttonText', stayTarget=${gamePlayingStayTargetMs}ms)")
+            debugLog("processTask: trial-play task #${currentTaskIndex + 1}, text='$buttonText', context='$taskContextText', stayTargetMs=$gamePlayingStayTargetMs")
+            service.performClickSafe(button)
             lastAiProgressCheckMs = 0L
             moveTo(AutomationState.GAME_PLAYING)
             handler.postDelayed({ runGamePlaying(elapsedMs = 0L) }, INTERVAL_PAGE_LOAD_MS)
@@ -1944,7 +1974,7 @@ object AutomationController {
      *    - 完成页（"领取奖励"/"恭喜"/"完成"/"升级"等）→ 领取奖励后返回农场
      *    - 自动返回农场页 → 假设任务已结算，肥料已发放
      *    - 其他页面 → 继续停留（不按返回，避免退出游戏导致停留失败）
-     * 3. 停留达到 GAME_STAY_TARGET_MS（30s）且仍在游戏内 → 主动按返回退出回农场，任务发放肥料
+     * 3. 停留达到 gamePlayingStayTargetMs（普通 30s，试玩热门新游 10min）且仍在游戏内 → 主动按返回退出回农场
      * 4. 硬超时 GAME_MAX_DURATION_MS（90s）→ 强制退出，跳过任务
      *
      * 关键：停留期间绝不按返回键（按返回会退出游戏导致停留失败），仅靠页面状态检测驱动退出。
@@ -1959,9 +1989,13 @@ object AutomationController {
             logPageSnapshot(service, "gamePlay-start")
         }
 
-        // 硬超时强制退出（90s，覆盖加载5s + 停留30s + 退出余量）
-        if (elapsedMs >= GAME_MAX_DURATION_MS) {
-            Log.w(TAG, "gamePlay: hard timeout (elapsed=${elapsedMs}ms), exiting")
+        // 硬超时强制退出（覆盖加载5s + 停留目标 + 60s 退出余量）
+        // build556：用 gamePlayingStayTargetMs 替代硬编码 GAME_STAY_TARGET_MS
+        // - 普通游戏：stayTarget=30s，硬超时 30s+60s=90s（GAME_MAX_DURATION_MS）
+        // - 试玩热门新游：stayTarget=10min，硬超时 10min+60s=11min
+        val gameMaxDurationMs = gamePlayingStayTargetMs + 60000L
+        if (elapsedMs >= gameMaxDurationMs) {
+            Log.w(TAG, "gamePlay: hard timeout (elapsed=${elapsedMs}ms, max=${gameMaxDurationMs}ms), exiting")
             debugLog("gamePlay: hard timeout, exiting game, skipping task")
             service.pressBack()
             handler.postDelayed({
@@ -2098,10 +2132,12 @@ object AutomationController {
             return
         }
 
-        // 停留达到目标时长（30s）且仍在游戏内 → 主动按返回退出回农场，任务发放肥料
-        if (elapsedMs >= GAME_STAY_TARGET_MS) {
-            Log.i(TAG, "gamePlay: stay target reached (elapsed=${elapsedMs}ms), exiting to farm")
-            debugLog("gamePlay: stay ${elapsedMs}ms reached, pressing back to collect fertilizer")
+        // 停留达到目标时长且仍在游戏内 → 主动按返回退出回农场，任务发放肥料
+        // build556：用 gamePlayingStayTargetMs 替代硬编码 GAME_STAY_TARGET_MS
+        // - 普通游戏停留 30s，试玩热门新游停留 10min
+        if (elapsedMs >= gamePlayingStayTargetMs) {
+            Log.i(TAG, "gamePlay: stay target reached (elapsed=${elapsedMs}ms, target=${gamePlayingStayTargetMs}ms), exiting to farm")
+            debugLog("gamePlay: stay ${elapsedMs}ms reached (target=${gamePlayingStayTargetMs}ms), pressing back to collect fertilizer")
             service.pressBack()
             handler.postDelayed({
                 if (state != AutomationState.GAME_PLAYING) return@postDelayed
@@ -2135,7 +2171,7 @@ object AutomationController {
         if (elapsedMs < GAME_LOAD_MS) {
             debugLog("gamePlay: waiting for game to load (elapsed=${elapsedMs}ms)")
         } else {
-            debugLog("gamePlay: staying in game (elapsed=${elapsedMs}ms, target=${GAME_STAY_TARGET_MS}ms)")
+            debugLog("gamePlay: staying in game (elapsed=${elapsedMs}ms, target=${gamePlayingStayTargetMs}ms)")
         }
 
         // build529（用户要求"全部实现"）：AI 视觉识别环形进度条（节流到 20s 一次）
@@ -2155,7 +2191,7 @@ object AutomationController {
                     return@Thread
                 }
                 try {
-                    val sceneCtx = "game playing (elapsed=${snapshotElapsed}ms, target=${GAME_STAY_TARGET_MS}ms)"
+                    val sceneCtx = "game playing (elapsed=${snapshotElapsed}ms, target=${gamePlayingStayTargetMs}ms)"
                     val result = AiVisionClient.recognizeProgressFromScreenshot(appContext, bitmap, sceneCtx)
                     bitmap.recycle()
                     if (result == null) {
