@@ -3920,7 +3920,27 @@ object AutomationController {
 
         // 第一步：关闭任务列表回到农场主页（仅第一次）
         if (clickCount == 0) {
-            Log.i(TAG, "fertilize: closing task list, returning to farm page")
+            // build544 修复：fertilize-start 时若已在主页（onFarm=true），不 pressBack。
+            // 历史问题（debug_test_20260719_124334.log, build543-dbadab3）：
+            // FERTILIZING 状态从 PROCESSING_TASK 切入时，可能已在主页而非任务列表，
+            // 无条件 pressBack 反而把主页按返回键退出，导致：
+            //   12:42:51.510 [fertilize-start] snapshot: onFarm=true (已在主页)
+            //   12:42:51.531 [fertilize-start]   text='还差3次领肥料' bounds=[442,1539][759,1617] clickable=true
+            //   12:42:56.822 fertilize: findFertilizeButton=false, clickCount=1 (pressBack 后节点消失)
+            //   12:42:56.840 parseFertilizeRemainingCount: no '还差X次' node found
+            //   12:42:58.882 isOnFarmPage: no farm content, sample=[松开刷新, 深圳, 小雨 27℃...]
+            //   12:42:58.967 [collectDirect-start] snapshot: act=AlipayLogin onFarm=false (退到支付宝首页)
+            // 修复：若 isOnFarmPage()=true，跳过 pressBack 直接进入 clickCount=1 的施肥逻辑。
+            val onFarm = service.isOnFarmPage()
+            if (onFarm) {
+                debugLog("fertilize: already on farm page (onFarm=true), skip pressBack")
+                Log.i(TAG, "fertilize: already on farm page, skip pressBack, go fertilize directly")
+                handler.postDelayed({
+                    if (state == AutomationState.FERTILIZING) runFertilizing(clickCount + 1)
+                }, INTERVAL_CLICK_MS)
+                return
+            }
+            Log.i(TAG, "fertilize: not on farm page, closing task list, returning to farm page")
             service.pressBack()
             handler.postDelayed({
                 if (state == AutomationState.FERTILIZING) runFertilizing(clickCount + 1)
