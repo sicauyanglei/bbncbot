@@ -423,14 +423,31 @@ class FarmAccessibilityService : AccessibilityService() {
         return try {
             val windows = windows
             val cfg = currentPlatformConfig()
+            // 系统包名黑名单（状态栏/通知栏/输入法/启动器等，不应作为"非农场 App"返回）
+            // build562 修复（debug_test_20260719_140819.log, build552-f036a26）：
+            // 历史问题：Honor 设备 windows 列表常含 com.android.systemui 状态栏窗口,
+            // getCurrentWindowPackage 优先返回非农场包名 → 返回 systemui →
+            // processTask 误判"systemui 假阳性"跳过 WATCHING_AD 浪费 2 分钟,
+            // 或日志显示 pkg=systemui 但 onFarm=true 的矛盾状态。
+            // 修复：排除 systemui/launcher 等系统包名,只返回真正的非农场 App(广告/其他 App)。
+            val systemBlacklist = setOf(
+                "com.android.systemui",      // 状态栏/通知栏
+                "com.hihonor.android.launcher", // Honor 启动器
+                "com.android.launcher3",     // AOSP 启动器
+                "com.miui.home",             // 小米启动器
+                "com.huawei.android.launcher", // 华为启动器
+                "android",                   // 系统 framework
+                "com.bbncbot",               // 本应用
+                "com.android.inputmethod",   // 输入法
+                "com.iflytek.inputmethod"    // 讯飞输入法
+            )
             // 优先返回非当前平台的活动窗口（可能是广告）
             for (w in windows) {
                 val pkg = w.root?.packageName?.toString().orEmpty()
                 if (pkg.isNotEmpty() &&
                     pkg !in cfg.packageNames &&
                     cfg.internalPackagePrefixes.none { pkg.startsWith(it) } &&
-                    pkg != "com.bbncbot" &&
-                    pkg != "android") {
+                    pkg !in systemBlacklist) {
                     return pkg
                 }
             }
@@ -2219,12 +2236,24 @@ class FarmAccessibilityService : AccessibilityService() {
                 debugLog("findGoCompleteButtons: drop future-time node text='$buttonText' (not claimable today)")
                 return@mapNotNull null
             }
-            // 4. bounds 合法性过滤（仅过滤非法矩形，不过滤屏幕外按钮，原因见上方注释）
+            // 4. bounds 合法性过滤
+            // build562 修复（debug_test_20260719_140819.log, build552-f036a26）：
+            // 历史问题：H5 虚拟列表/懒加载导致屏幕外的"去完成/领取"按钮 bounds 异常(top>bottom),
+            // 例如 bounds=[884,3271][1113,2666] — top=3271 但 bottom=2666(虚拟列表占位)。
+            // 原逻辑 rect.width()<=0 || rect.height()<=0 会 drop 这些节点(因为 height=bottom-top<0)，
+            // 但这些"领取"按钮可能是 pure claim 直接领取按钮,drop 后 collected=0 跳过所有任务。
+            // 修复：只过滤真正 width<=0 的非法节点,允许 top>bottom(虚拟列表占位)的节点通过,
+            //       用 dispatchGesture 坐标点击(performClickSafe 会 fallback 到 gesture)。
+            //       屏幕外的节点点击会失败但不影响流程,真实施肥按钮在屏幕内可正常点击。
             val rect = android.graphics.Rect()
             clickTarget.getBoundsInScreen(rect)
-            if (rect.width() <= 0 || rect.height() <= 0) {
-                debugLog("findGoCompleteButtons: drop zero-size node text='$buttonText' bounds=${rect.toShortString()}")
+            if (rect.width() <= 0) {
+                debugLog("findGoCompleteButtons: drop zero-width node text='$buttonText' bounds=${rect.toShortString()}")
                 return@mapNotNull null
+            }
+            // top>bottom 的虚拟列表占位节点:记录日志但保留(可能是 pure claim 按钮)
+            if (rect.height() <= 0) {
+                debugLog("findGoCompleteButtons: keep virtual-list node text='$buttonText' bounds=${rect.toShortString()} (top>bottom, may be off-screen pure claim)")
             }
             if (clickTarget !== node) {
                 debugLog("findGoCompleteButtons: use clickable ancestor for '$buttonText' (original not clickable, ancestor bounds=${rect.toShortString()})")
@@ -5212,6 +5241,20 @@ class FarmAccessibilityService : AccessibilityService() {
                 }
                 debugLog("navigateAlipay: search edit not found, retry")
                 pressBack()
+                // build562 修复（debug_test_20260719_140819.log, build552-f036a26）：
+                // 历史问题：search edit 找不到时 pressBack + retry,但下次还是走 search 路径,
+                // 反复"搜索按钮 gesture 点击 → search edit not found → pressBack → retry" 5 次浪费 40s。
+                // 根因：支付宝搜索按钮 bounds=[998,419][1152,501] clickable=false,gesture 点击后
+                // 搜索页没打开(可能 H5 内部节点坐标转换问题),retry 走同样路径必然失败。
+                // 修复：retry >= 2 时放弃 search 路径,用 deep link 直接拉起农场页。
+                if (retry >= 2) {
+                    debugLog("navigateAlipay: search path failed $retry times, fallback to deep link")
+                    navHandler.postDelayed({
+                        reopenFarmByDeepLink()
+                        navHandler.postDelayed({ clearNavigatingFlag() }, 5000L)
+                    }, 1000L)
+                    return@searchStep
+                }
                 navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 3000L)
             }, 3000L)
             return

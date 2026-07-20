@@ -4516,7 +4516,12 @@ object AutomationController {
                 "做任务集肥料", "关闭做任务集肥料弹窗", "任务列表",
                 "去完成", "去逛逛", "去分享", "去邀请", "更多肥料"
             )
-            val root = service.getRootInFarmApp()
+            // build562 修复（debug_test_20260719_140819.log, build552-f036a26）：
+            // 历史问题：getRootInFarmApp() 在某些场景返回 null（如支付宝 H5 容器窗口包名
+            // 未严格匹配 currentPlatformConfig.packageNames），导致 isTaskListOpen 判断为 false,
+            // 任务列表弹窗没被关闭,直接进入施肥逻辑 → 点击坐标落在弹窗空白区域 → 跳转搜索页。
+            // 修复：getRootInFarmApp 返回 null 时 fallback 用 rootInActiveWindowSafe()。
+            val root = service.getRootInFarmApp() ?: service.rootInActiveWindowSafe()
             val allText = if (root != null) service.collectAllText(root) else emptyList()
             val isTaskListOpen = allText.any { text ->
                 taskListKeywords.any { kw -> text.contains(kw) }
