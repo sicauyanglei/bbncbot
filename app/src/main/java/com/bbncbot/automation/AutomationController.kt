@@ -1049,6 +1049,7 @@ object AutomationController {
                 rewardJumpClickTimeMs = 0L
                 rewardJumpStayMs = REWARD_JUMP_STAY_MS
                 rewardJumpAppPkg = null
+                rewardJumpProductClicked = false
             }
             // build530 修复（debug_test_20260719_045429.log, build530-9ab1929）：
             // 历史问题：第一轮 PROCESSING_TASK 结束回 OPENING_TASK_LIST 后，currentTaskIndex
@@ -1314,6 +1315,20 @@ object AutomationController {
      */
     private var rewardJumpAppPkg: String? = null
 
+    /**
+     * "我要直接拿奖励"跳转奖励任务中是否已点击第三方 App 内的商品
+     *
+     * build565（用户反馈"点击跳转拿奖励"/"我要直接拿奖励"跳转到淘宝 App 后,
+     * 右上方有'点击商品,领取奖励'文字提示,需要点击商品后才能拿到肥料奖励）：
+     * 跳转目标 App（如淘宝）页面顶部提示"点击商品,领取奖励",用户需点击商品触发奖励。
+     * 不点击商品直接停留后切回农场,肥料奖励不发放。
+     *
+     * 流程：
+     * - false=未点击商品(或已重置),等待期间检测到"点击商品"页面会调 findAdProductNode 点击商品
+     * - true=已点击商品,继续等待剩余停留时长,满后切回农场 + kill 跳转的 App
+     */
+    private var rewardJumpProductClicked: Boolean = false
+
     private fun checkTaskListOpened(service: FarmAccessibilityService, openingAttempt: Int) {
         if (state != AutomationState.OPENING_TASK_LIST) return
 
@@ -1411,6 +1426,7 @@ object AutomationController {
                 rewardJumpClickTimeMs = 0L
                 rewardJumpStayMs = REWARD_JUMP_STAY_MS
                 rewardJumpAppPkg = null
+                rewardJumpProductClicked = false
             }
         }
 
@@ -3150,6 +3166,7 @@ object AutomationController {
                         rewardJumpClickTimeMs = System.currentTimeMillis()
                         rewardJumpStayMs = stayMs
                         rewardJumpAppPkg = null
+                        rewardJumpProductClicked = false
                     }
                     service.performClickSafe(claimBtn)
                 } else if (targetX >= 0f && targetY >= 0f) {
@@ -3183,6 +3200,7 @@ object AutomationController {
                         rewardJumpClickTimeMs = System.currentTimeMillis()
                         rewardJumpStayMs = stayMs
                         rewardJumpAppPkg = null
+                        rewardJumpProductClicked = false
                         service.dispatchGestureClick(px, py)
                     } else {
                         debugLog("executeAiVisionAction: no claim button and no screen metrics, pressing back")
@@ -3490,6 +3508,7 @@ object AutomationController {
                 rewardJumpClickTimeMs = 0L
                 rewardJumpStayMs = REWARD_JUMP_STAY_MS
                 rewardJumpAppPkg = null
+                rewardJumpProductClicked = false
                 collectedCount++
                 advanceTaskIndex()
                 moveTo(AutomationState.OPENING_TASK_LIST)
@@ -3511,9 +3530,34 @@ object AutomationController {
                 }
             }
 
+            // build565（用户反馈"点击跳转拿奖励"/"我要直接拿奖励"跳转到淘宝 App 后,
+            // 右上方有'点击商品,领取奖励'文字提示,需点击商品才能拿到肥料奖励）：
+            // 在第三方 App 等待期间,若检测到"点击商品,领取奖励"页面且尚未点击商品,
+            // 调 findAdProductNode 找到可点击商品并点击,触发奖励。点击后商品详情页可能
+            // 覆盖原页面,但只需继续等待停留时长满后切回农场 + kill 第三方 App 即可
+            // （kill 会关闭商品详情页和原页面,不影响肥料奖励发放）。
+            if (!rewardJumpProductClicked && service.isClickProductAd()) {
+                val productNode = service.findAdProductNode()
+                if (productNode != null) {
+                    val rect = android.graphics.Rect()
+                    productNode.getBoundsInScreen(rect)
+                    Log.i(TAG, "watchAd: reward-jump '点击商品,领取奖励' page detected, clicking product at ${rect.toShortString()}")
+                    debugLog("watchAd: reward-jump detected 点击商品 page, clicking product node bounds=${rect.toShortString()}")
+                    service.performClickSafe(productNode)
+                    rewardJumpProductClicked = true
+                    // 点击商品后等 2s 让商品详情页加载,再继续等待停留时长
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + 2000L)
+                    }, 2000L)
+                    return
+                } else {
+                    debugLog("watchAd: reward-jump 点击商品 page detected but no clickable product node, retrying next poll")
+                }
+            }
+
             if (sinceClickMs < rewardJumpStayMs) {
                 // 未满停留时长,继续等待
-                debugLog("watchAd: reward-jump staying in 3rd-party app, ${sinceClickMs}/${rewardJumpStayMs}ms elapsed")
+                debugLog("watchAd: reward-jump staying in 3rd-party app, ${sinceClickMs}/${rewardJumpStayMs}ms elapsed, productClicked=$rewardJumpProductClicked")
                 handler.postDelayed({
                     if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
                 }, adEndCheckIntervalMs)
@@ -3521,8 +3565,8 @@ object AutomationController {
             }
 
             // 已满停留时长,切回芭芭农场 App + kill 跳转的 App
-            Log.i(TAG, "watchAd: reward-jump ${sinceClickMs}ms >= ${rewardJumpStayMs}ms, switching to farm + killing 3rd-party app")
-            debugLog("watchAd: stay time elapsed, switching to farm + killing '${rewardJumpAppPkg}'")
+            Log.i(TAG, "watchAd: reward-jump ${sinceClickMs}ms >= ${rewardJumpStayMs}ms, switching to farm + killing 3rd-party app (productClicked=$rewardJumpProductClicked)")
+            debugLog("watchAd: stay time elapsed, switching to farm + killing '${rewardJumpAppPkg}' (productClicked=$rewardJumpProductClicked)")
             service.setAdMode(false)
             // 1. 切回芭芭农场 App 到前台（同时把第三方 App 推到后台）
             if (watchingAdPlatform != Platform.UNKNOWN) {
@@ -3543,6 +3587,7 @@ object AutomationController {
             rewardJumpClickTimeMs = 0L
             rewardJumpStayMs = REWARD_JUMP_STAY_MS
             rewardJumpAppPkg = null
+            rewardJumpProductClicked = false
             currentTaskIndex++
             handler.postDelayed({
                 if (state == AutomationState.WATCHING_AD) {
