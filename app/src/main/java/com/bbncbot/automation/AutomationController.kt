@@ -53,6 +53,19 @@ object AutomationController {
     /** "更快拿奖"流程：点击"允许"后新 App 打开的停留时间（毫秒） */
     private const val FASTER_REWARD_APP_STAY_MS = 16000L
     /**
+     * "我要直接拿奖励"跳转奖励任务：点击按钮后跳转第三方 App 的停留时间（毫秒）
+     *
+     * 用户需求：点击"我要直接拿奖励"按钮 → 跳转到第三方 App 停留 15 秒
+     * → 按返回键回到跳转前页面 → 获得肥料奖励
+     *
+     * 与"更快拿奖"的区别：
+     * - "更快拿奖"用 kill + launchPlatformApp 强杀新 App（会丢失奖励状态，仅 UC 适用）
+     * - "我要直接拿奖励"必须用 pressBack 自然返回（kill 会丢失肥料奖励）
+     *
+     * 时长 15s 来自用户实测要求："跳转15秒后，回到跳转前页面才能获得肥料"
+     */
+    private const val REWARD_JUMP_STAY_MS = 15000L
+    /**
      * 广告深链跳转进入其他 App（如快手）后的等待时间（毫秒）
      * - 用户要求：打开快手等其它app任务，等其它app打开后等2秒，把主界面激活到前台，同时kill掉打开的app
      * - 检测到深链 App 后等待此时间，然后激活农场 App 到前台并强杀被拉起的 App
@@ -958,6 +971,13 @@ object AutomationController {
                 adProductClicked = false
                 adProductClickTimeMs = 0L
             }
+            // build563：重置"我要直接拿奖励"跳转奖励任务标记,避免上一轮残留状态影响本轮
+            if (rewardJumpClicked) {
+                debugLog("openTaskList: resetting rewardJumpClicked for new round")
+                rewardJumpClicked = false
+                rewardJumpClickTimeMs = 0L
+                rewardJumpPressBackAttempts = 0
+            }
             // build530 修复（debug_test_20260719_045429.log, build530-9ab1929）：
             // 历史问题：第一轮 PROCESSING_TASK 结束回 OPENING_TASK_LIST 后，currentTaskIndex
             // 保留上一轮的值（如 currentTaskIndex=2），第二轮 processTask 从 #3 开始，
@@ -1184,6 +1204,37 @@ object AutomationController {
      */
     private var adProductClickTimeMs: Long = 0L
 
+    /**
+     * "我要直接拿奖励"跳转奖励任务的点击状态
+     *
+     * 场景：任务列表点击"去完成"后弹出广告/任务页,页面含"我要直接拿奖励"按钮,
+     * 点击后跳转到第三方 App（非农场 App）,停留 15 秒后按返回键回到跳转前页面,
+     * 肥料奖励才发放。kill 第三方 App 会丢失奖励,必须 pressBack 自然返回。
+     *
+     * - false=未点击(或已重置)
+     * - true=已点击,等待 15s 后 pressBack 返回
+     */
+    private var rewardJumpClicked: Boolean = false
+
+    /**
+     * "我要直接拿奖励"跳转奖励任务的点击时间戳
+     *
+     * 用于在点击按钮后等待 [REWARD_JUMP_STAY_MS] (15s) 再 pressBack 返回,
+     * 让第三方 App 停留足够时长触发肥料奖励
+     */
+    private var rewardJumpClickTimeMs: Long = 0L
+
+    /**
+     * "我要直接拿奖励"跳转奖励任务的 pressBack 重试次数
+     *
+     * 15s 停留满后调用 pressBack 返回,但部分第三方 App pressBack 一次可能无法回到农场页
+     * （中间会经过广告落地页/确认弹窗等）。每次 pressBack 后 5s 重新检测,最多重试 5 次,
+     * 超过则兜底跳 OPENING_TASK_LIST,避免无限循环。
+     *
+     * 在 rewardJumpClicked 重置时一并重置为 0
+     */
+    private var rewardJumpPressBackAttempts: Int = 0
+
     private fun checkTaskListOpened(service: FarmAccessibilityService, openingAttempt: Int) {
         if (state != AutomationState.OPENING_TASK_LIST) return
 
@@ -1273,6 +1324,13 @@ object AutomationController {
                 debugLog("checkTaskListOpened: resetting adProductClicked (ad finished)")
                 adProductClicked = false
                 adProductClickTimeMs = 0L
+            }
+            // build563：同时重置"我要直接拿奖励"跳转奖励任务标记(避免跨广告残留)
+            if (rewardJumpClicked) {
+                debugLog("checkTaskListOpened: resetting rewardJumpClicked (ad finished)")
+                rewardJumpClicked = false
+                rewardJumpClickTimeMs = 0L
+                rewardJumpPressBackAttempts = 0
             }
         }
 
@@ -2966,6 +3024,25 @@ object AutomationController {
                 debugLog("executeAiVisionAction: CLICK_CLAIM - finding claim button")
                 val claimBtn = service.findClaimRewardButton(enforceSceneWhitelist = false)
                 if (claimBtn != null) {
+                    val claimText = claimBtn.text?.toString().orEmpty()
+                    // build563 修复（用户反馈"我要直接拿奖励"是跳转奖励任务，需 15s 后 pressBack 返回）：
+                    // 历史问题：CLICK_CLAIM 直接点击普通领取按钮后等 5s 检测完成,
+                    // 但"我要直接拿奖励"类按钮点击后会跳转到第三方 App,需停留 15s 再 pressBack 返回。
+                    // 普通点击逻辑无法处理跳转 + 停留 + 返回流程,会导致:
+                    //   - 5s 后 checkTaskResult 检测到不在农场页 → 切到 WATCHING_AD → 触发深链 kill 逻辑
+                    //   - kill 第三方 App 会丢失肥料奖励（用户明确要求不能用 kill）
+                    // 修复：检测按钮文案是否为"拿奖励"类跳转按钮,若是:
+                    //   1. 设置 rewardJumpClicked=true + 时间戳
+                    //   2. 点击按钮（触发跳转）
+                    //   3. 5s 后 checkTaskResult → runProcessingTask 深链检测 → 切到 WATCHING_AD
+                    //   4. runWatchingAd 的"我要直接拿奖励"分支接管：等 15s + pressBack 返回
+                    if (isRewardJumpButtonText(claimText)) {
+                        Log.i(TAG, "executeAiVisionAction: CLICK_CLAIM on reward-jump button '$claimText', will wait 15s then pressBack")
+                        debugLog("executeAiVisionAction: reward-jump button detected (text='$claimText'), setting rewardJumpClicked, will wait 15s then pressBack")
+                        rewardJumpClicked = true
+                        rewardJumpClickTimeMs = System.currentTimeMillis()
+                        rewardJumpPressBackAttempts = 0
+                    }
                     service.performClickSafe(claimBtn)
                 } else {
                     debugLog("executeAiVisionAction: no claim button found, pressing back")
@@ -3002,6 +3079,31 @@ object AutomationController {
                 }, INTERVAL_PAGE_LOAD_MS * 2)
             }
         }
+    }
+
+    /**
+     * 判断按钮文案是否为"我要直接拿奖励"类跳转奖励按钮
+     *
+     * 用户需求：点击"我要直接拿奖励"按钮后,会跳转到第三方 App,停留 15s 后 pressBack 返回,
+     * 才能获得肥料奖励。这类按钮的文案特征：
+     * - 含"拿奖励"（我要直接拿奖励/直接拿奖励/立即拿奖励/马上拿奖励）
+     * - 含"直接拿"/"立即拿"/"马上拿"（简短文案变体）
+     *
+     * 注意：与普通"领取"按钮（领取肥料/立即领取/点击领取）区分,普通按钮点击即得肥料,
+     * 无需跳转停留。"拿奖励"类按钮是跳转奖励任务,必须走 15s + pressBack 返回流程。
+     *
+     * @param text 按钮文案（可能为空）
+     * @return true=跳转奖励按钮,false=普通领取按钮
+     */
+    private fun isRewardJumpButtonText(text: String): Boolean {
+        if (text.isBlank()) return false
+        // "拿奖励"匹配"我要直接拿奖励/直接拿奖励/立即拿奖励/马上拿奖励"
+        // "直接拿"/"立即拿"/"马上拿"匹配简短文案变体（如"直接拿"、"立即拿"）
+        // 注：单独的"领取"/"立即领取"不含"拿"字,不会被误判
+        return text.contains("拿奖励") ||
+            text.contains("直接拿") ||
+            text.contains("立即拿") ||
+            text.contains("马上拿")
     }
 
     // ============== 阶段3c: 蚂蚁森林领落叶肥料 ==============
@@ -3206,6 +3308,78 @@ object AutomationController {
         // 每 15 秒输出一次页面快照（避免日志过多）
         if (elapsedMs % 15000L < adEndCheckIntervalMs) {
             logPageSnapshot(service, "watchAd-${elapsedMs}ms")
+        }
+
+        // build563: "我要直接拿奖励"跳转奖励任务处理（最高优先级，先于 fasterReward/deep-link kill）
+        //
+        // 用户需求：点击"我要直接拿奖励"按钮 → 跳转到第三方 App 停留 15 秒
+        // → 按返回键回到跳转前页面 → 获得肥料奖励
+        //
+        // 与"更快拿奖"/深链 kill 的关键区别：
+        // - "更快拿奖"用 kill + launchPlatformApp 强杀新 App（会丢失奖励状态，仅 UC 适用）
+        // - 深链 kill 用 forceKillApp + launchPlatformApp 强杀新 App（同上，会丢失奖励）
+        // - "我要直接拿奖励"必须用 pressBack 自然返回（kill 会丢失肥料奖励）
+        //
+        // 触发条件：executeAiVisionAction CLICK_CLAIM 检测到"拿奖励"类按钮文案后,
+        // 设置 rewardJumpClicked=true + rewardJumpClickTimeMs=now,点击按钮触发跳转,
+        // runProcessingTask 深链检测切到 WATCHING_AD,本分支接管：
+        // 1. 若 rewardJumpClicked 且仍在第三方 App（未回农场）→ 计算停留时间
+        //    - 停留 < 15s：继续等待
+        //    - 停留 >= 15s：pressBack 返回，标记 rewardJumpReturned=true
+        // 2. 若 rewardJumpClicked 且已回到农场（pressBack 成功）→ 重置 + 任务前进 + OPENING_TASK_LIST
+        // 3. 若 rewardJumpClicked 且 pressBack 多次仍回不到农场 → 兜底跳 OPENING_TASK_LIST
+        if (rewardJumpClicked) {
+            val sinceClickMs = System.currentTimeMillis() - rewardJumpClickTimeMs
+            val onFarmNow = service.isOnFarmPage()
+
+            if (onFarmNow) {
+                // 已回到农场页（pressBack 成功或第三方 App 自然返回）→ 任务完成
+                Log.i(TAG, "watchAd: reward-jump returned to farm after ${sinceClickMs}ms, task complete")
+                debugLog("watchAd: reward-jump returned to farm (sinceClick=${sinceClickMs}ms), advancing task")
+                service.setAdMode(false)
+                rewardJumpClicked = false
+                rewardJumpClickTimeMs = 0L
+                collectedCount++
+                advanceTaskIndex()
+                moveTo(AutomationState.OPENING_TASK_LIST)
+                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                return
+            }
+
+            // 还在第三方 App 内
+            if (sinceClickMs < REWARD_JUMP_STAY_MS) {
+                // 未满 15s，继续等待
+                debugLog("watchAd: reward-jump staying in 3rd-party app, ${sinceClickMs}/${REWARD_JUMP_STAY_MS}ms elapsed")
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                }, adEndCheckIntervalMs)
+                return
+            }
+
+            // 已满 15s，pressBack 返回（不用 kill，避免丢失肥料奖励）
+            // 多次 pressBack 仍回不到农场时（最多 5 次），兜底跳 OPENING_TASK_LIST
+            val pressBackAttempts = rewardJumpPressBackAttempts
+            if (pressBackAttempts >= 5) {
+                Log.w(TAG, "watchAd: reward-jump pressBack $pressBackAttempts times still not on farm, giving up")
+                debugLog("watchAd: reward-jump pressBack exhausted ($pressBackAttempts attempts), fallback to OPENING_TASK_LIST")
+                service.setAdMode(false)
+                rewardJumpClicked = false
+                rewardJumpClickTimeMs = 0L
+                rewardJumpPressBackAttempts = 0
+                currentTaskIndex++
+                moveTo(AutomationState.OPENING_TASK_LIST)
+                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                return
+            }
+
+            Log.i(TAG, "watchAd: reward-jump ${sinceClickMs}ms >= ${REWARD_JUMP_STAY_MS}ms, pressBack to return (attempt ${pressBackAttempts + 1}/5)")
+            debugLog("watchAd: 15s elapsed, pressBack to return to farm (attempt ${pressBackAttempts + 1}/5)")
+            service.pressBack()
+            rewardJumpPressBackAttempts = pressBackAttempts + 1
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
         }
 
         // "更快拿奖"流程仅在支持的平台执行（UC 特有，支付宝/淘宝跳过）
@@ -3619,8 +3793,12 @@ object AutomationController {
         // 用户要求：等其它app打开后等2秒，把主界面激活到前台，同时kill掉打开的app
         // 注意：此检查在"最短等待时间"检查之前，确保深链任务用 2s 超时（而非默认 30s 广告等待）
         // 注：异常交易页（isOnAbnormalPage）已在上方场景识别 TRAP_ABNORMAL 中统一处理
+        // build563：新增 !rewardJumpClicked 排除条件
+        // "我要直接拿奖励"跳转奖励任务也跳转到第三方 App,但用户明确要求不能 kill（kill 会丢失肥料奖励）,
+        // 必须用 pressBack 自然返回。此分支已在上方 rewardJumpClicked 处理块中提前 return 接管,
+        // 这里加 !rewardJumpClicked 作为兜底防护,避免因任何边界条件穿透到 kill 逻辑。
         if (elapsedMs >= 5000L && !service.isOnFarmPage() && !service.isAdActivity() &&
-            !service.isAdPlaying() && !service.isOnAbnormalPage()) {
+            !service.isAdPlaying() && !service.isOnAbnormalPage() && !rewardJumpClicked) {
             val currentPkg = service.getCurrentWindowPackage()
             if (currentPkg != null) {
                 // 首次检测到深链跳转：记录包名，调度 2 秒后"激活主界面 + kill 被拉起的 App"
