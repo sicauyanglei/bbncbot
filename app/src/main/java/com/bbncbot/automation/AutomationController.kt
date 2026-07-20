@@ -849,6 +849,77 @@ object AutomationController {
         val buttons = service.findDirectCollectButtons()
         debugLog("collectDirect: found ${buttons.size} direct buttons, attempt=$attempt")
         if (buttons.isEmpty()) {
+            // build565（用户反馈"uc芭芭农场没有优先点击'点击领取','签到'完成任务"）：
+            // 日志证实 UC 芭芭农场主页的签到/点击领取按钮是图像类型（H5/Canvas 绘制）,
+            // 无障碍树抓不到 text 节点,findDirectCollectButtons 返回 0 个按钮。
+            // 修复：第 0 次找不到时调用 AI 视觉识别截图,让 AI 返回 CLICK_CLAIM + 按钮坐标,
+            // 按 AI 坐标 dispatchGestureClick 点击图像按钮。
+            // 仅 attempt==0 调一次,避免 AI 多次调用浪费时间（点击成功后下一轮会进 tryClaimDirectPopup）
+            if (attempt == 0) {
+                debugLog("collectDirect: no direct buttons in tree, asking AI vision for image-button coordinates")
+                Log.i(TAG, "collectDirect: no text buttons found, trying AI vision for image buttons")
+                val appContext = service.applicationContext
+                val sceneContext = "芭芭农场主页 COLLECTING_DIRECT 阶段,寻找图像类型的" +
+                    "'签到'/'点击领取'/'立即领取'按钮（无障碍树抓不到文本节点）"
+                Thread {
+                    val bitmap = service.takeScreenshotBitmap()
+                    if (bitmap == null) {
+                        debugLog("collectDirect: AI vision skipped, screenshot not available")
+                        handler.post {
+                            if (state != AutomationState.COLLECTING_DIRECT) return@post
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        }
+                        return@Thread
+                    }
+                    try {
+                        val result = AiVisionClient.analyzeScreenshot(appContext, bitmap, sceneContext)
+                        bitmap.recycle()
+                        handler.post {
+                            if (state != AutomationState.COLLECTING_DIRECT) return@post
+                            if (result == null) {
+                                debugLog("collectDirect: AI vision returned null, opening task list")
+                                moveTo(AutomationState.OPENING_TASK_LIST)
+                                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                                return@post
+                            }
+                            debugLog("collectDirect: AI vision action=${result.action}, reason='${result.reason.take(80)}', target=(${result.targetX},${result.targetY})")
+                            Log.i(TAG, "collectDirect: AI vision action=${result.action}, reason='${result.reason.take(80)}', target=(${result.targetX},${result.targetY})")
+                            // 仅处理 CLICK_CLAIM 动作（即 AI 识别到领取/签到按钮）
+                            // 其他动作（CLICK_CLOSE/PRESS_BACK/SKIP_TASK/WAIT）视为无领取按钮,正常进任务列表
+                            if (result.action == AiVisionAction.CLICK_CLAIM &&
+                                result.targetX >= 0f && result.targetY >= 0f) {
+                                val metrics = service.screenMetrics
+                                if (metrics != null) {
+                                    val px = result.targetX * metrics.widthPixels
+                                    val py = result.targetY * metrics.heightPixels
+                                    Log.i(TAG, "collectDirect: clicking AI image button at ($px,$py) (target=${result.targetX},${result.targetY})")
+                                    debugLog("collectDirect: AI found image claim button, clicking at px=($px,$py)")
+                                    service.dispatchGestureClick(px, py)
+                                    // 点击后等待弹窗,复用 tryClaimDirectPopup 流程领取
+                                    tryClaimDirectPopup(service, attempt, maxRetry = 3)
+                                    return@post
+                                }
+                            }
+                            // AI 未识别到领取按钮（CLICK_CLOSE/PRESS_BACK/SKIP_TASK/WAIT）
+                            // 或无坐标,直接进任务列表
+                            debugLog("collectDirect: AI did not find claim button (action=${result.action}), opening task list")
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "collectDirect: AI vision exception: ${e.message}", e)
+                        if (!bitmap.isRecycled) bitmap.recycle()
+                        handler.post {
+                            if (state != AutomationState.COLLECTING_DIRECT) return@post
+                            debugLog("collectDirect: AI vision exception, opening task list")
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        }
+                    }
+                }.start()
+                return
+            }
             // 历史说明（build538 → build542 撤销）：
             // 用户反馈"点击领取在领肥料上方"，build538 加了坐标兜底点击 (0.917, 0.657)。
             // 但日志（debug_test_20260719_113316.log, build541-801abe4）显示：
