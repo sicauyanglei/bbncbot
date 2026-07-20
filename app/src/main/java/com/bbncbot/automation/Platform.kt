@@ -323,7 +323,10 @@ object AlipayPlatformConfig : PlatformConfig {
         // 无障碍树 claim-text-nodes 也识别不到(关键词列表不含"拿奖励"类文案)。
         // 修复：directCollectTexts 新增"拿奖励/直接拿/立即拿/马上拿"等关键词,
         //       让 COLLECTING_DIRECT 和 findDirectCollectButtons 能识别这类领取按钮。
-        "拿奖励", "直接拿奖励", "立即拿奖励", "马上拿奖励"
+        // build565: 新增"点击跳转拿奖励/跳转拿奖励/拿奖励/跳转拿"关键词
+        // （用户反馈"点击跳转拿奖励"与"我要直接拿奖励"都是一类的跳转奖励任务）
+        "拿奖励", "直接拿奖励", "立即拿奖励", "马上拿奖励",
+        "点击跳转拿奖励", "跳转拿奖励", "跳转拿"
     )
     override val collectFertilizerCoords = listOf(
         Pair(0.888f, 0.771f),  // 右侧浮动"肥料"按钮（OCR+颜色分析确认，1200x2664 屏幕）
