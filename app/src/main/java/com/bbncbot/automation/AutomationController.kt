@@ -3359,6 +3359,44 @@ object AutomationController {
         return DEEP_LINK_DEFAULT_KILL_DELAY_MS.coerceIn(DEEP_LINK_MAX_DURATION_MS, DEEP_LINK_MAX_KILL_DELAY_MS)
     }
 
+    /**
+     * 点击广告"跳过"按钮完成广告（用户需求 build562：UC 点击商品广告专用）
+     *
+     * 优先级：
+     * 1. 优先找"跳过"按钮（用户明确要求点击"跳过"完成广告）
+     * 2. 找不到"跳过"时,fallback 用 [FarmAccessibilityService.findAdCloseButton] 找通用关闭按钮(×/关闭等)
+     * 3. 都找不到时 pressBack 兜底
+     *
+     * 调用场景：UC"点击商品,领取奖励"广告,点击商品跳转 10s 后返回广告页,点击"跳过"完成广告。
+     *
+     * @param service 无障碍服务实例
+     */
+    private fun clickSkipButtonOrCloseAd(service: FarmAccessibilityService) {
+        // 1. 优先找"跳过"按钮
+        val skipBtn = service.findAdSkipButton()
+        if (skipBtn != null) {
+            Log.i(TAG, "watchAd: clicking skip button to finish ad (text='${skipBtn.text}')")
+            debugLog("watchAd: clicking skip button (text='${skipBtn.text}')")
+            service.performClickSafe(skipBtn)
+            return
+        }
+        // 2. fallback: 找通用关闭按钮(×/关闭等)
+        val closeBtn = service.findAdCloseButton(
+            service.currentPlatformConfig().adCloseButtonTexts,
+            enforceSceneWhitelist = false
+        )
+        if (closeBtn != null) {
+            Log.i(TAG, "watchAd: no skip button, clicking close button (text='${closeBtn.text}')")
+            debugLog("watchAd: no skip button, clicking close button (text='${closeBtn.text}')")
+            service.performClickSafe(closeBtn)
+            return
+        }
+        // 3. 都找不到:pressBack 兜底
+        Log.i(TAG, "watchAd: no skip/close button, pressing back to close ad")
+        debugLog("watchAd: no skip/close button, pressing back")
+        service.pressBack()
+    }
+
     private fun runWatchingAd(elapsedMs: Long) {
         if (state != AutomationState.WATCHING_AD) return
         val service = getService() ?: run { stop(); return }
@@ -3814,9 +3852,11 @@ object AutomationController {
         // 场景：UC 集肥料点击后弹激励视频广告，顶部提示"点击商品,领取奖励"，
         // 必须主动点击广告中的商品才能触发肥料奖励，广告结束后不发肥料。
         // 注：原 checkTaskListOpened 也有此逻辑（OPENING_TASK_LIST 状态），但广告进入 WATCHING_AD 后还需处理。
-        // 用户需求：更好适配 UC 极速版芭芭农场的广告内容，快速完成广告获取肥料
-        // 优化：避免在 WATCHING_AD 阶段死等 adMinDurationMs，节省约 90s/点击商品广告
-        if (service.isClickProductAd()) {
+        // 用户需求（build562）：点击跳转拿奖励,跳转10秒后,回到页面点击"跳过"
+        // 流程：点击商品 → 跳转商品详情页(其他App) → 等待10s → pressBack返回广告页 → 点击"跳过"完成广告
+        // 注：adProductClicked=true 时即使跳转到商品页(isClickProductAd=false)也继续走此分支,
+        //     避免跳转期间被深链检测分支误判为深链任务而 kill 商品 App
+        if (service.isClickProductAd() || adProductClicked) {
             if (!adProductClicked) {
                 // 阶段1：找商品节点点击
                 val productNode = service.findAdProductNode()
@@ -3834,25 +3874,32 @@ object AutomationController {
                     debugLog("watchAd: 点击商品 ad detected but no clickable product node, retrying")
                 }
             } else {
-                // 阶段2：已点击商品，等待 5s 让奖励触发后关闭广告
+                // 阶段2：已点击商品，等待 10s 让奖励触发（用户需求：跳转10秒后）
                 val sinceClick = System.currentTimeMillis() - adProductClickTimeMs
-                if (sinceClick >= 5000L) {
-                    Log.i(TAG, "watchAd: 5s after clicking ad product, closing ad window (sinceClick=${sinceClick}ms)")
-                    debugLog("watchAd: closing ad window 5s after product click")
-                    // 优先找关闭按钮，找不到 pressBack
-                    val closeBtn = service.findAdCloseButton(service.currentPlatformConfig().adCloseButtonTexts, enforceSceneWhitelist = false)
-                    if (closeBtn != null) {
-                        debugLog("watchAd: clicking close button on ad (text='${closeBtn.text}')")
-                        service.performClickSafe(closeBtn)
-                    } else {
-                        debugLog("watchAd: no close button, pressing back to close ad")
+                if (sinceClick >= 10000L) {
+                    // 10s 到了：回到广告页点击"跳过"完成广告
+                    Log.i(TAG, "watchAd: 10s after clicking ad product, returning to ad page and clicking skip (sinceClick=${sinceClick}ms)")
+                    debugLog("watchAd: 10s elapsed, returning to ad page and clicking skip button")
+                    // 检测当前是否在广告页（点击商品可能跳转到商品详情页）
+                    val onAdPage = service.isClickProductAd() || service.isAdActivity()
+                    if (!onAdPage) {
+                        // 当前在商品详情页(其他App),先 pressBack 返回广告页
+                        debugLog("watchAd: not on ad page (jumped to product page, pkg=${service.getCurrentWindowPackage()}), pressing back to return")
                         service.pressBack()
+                        // 等待 1.5s 让广告页恢复,然后找"跳过"按钮
+                        handler.postDelayed({
+                            if (state != AutomationState.WATCHING_AD) return@postDelayed
+                            clickSkipButtonOrCloseAd(service)
+                        }, 1500L)
+                    } else {
+                        // 已在广告页,直接找"跳过"按钮
+                        clickSkipButtonOrCloseAd(service)
                     }
-                    // 重置标记：下一轮如果还在广告中，会重新尝试点击商品
+                    // 重置标记：下一轮如果还在广告中,会重新尝试点击商品
                     adProductClicked = false
                     adProductClickTimeMs = 0L
                 } else {
-                    debugLog("watchAd: waiting ${sinceClick}ms/5000ms after clicking ad product")
+                    debugLog("watchAd: waiting ${sinceClick}ms/10000ms after clicking ad product (may have jumped to product page)")
                 }
             }
             // 点击商品广告：用较短间隔(2s)轮询，而非 adEndCheckIntervalMs(3-5s)
@@ -3867,7 +3914,9 @@ object AutomationController {
         // 用户需求（拓展）：关闭跳转 App 的时间由任务规定时间决定（computeDeepLinkKillDelayMs 3-tier）
         // 注意：此检查在"最短等待时间"检查之前，确保深链任务用任务时长超时（而非默认 30s 广告等待）
         // 注：异常交易页（isOnAbnormalPage）已在上方场景识别 TRAP_ABNORMAL 中统一处理
-        if (elapsedMs >= 5000L && !service.isOnFarmPage() && !service.isAdActivity() &&
+        // build562 修复：加 !adProductClicked 排除,避免 UC"点击商品"广告跳转商品详情页时
+        // 被误判为深链任务而 kill 商品 App（应在 10s 后 pressBack 返回广告页点击"跳过"）
+        if (elapsedMs >= 5000L && !adProductClicked && !service.isOnFarmPage() && !service.isAdActivity() &&
             !service.isAdPlaying() && !service.isOnAbnormalPage()) {
             val currentPkg = service.getCurrentWindowPackage()
             if (currentPkg != null) {

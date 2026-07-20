@@ -2735,6 +2735,64 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 专门查找广告页的"跳过"按钮（优先级高于"×/关闭"）
+     *
+     * 用户需求（build562）：UC"点击商品,领取奖励"广告流程为
+     * 点击商品 → 跳转商品详情页 10s → 返回广告页 → 点击"跳过"完成广告。
+     * 此方法专门用于最后一步：在返回广告页后优先找"跳过"按钮。
+     *
+     * 查找策略（按优先级）：
+     * 1. 精确匹配"跳过广告"/"跳过视频"/"跳过奖励"（带后缀,更精确）
+     * 2. 精确匹配"跳过"（最常见）
+     * 3. 匹配"skip"（英文）
+     *
+     * 排除：陷阱按钮 / 系统通知栏控件 / 非法 bounds（复用 findAdCloseButton 的校验逻辑）
+     *
+     * @return "跳过"按钮节点或 null
+     */
+    fun findAdSkipButton(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        val trapTexts = currentPlatformConfig().adInstallButtonTexts
+        val systemControlKeywords = listOf(
+            "手电筒", " flashlight", "蓝牙", "bluetooth", "飞行模式", "airplane mode",
+            "wifi", "热点", "hotspot", "自动旋转", "auto rotate", "请勿打扰", "do not disturb"
+        )
+        fun isTrapNode(node: AccessibilityNodeInfo): Boolean {
+            val text = node.text?.toString().orEmpty()
+            val desc = node.contentDescription?.toString().orEmpty()
+            val combined = text + desc
+            return trapTexts.any { trap -> combined.contains(trap) }
+        }
+        fun isSystemControlNode(node: AccessibilityNodeInfo): Boolean {
+            val text = node.text?.toString().orEmpty().lowercase()
+            val desc = node.contentDescription?.toString().orEmpty().lowercase()
+            val combined = "$text $desc"
+            return systemControlKeywords.any { kw -> combined.contains(kw) }
+        }
+        fun hasInvalidBounds(node: AccessibilityNodeInfo): Boolean {
+            val rect = android.graphics.Rect()
+            node.getBoundsInScreen(rect)
+            return rect.width() <= 0 || rect.height() <= 0 || rect.top > rect.bottom
+        }
+        fun isValidSkipNode(node: AccessibilityNodeInfo): Boolean {
+            if (isTrapNode(node)) return false
+            if (isSystemControlNode(node)) return false
+            if (hasInvalidBounds(node)) return false
+            return true
+        }
+        // 按优先级查找
+        val keywords = listOf("跳过广告", "跳过视频", "跳过奖励", "跳过", "skip", "Skip")
+        for (kw in keywords) {
+            val node = findNodeByText(root, kw)
+            if (node != null && isValidSkipNode(node)) {
+                debugLog("findAdSkipButton: found by text='$kw'")
+                return node
+            }
+        }
+        return null
+    }
+
+    /**
      * 检测当前广告页是否为"点击商品，领取奖励"类型激励视频
      *
      * 场景（debug_test_20260719_153945.log, build558）：
