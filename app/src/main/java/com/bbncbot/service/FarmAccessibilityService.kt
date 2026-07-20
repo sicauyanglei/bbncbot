@@ -2166,8 +2166,21 @@ class FarmAccessibilityService : AccessibilityService() {
                     p = p.parent; depth++
                 }
                 if (!clickTarget.isClickable) {
-                    debugLog("findGoCompleteButtons: drop non-clickable node text='${node.text?.toString()?.take(30)}' (no clickable ancestor)")
-                    return@mapNotNull null
+                    // build562 修复（debug_test_20260719_163645.log, build561-e4467db）：
+                    // UC H5 WebView 下"去完成"按钮的 clickable 属性不透传到无障碍树,
+                    // 向上 5 层都找不到 clickable 父节点(11 个全被 drop) → 任务列表打不开
+                    // → checkTaskListOpened 5 次超时 → NAVIGATING → 10086 弹窗劫持 → 失败。
+                    // 修复:UC 平台放宽,返回节点本身(用 dispatchGesture 坐标点击,performClickSafe 已有 fallback)。
+                    // 其他平台(支付宝/淘宝)保持严格 clickable 要求,避免误点规则条款等非按钮节点。
+                    val isUcPlatform = currentPlatform == com.bbncbot.automation.Platform.UC ||
+                        currentPlatformConfig().packageNames.any { it.contains("ucmobile") }
+                    if (!isUcPlatform) {
+                        debugLog("findGoCompleteButtons: drop non-clickable node text='${node.text?.toString()?.take(30)}' (no clickable ancestor)")
+                        return@mapNotNull null
+                    }
+                    // UC 平台:用节点本身(坐标点击),不向上找父节点
+                    clickTarget = node
+                    debugLog("findGoCompleteButtons: UC platform, use non-clickable node directly text='${node.text?.toString()?.take(30)}' (will use gesture click)")
                 }
             }
             // 2. 文本长度过滤（防止规则条款被误识别）
@@ -3599,12 +3612,36 @@ class FarmAccessibilityService : AccessibilityService() {
                 text.contains("奖励已领取")
         }
         if (!isComplete) return false
-        // 上下文校验：若页面同时是广告主落地页（含多个诱导按钮且无农场核心），
+        // 上下文校验1：若页面同时是广告主落地页（含多个诱导按钮且无农场核心），
         // 说明"任务完成"文字是广告伪装的诱导文案，不应识别为完成页
         // 注意：isAdLandingPage 用 rootInActiveWindowSafe，可能取到不同 root，
         // 但落地页伪装通常在同一窗口内，故安全
         if (isAdLandingPage()) {
             debugLog("isTaskCompletePage: NO (text matched but isAdLandingPage=true, suspected ad bait)")
+            return false
+        }
+        // 上下文校验2：必须有农场/任务上下文文案（集肥料/施肥/肥料/任务/已发放等）
+        // 原因（build562 修复）：UC H5 农场首页底部导航栏 + 任务进度文案
+        // （如"7.23内完成3天即领"、"今日已完成3/5"）会被误判为任务完成页，
+        // 导致 COLLECTING_DIRECT 阶段直接跳过、整个流程跑偏。
+        // 真实任务完成页必含农场上下文，UC 导航栏/进度文案页不含。
+        val hasFarmContext = allText.any { text ->
+            text.contains("集肥料") || text.contains("施肥") ||
+                text.contains("芭芭农场") || text.contains("已发放") ||
+                text.contains("肥料已") || text.contains("领取成功") ||
+                text.contains("做任务") || text.contains("任务中心")
+        }
+        if (!hasFarmContext) {
+            debugLog("isTaskCompletePage: NO (text matched but no farm context, suspected UC navbar/progress text)")
+            return false
+        }
+        // 上下文校验3：排除 UC 浏览器底部导航栏误判
+        // UC 导航栏特征词：智能组件 + 多窗口（同时出现几乎必是 UC 底部导航栏）
+        val hasUcNavbar = allText.any { it.contains("智能组件") } &&
+            allText.any { it.contains("多窗口") }
+        if (hasUcNavbar && allText.size < 30) {
+            // 页面同时含 UC 导航栏特征词且文本节点少（<30）→ 大概率是 UC 浏览器外壳而非农场任务弹窗
+            debugLog("isTaskCompletePage: NO (UC navbar detected: 智能组件+多窗口, textCount=${allText.size})")
             return false
         }
         debugLog("isTaskCompletePage: YES, sample=${allText.take(5)}")
@@ -4596,9 +4633,21 @@ class FarmAccessibilityService : AccessibilityService() {
             return try {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    // build562 修复：强制指定目标平台包名，防止 deep link 被其他浏览器（Chrome 等）抢走
+                    // 场景：UC 被 kill 后 deep link https://broccoli.uc.cn/... 被 Chrome 抢走打开，
+                    // 导致 UC 没起来、bot 在桌面/Chrome 间反复找不到"芭芭农场" tab 最终 STOPPING。
+                    // 优先用主包名，找不到时尝试所有 packageNames
+                    val targetPkg = targetPlatform.config.packageNames.firstOrNull()
+                    if (targetPkg != null) {
+                        try {
+                            setPackage(targetPkg)
+                        } catch (_: Exception) {
+                            // setPackage 在某些 Android 版本/Manifest 限制下可能抛异常，忽略后回退默认
+                        }
+                    }
                 }
                 startActivity(intent)
-                debugLog("reopenFarmByDeepLink: opened $deepLink for $targetPlatform")
+                debugLog("reopenFarmByDeepLink: opened $deepLink for $targetPlatform (package forced)")
                 if (targetPlatform != currentPlatform) {
                     currentPlatform = Platform.UNKNOWN
                 }

@@ -77,7 +77,14 @@ object AutomationController {
      */
     private const val PROCESSING_TASK_TIMEOUT_MS = 5 * 60 * 1000L
     /**
-     * 浏览任务中连续检测到"非农场页 + 无倒计时 + 无进度"的样本数上限。
+     * FERTILIZING 阶段总超时（毫秒）。
+     *
+     * 防止 FERTILIZING → NAVIGATING → COLLECTING_DIRECT → OPENING_TASK_LIST → PROCESSING_TASK → FERTILIZING
+     * 跨状态循环无进展（如任务列表弹窗关不掉、施肥按钮找不到、hint 坐标点击无效）。
+     * 超时后强制切 WAITING 进入下一轮，避免 5 分钟反复循环无肥料收益。
+     */
+    private const val FERTILIZING_TIMEOUT_MS = 60 * 1000L
+    /** 浏览任务中连续检测到"非农场页 + 无倒计时 + 无进度"的样本数上限。
      *
      * 用于检测 UC 浏览器 AI 助手等劫持浏览页面：bot 在劫持页面上滑动但无奖励进展，
      * 连续 N 次后退出浏览（节省每劫持约 72s 的无效滑动时间）。
@@ -208,6 +215,18 @@ object AutomationController {
      */
     @Volatile
     private var taskDurationHintSeconds: Int = 0
+
+    /**
+     * FERTILIZING 阶段进入时间戳（[System.currentTimeMillis]）。
+     *
+     * 用于 [FERTILIZING_TIMEOUT_MS] watchdog：进入 FERTILIZING 时记录，
+     * 每次 runFertilizing 检查是否超时（跨状态循环保护）。
+     * - 0 表示未在 FERTILIZING 阶段
+     * - 进入 runFertilizing(clickCount==0) 时设置为当前时间
+     * - 切到其他状态时清零
+     */
+    @Volatile
+    private var fertilizingStartTimeMs: Long = 0L
 
     /**
      * PROCESSING_TASK 阶段进入时间戳（[System.currentTimeMillis]）。
@@ -2769,7 +2788,20 @@ object AutomationController {
                 // 真实页面是农场包名 → getCurrentWindowPackage 误报 systemui，不进 WATCHING_AD
                 // 继续后续 scene 检测（支付宝内部跳转的搜索页/任务页等）
                 isActiveRootFarmPkg -> {
-                    debugLog("processTask: not on farm page but activeRoot='$activeRootPkg' is farm pkg, otherPkg='$otherPkg' (systemui false positive), skip WATCHING_AD, continue scene detection")
+                    // build562 修复（debug_test_20260719_144835.log, build555-41e3bbc）：
+                    // 历史问题：支付宝内部跳转到非农场页（搜索页/任务详情页）时，
+                    // isOnFarmPage=false + activeRoot=支付宝 → 走此分支跳过 WATCHING_AD，
+                    // 但后续 scene 检测没有匹配的页面类型，代码继续往下走到 identifyCurrentScene，
+                    // 反复循环 "skip WATCHING_AD" 浪费 2 分钟（14:39-14:41）。
+                    // 修复：检测到 activeRoot 是农场包名但不在农场页时，pressBack 返回上一页
+                    // （通常是农场主页），然后重试 processTask(attempt+1)。
+                    // 仅当 attempt 未超限时执行，超限则走下面的 isRealSystemUiOverlay 分支。
+                    debugLog("processTask: not on farm page but activeRoot='$activeRootPkg' is farm pkg (alipay/taobao internal jump), pressing back to return to farm, retry attempt=$attempt")
+                    service.pressBack()
+                    handler.postDelayed({
+                        if (state == AutomationState.PROCESSING_TASK) runProcessingTask(attempt + 1)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                    return
                 }
                 // 真实页面是 systemui（真正的下拉通知栏/控制中心）→ 等待用户关闭后重试
                 isRealSystemUiOverlay -> {
@@ -4360,6 +4392,27 @@ object AutomationController {
             // 历史问题：H5 未暴露施肥按钮文本，findFertilizeButton 找不到；
             // 只能从 dump 里反推真实施肥按钮坐标，下次根据日志修正坐标兜底
             service.dumpClickableNodes("fertilize-start")
+            // FERTILIZING watchdog：仅在首次进入时记录时间戳（跨状态循环保护）
+            // 若每次 clickCount==0 都重置，跨状态循环 FERTILIZING→NAVIGATING→FERTILIZING 会无限重置 watchdog，失效
+            // 所以只在 fertilizingStartTimeMs==0 时设置，startNextRound 时清零
+            if (fertilizingStartTimeMs == 0L) {
+                fertilizingStartTimeMs = System.currentTimeMillis()
+                debugLog("fertilize: watchdog timer started at ${fertilizingStartTimeMs}")
+            }
+        }
+
+        // FERTILIZING 跨状态循环 watchdog：
+        // 防止 FERTILIZING → NAVIGATING → ... → FERTILIZING 反复循环无进展
+        // 场景：任务列表弹窗关不掉 / 施肥按钮找不到 / hint 坐标点击无效
+        // 超时后强制切 WAITING 进入下一轮，避免 5 分钟反复循环无肥料收益
+        if (fertilizingStartTimeMs > 0 &&
+            System.currentTimeMillis() - fertilizingStartTimeMs >= FERTILIZING_TIMEOUT_MS) {
+            Log.w(TAG, "fertilize: watchdog timeout (${FERTILIZING_TIMEOUT_MS}ms), force switching to WAITING for next round")
+            debugLog("fertilize: watchdog timeout, cross-state loop suspected, force next round")
+            fertilizingStartTimeMs = 0L
+            moveTo(AutomationState.WAITING)
+            handler.postDelayed({ startNextRound() }, INTERVAL_WAIT_MS)
+            return
         }
 
         // 检测异常页面（交易页面等），按返回退出并重新导航
@@ -4574,6 +4627,7 @@ object AutomationController {
         noProgressStreak = 0  // build545：重置施肥无进展计数
         lastRemainCount = -1  // build549：重置施肥 remainCount 跟踪
         taskButtons = emptyList()
+        fertilizingStartTimeMs = 0L  // build562：重置 FERTILIZING watchdog，下一轮重新计时
         moveTo(AutomationState.NAVIGATING)
         handler.post { runNavigating(0) }
     }
