@@ -1032,6 +1032,21 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 屏幕尺寸信息（供 AutomationController 把 AI 返回的 0-1 归一化坐标转换为像素坐标）
+     *
+     * build565：AI 视觉接口返回 target 坐标为 0-1 归一化比例,需乘以屏幕宽高得到像素坐标,
+     * 才能 dispatchGestureClick 点击。封装为只读属性避免每次都从 resources 读取。
+     *
+     * @return DisplayMetrics,或 null（service 未初始化时）
+     */
+    val screenMetrics: android.util.DisplayMetrics?
+        get() = try {
+            resources.displayMetrics
+        } catch (e: Exception) {
+            null
+        }
+
+    /**
      * 模拟滑动（上下滑动浏览页面获取肥料）
      * @param startX 起始X坐标
      * @param startY 起始Y坐标

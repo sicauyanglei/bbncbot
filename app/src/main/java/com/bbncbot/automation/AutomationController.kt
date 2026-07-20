@@ -2977,9 +2977,9 @@ object AutomationController {
                         }, INTERVAL_PAGE_LOAD_MS)
                         return@post
                     }
-                    debugLog("processTask: AI vision action=${result.action}, reason='${result.reason.take(80)}'")
-                    Log.i(TAG, "processTask: AI vision action=${result.action}, reason='${result.reason.take(80)}'")
-                    executeAiVisionAction(service, result.action)
+                    debugLog("processTask: AI vision action=${result.action}, reason='${result.reason.take(80)}', target=(${result.targetX},${result.targetY})")
+                    Log.i(TAG, "processTask: AI vision action=${result.action}, reason='${result.reason.take(80)}', target=(${result.targetX},${result.targetY})")
+                    executeAiVisionAction(service, result.action, result.targetX, result.targetY)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "processTask: AI vision exception: ${e.message}", e)
@@ -3013,7 +3013,9 @@ object AutomationController {
      */
     private fun executeAiVisionAction(
         service: FarmAccessibilityService,
-        action: AiVisionAction
+        action: AiVisionAction,
+        targetX: Float = -1f,
+        targetY: Float = -1f
     ) {
         when (action) {
             AiVisionAction.CLICK_CLOSE -> {
@@ -3021,8 +3023,21 @@ object AutomationController {
                 val closeBtn = service.findAdCloseButton(enforceSceneWhitelist = false)
                 if (closeBtn != null) {
                     service.performClickSafe(closeBtn)
+                } else if (targetX >= 0f && targetY >= 0f) {
+                    // build565: 无障碍树找不到关闭按钮（图像类型按钮）,按 AI 返回坐标点击
+                    val metrics = service.screenMetrics
+                    if (metrics != null) {
+                        val px = targetX * metrics.widthPixels
+                        val py = targetY * metrics.heightPixels
+                        Log.i(TAG, "executeAiVisionAction: CLICK_CLOSE by AI target=($targetX,$targetY) -> px=($px,$py)")
+                        debugLog("executeAiVisionAction: no close button found in tree, clicking AI target=($targetX,$targetY) px=($px,$py)")
+                        service.dispatchGestureClick(px, py)
+                    } else {
+                        debugLog("executeAiVisionAction: no close button and no screen metrics, pressing back")
+                        service.pressBack()
+                    }
                 } else {
-                    debugLog("executeAiVisionAction: no close button found, pressing back")
+                    debugLog("executeAiVisionAction: no close button and no AI target, pressing back")
                     service.pressBack()
                 }
                 handler.postDelayed({
@@ -3066,8 +3081,44 @@ object AutomationController {
                         rewardJumpAppPkg = null
                     }
                     service.performClickSafe(claimBtn)
+                } else if (targetX >= 0f && targetY >= 0f) {
+                    // build565 修复（用户反馈"我要直接拿奖励"/"点击跳转拿奖励"可能是图像类型文本）：
+                    // 历史问题：findClaimRewardButton 在无障碍树找不到 H5/Canvas 绘制的图像按钮,
+                    // 直接 pressBack 关闭页面,跳转奖励任务被跳过,丢失肥料奖励。
+                    // 修复：当无障碍树找不到 claim 按钮且 AI 返回有效坐标时,
+                    // 按 AI 坐标 dispatchGestureClick 点击。由于无法读取按钮文案判断是否
+                    // 跳转奖励任务,保守起见统一按 reward-jump 流程处理（设置 rewardJumpClicked）,
+                    // 让 runWatchingAd 的 reward-jump 分支接管后续停留 + 切农场 + kill 流程。
+                    // 若 AI 误判（实际是普通领取按钮）,reward-jump 流程最多多等 15s,
+                    // 不会丢失奖励（普通领取按钮点击后弹窗会保留,切回农场仍能识别）。
+                    val metrics = service.screenMetrics
+                    if (metrics != null) {
+                        val px = targetX * metrics.widthPixels
+                        val py = targetY * metrics.heightPixels
+                        Log.i(TAG, "executeAiVisionAction: CLICK_CLAIM by AI target=($targetX,$targetY) -> px=($px,$py) (image button fallback)")
+                        debugLog("executeAiVisionAction: no claim button in tree, clicking AI target=($targetX,$targetY) px=($px,$py)")
+                        // 解析弹窗"x秒之后拿奖励"提示,得到需要停留的秒数
+                        val parsedSeconds = service.findRewardJumpDurationHint()
+                        val stayMs = if (parsedSeconds > 0) {
+                            debugLog("executeAiVisionAction: parsed reward-jump stay ${parsedSeconds}s from popup")
+                            parsedSeconds * 1000L
+                        } else {
+                            debugLog("executeAiVisionAction: no duration hint parsed, using default ${REWARD_JUMP_STAY_MS}ms")
+                            REWARD_JUMP_STAY_MS
+                        }
+                        // 统一按 reward-jump 流程处理（AI 已识别为领取按钮,无障碍树找不到说明是图像按钮,
+                        // 多见于"我要直接拿奖励"/"点击跳转拿奖励"等跳转奖励任务）
+                        rewardJumpClicked = true
+                        rewardJumpClickTimeMs = System.currentTimeMillis()
+                        rewardJumpStayMs = stayMs
+                        rewardJumpAppPkg = null
+                        service.dispatchGestureClick(px, py)
+                    } else {
+                        debugLog("executeAiVisionAction: no claim button and no screen metrics, pressing back")
+                        service.pressBack()
+                    }
                 } else {
-                    debugLog("executeAiVisionAction: no claim button found, pressing back")
+                    debugLog("executeAiVisionAction: no claim button and no AI target, pressing back")
                     service.pressBack()
                 }
                 handler.postDelayed({

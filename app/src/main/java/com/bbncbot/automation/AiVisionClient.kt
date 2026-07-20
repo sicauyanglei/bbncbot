@@ -56,10 +56,20 @@ object AiVisionClient {
      *
      * @param action 预定义动作
      * @param reason AI 给出的判断理由（用于日志，不参与执行）
+     * @param targetX AI 返回的点击目标 X 坐标（0-1 归一化比例，-1 表示无坐标）
+     * @param targetY AI 返回的点击目标 Y 坐标（0-1 归一化比例，-1 表示无坐标）
+     *
+     * build565（用户反馈"点击跳转拿奖励"/"我要直接拿奖励"可能是图像类型文本）：
+     * 无障碍树抓不到 H5/Canvas 绘制的图像文本,findClaimRewardButton 返回 null,
+     * 需让 AI 返回按钮坐标,executeAiVisionAction 按坐标 dispatchGesture 点击。
+     * 坐标使用 0-1 归一化比例,由调用方乘以屏幕宽高得到实际像素坐标,
+     * 适配不同屏幕分辨率。
      */
     data class VisionResult(
         val action: AiVisionAction,
-        val reason: String
+        val reason: String,
+        val targetX: Float = -1f,
+        val targetY: Float = -1f
     )
 
     /**
@@ -216,7 +226,7 @@ object AiVisionClient {
 
             val result = parseAction(contentStr)
             Log.i(TAG, "callVisionModel($model) success: sceneContext='$sceneContext', " +
-                "action=${result.action}, reason='${result.reason.take(80)}'")
+                "action=${result.action}, reason='${result.reason.take(80)}', target=(${result.targetX},${result.targetY})")
             result
         } catch (e: Exception) {
             Log.e(TAG, "callVisionModel($model) exception: ${e.message}")
@@ -239,7 +249,7 @@ object AiVisionClient {
             append("当前场景上下文：").append(sceneContext).append("\n\n")
             append("请分析这张手机截图，判断安卓自动化机器人下一步该执行哪个动作。\n\n")
             append("只能从以下 5 个预定义动作中选择一个，返回严格的 JSON 格式：\n")
-            append("{\"action\": \"<动作>\", \"reason\": \"<简要理由>\"}\n\n")
+            append("{\"action\": \"<动作>\", \"reason\": \"<简要理由>\", \"target\": {\"x\": <0-1>, \"y\": <0-1>}}\n\n")
             append("可选动作（action 字段值）：\n")
             append("- CLICK_CLOSE  : 点击关闭按钮（×/关闭/知道了/确定）关闭弹窗\n")
             append("- CLICK_CLAIM  : 点击领取/确认按钮（领取奖励/领取肥料/我要直接拿奖励/直接拿奖励/立即拿奖励/点击跳转拿奖励/跳转拿奖励/确定）领取奖励\n")
@@ -252,6 +262,12 @@ object AiVisionClient {
             append("3. 若页面是分享/评价/会员/活动推销等无肥料价值 → SKIP_TASK\n")
             append("4. 若页面正在加载/有倒计时/视频播放中 → WAIT\n")
             append("5. 其他无法处理的情况 → PRESS_BACK\n\n")
+            append("target 字段（重要）：\n")
+            append("- 对于 CLICK_CLOSE 和 CLICK_CLAIM 动作，必须返回要点击的按钮在截图中的位置\n")
+            append("- x、y 坐标使用 0-1 归一化比例（左上角为 0,0，右下角为 1,1）\n")
+            append("- 例如按钮位于屏幕中央，target 为 {\"x\": 0.5, \"y\": 0.5}\n")
+            append("- 注：部分页面（如 H5/Canvas 绘制）的按钮文字是图像类型，无障碍树抓不到文本节点，必须靠 target 坐标点击\n")
+            append("- 对于 PRESS_BACK/SKIP_TASK/WAIT 动作，target 字段可省略或设为 {\"x\": -1, \"y\": -1}\n\n")
             append("只返回 JSON，不要 markdown 代码块，不要解释。")
         }
     }
@@ -292,7 +308,26 @@ object AiVisionClient {
             val actionStr = json.optString("action", "").uppercase()
             val reason = json.optString("reason", "")
             val action = parseActionEnum(actionStr)
-            return VisionResult(action, reason)
+            // build565: 解析 target 坐标（0-1 归一化比例）
+            // AI 返回格式示例: {"action":"CLICK_CLAIM","reason":"...","target":{"x":0.5,"y":0.8}}
+            // 或简写: {"action":"CLICK_CLAIM","reason":"...","x":0.5,"y":0.8}
+            var tx = -1f
+            var ty = -1f
+            val targetObj = json.optJSONObject("target")
+            if (targetObj != null) {
+                tx = targetObj.optString("x", "-1").toFloatOrNull() ?: -1f
+                ty = targetObj.optString("y", "-1").toFloatOrNull() ?: -1f
+            } else {
+                tx = json.optString("x", "-1").toFloatOrNull() ?: -1f
+                ty = json.optString("y", "-1").toFloatOrNull() ?: -1f
+            }
+            // 归一化范围校验：0-1 之外视为无效（AI 可能返回像素坐标,需调用方处理）
+            if (tx < 0f || tx > 1f) tx = -1f
+            if (ty < 0f || ty > 1f) ty = -1f
+            if (tx >= 0f && ty >= 0f) {
+                Log.i(TAG, "parseAction: parsed target=($tx,$ty) from AI response")
+            }
+            return VisionResult(action, reason, tx, ty)
         } catch (e: Exception) {
             Log.w(TAG, "parseAction: JSON parse failed, fallback to keyword match: ${e.message}")
         }
