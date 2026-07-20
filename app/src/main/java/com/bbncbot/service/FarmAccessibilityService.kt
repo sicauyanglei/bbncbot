@@ -1477,6 +1477,50 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 解析"我要直接拿奖励"跳转奖励任务弹窗显示的停留秒数
+     *
+     * 用户需求：点击"我要直接拿奖励"按钮后跳转到第三方 App,弹窗上一般会显示
+     * "x秒之后拿奖励" / "x秒后可领取" 等提示,x 可能是 15/20/25/30 等,
+     * 具体看弹窗显示值。需要在第三方 App 停留满 x 秒后再切回芭芭农场 App + kill 跳转的 App。
+     *
+     * 与 [findAdDurationHint] 的区别：
+     * - findAdDurationHint 解析"观看15秒后可领取"等广告观看时长提示
+     * - findRewardJumpDurationHint 解析"15秒之后拿奖励"等跳转奖励任务停留时长提示
+     *
+     * 识别的提示文本示例：
+     * - "15秒之后拿奖励" / "20秒之后拿奖励"
+     * - "15秒后拿奖励" / "20秒后可领取奖励"
+     * - "15s之后拿奖励" / "20s后拿奖励"
+     * - "停留15秒后拿奖励" / "浏览15秒后拿奖励"
+     *
+     * 注意：仅在跳转奖励任务弹窗/页面上调用,避免误匹配其他文本。
+     * @return 需要停留的秒数,0 表示没有找到时长提示（调用方应使用默认值 15s）
+     */
+    fun findRewardJumpDurationHint(): Int {
+        val root = rootInActiveWindowSafe() ?: return 0
+        val allText = collectAllText(root)
+        // 关键词：含"拿奖励"/"领取奖励"且含"秒"或"s"的文本
+        // 注：单独的"15秒"不匹配（避免误匹配广告倒计时）,必须含"拿奖励"/"领取"关键词
+        val rewardKeywords = listOf("拿奖励", "领取奖励", "拿肥料", "领取肥料")
+        var bestSeconds = 0
+        for (text in allText) {
+            // 检查是否包含奖励关键词
+            if (!rewardKeywords.any { text.contains(it) }) continue
+            // 提取"x秒"或"xs"数字
+            val secondsMatch = Regex("(\\d+)\\s*[秒s]").find(text)
+            if (secondsMatch != null) {
+                val seconds = secondsMatch.groupValues[1].toIntOrNull() ?: 0
+                // 合理范围：1-300 秒（兜底过滤异常值）
+                if (seconds > 0 && seconds <= 300) {
+                    debugLog("findRewardJumpDurationHint: found hint '$text', seconds=$seconds")
+                    if (seconds > bestSeconds) bestSeconds = seconds
+                }
+            }
+        }
+        return bestSeconds
+    }
+
+    /**
      * 多信号融合的广告结束检测（优化方案）
      *
      * 相比单一信号检测，融合多个广告结束信号，提高检测准确率：
