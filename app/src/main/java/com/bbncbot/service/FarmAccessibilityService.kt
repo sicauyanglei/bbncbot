@@ -3473,6 +3473,7 @@ class FarmAccessibilityService : AccessibilityService() {
      * - 仅匹配"领取奖励"、"领取"、"确定"，不匹配"关闭"
      * - 排除包含"施肥"的节点
      * - 排除广告主诱导按钮（"领取优惠"/"领取福利"/"立即领取福利"等）
+     * - build562: 新增"我要直接拿奖励/直接拿奖励/立即拿奖励"等拿奖励类文案
      * @return 按钮节点或null
      */
     fun findClaimRewardButtonExact(): AccessibilityNodeInfo? {
@@ -3480,7 +3481,11 @@ class FarmAccessibilityService : AccessibilityService() {
         val trapTexts = currentPlatformConfig().adInstallButtonTexts
         // "立即领取"放最前：弹窗里的确认按钮文字通常是"立即领取"，优先精确匹配
         // （"领取"为子串匹配，会命中"立即领取"，但放前面更明确，避免先命中无关的"领取"文案）
-        val keywords = listOf("立即领取", "领取奖励", "领取", "确定", "知道了")
+        // build562: 新增"我要直接拿奖励"类文案(用户反馈是需要点击的领取按钮)
+        val keywords = listOf(
+            "立即领取", "领取奖励", "领取", "确定", "知道了",
+            "我要直接拿奖励", "直接拿奖励", "立即拿奖励", "马上拿奖励"  // 拿奖励类文案
+        )
         for (kw in keywords) {
             val node = findNodeByText(root, kw)
             if (node != null) {
@@ -4414,7 +4419,16 @@ class FarmAccessibilityService : AccessibilityService() {
         val desc = node.contentDescription?.toString()?.trim().orEmpty()
         val combined = text + desc
         if (combined.isNotEmpty()) {
-            val kws = listOf("领取", "领肥", "立即领", "点击领", "可领取", "领取肥料", "点击领取")
+            // build562 修复（用户反馈"我要直接拿奖励"是需要点击的按钮）：
+            // 历史问题：claim 关键词只含"领取/领肥/立即领/点击领/可领取/领取肥料/点击领取",
+            // 未包含"拿奖励"类文案(我要直接拿奖励/直接拿奖励/立即拿奖励/马上拿奖励),
+            // 导致日志 claim-text-nodes: NONE,AI 视觉也未识别(返回 CLICK_CLOSE 错过奖励)。
+            // 修复：新增"拿奖励/直接拿/立即拿/马上拿/拿肥料"等关键词。
+            val kws = listOf(
+                "领取", "领肥", "立即领", "点击领", "可领取", "领取肥料", "点击领取",
+                "拿奖励", "直接拿", "立即拿", "马上拿", "拿肥料",  // "我要直接拿奖励"类文案
+                "立即领取", "直接领取", "马上领取"  // 补充变体
+            )
             if (kws.any { combined.contains(it) }) {
                 val rect = android.graphics.Rect()
                 node.getBoundsInScreen(rect)

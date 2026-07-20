@@ -305,7 +305,13 @@ object AlipayPlatformConfig : PlatformConfig {
         // 主页独立的"点击领取"奖励按钮（如每日登录奖励/7天奖励）不在任务列表结构内，
         // 不会被 OPENING_TASK_LIST 找到。这里加入 directCollectTexts 让 COLLECTING_DIRECT 识别。
         // 过滤逻辑已排除"已领取"/"还差"/"明日"/"施肥"/"生产中"等锁定状态，"点击领取"加入是安全的。
-        "点击领取"
+        "点击领取",
+        // build562 修复（用户反馈"我要直接拿奖励"是需要点击的领取按钮）：
+        // 历史问题：AI 视觉接口识别不到"我要直接拿奖励"类按钮(返回 CLICK_CLOSE 错过奖励),
+        // 无障碍树 claim-text-nodes 也识别不到(关键词列表不含"拿奖励"类文案)。
+        // 修复：directCollectTexts 新增"拿奖励/直接拿/立即拿/马上拿"等关键词,
+        //       让 COLLECTING_DIRECT 和 findDirectCollectButtons 能识别这类领取按钮。
+        "拿奖励", "直接拿奖励", "立即拿奖励", "马上拿奖励"
     )
     override val collectFertilizerCoords = listOf(
         Pair(0.888f, 0.771f),  // 右侧浮动"肥料"按钮（OCR+颜色分析确认，1200x2664 屏幕）
