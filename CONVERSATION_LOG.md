@@ -32,7 +32,32 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: 支付宝滑动浏览任务不滑动（isBrowseTask 关键词 + H5 虚拟列表 bounds 过滤）
+### commit (待提交) - fix: 跳转第三方 App 后激活农场到前台 + kill 跳转 App（4 处统一顺序 + deep link setPackage + forceKillApp HOME 兜底）
+**用户需求**: 跳到另外一个app,能在完成任务后把跳转前的app激活到前台窗口,然后kill掉跳转到的app
+
+**日志分析**（debug_test_20260719_163645.log, build561-e4467db, UC 平台）:
+1. UC 点击"集肥料"被劫持到 `com.greenpoint.android.mc10086.activity`（移动 10086 充值页）
+2. `forceKillApp(10086, pressBackFirst=false)` 直接调 `killBackgroundProcesses` → 10086 在前台 kill 不掉
+3. `reopenFarmByDeepLink` 打开 `https://broccoli.uc.cn/...` 未 `setPackage`,被 Chrome 拦截
+4. `navigate stepTab` 在 Chrome/桌面反复找"芭芭农场"6+5 次失败 → STOPPING → IDLE
+
+**修改要点**:
+1. `FarmAccessibilityService.reopenFarmByDeepLink` deep link Intent 加 `setPackage(农场 App 主包名)`:
+   - 强制用农场 App 打开 https deep link,避免被 Chrome 等其他浏览器拦截
+   - 农场 App 未安装时 ActivityNotFoundException,catch 后回退到启动 App 主 Activity
+2. `FarmAccessibilityService.forceKillApp` 内部新增 `performGlobalAction(GLOBAL_ACTION_HOME)`:
+   - kill 前先按 HOME 把目标 App 推到后台,再调 `killBackgroundProcesses`（只能 kill 后台进程）
+   - 解决 10086 在前台 kill 不掉的问题
+3. `AutomationController` 4 处 `launchPlatformApp + forceKillApp` 调用顺序统一调整为"先 kill → 再激活":
+   - reward-jump 满停留时长分支（runWatchingAd）
+   - faster-reward 异常页分支（isOnAbnormalPage/isRechargePage）
+   - faster-reward 16s 满分支
+   - deep-link 2s 满分支
+   - navigate 第三方 overlay 分支（新增 launchPlatformApp 激活农场）
+   - 原顺序问题：先 launchPlatformApp 激活农场 → forceKillApp HOME 把农场也推到后台
+   - 新顺序：先 forceKillApp（HOME 推第三方到后台 + kill）→ 再 launchPlatformApp 激活农场到前台
+
+### commit 5fa74a1 - fix: 支付宝滑动浏览任务不滑动（isBrowseTask 关键词 + H5 虚拟列表 bounds 过滤）
 **用户需求**: 支付宝芭芭农场,滑动浏览任务,怎么不滑动了
 
 **日志分析**（debug_test_20260719_144835.log, build555-41e3bbc, 支付宝平台）:

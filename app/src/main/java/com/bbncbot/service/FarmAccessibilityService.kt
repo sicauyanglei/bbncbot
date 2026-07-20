@@ -4723,9 +4723,22 @@ class FarmAccessibilityService : AccessibilityService() {
             return try {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    // build566 修复（debug_test_20260719_163645.log, build561-e4467db）：
+                    // 历史问题：https://broccoli.uc.cn/... 是 https URL,未 setPackage 时
+                    // Android 默认让 Chrome 拦截（activeRootPkg='com.android.chrome'）,
+                    // 而非用 UC 打开 → 农场页打不开 → navigate stepTab 在 Chrome 反复找"芭芭农场"失败 → STOPPING。
+                    // 用户需求："跳到另外一个app,能在完成任务后把跳转前的app激活到前台窗口,
+                    //           然后kill掉跳转到的app"
+                    // 修复：deep link 强制 setPackage(农场 App 主包名),让 Intent 只发给农场 App,
+                    // 避免被其他浏览器拦截。若农场 App 未安装会 ActivityNotFoundException,catch 后回退到
+                    // 启动 App 主 Activity（由无障碍服务自动导航到农场页）。
+                    val farmPkg = targetPlatform.config.packageNames.firstOrNull()
+                    if (farmPkg != null) {
+                        setPackage(farmPkg)
+                    }
                 }
                 startActivity(intent)
-                debugLog("reopenFarmByDeepLink: opened $deepLink for $targetPlatform")
+                debugLog("reopenFarmByDeepLink: opened $deepLink for $targetPlatform (setPackage=${targetPlatform.config.packageNames.firstOrNull()})")
                 if (targetPlatform != currentPlatform) {
                     currentPlatform = Platform.UNKNOWN
                 }
@@ -4896,6 +4909,23 @@ class FarmAccessibilityService : AccessibilityService() {
             if (pressBackFirst) {
                 performGlobalAction(GLOBAL_ACTION_BACK)
             }
+            // build566 修复（debug_test_20260719_163645.log, build561-e4467db）：
+            // 历史问题：killBackgroundProcesses 只能 kill 后台进程,前台 App kill 不掉。
+            // 16:35:51 检测到 10086 充值页 overlay,forceKillApp(pressBackFirst=false) 直接调
+            // killBackgroundProcesses → 10086 仍在前台,kill 无效 → 任务卡死。
+            //
+            // 用户需求："跳到另外一个app,能在完成任务后把跳转前的app激活到前台窗口,
+            //           然后kill掉跳转到的app"
+            //
+            // 修复策略（双保险）：
+            // - pressBackFirst=true（默认）: 调用方未先激活其他 App,按返回键 + HOME 把目标 App 推到后台。
+            // - pressBackFirst=false: 调用方已通过 launchPlatformApp 激活农场 App 到前台（如 reward-jump/
+            //   faster-reward/deep-link）,第三方 App 已被推到后台。但 launchPlatformApp 可能失败
+            //   （如 deep link 被拦截）,此时第三方 App 仍在前台 → HOME 兜底把它推到后台再 kill。
+            //   注：HOME 会把前台 App 推到后台,若 launchPlatformApp 成功（农场 App 在前台）,
+            //       HOME 会把农场 App 也推到后台,但 killBackgroundProcesses(第三方 App) 仍能 kill 第三方,
+            //       农场 App 后续通过 deep link/launchPlatformApp 重新激活不影响。
+            performGlobalAction(GLOBAL_ACTION_HOME)
             // 调用 killBackgroundProcesses 结束后台进程
             val am = getSystemService(android.content.Context.ACTIVITY_SERVICE)
                 as android.app.ActivityManager
@@ -4905,7 +4935,7 @@ class FarmAccessibilityService : AccessibilityService() {
             // （日志现象：act=xriveractivity 但 onFarm=false，因为 windows 里已无农场包名窗口）
             currentActivityName = null
             currentEventPkg = null
-            debugLog("forceKillApp: killBackgroundProcesses($pkg) called, cleared currentActivityName/currentEventPkg")
+            debugLog("forceKillApp: killBackgroundProcesses($pkg) called (HOME pressed first to background target), cleared currentActivityName/currentEventPkg")
             true
         } catch (e: Exception) {
             debugLog("forceKillApp: failed to kill $pkg, ${e.message}")

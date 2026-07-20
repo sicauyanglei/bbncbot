@@ -802,11 +802,17 @@ object AutomationController {
             //
             // 修复：进入 navigateToFarm 前先检测第三方 App overlay,识别到则 forceKillApp
             // 结束该 App,让 UC 浏览器重新成为活动窗口,下一轮 runNavigating 正常导航。
+            // build566：forceKillApp 内部按 HOME 把第三方 App 推到后台 + kill,
+            //           kill 后激活农场 App 到前台,确保下一轮 runNavigating 能找到农场页。
             val overlayPkg = service.getThirdPartyOverlayPkg()
             if (overlayPkg != null) {
-                Log.i(TAG, "navigate: third-party app overlay detected (pkg=$overlayPkg), killing it to restore farm app foreground")
-                debugLog("navigate: third-party overlay pkg=$overlayPkg detected, forceKillApp(pressBackFirst=false) to dismiss")
+                Log.i(TAG, "navigate: third-party app overlay detected (pkg=$overlayPkg), killing it + activating farm to restore foreground")
+                debugLog("navigate: third-party overlay pkg=$overlayPkg detected, forceKillApp(pressBackFirst=false) + launchPlatformApp to dismiss")
                 service.forceKillApp(overlayPkg, pressBackFirst = false)
+                // kill 后激活农场 App 到前台（用户需求："把跳转前的app激活到前台窗口,然后kill掉跳转到的app"）
+                if (currentPlatform != Platform.UNKNOWN) {
+                    service.launchPlatformApp(currentPlatform)
+                }
                 handler.postDelayed({
                     if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
                 }, INTERVAL_PAGE_LOAD_MS)
@@ -3564,16 +3570,19 @@ object AutomationController {
                 return
             }
 
-            // 已满停留时长,切回芭芭农场 App + kill 跳转的 App
-            Log.i(TAG, "watchAd: reward-jump ${sinceClickMs}ms >= ${rewardJumpStayMs}ms, switching to farm + killing 3rd-party app (productClicked=$rewardJumpProductClicked)")
-            debugLog("watchAd: stay time elapsed, switching to farm + killing '${rewardJumpAppPkg}' (productClicked=$rewardJumpProductClicked)")
+            // 已满停留时长,kill 跳转的第三方 App + 切回芭芭农场 App 到前台
+            // build566 调整顺序（用户需求："跳到另外一个app,能在完成任务后把跳转前的app
+            // 激活到前台窗口,然后kill掉跳转到的app"）：
+            // 历史顺序：先 launchPlatformApp 激活农场 → 再 forceKillApp(第三方)。
+            // 问题：forceKillApp 内部按 HOME 把第三方推到后台时,也会把刚激活的农场 App 推到后台,
+            //       导致下一轮 runOpeningTaskList 找不到农场页。
+            // 修复后顺序：先 forceKillApp(第三方)（HOME 推第三方到后台 + kill）→ 再 launchPlatformApp
+            //           激活农场到前台。这样 forceKillApp 的 HOME 推的是第三方 App,launchPlatformApp
+            //           随后把农场 App 拉到前台,顺序正确。
+            Log.i(TAG, "watchAd: reward-jump ${sinceClickMs}ms >= ${rewardJumpStayMs}ms, killing 3rd-party app + switching to farm (productClicked=$rewardJumpProductClicked)")
+            debugLog("watchAd: stay time elapsed, killing '${rewardJumpAppPkg}' + switching to farm (productClicked=$rewardJumpProductClicked)")
             service.setAdMode(false)
-            // 1. 切回芭芭农场 App 到前台（同时把第三方 App 推到后台）
-            if (watchingAdPlatform != Platform.UNKNOWN) {
-                debugLog("watchAd: launching farm platform $watchingAdPlatform to foreground")
-                service.launchPlatformApp(watchingAdPlatform)
-            }
-            // 2. 同时 kill 掉跳转的第三方 App
+            // 1. 先 kill 掉跳转的第三方 App（forceKillApp 内部按 HOME 把第三方 App 推到后台再 kill）
             val killedPkg = rewardJumpAppPkg
             if (killedPkg != null) {
                 service.forceKillApp(killedPkg, pressBackFirst = false)
@@ -3581,6 +3590,11 @@ object AutomationController {
                 // 没有记录到包名,按返回键尝试关闭
                 debugLog("watchAd: no pkg recorded, pressing back to close 3rd-party app")
                 service.pressBack()
+            }
+            // 2. 再切回芭芭农场 App 到前台（forceKillApp 已把第三方推到后台,此处激活农场到前台）
+            if (watchingAdPlatform != Platform.UNKNOWN) {
+                debugLog("watchAd: launching farm platform $watchingAdPlatform to foreground")
+                service.launchPlatformApp(watchingAdPlatform)
             }
             // 重置状态,等待下一轮轮询确认已回到农场页
             rewardJumpClicked = false
@@ -3683,14 +3697,15 @@ object AutomationController {
                         Log.w(TAG, "watchAd: faster reward stay hit abnormal/recharge page, aborting")
                         debugLog("watchAd: faster reward stay hit trap page, killing new app immediately")
                         service.setAdMode(false)
-                        if (watchingAdPlatform != Platform.UNKNOWN) {
-                            service.launchPlatformApp(watchingAdPlatform)
-                        }
+                        // build566 调整顺序：先 kill 新 App（HOME 推到后台 + kill）→ 再激活农场到前台
                         val killedPkg = fasterRewardAppPkg
                         if (killedPkg != null) {
                             service.forceKillApp(killedPkg, pressBackFirst = false)
                         } else {
                             service.pressBack()
+                        }
+                        if (watchingAdPlatform != Platform.UNKNOWN) {
+                            service.launchPlatformApp(watchingAdPlatform)
                         }
                         currentTaskIndex++
                         handler.postDelayed({
@@ -3710,12 +3725,8 @@ object AutomationController {
                         Log.i(TAG, "watchAd: faster reward stayed ${stayedMs}ms, killing new app and activating farm")
                         debugLog("watchAd: 16s elapsed, killing new app '${fasterRewardAppPkg}' + activating farm")
                         service.setAdMode(false)
-                        // 1. 激活农场 App 到前台
-                        if (watchingAdPlatform != Platform.UNKNOWN) {
-                            debugLog("watchAd: launching farm platform $watchingAdPlatform to foreground")
-                            service.launchPlatformApp(watchingAdPlatform)
-                        }
-                        // 2. 同时 kill 掉新打开的 App
+                        // build566 调整顺序：先 kill 新 App（HOME 推到后台 + kill）→ 再激活农场到前台
+                        // 1. 先 kill 掉新打开的 App
                         val killedPkg = fasterRewardAppPkg
                         if (killedPkg != null) {
                             service.forceKillApp(killedPkg, pressBackFirst = false)
@@ -3723,6 +3734,11 @@ object AutomationController {
                             // 没有记录到包名，按返回键尝试关闭
                             debugLog("watchAd: no pkg recorded, pressing back to close new app")
                             service.pressBack()
+                        }
+                        // 2. 再激活农场 App 到前台
+                        if (watchingAdPlatform != Platform.UNKNOWN) {
+                            debugLog("watchAd: launching farm platform $watchingAdPlatform to foreground")
+                            service.launchPlatformApp(watchingAdPlatform)
                         }
                         fasterRewardStage = 3
                         // 等待回到"恭喜获得奖励提升"窗口
@@ -4031,16 +4047,17 @@ object AutomationController {
                             debugLog("watchAd: deep-link app already returned, cancel scheduled kill")
                             return@postDelayed
                         }
-                        Log.w(TAG, "watchAd: ${DEEP_LINK_MAX_DURATION_MS}ms elapsed, activating farm to foreground and killing '$killedPkg'")
-                        debugLog("watchAd: activating farm to foreground + killing '$killedPkg' simultaneously")
+                        Log.w(TAG, "watchAd: ${DEEP_LINK_MAX_DURATION_MS}ms elapsed, killing '$killedPkg' and activating farm to foreground")
+                        debugLog("watchAd: killing '$killedPkg' + activating farm to foreground")
                         service.setAdMode(false)
-                        // 1. 激活农场 App 到前台（同时把被拉起的 App 推到后台）
+                        // build566 调整顺序：先 kill 被拉起的 App（HOME 推到后台 + kill）→ 再激活农场到前台
+                        // 1. 先 kill 掉被拉起的 App（forceKillApp 内部按 HOME 把被拉起 App 推到后台再 kill）
+                        service.forceKillApp(killedPkg, pressBackFirst = false)
+                        // 2. 再激活农场 App 到前台
                         if (watchingAdPlatform != Platform.UNKNOWN) {
                             debugLog("watchAd: launching farm platform $watchingAdPlatform to foreground")
                             service.launchPlatformApp(watchingAdPlatform)
                         }
-                        // 2. 同时 kill 掉被拉起的 App（跳过返回键，避免误伤已激活的农场 App）
-                        service.forceKillApp(killedPkg, pressBackFirst = false)
                         deepLinkAppPkg = null
                         currentTaskIndex++
                         handler.postDelayed({
