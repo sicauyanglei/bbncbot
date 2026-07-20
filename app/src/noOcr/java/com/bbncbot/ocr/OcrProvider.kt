@@ -46,6 +46,7 @@ object OcrProvider {
 
     /** call() 方法名 */
     private const val METHOD_RECOGNIZE_FERTILIZER = "recognizeFertilizer"
+    private const val METHOD_RECOGNIZE_TEXT = "recognizeText"
 
     /** JPEG 压缩质量（85 在体积和识别准确率间平衡） */
     private const val JPEG_QUALITY = 85
@@ -133,6 +134,44 @@ object OcrProvider {
         Log.d(TAG, "OCR fertilizer: cropped=$isCropped jpegSize=${jpegData.size} bytes")
         val result = callOcrRemote(service.applicationContext, jpegData)
         if (result < 0 && lastError.isEmpty()) {
+            lastError = "recognize_failed"
+        }
+        return result
+    }
+
+    /**
+     * 通过 ContentProvider 调用 OCR APK 识别整页文本（用于 AI 视觉辅助判断）
+     *
+     * 与 [findCurrentFertilizerAmount] 的区别：
+     * - findCurrentFertilizerAmount 裁剪肥料区域识别数字
+     * - recognizePageText 用全屏截图识别所有文本，供 AiVisionClient 作为辅助判断依据
+     *
+     * @param service 无障碍服务实例
+     * @return 识别到的整页文本；null 表示失败/未安装 OCR APK；空字符串表示成功但无文本
+     */
+    fun recognizePageText(service: FarmAccessibilityService): String? {
+        lastError = ""
+        providerBuildLabel = ""
+        if (!isOcrAppInstalled(service)) {
+            lastError = "ocr_apk_not_installed"
+            Log.d(TAG, "OCR page text: $OCR_PACKAGE not installed, skip")
+            return null
+        }
+        val fullBitmap = service.takeScreenshotBitmap() ?: run {
+            lastError = "screenshot_failed"
+            Log.d(TAG, "OCR page text: screenshot failed")
+            return null
+        }
+        val jpegData = bitmapToJpeg(fullBitmap)
+        fullBitmap.recycle()
+        if (jpegData == null || jpegData.isEmpty()) {
+            lastError = "jpeg_compress_failed"
+            Log.d(TAG, "OCR page text: jpeg compress failed")
+            return null
+        }
+        Log.d(TAG, "OCR page text: jpegSize=${jpegData.size} bytes")
+        val result = callOcrRemoteForText(service.applicationContext, jpegData)
+        if (result == null && lastError.isEmpty()) {
             lastError = "recognize_failed"
         }
         return result
@@ -245,6 +284,41 @@ object OcrProvider {
             lastError = "provider_exception:${e.javaClass.simpleName}:${e.message}"
             Log.e(TAG, "OCR Provider call failed: ${e.message}")
             -1
+        }
+    }
+
+    /**
+     * 通过 ContentProvider call() 调用 OCR APK 识别整页文本
+     *
+     * @param context Context
+     * @param jpegData JPEG 压缩的全屏截图数据
+     * @return 识别到的文本；null 表示失败；空字符串表示成功但无文本
+     */
+    private fun callOcrRemoteForText(context: Context, jpegData: ByteArray): String? {
+        val uri = Uri.parse(OCR_PROVIDER_URI)
+        val extras = Bundle().apply { putByteArray("jpegData", jpegData) }
+        return try {
+            val result = context.applicationContext.contentResolver.call(
+                uri, METHOD_RECOGNIZE_TEXT, null, extras
+            )
+            providerBuildLabel = result?.getString("providerBuild") ?: ""
+            val text = result?.getString("result")
+            if (text == null) {
+                lastError = "recognize_returned_null"
+                Log.d(TAG, "OCR Provider text call returned null (providerBuild=$providerBuildLabel)")
+                null
+            } else {
+                Log.d(TAG, "OCR Provider text call success: chars=${text.length} (providerBuild=$providerBuildLabel)")
+                text
+            }
+        } catch (e: SecurityException) {
+            lastError = "security_exception:${e.message}"
+            Log.e(TAG, "OCR Provider text call SecurityException: ${e.message}")
+            null
+        } catch (e: Exception) {
+            lastError = "provider_exception:${e.javaClass.simpleName}:${e.message}"
+            Log.e(TAG, "OCR Provider text call failed: ${e.message}")
+            null
         }
     }
 }

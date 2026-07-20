@@ -73,7 +73,8 @@ object AiVisionClient {
     fun analyzeScreenshot(
         context: Context,
         bitmap: Bitmap,
-        sceneContext: String
+        sceneContext: String,
+        ocrText: String? = null
     ): VisionResult? {
         val apiKey = QuizAnswerClient.loadApiKey(context)
         if (apiKey.isEmpty()) {
@@ -88,7 +89,7 @@ object AiVisionClient {
             return null
         }
 
-        val prompt = buildPrompt(sceneContext)
+        val prompt = buildPrompt(sceneContext, ocrText)
 
         // 依次尝试视觉模型列表（glm-4.6v-flash → glm-4v-flash）
         // 遇到限流（1305）等可恢复错误时自动降级到下一个模型
@@ -234,7 +235,7 @@ object AiVisionClient {
      *
      * 约束 AI 只返回 5 个预定义动作之一，便于代码解析执行。
      */
-    private fun buildPrompt(sceneContext: String): String {
+    private fun buildPrompt(sceneContext: String, ocrText: String? = null): String {
         return buildString {
             append("当前场景上下文：").append(sceneContext).append("\n\n")
             append("请分析这张手机截图，判断安卓自动化机器人下一步该执行哪个动作。\n\n")
@@ -252,6 +253,12 @@ object AiVisionClient {
             append("3. 若页面是分享/评价/会员/活动推销等无肥料价值 → SKIP_TASK\n")
             append("4. 若页面正在加载/有倒计时/视频播放中 → WAIT\n")
             append("5. 其他无法处理的情况 → PRESS_BACK\n\n")
+            // 若有 OCR 识别文本，附加给 AI 作为辅助判断依据（截断到 1500 字符避免 prompt 过长）
+            if (!ocrText.isNullOrEmpty()) {
+                append("\n页面 OCR 识别文本（仅供参考，可能与截图内容有出入）：\n")
+                append(ocrText!!.take(1500))
+                append("\n\n")
+            }
             append("只返回 JSON，不要 markdown 代码块，不要解释。")
         }
     }

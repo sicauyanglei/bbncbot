@@ -117,6 +117,62 @@ object OcrProvider {
     }
 
     /**
+     * 用 ML Kit OCR 识别整页文本（用于 AI 视觉辅助判断）
+     *
+     * 与 [findCurrentFertilizerAmount] 的区别：
+     * - findCurrentFertilizerAmount 只裁剪肥料区域识别数字
+     * - recognizePageText 对全屏识别所有文本，供 AiVisionClient 作为辅助判断依据
+     *
+     * @param service 无障碍服务实例（提供截图）
+     * @return 识别到的整页文本；null 表示截图失败/识别超时/异常；空字符串表示识别成功但无文本
+     */
+    fun recognizePageText(service: FarmAccessibilityService): String? {
+        lastError = ""
+        val fullBitmap = service.takeScreenshotBitmap() ?: run {
+            lastError = "screenshot_failed"
+            Log.d(TAG, "OCR page text: screenshot failed")
+            return null
+        }
+        try {
+            val image = com.google.mlkit.vision.common.InputImage.fromBitmap(fullBitmap, 0)
+            val recognizer = com.google.mlkit.vision.text.TextRecognition
+                .getClient(com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions.Builder().build())
+            val latch = java.util.concurrent.CountDownLatch(1)
+            var ocrText: com.google.mlkit.vision.text.Text? = null
+            var recognizeError: String? = null
+            recognizer.process(image)
+                .addOnSuccessListener { ocrText = it; latch.countDown() }
+                .addOnFailureListener { e ->
+                    recognizeError = e.message
+                    Log.d(TAG, "OCR page text: recognize failed: ${e.message}")
+                    latch.countDown()
+                }
+            latch.await(10, java.util.concurrent.TimeUnit.SECONDS)
+            val text = ocrText ?: run {
+                lastError = if (recognizeError != null) "recognize_failed:$recognizeError" else "recognize_timeout"
+                Log.d(TAG, "OCR page text: recognize timeout or null")
+                return null
+            }
+            val sb = StringBuilder()
+            for (block in text.textBlocks) {
+                for (line in block.lines) {
+                    sb.append(line.text).append('\n')
+                }
+            }
+            val result = sb.toString()
+            Log.d(TAG, "OCR page text: chars=${result.length}, lines=${text.textBlocks.sumOf { it.lines.size }}")
+            if (result.isEmpty()) lastError = "no_text_in_page"
+            return result
+        } catch (e: Exception) {
+            lastError = "exception:${e.message}"
+            Log.d(TAG, "OCR page text: exception: ${e.message}")
+            return null
+        } finally {
+            fullBitmap.recycle()
+        }
+    }
+
+    /**
      * 定位肥料节点区域并裁剪 sub-bitmap
      *
      * 流程：

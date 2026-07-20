@@ -7,6 +7,7 @@ import android.util.Log
 import android.view.accessibility.AccessibilityNodeInfo
 import com.bbncbot.service.FarmAccessibilityService
 import com.bbncbot.service.FarmAccessibilityService.PageScene
+import com.bbncbot.ocr.OcrProvider
 import java.lang.ref.WeakReference
 
 /**
@@ -58,6 +59,30 @@ object AutomationController {
      * - 检测到深链 App 后等待此时间，然后激活农场 App 到前台并强杀被拉起的 App
      */
     private const val DEEP_LINK_MAX_DURATION_MS = 2000L
+    /**
+     * 深链跳转 App 的默认关闭延迟（毫秒）
+     *
+     * 用户需求：广告后跳转到 App 的关闭时间由任务规定时间决定。
+     * 当 [findAdDurationHint] 解析不到任务时长提示、且 [taskDurationHintSeconds] 也为 0 时使用此默认值。
+     * 15s 覆盖大部分"打开 App 停留"类任务的最短停留要求。
+     */
+    private const val DEEP_LINK_DEFAULT_KILL_DELAY_MS = 15000L
+    /** 深链跳转 App 关闭延迟上限（毫秒），防止异常长任务导致 bot 长时间卡在跳转 App */
+    private const val DEEP_LINK_MAX_KILL_DELAY_MS = 60000L
+    /**
+     * PROCESSING_TASK 阶段总超时（毫秒）。
+     *
+     * 防止单个任务因回调链断裂（如手势点击红包关闭按钮后无回调）导致状态机卡死 2.5 小时。
+     * 超时后强制跳过当前任务，回 OPENING_TASK_LIST。
+     */
+    private const val PROCESSING_TASK_TIMEOUT_MS = 5 * 60 * 1000L
+    /**
+     * 浏览任务中连续检测到"非农场页 + 无倒计时 + 无进度"的样本数上限。
+     *
+     * 用于检测 UC 浏览器 AI 助手等劫持浏览页面：bot 在劫持页面上滑动但无奖励进展，
+     * 连续 N 次后退出浏览（节省每劫持约 72s 的无效滑动时间）。
+     */
+    private const val MAX_BROWSE_OFF_FARM_CONSECUTIVE = 3
     /** 返回农场页最大尝试次数 */
     private const val MAX_RETURN_ATTEMPTS = 5
     /** 连续无进展轮次上限（超过则重新导航） */
@@ -172,6 +197,39 @@ object AutomationController {
     /** 深链跳转进入其他 App 的时间戳（elapsedMs），配合 [deepLinkAppPkg] 使用 */
     @Volatile
     private var deepLinkEnterTimeMs: Long = 0L
+
+    /**
+     * 当前 WATCHING_AD 任务在进入时由 [findAdDurationHint] 解析到的时长提示（秒）。
+     *
+     * 用于 [computeDeepLinkKillDelayMs] 二级回退：当深链跳转 App 后页面无时长提示时，
+     * 使用任务开始时缓存的提示计算 kill 延迟（用户需求：关闭时间由任务规定时间决定）。
+     * - 0 表示任务进入时未解析到时长提示
+     * - 每次 runWatchingAd(elapsedMs=0L) 时刷新
+     */
+    @Volatile
+    private var taskDurationHintSeconds: Int = 0
+
+    /**
+     * PROCESSING_TASK 阶段进入时间戳（[System.currentTimeMillis]）。
+     *
+     * 用于 [PROCESSING_TASK_TIMEOUT_MS] watchdog：状态机进入 PROCESSING_TASK 时记录，
+     * 每次进入 runProcessingTask/checkTaskResult 时检查是否超时，超时强制跳过任务。
+     * 防止回调链断裂导致状态机卡死（日志曾观察到 2.5 小时卡死）。
+     * - 0 表示未在 PROCESSING_TASK 阶段
+     * - 进入时（runProcessingTask(0)）设置为当前时间
+     */
+    @Volatile
+    private var processingTaskStartTimeMs: Long = 0L
+
+    /**
+     * 浏览任务中连续检测到"非农场页 + 无倒计时 + 无进度"的样本数。
+     *
+     * 用于 UC 浏览器 AI 助手劫持检测：超过 [MAX_BROWSE_OFF_FARM_CONSECUTIVE] 则退出浏览。
+     * - 每次进入新的浏览任务（runBrowsingTask swipeCount==0）时重置为 0
+     * - scheduleNextBrowseCheck 中检测到劫持嫌疑时累加，回到正常浏览页时清零
+     */
+    @Volatile
+    private var browseOffFarmConsecutiveCount: Int = 0
 
     /** 上一轮广告检测时是否有倒计时（用于多信号融合检测倒计时消失） */
     @Volatile
@@ -1410,6 +1468,23 @@ object AutomationController {
 
         if (attempt == 0) {
             logPageSnapshot(service, "processTask-start")
+            // PROCESSING_TASK watchdog：记录进入时间戳，并调度独立 postDelayed 兜底
+            // 防止单任务回调链断裂（如手势点击红包关闭按钮后无回调）导致状态机卡死 2.5 小时
+            processingTaskStartTimeMs = System.currentTimeMillis()
+            handler.postDelayed({
+                // 独立 watchdog：5 分钟后若仍在 PROCESSING_TASK，强制跳过任务
+                if (state == AutomationState.PROCESSING_TASK &&
+                    processingTaskStartTimeMs > 0 &&
+                    System.currentTimeMillis() - processingTaskStartTimeMs >= PROCESSING_TASK_TIMEOUT_MS) {
+                    Log.w(TAG, "processTask: watchdog timeout (${PROCESSING_TASK_TIMEOUT_MS}ms), force skipping task #${currentTaskIndex + 1}")
+                    debugLog("processTask: watchdog timeout, callback chain may be broken, force skipping")
+                    processingTaskStartTimeMs = 0L
+                    currentTaskIndex++
+                    noProgressRounds++
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                }
+            }, PROCESSING_TASK_TIMEOUT_MS)
         }
 
         // 如果任务列表为空或已处理完，进入施肥阶段
@@ -1735,6 +1810,8 @@ object AutomationController {
             logPageSnapshot(service, "browseTask-start")
             // 重置红包弹窗关闭计数器（新的浏览任务开始）
             browseRedPacketCloseAttempts = 0
+            // 重置 UC AI 劫持检测计数器（新的浏览任务开始）
+            browseOffFarmConsecutiveCount = 0
             // 第一步：点击"去完成"按钮进入浏览页面
             val button = taskButtons.getOrNull(currentTaskIndex)
             if (button == null) {
@@ -2058,6 +2135,27 @@ object AutomationController {
                     }, INTERVAL_CLICK_MS)
                 }, INTERVAL_PAGE_LOAD_MS)
                 return@postDelayed
+            }
+            // UC 浏览器 AI 助手劫持检测：
+            // 场景：UC 浏览器的 AI 助手（夸克 AI 等）会劫持浏览页面，bot 在劫持页面上滑动但无奖励进展，
+            // 浪费约 72s/次。检测：滑动后既不在农场页又无倒计时/进度 → 劫持嫌疑，连续 3 次则退出浏览。
+            // 注：countdownActive/progressActive 已在 postDelayed 顶部声明，这里复用
+            val onFarmForHijack = service.isOnFarmPage()
+            if (!onFarmForHijack && !countdownActive && !progressActive) {
+                browseOffFarmConsecutiveCount++
+                debugLog("browseTask: off-farm without indicators (count=$browseOffFarmConsecutiveCount/$MAX_BROWSE_OFF_FARM_CONSECUTIVE, swipe #$swipeCount)")
+                if (browseOffFarmConsecutiveCount >= MAX_BROWSE_OFF_FARM_CONSECUTIVE) {
+                    Log.w(TAG, "browseTask: off-farm hijack suspected (count=$browseOffFarmConsecutiveCount), exiting browse")
+                    debugLog("browseTask: detected UC AI hijack (or similar), exiting browse to avoid wasting time")
+                    browseOffFarmConsecutiveCount = 0
+                    currentTaskIndex++
+                    collectedCount++
+                    exitBrowsePage(service, reason = "off_farm_hijack")
+                    return@postDelayed
+                }
+            } else {
+                // 回到正常浏览页（农场页或有倒计时/进度提示），清零计数器
+                browseOffFarmConsecutiveCount = 0
             }
             runBrowsingTask(swipeCount + 1)
         }, BROWSE_SWIPE_INTERVAL_MS)
@@ -2385,6 +2483,21 @@ object AutomationController {
         if (state != AutomationState.PROCESSING_TASK) return
 
         logPageSnapshot(service, "checkTaskResult")
+
+        // PROCESSING_TASK watchdog 超时检查：超过 5 分钟强制跳过任务
+        // 防止回调链断裂导致状态机卡死（独立 watchdog 已在 runProcessingTask(0) 调度，此处为双重保险）
+        if (processingTaskStartTimeMs > 0 &&
+            System.currentTimeMillis() - processingTaskStartTimeMs >= PROCESSING_TASK_TIMEOUT_MS) {
+            Log.w(TAG, "checkTaskResult: PROCESSING_TASK watchdog timeout, force skipping task #${currentTaskIndex + 1}")
+            debugLog("checkTaskResult: watchdog timeout, force skipping task")
+            processingTaskStartTimeMs = 0L
+            currentTaskIndex++
+            noProgressRounds++
+            service.pressBack()
+            moveTo(AutomationState.OPENING_TASK_LIST)
+            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
 
         // 最高优先级：肥料图标 + 领取按钮 → 直接点击领取（绕过场景白名单）
         // 用户需求：如果有带肥图标，并有"领取"的按钮，可以直接点击领取
@@ -2895,7 +3008,18 @@ object AutomationController {
                 return@Thread
             }
             try {
-                val result = AiVisionClient.analyzeScreenshot(appContext, bitmap, sceneContext)
+                // 先调 OCR 识别页面文本（失败不影响 AI 视觉判断）
+                // 用户需求：利用 OCR 精准实现处理不了的页面，并交由 AI 接口来精准判断
+                var ocrText: String? = null
+                try {
+                    ocrText = OcrProvider.recognizePageText(service)
+                    if (!ocrText.isNullOrEmpty()) {
+                        debugLog("processTask: OCR text='${ocrText!!.take(100)}'")
+                    }
+                } catch (e: Exception) {
+                    debugLog("processTask: OCR failed: ${e.message}")
+                }
+                val result = AiVisionClient.analyzeScreenshot(appContext, bitmap, sceneContext, ocrText)
                 bitmap.recycle()
                 handler.post {
                     if (state != AutomationState.PROCESSING_TASK) return@post
@@ -3170,6 +3294,39 @@ object AutomationController {
      *
      * 用户要求：太快退出可能获取不到肥料，需保持到规定时间+缓冲后再检测退出
      */
+    /**
+     * 计算深链跳转 App 的关闭延迟（毫秒）
+     *
+     * 用户需求：广告后跳转到 App 的关闭时间由任务规定时间决定。
+     *
+     * 3-tier 优先级：
+     * 1. 当前页面提示的时长（[findAdDurationHint]，如"还剩15秒"）→ hintSeconds * 1000
+     * 2. 进入 WATCHING_AD 时缓存的 [taskDurationHintSeconds] → taskDurationHintSeconds * 1000
+     * 3. 默认 [DEEP_LINK_DEFAULT_KILL_DELAY_MS]（15s）兜底
+     *
+     * 结果 clamp 到 [DEEP_LINK_MAX_DURATION_MS (2s), DEEP_LINK_MAX_KILL_DELAY_MS (60s)]：
+     * - 下限 2s：保证 App 至少打开一会，避免刚打开就 kill 导致任务失败
+     * - 上限 60s：防止异常长任务导致 bot 长时间卡在跳转 App
+     *
+     * @param service 无障碍服务实例
+     * @return kill 延迟（毫秒）
+     */
+    private fun computeDeepLinkKillDelayMs(service: FarmAccessibilityService): Long {
+        // 1. 当前页面提示
+        val currentHint = service.findAdDurationHint()
+        if (currentHint > 0) {
+            val ms = currentHint * 1000L
+            return ms.coerceIn(DEEP_LINK_MAX_DURATION_MS, DEEP_LINK_MAX_KILL_DELAY_MS)
+        }
+        // 2. 任务开始时缓存的提示
+        if (taskDurationHintSeconds > 0) {
+            val ms = taskDurationHintSeconds * 1000L
+            return ms.coerceIn(DEEP_LINK_MAX_DURATION_MS, DEEP_LINK_MAX_KILL_DELAY_MS)
+        }
+        // 3. 默认 15s 兜底
+        return DEEP_LINK_DEFAULT_KILL_DELAY_MS.coerceIn(DEEP_LINK_MAX_DURATION_MS, DEEP_LINK_MAX_KILL_DELAY_MS)
+    }
+
     private fun runWatchingAd(elapsedMs: Long) {
         if (state != AutomationState.WATCHING_AD) return
         val service = getService() ?: run { stop(); return }
@@ -3182,6 +3339,9 @@ object AutomationController {
             fasterRewardAppPkg = null   // 重置新 App 包名记录
             fasterRewardAppEnterTimeMs = 0L  // 重置新 App 进入时间戳
             prevAdHadCountdown = false  // 重置倒计时状态，供多信号融合检测用
+            // 重置 UC "点击商品"广告状态（每个广告独立计数，避免上一轮残留）
+            adProductClicked = false
+            adProductClickTimeMs = 0L
             // build529：进入广告时重置 AI 视觉进度识别节流（每个广告独立计数）
             lastAiProgressCheckMs = 0L
             watchingAdPlatform = service.currentPlatform  // 记录农场平台，强杀深链 App 后重新启动此平台
@@ -3189,6 +3349,9 @@ object AutomationController {
             val platformCfg = service.currentPlatformConfig()
             adEndCheckIntervalMs = platformCfg.adEndCheckIntervalMs
             val hintSeconds = service.findAdDurationHint()
+            // 缓存任务时长提示（秒），供 computeDeepLinkKillDelayMs 二级回退使用
+            // 用户需求：广告后跳转 App 的关闭时间由任务规定时间决定
+            taskDurationHintSeconds = hintSeconds
             if (hintSeconds > 0) {
                 // 页面提示的秒数 + 缓冲时间（毫秒）
                 adMinDurationMs = hintSeconds * 1000L + AD_DURATION_BUFFER_MS
@@ -3615,20 +3778,76 @@ object AutomationController {
             return
         }
 
+        // UC "点击商品,领取奖励"激励视频广告处理（在 WATCHING_AD 阶段）
+        // 场景：UC 集肥料点击后弹激励视频广告，顶部提示"点击商品,领取奖励"，
+        // 必须主动点击广告中的商品才能触发肥料奖励，广告结束后不发肥料。
+        // 注：原 checkTaskListOpened 也有此逻辑（OPENING_TASK_LIST 状态），但广告进入 WATCHING_AD 后还需处理。
+        // 用户需求：更好适配 UC 极速版芭芭农场的广告内容，快速完成广告获取肥料
+        // 优化：避免在 WATCHING_AD 阶段死等 adMinDurationMs，节省约 90s/点击商品广告
+        if (service.isClickProductAd()) {
+            if (!adProductClicked) {
+                // 阶段1：找商品节点点击
+                val productNode = service.findAdProductNode()
+                if (productNode != null) {
+                    val rect = Rect()
+                    productNode.getBoundsInScreen(rect)
+                    Log.i(TAG, "watchAd: clicking ad product to trigger reward (bounds=${rect.toShortString()})")
+                    debugLog("watchAd: clicking ad product bounds=${rect.toShortString()}")
+                    service.performClickSafe(productNode)
+                    adProductClicked = true
+                    adProductClickTimeMs = System.currentTimeMillis()
+                } else {
+                    // 找不到可点击商品节点：可能是页面还没渲染，或商品是 WebView 内不可访问节点
+                    // 等待 2s 后重试（不立即放弃，广告可能还在加载商品卡）
+                    debugLog("watchAd: 点击商品 ad detected but no clickable product node, retrying")
+                }
+            } else {
+                // 阶段2：已点击商品，等待 5s 让奖励触发后关闭广告
+                val sinceClick = System.currentTimeMillis() - adProductClickTimeMs
+                if (sinceClick >= 5000L) {
+                    Log.i(TAG, "watchAd: 5s after clicking ad product, closing ad window (sinceClick=${sinceClick}ms)")
+                    debugLog("watchAd: closing ad window 5s after product click")
+                    // 优先找关闭按钮，找不到 pressBack
+                    val closeBtn = service.findAdCloseButton(service.currentPlatformConfig().adCloseButtonTexts, enforceSceneWhitelist = false)
+                    if (closeBtn != null) {
+                        debugLog("watchAd: clicking close button on ad (text='${closeBtn.text}')")
+                        service.performClickSafe(closeBtn)
+                    } else {
+                        debugLog("watchAd: no close button, pressing back to close ad")
+                        service.pressBack()
+                    }
+                    // 重置标记：下一轮如果还在广告中，会重新尝试点击商品
+                    adProductClicked = false
+                    adProductClickTimeMs = 0L
+                } else {
+                    debugLog("watchAd: waiting ${sinceClick}ms/5000ms after clicking ad product")
+                }
+            }
+            // 点击商品广告：用较短间隔(2s)轮询，而非 adEndCheckIntervalMs(3-5s)
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + INTERVAL_CLICK_MS)
+            }, INTERVAL_CLICK_MS)
+            return
+        }
+
         // 深链跳转任务：广告任务跳转到其他 App（如快手，非农场/非广告Activity/非异常页）
         // 用户要求：等其它app打开后等2秒，把主界面激活到前台，同时kill掉打开的app
-        // 注意：此检查在"最短等待时间"检查之前，确保深链任务用 2s 超时（而非默认 30s 广告等待）
+        // 用户需求（拓展）：关闭跳转 App 的时间由任务规定时间决定（computeDeepLinkKillDelayMs 3-tier）
+        // 注意：此检查在"最短等待时间"检查之前，确保深链任务用任务时长超时（而非默认 30s 广告等待）
         // 注：异常交易页（isOnAbnormalPage）已在上方场景识别 TRAP_ABNORMAL 中统一处理
         if (elapsedMs >= 5000L && !service.isOnFarmPage() && !service.isAdActivity() &&
             !service.isAdPlaying() && !service.isOnAbnormalPage()) {
             val currentPkg = service.getCurrentWindowPackage()
             if (currentPkg != null) {
-                // 首次检测到深链跳转：记录包名，调度 2 秒后"激活主界面 + kill 被拉起的 App"
+                // 首次检测到深链跳转：记录包名，调度"激活主界面 + kill 被拉起的 App"
                 if (deepLinkAppPkg == null) {
                     deepLinkAppPkg = currentPkg
                     deepLinkEnterTimeMs = elapsedMs
-                    Log.i(TAG, "watchAd: entered deep-linked app '$currentPkg', will activate farm + kill in ${DEEP_LINK_MAX_DURATION_MS}ms")
-                    debugLog("watchAd: deep-linked app '$currentPkg' detected, scheduling activate+kill in ${DEEP_LINK_MAX_DURATION_MS}ms")
+                    // 用户需求：关闭跳转 App 的时间由任务规定时间决定
+                    // 3-tier 优先级：当前页面提示 > 任务开始时缓存提示 > 15s 默认值，clamp [2s, 60s]
+                    val killDelayMs = computeDeepLinkKillDelayMs(service)
+                    Log.i(TAG, "watchAd: entered deep-linked app '$currentPkg', will activate farm + kill in ${killDelayMs}ms")
+                    debugLog("watchAd: deep-linked app '$currentPkg' detected, scheduling activate+kill in ${killDelayMs}ms (taskHint=${taskDurationHintSeconds}s)")
                     val killedPkg = currentPkg
                     handler.postDelayed({
                         if (state != AutomationState.WATCHING_AD) return@postDelayed
@@ -3637,7 +3856,7 @@ object AutomationController {
                             debugLog("watchAd: deep-link app already returned, cancel scheduled kill")
                             return@postDelayed
                         }
-                        Log.w(TAG, "watchAd: ${DEEP_LINK_MAX_DURATION_MS}ms elapsed, activating farm to foreground and killing '$killedPkg'")
+                        Log.w(TAG, "watchAd: ${killDelayMs}ms elapsed, activating farm to foreground and killing '$killedPkg'")
                         debugLog("watchAd: activating farm to foreground + killing '$killedPkg' simultaneously")
                         service.setAdMode(false)
                         // 1. 激活农场 App 到前台（同时把被拉起的 App 推到后台）
@@ -3655,13 +3874,44 @@ object AutomationController {
                                 handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
                             }
                         }, INTERVAL_PAGE_LOAD_MS)
-                    }, DEEP_LINK_MAX_DURATION_MS)
+                    }, killDelayMs)
                 }
                 // 已调度 kill，继续轮询兜底（若任务自然完成返回农场，上方"returned to farm"分支会取消 kill）
-                debugLog("watchAd: in deep-linked app '$currentPkg', kill scheduled in ${DEEP_LINK_MAX_DURATION_MS}ms, polling as fallback")
+                debugLog("watchAd: in deep-linked app '$currentPkg', kill scheduled, polling as fallback")
                 handler.postDelayed({
                     if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
                 }, adEndCheckIntervalMs)
+                return
+            }
+        }
+
+        // 强信号提前退出：5s 后检测到任务完成/肥料到账 → 立即退出，不必等到 adMinDurationMs
+        // 用户需求：广告结束后页面会显示"任务完成"或"肥料已发放"，此时应立即退出而非继续等待
+        // 优化：节省 10-25s/广告（之前要等满 adMinDurationMs 才开始检测退出）
+        // 注意：isTaskCompletePage() 在广告 Activity 期间返回 false（用 getRootInFarmApp），
+        // 所以只有广告真正结束后才会触发，不会误退出
+        if (elapsedMs >= 5000L) {
+            val taskComplete = service.isTaskCompletePage()
+            val fertilizerGranted = service.isFertilizerGrantedPage()
+            if (taskComplete || fertilizerGranted) {
+                Log.i(TAG, "watchAd: strong end signal detected (taskComplete=$taskComplete, fertilizerGranted=$fertilizerGranted), exiting early at ${elapsedMs}ms/${adMinDurationMs}ms")
+                debugLog("watchAd: strong end signal, exiting early (elapsed=${elapsedMs}ms, min=${adMinDurationMs}ms, taskComplete=$taskComplete, fertilizerGranted=$fertilizerGranted)")
+                val closeBtn = service.findAdCloseButton(service.currentPlatformConfig().adCloseButtonTexts)
+                val backIcon = service.findBackIcon()
+                when {
+                    closeBtn != null -> { debugLog("watchAd: clicking close icon (strong signal)"); service.performClickSafe(closeBtn) }
+                    backIcon != null -> { debugLog("watchAd: clicking back icon (strong signal)"); service.performClickSafe(backIcon) }
+                    else -> { debugLog("watchAd: pressing back (strong signal)"); service.pressBack() }
+                }
+                service.setAdMode(false)
+                collectedCount++
+                advanceTaskIndex()
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) {
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
                 return
             }
         }
