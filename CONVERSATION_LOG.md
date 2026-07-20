@@ -32,7 +32,30 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit f26e5c8 - docs: 新增对话记录与工作上下文文件 CONVERSATION_LOG.md
+### commit (待提交) - fix: 支付宝滑动浏览任务不滑动（isBrowseTask 关键词 + H5 虚拟列表 bounds 过滤）
+**用户需求**: 支付宝芭芭农场,滑动浏览任务,怎么不滑动了
+
+**日志分析**（debug_test_20260719_144835.log, build555-41e3bbc, 支付宝平台）:
+1. 支付宝任务列表是 H5 虚拟列表,未滚动到的列表项 bounds 出现 `top > bottom` 倒置
+   （如 `[884,2823][1113,2666]`,bottom 固定为 WebView 高度 2666）
+2. `findGoCompleteButtons` 的 `rect.width()<=0 || rect.height()<=0` 过滤把这些按钮当 zero-size 丢弃
+   → 任务列表只剩顶部 4 个可见按钮,"去逛逛"等被丢弃的浏览任务按钮永远无法被 processTask 处理
+3. 4 个可见按钮里 `#3` 是"【福利】试玩热门新游 访问必得500 - 3500肥"任务,
+   `isBrowseTask` 关键词不含"试玩/访问必得" → 返回 false → 走普通点击流程
+   → 点"去完成"进入新游页 → AI 视觉 CLICK_CLOSE → 永远拿不到肥料
+
+**修改要点**:
+1. `FarmAccessibilityService.isBrowseTask` browseKeywords 新增"访问必得/试玩热门/试玩新游"关键词
+   - "访问必得":精确匹配"访问必得500肥"等访问类任务文案
+   - "试玩热门"/"试玩新游":匹配"试玩热门新游"任务（访问试玩类,非真玩游戏）
+   - 注:纯"试玩游戏"类任务通常需点击进入游戏,不应走浏览流程,故用更精确的"试玩热门/试玩新游"
+2. `FarmAccessibilityService.findGoCompleteButtons` bounds 过滤逻辑修复:
+   - 对于 `width > 0 但 top > bottom`（H5 虚拟列表倒置矩形）,不直接丢弃
+   - 尝试 `getBoundsInWindow` 修正:window bounds 合法则保留,无效也保留
+   - 保留的节点由 `dispatchGestureClickWithWebViewFix` 在点击时修正坐标
+     （该方法已有 ancestor bounds 兜底逻辑处理虚拟列表项）
+
+### commit 62b39ec - docs: CONVERSATION_LOG.md 追加本次创建并上传记录
 **用户需求**: 每次提交代码的时候,把我们所有的对话记录到 md 文件中上传,每次分析的时候都从这个 md 文件继续工作
 
 **修改要点**:

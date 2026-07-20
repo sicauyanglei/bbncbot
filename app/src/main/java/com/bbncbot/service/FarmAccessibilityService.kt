@@ -2269,13 +2269,39 @@ class FarmAccessibilityService : AccessibilityService() {
             val rect = android.graphics.Rect()
             clickTarget.getBoundsInScreen(rect)
             if (rect.width() <= 0 || rect.height() <= 0) {
-                debugLog("findGoCompleteButtons: drop zero-size node text='$buttonText' bounds=${rect.toShortString()}")
-                return@mapNotNull null
+                // build566 修复（debug_test_20260719_144835.log, build555-41e3bbc）：
+                // 历史问题：支付宝任务列表是 H5 虚拟列表,未滚动到的列表项 bounds 出现
+                // top > bottom 的倒置矩形（如 [884,2823][1113,2666]，bottom 固定为 WebView 高度 2666），
+                // height = bottom - top < 0 → 被当 zero-size 丢弃 → 任务列表只剩顶部 4 个可见按钮,
+                // "去逛逛"等被丢弃的浏览任务按钮永远无法被 processTask 处理 → 浏览任务不滑动。
+                //
+                // 修复：对于 width > 0 但 height <= 0（即 top > bottom 的 H5 虚拟列表项）,
+                // 不直接丢弃,改为尝试 getBoundsInWindow 修正:
+                // - 若 window bounds 合法（width>0 && height>0 && top<bottom）,保留节点（用 window bounds）
+                // - 若 window bounds 也无效,仍保留节点（让 dispatchGestureClickWithWebViewFix 在点击时修正坐标）
+                //   注：dispatchGestureClickWithWebViewFix 已有 ancestor bounds 兜底逻辑处理虚拟列表项
+                if (rect.width() > 0 && rect.top > rect.bottom) {
+                    val rectWindow = android.graphics.Rect()
+                    clickTarget.getBoundsInWindow(rectWindow)
+                    if (rectWindow.width() > 0 && rectWindow.height() > 0 && rectWindow.top < rectWindow.bottom) {
+                        debugLog("findGoCompleteButtons: H5 virtual list item (screen bounds inverted, window valid) text='$buttonText' screen=${rect.toShortString()} window=${rectWindow.toShortString()}")
+                    } else {
+                        debugLog("findGoCompleteButtons: H5 virtual list item (screen bounds inverted, window invalid, will fix at click time) text='$buttonText' bounds=${rect.toShortString()}")
+                    }
+                    // 保留节点：H5 虚拟列表项需要滚动后才能正确显示,
+                    // processTask 处理时通过 dispatchGestureClickWithWebViewFix 修正坐标,
+                    // 若点击失败则跳过该任务（不阻塞流程）
+                    clickTarget
+                } else {
+                    debugLog("findGoCompleteButtons: drop zero-size node text='$buttonText' bounds=${rect.toShortString()}")
+                    null
+                }
+            } else {
+                if (clickTarget !== node) {
+                    debugLog("findGoCompleteButtons: use clickable ancestor for '$buttonText' (original not clickable, ancestor bounds=${rect.toShortString()})")
+                }
+                clickTarget
             }
-            if (clickTarget !== node) {
-                debugLog("findGoCompleteButtons: use clickable ancestor for '$buttonText' (original not clickable, ancestor bounds=${rect.toShortString()})")
-            }
-            clickTarget
         }
         Log.d(TAG, "findGoCompleteButtons: found ${result.size} buttons (raw=${raw.size}, dropped=${raw.size - result.size})")
         return result
@@ -2479,10 +2505,20 @@ class FarmAccessibilityService : AccessibilityService() {
         // "下单得奖励"是浏览搜索结果页面的任务，浏览后就能得肥料
         // "发现精选好物"、"搜一搜你心仪得宝贝"、"看严选推荐商品" 需要点击商品并滑动浏览
         // 通用浏览关键词 + 平台专属浏览关键词（差异化：淘宝浏览任务最多）
+        // build566 修复（debug_test_20260719_144835.log, build555-41e3bbc）：
+        // 历史问题：支付宝"【福利】试玩热门新游 访问必得500 - 3500肥"任务 isBrowseTask=false,
+        // 走普通点击流程 → 点"去完成"进入新游页 → AI 视觉 CLICK_CLOSE → 永远拿不到肥料。
+        // 该任务实际是访问类任务（进入页面后停留/滑动得肥料），应走浏览流程。
+        // 修复：browseKeywords 新增"访问必得/试玩热门/试玩新游"关键词,
+        // 让"试玩热门新游 访问必得 xxx 肥"类任务走 BROWSING_TASK 流程（停留+滑动）。
+        // - "访问必得"：精确匹配"访问必得500肥"等访问类任务文案
+        // - "试玩热门"/"试玩新游"：匹配"试玩热门新游"任务（访问试玩类，非真玩游戏）
+        //   注：纯"试玩游戏"类任务通常需点击进入游戏，不应走浏览流程，故用更精确的"试玩热门/试玩新游"
         val browseKeywords = listOf(
             "浏览", "逛逛", "滑动", "看一看", "看商品", "下单得", "搜索",
             "精选好物", "心仪", "严选推荐", "发现精选", "搜一搜",
-            "宝贝", "好物", "推荐商品", "发现", "严选"
+            "宝贝", "好物", "推荐商品", "发现", "严选",
+            "访问必得", "试玩热门", "试玩新游"
         ) + currentPlatformConfig().browseTaskKeywords
         val contextText = collectTaskContextText(button)
         val isBrowse = browseKeywords.any { contextText.contains(it) }
