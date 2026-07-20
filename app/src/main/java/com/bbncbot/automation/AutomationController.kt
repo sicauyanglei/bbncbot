@@ -809,7 +809,22 @@ object AutomationController {
             //
             // 修复：UC 平台(激励视频广告)不 pressBack,只等待广告自然结束。
             // 其他平台(支付宝/淘宝)保留原 pressBack 行为(可能是可关闭的横幅/H5 广告)。
+            //
+            // build562 修复（debug_test_20260719_153945.log, build561）：
+            // 历史问题：UC "点击商品,领取奖励"激励视频广告出现时状态机停在 NAVIGATING 只等待,
+            // 没切到 WATCHING_AD → runWatchingAd 的"点击商品→10s→跳过"逻辑根本不执行
+            // → 广告 58s 后异常结束(回桌面) → STOPPING,没领到肥料。
+            // 修复：UC 平台检测到 isClickProductAd() 时立即切 WATCHING_AD,
+            // 让 runWatchingAd 处理"点击商品→10s→跳过"流程。
             if (service.currentPlatform == Platform.UC) {
+                if (service.isClickProductAd()) {
+                    Log.i(TAG, "navigate: UC click-product ad detected, switching to WATCHING_AD to handle click+skip flow")
+                    debugLog("navigate: UC click-product ad, entering WATCHING_AD (will click product -> wait 10s -> skip)")
+                    service.setAdMode(true)
+                    moveTo(AutomationState.WATCHING_AD)
+                    handler.postDelayed({ runWatchingAd(elapsedMs = 0L) }, INTERVAL_CLICK_MS)
+                    return
+                }
                 Log.i(TAG, "navigate: UC reward video ad playing, waiting for it to finish (not pressing back)")
                 debugLog("navigate: UC ad (act=${service.getCurrentActivityName()}), waiting instead of pressBack")
             } else {
