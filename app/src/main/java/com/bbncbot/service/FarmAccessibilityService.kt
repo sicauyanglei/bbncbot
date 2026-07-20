@@ -4436,6 +4436,9 @@ class FarmAccessibilityService : AccessibilityService() {
             !combined.contains("生产中") &&
             !combined.contains("明日") &&
             !combined.contains("已领取") &&
+            // build564：排除"已签到"锁定状态（UC directCollectTexts 新增"签到"关键词后,
+            // 需过滤签到日历里"已签到"格子的锁定状态文本,只点未签到的"签到"按钮）
+            !combined.contains("已签到") &&
             // 排除"还差X次领肥"等锁定状态进度提示（达到阈值后会变成"立即领肥"）
             !combined.contains("还差")
         }

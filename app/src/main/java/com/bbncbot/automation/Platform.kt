@@ -205,7 +205,19 @@ object UcPlatformConfig : PlatformConfig {
         "集肥料", "领取肥料", "获取肥料", "收集肥料", "开始施肥", "看视频", "看广告领奖"
     )
     override val goCompleteTexts = listOf("去完成", "立即完成", "去观看", "去领取", "立即观看", "去赚钱", "去签到", "去答题", "去逛逛")
-    override val directCollectTexts = listOf("可领取", "挖肥料")
+    override val directCollectTexts = listOf(
+        "可领取", "挖肥料",
+        // build564（用户反馈"uc极速版芭芭农场，签到，立即领取，这些可以优先点击完成"）：
+        // 历史问题：UC directCollectTexts 只含 ["可领取","挖肥料"],主页上的"立即领取"/"签到"
+        // 按钮不会被 findDirectCollectButtons 找到,COLLECTING_DIRECT 阶段直接跳到 OPENING_TASK_LIST,
+        // 主页签到入口和每日登录奖励"立即领取"按钮被漏掉,需进任务列表才能处理,效率低。
+        // 修复：新增"立即领取"/"签到"关键词,让 COLLECTING_DIRECT 优先识别并点击主页签到/领取按钮。
+        // - "立即领取"：主页每日登录奖励/红包弹窗的领取按钮（点击即得肥料,无需跳转）
+        // - "签到"：主页签到入口按钮（若主页有独立签到按钮,优先点击签到领肥料）
+        //   注：签到日历弹窗由 runNavigating 的 SIGN_IN 场景处理,这里只处理主页独立签到按钮
+        //   findDirectCollectButtons 已有 !contains("已签到") 过滤,避免误匹配锁定状态
+        "立即领取", "签到"
+    )
     override val collectFertilizerCoords = listOf(
         Pair(0.867f, 0.815f),  // 集肥料按钮（OCR 确认，右下角，1200x2664 屏幕）
         Pair(0.867f, 0.838f),  // 集肥料文字位置备用
