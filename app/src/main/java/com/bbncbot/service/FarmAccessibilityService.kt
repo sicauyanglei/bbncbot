@@ -5790,6 +5790,18 @@ class FarmAccessibilityService : AccessibilityService() {
      *
      * 坐标基于淘宝主页 dump 确认（1200x2664 屏幕）
      * "我的淘宝"页面上的"芭芭农场"入口比首页推荐 feed 更稳定可靠
+     *
+     * build600 修复（用户反馈"淘宝芭芭农场，没有导航到芭芭农场主页"）：
+     * 历史问题：原逻辑用绝对坐标 (1080, 2572) 和 (161, 1534)，仅适配 1200x2664 屏幕。
+     * 若用户屏幕尺寸不同（如 1080x2400），坐标完全错位，"我的淘宝" tab 点不到，
+     * "芭芭农场"入口也点不到，导航失败但日志只显示"on taobao main page"，难以排查。
+     *
+     * 改进：
+     * 1. 改用比例坐标（基于 1200x2664 屏幕 dump 换算）+ metrics 缩放，适配多屏幕
+     *    - "我的淘宝" tab: ratio (0.9, 0.966)（原 1080/1200=0.9, 2572/2664=0.9655）
+     *    - "芭芭农场"入口: ratio (0.134, 0.575)（原 161/1200=0.1342, 1534/2664=0.5758）
+     * 2. 增加每一步诊断日志：屏幕尺寸、当前 activity、点击坐标、点击前后状态
+     * 3. 失败重试时也打印日志，便于排查
      */
     private fun stepClickFarmTabByGesture(platform: Platform, retry: Int) {
         // 自动化正在运行且不在 NAVIGATING/SWITCHING_PLATFORM 状态时，停止导航
@@ -5804,8 +5816,13 @@ class FarmAccessibilityService : AccessibilityService() {
             return
         }
 
+        val metrics = resources.displayMetrics
+        val screenW = metrics.widthPixels
+        val screenH = metrics.heightPixels
+
         // 检查当前是否在淘宝主页（通过底部 tab 栏节点检测判断）
         val activity = currentActivityName?.lowercase().orEmpty()
+        val pkg = currentEventPkg?.lowercase().orEmpty()
         val isOnTaobaoMainPage = run {
             val root = rootInActiveWindowSafe()
             root != null && isOnTaobaoHomePage(root)
@@ -5814,7 +5831,7 @@ class FarmAccessibilityService : AccessibilityService() {
         if (!isOnTaobaoMainPage) {
             // 不在淘宝主页（可能在商品详情页、支付宝收银台等），
             // 先按返回退出异常页面，再重新导航
-            debugLog("navigate stepTab gesture: not on taobao main page (activity=$activity), pressing back first")
+            debugLog("navigate stepTab gesture: not on taobao main page (pkg=$pkg act=$activity retry=$retry/$screenW x $screenH), pressing back first")
             pressBack()
             navHandler.postDelayed({
                 val ctrlState2 = AutomationController.currentState
@@ -5828,19 +5845,27 @@ class FarmAccessibilityService : AccessibilityService() {
                 if (retry < 5) {
                     stepClickFarmTabByGesture(platform, retry + 1)
                 } else {
-                    debugLog("navigate stepTab gesture: failed to reach main page after $retry retries")
+                    debugLog("navigate stepTab gesture: failed to reach main page after $retry retries (pkg=$pkg act=$activity)")
                     clearNavigatingFlag()
                 }
             }, 2000L)
             return
         }
 
-        // 已在淘宝主页，执行手势导航
-        debugLog("navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab")
-        dispatchGestureClick(1080f, 2572f)
+        // 已在淘宝主页，执行手势导航（build600: 改用比例坐标适配多屏幕）
+        // "我的淘宝" tab: 1200x2664 屏幕 dump 确认 bounds=[960,2481][1200,2664]，中心 (1080, 2572)
+        // 比例换算：x=1080/1200=0.9, y=2572/2664=0.9655
+        val myTaobaoTabX = screenW * 0.9f
+        val myTaobaoTabY = screenH * 0.966f
+        debugLog("navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab at ($myTaobaoTabX, $myTaobaoTabY) [screen=$screenW x $screenH ratio=0.9,0.966]")
+        dispatchGestureClick(myTaobaoTabX, myTaobaoTabY)
         navHandler.postDelayed({
-            debugLog("navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)")
-            dispatchGestureClick(161f, 1534f)
+            // "芭芭农场"入口: 1200x2664 屏幕 dump 确认 bounds=[52,1424][270,1644]，中心 (161, 1534)
+            // 比例换算：x=161/1200=0.1342, y=1534/2664=0.5758
+            val farmEntryX = screenW * 0.134f
+            val farmEntryY = screenH * 0.576f
+            debugLog("navigate stepTab gesture: step 2 - click 芭芭农场 at ($farmEntryX, $farmEntryY) [screen=$screenW x $screenH ratio=0.134,0.576]")
+            dispatchGestureClick(farmEntryX, farmEntryY)
             debugLog("navigate stepTab gesture: done, waiting 8s for farm page")
             Log.i(TAG, "navigateToFarm: done (gesture), platform=$platform, waiting 8s for farm page to load")
             navHandler.postDelayed({ clearNavigatingFlag() }, 8000L)
@@ -5850,20 +5875,52 @@ class FarmAccessibilityService : AccessibilityService() {
     /**
      * 检测是否在淘宝主页
      * - 淘宝主页特征：底部 tab 栏包含"首页"、"逛逛"、"消息"、"我的淘宝"等文字
+     *
+     * build600 修复（用户反馈"淘宝芭芭农场，没有导航到芭芭农场主页"）：
+     * 历史问题：原逻辑要求"至少3个底部 tab 文字"匹配，但淘宝 UI 改版后部分 tab 文字
+     * 可能从"消息"变成"消息盒"或从"逛逛"变成"视频"，导致 tab 文字匹配数 < 3，
+     * isOnTaobaoHomePage 返回 false，stepClickFarmTabByGesture 反复 pressBack 5 次后放弃。
+     *
+     * 改进策略（多重兜底）：
+     * 1. 优先匹配 4 个 tab 文字，找到 3 个即认定在主页（原逻辑保留）
+     * 2. 找到 2 个 tab 文字且包名是 com.taobao.taobao 也认定在主页（防 UI 改版）
+     * 3. 包名是 com.taobao.taobao 且 activity 是主页相关（mainactivity/fragmenttabactivity/
+     *    taobaomain/welcometaobao）也认定在主页（兜底）
+     * 4. 任何判定路径都打印诊断日志（屏幕尺寸、tab 文字匹配数、activity），便于排查
      */
     private fun isOnTaobaoHomePage(root: AccessibilityNodeInfo): Boolean {
-        val tabTexts = listOf("首页", "逛逛", "消息", "我的淘宝")
-        var found = 0
+        val tabTexts = listOf("首页", "逛逛", "消息", "我的淘宝", "视频", "购物车")
+        val matchedTabs = mutableListOf<String>()
         for (tab in tabTexts) {
             if (findNodeByText(root, tab) != null) {
-                found++
+                matchedTabs.add(tab)
             }
         }
-        // 至少找到 3 个底部 tab 文字才认定在主页
+        val found = matchedTabs.size
+        val activity = currentActivityName?.lowercase().orEmpty()
+        val pkg = currentEventPkg?.lowercase().orEmpty()
+        val isTaobaoPkg = pkg.contains("taobao")
+        val isMainAct = activity.contains("mainactivity") ||
+            activity.contains("fragmenttabactivity") ||
+            activity.contains("taobaomain") ||
+            activity.contains("welcometaobao")
+        val metrics = resources.displayMetrics
+        // 路径1：4 tab 中匹配 3 个（原逻辑）
         if (found >= 3) {
-            debugLog("isOnTaobaoHomePage: found $found tabs, on main page")
+            debugLog("isOnTaobaoHomePage: found $found tabs=$matchedTabs (path1 strict), on main page, screenW=${metrics.widthPixels} screenH=${metrics.heightPixels} act=$activity")
             return true
         }
+        // 路径2：匹配 2 个 + 包名是淘宝（防 UI 改版）
+        if (found >= 2 && isTaobaoPkg) {
+            debugLog("isOnTaobaoHomePage: found $found tabs=$matchedTabs (path2 relaxed, taobao pkg), on main page, screenW=${metrics.widthPixels} screenH=${metrics.heightPixels} act=$activity")
+            return true
+        }
+        // 路径3：包名是淘宝 + activity 是主页相关（兜底，tab 文字全失效时）
+        if (isTaobaoPkg && isMainAct) {
+            debugLog("isOnTaobaoHomePage: found $found tabs=$matchedTabs (path3 fallback, taobao pkg + main act), on main page, screenW=${metrics.widthPixels} screenH=${metrics.heightPixels} act=$activity")
+            return true
+        }
+        debugLog("isOnTaobaoHomePage: not on main page, found=$found tabs=$matchedTabs pkg=$pkg act=$activity screenW=${metrics.widthPixels} screenH=${metrics.heightPixels}")
         return false
     }
 
