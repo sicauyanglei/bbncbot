@@ -2252,9 +2252,19 @@ class FarmAccessibilityService : AccessibilityService() {
         // 如果过滤掉屏幕外按钮，taskButtons.size 会变小，processTask 会误判
         // "全部任务完成"（currentTaskIndex >= taskButtons.size），跳过剩余任务。
         val result = raw.mapNotNull { node ->
+            // build594: 先提取 buttonText,以便后续所有过滤分支都能引用（含 no-clickable-ancestor 日志）
+            val text = node.text?.toString()?.trim().orEmpty()
+            val desc = node.contentDescription?.toString()?.trim().orEmpty()
+            val buttonText = if (text.isNotEmpty()) text else desc
             // 1. 必须可点击（UC 平台"去完成"本身不可点击，向上找最近的 clickable 父节点）
             // build593: 向上查找层数从 5 增到 10（debug_test_20260721_213604.log, build591 显示
             // UC H5 WebView 里"去完成"按钮 5 层内找不到 clickable 祖先,被全部 drop 导致任务列表打不开）
+            // build594 修复（debug_test_20260721_222311.log, build593 显示 10 层仍不够,
+            // "去完成"和"签到肥料"都 no clickable ancestor within 10 levels 被全部 drop,
+            // 导致 findGoCompleteButtons 返回 0 个按钮 → 反复点"集肥料"重试 → STOPPING）：
+            // 当向上 10 层仍找不到 clickable 祖先时,不直接 drop,而是保留节点自身,
+            // 让 performClickSafe 用 dispatchGesture 坐标点击（不依赖 clickable 属性）。
+            // "签到肥料"等装饰性文字会在下面的签到精确过滤分支被 drop,不会误点。
             var clickTarget = node
             if (!node.isClickable) {
                 var p: AccessibilityNodeInfo? = node.parent
@@ -2264,14 +2274,22 @@ class FarmAccessibilityService : AccessibilityService() {
                     p = p.parent; depth++
                 }
                 if (!clickTarget.isClickable) {
-                    debugLog("findGoCompleteButtons: drop non-clickable node text='${node.text?.toString()?.take(30)}' (no clickable ancestor within 10 levels)")
-                    return@mapNotNull null
+                    // build594: 无 clickable 祖先,检查节点自身 bounds 是否合法
+                    // 若 bounds 合法（width>0 且 height>0 且 top<bottom）,保留节点自身,
+                    // 让 performClickSafe 用 dispatchGesture 坐标点击。
+                    val selfRect = android.graphics.Rect()
+                    node.getBoundsInScreen(selfRect)
+                    val boundsValid = selfRect.width() > 0 && selfRect.height() > 0 && selfRect.top < selfRect.bottom
+                    if (boundsValid) {
+                        debugLog("findGoCompleteButtons: no clickable ancestor for '$buttonText', keep node itself for coordinate click (bounds=${selfRect.toShortString()})")
+                        // clickTarget 保持为 node 自身
+                    } else {
+                        debugLog("findGoCompleteButtons: drop non-clickable node text='$buttonText' (no clickable ancestor within 10 levels and invalid bounds=${selfRect.toShortString()})")
+                        return@mapNotNull null
+                    }
                 }
             }
             // 2. 文本长度过滤（防止规则条款被误识别）
-            val text = node.text?.toString()?.trim().orEmpty()
-            val desc = node.contentDescription?.toString()?.trim().orEmpty()
-            val buttonText = if (text.isNotEmpty()) text else desc
             if (buttonText.length > 50) {
                 debugLog("findGoCompleteButtons: drop long-text node (len=${buttonText.length}, text='${buttonText.take(30)}...')")
                 return@mapNotNull null
