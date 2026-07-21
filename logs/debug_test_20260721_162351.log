@@ -1,0 +1,444 @@
+=== cleared on app start (version=2.2, build=build581-8299341, time=16:16:51) ===
+16:16:51.686 killPlatformApps: killed com.ucmobile.lite for UC
+16:16:51.688 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+16:16:51.689 killPlatformApps: killed com.taobao.taobao for TAOBAO
+16:16:56.828 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:16:56.831 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+16:17:00.872 === Automation v2 Started === platform=UC
+16:17:00.875 cancelNavigation: all navigation callbacks cancelled
+16:17:00.889 reset platform complete: UC
+16:17:00.890 state: IDLE -> NAVIGATING
+16:17:01.334 [navigate-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:17:01.351 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+16:17:01.540 navigate: on farm page, platform=UC
+16:17:01.569 hasFarmContentLoaded: text count=17, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+16:17:01.571 hasFarmContentLoaded: realContent count=16
+16:17:01.573 navigate: hasFarmContentLoaded=true, attempt=0
+16:17:01.574 state: NAVIGATING -> COLLECTING_DIRECT
+16:17:04.967 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 2]
+16:17:04.979 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+16:17:04.997 [collectDirect-start] claim-text-nodes (count=1):
+16:17:04.998 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,3448][694,2509] clickable=false
+16:17:05.015 collectDirect: found 0 direct buttons, attempt=0
+16:17:05.017 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+16:17:07.507 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 2]
+16:17:07.532 [openTaskList-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+16:17:07.559 [openTaskList-start] claim-text-nodes (count=1):
+16:17:07.560 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[255,3448][694,2509] clickable=false
+16:17:07.578 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+16:17:07.579 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+16:17:07.580 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+16:17:07.580 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+16:17:07.580 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+16:17:07.581 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+16:17:07.581 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+16:17:07.581 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+16:17:07.582 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+16:17:07.582 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+16:17:07.583 openTaskList: [UC闭环] heuristic text search (attempt=0)
+16:17:07.590 findCollectFertilizerButton: found by text='集肥料' bounds=[949,2380][1129,2509]
+16:17:07.591 openTaskList: [UC闭环] clicking entry button by text (attempt=0)
+16:17:07.591 performClickSafe: text='集肥料' desc='' bounds=[949,2380][1129,2509] clickable=false
+16:17:07.592 performClickSafe: ACTION_CLICK failed, trying gesture
+16:17:07.592 dispatchGesture: screen=[[949,2380][1129,2509]] window=[[0,0][0,0]]
+16:17:07.593 dispatchGesture: not in popup, screen bounds valid, click at (1039.0, 2444.5)
+16:17:12.633 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+16:17:14.664 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+16:17:16.719 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+16:17:18.766 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=3, currentIndex=0
+16:17:20.843 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=4, currentIndex=0
+16:17:22.973 findCollectFertilizerButton: not found by text, root childCount=1
+16:17:22.975 openTaskList: findCollectFertilizerButton=false, attempt=1
+16:17:23.007 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:23.009 openTaskList: [坐标兜底] not on farm page (findCollectFertilizerButton=null), re-navigating instead of coordinate fallback
+16:17:23.012 state: OPENING_TASK_LIST -> NAVIGATING
+16:17:25.045 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:25.068 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:26.227 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:26.282 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:26.309 isNonAdTaskPage: YES, matched non-ad task in [芭芭农场, 12级, 500，肥料，点击领取, 兔兔挖肥料，50肥料，可领取, 好友林, 去砍价, 再施肥88.53%就快拿到啦, 去邀请]
+16:17:26.358 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:26.432 [navigate-start] snapshot: pkg=com.android.systemui, act=android.widget.LinearLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+16:17:26.464 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+16:17:26.482 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:26.617 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:26.876 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:26.952 navigate: calling navigateToFarm, platform=TAOBAO
+16:17:26.953 navigateToFarm: taobao, using 我的淘宝 path
+16:17:29.365 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:17:31.577 isOnTaobaoHomePage: found 3 tabs, on main page
+16:17:31.578 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:17:31.965 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:32.192 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:17:33.581 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:17:33.584 navigate stepTab gesture: done, waiting 8s for farm page
+16:17:37.228 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:37.676 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:37.795 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:42.835 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:43.567 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:43.736 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:43.867 navigate: calling navigateToFarm, platform=TAOBAO
+16:17:43.870 navigateToFarm: taobao, using 我的淘宝 path
+16:17:45.910 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:17:48.108 isOnTaobaoHomePage: found 3 tabs, on main page
+16:17:48.110 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:17:48.885 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:48.896 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:17:50.114 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:17:50.117 navigate stepTab gesture: done, waiting 8s for farm page
+16:17:53.925 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:54.183 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:54.267 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:17:59.320 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:00.270 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:00.436 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:00.553 navigate: calling navigateToFarm, platform=TAOBAO
+16:18:00.555 navigateToFarm: taobao, using 我的淘宝 path
+16:18:02.743 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:18:04.921 isOnTaobaoHomePage: found 3 tabs, on main page
+16:18:04.923 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:18:05.572 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:05.580 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:18:06.927 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:18:06.930 navigate stepTab gesture: done, waiting 8s for farm page
+16:18:10.630 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:11.024 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:11.130 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:16.217 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:16.899 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:17.083 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:17.250 navigate: calling navigateToFarm, platform=TAOBAO
+16:18:17.255 navigateToFarm: taobao, using 我的淘宝 path
+16:18:19.521 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:18:21.708 isOnTaobaoHomePage: found 3 tabs, on main page
+16:18:21.712 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:18:22.279 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:22.294 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:18:23.716 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:18:23.722 navigate stepTab gesture: done, waiting 8s for farm page
+16:18:27.314 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:27.795 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:27.861 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:32.902 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:33.191 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:33.291 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:33.337 navigate: calling navigateToFarm, platform=TAOBAO
+16:18:33.338 navigateToFarm: taobao, using 我的淘宝 path
+16:18:35.050 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:18:37.240 isOnTaobaoHomePage: found 3 tabs, on main page
+16:18:37.241 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:18:38.361 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:38.387 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:18:39.244 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:18:39.248 navigate stepTab gesture: done, waiting 8s for farm page
+16:18:43.414 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:43.825 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:43.890 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:48.937 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:49.801 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:50.067 navigate: calling navigateToFarm, platform=TAOBAO
+16:18:50.072 navigateToFarm: taobao, using 我的淘宝 path
+16:18:52.495 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:18:54.631 isOnTaobaoHomePage: found 3 tabs, on main page
+16:18:54.632 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:18:55.093 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:18:55.106 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:18:56.637 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:18:56.641 navigate stepTab gesture: done, waiting 8s for farm page
+16:19:00.124 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:00.500 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:00.575 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:05.620 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:06.911 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:07.045 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:07.111 navigate: calling navigateToFarm, platform=TAOBAO
+16:19:07.113 navigateToFarm: taobao, using 我的淘宝 path
+16:19:10.478 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:19:12.135 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:12.386 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:19:12.518 isOnTaobaoHomePage: found 3 tabs, on main page
+16:19:12.520 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:19:14.524 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:19:14.526 navigate stepTab gesture: done, waiting 8s for farm page
+16:19:17.416 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:17.766 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:17.898 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:22.993 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:23.970 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:24.171 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:24.305 navigate: calling navigateToFarm, platform=TAOBAO
+16:19:24.310 navigateToFarm: taobao, using 我的淘宝 path
+16:19:26.440 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:19:28.720 isOnTaobaoHomePage: found 3 tabs, on main page
+16:19:28.722 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:19:29.335 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:29.371 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:19:30.728 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:19:30.736 navigate stepTab gesture: done, waiting 8s for farm page
+16:19:34.402 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:34.653 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:34.752 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:39.811 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:40.493 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:40.676 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:40.810 navigate: calling navigateToFarm, platform=TAOBAO
+16:19:40.814 navigateToFarm: taobao, using 我的淘宝 path
+16:19:42.885 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:19:45.194 isOnTaobaoHomePage: found 3 tabs, on main page
+16:19:45.197 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:19:45.837 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:45.852 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:19:47.200 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:19:47.208 navigate stepTab gesture: done, waiting 8s for farm page
+16:19:50.876 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:51.235 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:51.307 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:56.382 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:57.098 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:57.231 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:19:57.381 navigate: calling navigateToFarm, platform=TAOBAO
+16:19:57.384 navigateToFarm: taobao, using 我的淘宝 path
+16:19:59.463 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:20:01.795 isOnTaobaoHomePage: found 3 tabs, on main page
+16:20:01.797 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:20:02.401 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:02.420 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:20:03.801 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:20:03.806 navigate stepTab gesture: done, waiting 8s for farm page
+16:20:07.463 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:07.493 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:07.763 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:07.789 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:07.799 isNonAdTaskPage: YES, matched non-ad task in [芭芭农场, 兔兔挖肥料，50肥料，可领取, 12级, 500，肥料，点击领取, 头像, 头像, 合种/帮种, 合种/帮种]
+16:20:07.818 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:07.848 [navigate-start] snapshot: pkg=com.android.systemui, act=android.widget.LinearLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+16:20:07.856 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+16:20:07.879 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:07.934 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:08.001 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:13.037 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:13.070 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:13.820 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:13.886 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:13.913 isNonAdTaskPage: YES, matched non-ad task in [芭芭农场, 12级, 500，肥料，点击领取, 兔兔挖肥料，50肥料，可领取, 好友林, 去砍价, 再施肥88.53%就快拿到啦, 去邀请]
+16:20:13.952 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:14.037 [navigate-start] snapshot: pkg=com.android.systemui, act=android.widget.LinearLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+16:20:14.069 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+16:20:14.103 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:14.235 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:14.351 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:14.422 navigate: calling navigateToFarm, platform=TAOBAO
+16:20:14.425 navigateToFarm: taobao, using 我的淘宝 path
+16:20:16.133 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:20:18.294 isOnTaobaoHomePage: found 3 tabs, on main page
+16:20:18.294 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:20:19.450 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:19.460 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:20:20.296 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:20:20.300 navigate stepTab gesture: done, waiting 8s for farm page
+16:20:24.474 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:24.763 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:24.907 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:29.965 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:30.664 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:30.833 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:30.999 navigate: calling navigateToFarm, platform=TAOBAO
+16:20:31.004 navigateToFarm: taobao, using 我的淘宝 path
+16:20:33.093 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:20:35.341 isOnTaobaoHomePage: found 3 tabs, on main page
+16:20:35.343 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:20:36.025 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:36.036 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:20:37.348 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:20:37.351 navigate stepTab gesture: done, waiting 8s for farm page
+16:20:41.078 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:41.372 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:41.459 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:46.503 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:47.201 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:47.386 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:47.534 navigate: calling navigateToFarm, platform=TAOBAO
+16:20:47.536 navigateToFarm: taobao, using 我的淘宝 path
+16:20:49.705 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:20:51.926 isOnTaobaoHomePage: found 3 tabs, on main page
+16:20:51.928 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:20:52.557 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:52.575 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:20:53.933 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:20:53.936 navigate stepTab gesture: done, waiting 8s for farm page
+16:20:57.596 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:57.894 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:20:57.954 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:03.030 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:03.762 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:03.929 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:04.081 navigate: calling navigateToFarm, platform=TAOBAO
+16:21:04.084 navigateToFarm: taobao, using 我的淘宝 path
+16:21:06.152 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:21:08.429 isOnTaobaoHomePage: found 3 tabs, on main page
+16:21:08.430 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:21:09.112 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:09.125 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:21:10.433 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:21:10.437 navigate stepTab gesture: done, waiting 8s for farm page
+16:21:14.160 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:14.426 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:14.524 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:19.566 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:20.431 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:20.599 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:20.747 navigate: calling navigateToFarm, platform=TAOBAO
+16:21:20.752 navigateToFarm: taobao, using 我的淘宝 path
+16:21:22.842 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:21:25.038 isOnTaobaoHomePage: found 3 tabs, on main page
+16:21:25.039 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:21:25.775 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:25.785 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:21:27.043 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:21:27.047 navigate stepTab gesture: done, waiting 8s for farm page
+16:21:30.805 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:31.077 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:31.145 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:36.235 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:36.918 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:37.084 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:37.217 navigate: calling navigateToFarm, platform=TAOBAO
+16:21:37.219 navigateToFarm: taobao, using 我的淘宝 path
+16:21:39.284 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:21:41.473 isOnTaobaoHomePage: found 3 tabs, on main page
+16:21:41.475 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:21:42.231 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:42.237 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:21:43.479 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:21:43.483 navigate stepTab gesture: done, waiting 8s for farm page
+16:21:47.257 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:47.529 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:47.598 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:52.653 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:53.386 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:53.569 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:53.702 navigate: calling navigateToFarm, platform=TAOBAO
+16:21:53.704 navigateToFarm: taobao, using 我的淘宝 path
+16:21:55.982 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:21:58.263 isOnTaobaoHomePage: found 3 tabs, on main page
+16:21:58.265 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:21:58.713 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:21:58.718 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:22:00.272 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:22:00.275 navigate stepTab gesture: done, waiting 8s for farm page
+16:22:03.751 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:04.112 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:04.215 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:09.261 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:09.975 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:10.142 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:10.275 navigate: calling navigateToFarm, platform=TAOBAO
+16:22:10.280 navigateToFarm: taobao, using 我的淘宝 path
+16:22:12.315 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:22:14.615 isOnTaobaoHomePage: found 3 tabs, on main page
+16:22:14.617 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:22:15.303 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:15.318 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:22:16.622 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:22:16.627 navigate stepTab gesture: done, waiting 8s for farm page
+16:22:20.341 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:20.653 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:20.759 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:25.817 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:26.098 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:26.214 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:26.285 navigate: calling navigateToFarm, platform=TAOBAO
+16:22:26.290 navigateToFarm: taobao, using 我的淘宝 path
+16:22:28.006 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:22:30.290 isOnTaobaoHomePage: found 3 tabs, on main page
+16:22:30.292 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:22:31.317 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:31.336 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:22:32.296 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:22:32.302 navigate stepTab gesture: done, waiting 8s for farm page
+16:22:36.382 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:36.800 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:36.900 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:41.957 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:42.659 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:42.821 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:42.939 navigate: calling navigateToFarm, platform=TAOBAO
+16:22:42.944 navigateToFarm: taobao, using 我的淘宝 path
+16:22:45.012 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:22:47.257 isOnTaobaoHomePage: found 3 tabs, on main page
+16:22:47.259 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:22:47.975 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:47.992 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:22:49.265 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:22:49.272 navigate stepTab gesture: done, waiting 8s for farm page
+16:22:53.015 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:53.037 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:53.604 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:53.644 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:53.655 isNonAdTaskPage: YES, matched non-ad task in [芭芭农场, 12级, 500，肥料，点击领取, 兔兔挖肥料，50肥料，可领取, 好友林, 去砍价, 再施肥88.53%就快拿到啦, 换种]
+16:22:53.667 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:53.687 [navigate-start] snapshot: pkg=com.android.systemui, act=android.widget.LinearLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+16:22:53.721 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+16:22:53.755 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:53.819 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:53.875 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:58.930 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:58.963 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:59.597 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:59.647 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:59.672 isNonAdTaskPage: YES, matched non-ad task in [芭芭农场, 12级, 500，肥料，点击领取, 兔兔挖肥料，50肥料，可领取, 好友林, 去砍价, 再施肥88.53%就快拿到啦, 去邀请]
+16:22:59.715 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:22:59.812 [navigate-start] snapshot: pkg=com.android.systemui, act=android.widget.LinearLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+16:22:59.846 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+16:22:59.879 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:00.044 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:00.229 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:00.362 navigate: calling navigateToFarm, platform=TAOBAO
+16:23:00.366 navigateToFarm: taobao, using 我的淘宝 path
+16:23:02.332 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:23:04.575 isOnTaobaoHomePage: found 3 tabs, on main page
+16:23:04.578 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:23:05.377 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:05.381 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:23:06.582 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:23:06.588 navigate stepTab gesture: done, waiting 8s for farm page
+16:23:10.395 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:10.633 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:10.701 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:15.755 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:16.601 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:16.820 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:16.952 navigate: calling navigateToFarm, platform=TAOBAO
+16:23:16.956 navigateToFarm: taobao, using 我的淘宝 path
+16:23:19.100 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:23:21.227 isOnTaobaoHomePage: found 3 tabs, on main page
+16:23:21.229 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:23:21.974 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:21.980 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:23:23.234 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:23:23.241 navigate stepTab gesture: done, waiting 8s for farm page
+16:23:27.017 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:27.317 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:27.399 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:32.441 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:33.174 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:33.339 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:33.489 navigate: calling navigateToFarm, platform=TAOBAO
+16:23:33.491 navigateToFarm: taobao, using 我的淘宝 path
+16:23:35.564 navigate stepTab gesture: not on taobao main page (activity=android.widget.linearlayout), pressing back first
+16:23:37.746 isOnTaobaoHomePage: found 3 tabs, on main page
+16:23:37.748 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab
+16:23:38.504 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:38.510 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+16:23:39.752 navigate stepTab gesture: step 2 - click 芭芭农场 at (161, 1534)
+16:23:39.755 navigate stepTab gesture: done, waiting 8s for farm page
+16:23:43.521 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:43.793 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:43.903 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+16:23:44.712 state: NAVIGATING -> STOPPING
+16:23:44.714 cancelNavigation: all navigation callbacks cancelled
+16:23:44.716 state: STOPPING -> IDLE
+16:23:51.964 saveToken: saved (len=93, head='gith', tail='McKr')
+16:23:51.968 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+16:23:51.970 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260721_162351.log, localFile=debug.log (42172 bytes)
