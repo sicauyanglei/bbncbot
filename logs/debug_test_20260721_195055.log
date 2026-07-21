@@ -1,0 +1,113 @@
+=== cleared on app start (version=2.2, build=build589-fef7ce2, time=19:49:49) ===
+19:49:49.372 killPlatformApps: killed com.ucmobile.lite for UC
+19:49:49.374 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+19:49:49.376 killPlatformApps: killed com.taobao.taobao for TAOBAO
+19:49:53.288 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:49:53.289 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+19:49:55.382 === Automation v2 Started === platform=UC
+19:49:55.384 cancelNavigation: all navigation callbacks cancelled
+19:49:55.390 reset platform complete: UC
+19:49:55.392 state: IDLE -> NAVIGATING
+19:49:55.770 [navigate-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:49:55.776 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:49:55.799 navigate: on farm page, platform=UC
+19:49:55.809 hasFarmContentLoaded: text count=13, sample=[后退, 智能组件, 菜单, 多窗口, 12, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+19:49:55.810 hasFarmContentLoaded: realContent count=13
+19:49:55.811 navigate: hasFarmContentLoaded=true, attempt=0
+19:49:55.811 state: NAVIGATING -> COLLECTING_DIRECT
+19:49:58.132 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:49:58.143 [collectDirect-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:49:58.160 collectDirect: found 0 direct buttons, attempt=0
+19:49:58.182 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+19:50:01.452 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 12]
+19:50:01.471 [openTaskList-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+19:50:01.491 [openTaskList-start] claim-text-nodes (count=1):
+19:50:01.493 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[255,3042][694,2509] clickable=false
+19:50:01.539 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+19:50:01.540 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+19:50:01.541 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+19:50:01.542 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+19:50:01.542 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+19:50:01.543 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+19:50:01.546 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+19:50:01.549 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+19:50:01.550 openTaskList: [UC闭环] heuristic text search (attempt=0)
+19:50:01.568 findCollectFertilizerButton: found by text='集肥料' bounds=[949,2380][1129,2509]
+19:50:01.570 openTaskList: [UC闭环] clicking entry button by text (attempt=0)
+19:50:01.572 performClickSafe: text='集肥料' desc='' bounds=[949,2380][1129,2509] clickable=false
+19:50:01.573 performClickSafe: ACTION_CLICK failed, trying gesture
+19:50:01.574 dispatchGesture: screen=[[949,2380][1129,2509]] window=[[0,0][0,0]]
+19:50:01.574 dispatchGesture: not in popup, screen bounds valid, click at (1039.0, 2444.5)
+19:50:06.617 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+19:50:08.635 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+19:50:10.680 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+19:50:12.705 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=3, currentIndex=0
+19:50:14.748 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=4, currentIndex=0
+19:50:16.805 findCollectFertilizerButton: not found by text, root childCount=4
+19:50:16.809 openTaskList: findCollectFertilizerButton=false, attempt=1
+19:50:16.833 openTaskList: [坐标兜底] WebView not ready (rootChildCount=4, descendantEstimate=5), skip coordinate click, re-navigate
+19:50:16.834 state: OPENING_TASK_LIST -> NAVIGATING
+19:50:22.045 [navigate-start] snapshot: pkg=com.android.systemui, act=android.widget.FrameLayout, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:50:22.066 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:50:22.094 navigate: on farm page, platform=UC
+19:50:22.107 hasFarmContentLoaded: text count=2, sample=[开始观看, 得肥料]
+19:50:22.109 hasFarmContentLoaded: realContent count=2
+19:50:22.110 navigate: hasFarmContentLoaded=true, attempt=0
+19:50:22.111 state: NAVIGATING -> COLLECTING_DIRECT
+19:50:24.211 [collectDirect-start] snapshot: pkg=com.android.systemui, act=android.widget.FrameLayout, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:50:24.222 [collectDirect-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:50:24.234 collectDirect: found 0 direct buttons, attempt=0
+19:50:24.246 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+19:50:26.413 [openTaskList-start] snapshot: pkg=com.android.systemui, act=android.widget.FrameLayout, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:50:26.426 [openTaskList-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:50:26.436 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+19:50:26.438 openTaskList: [UC闭环] heuristic text search (attempt=0)
+19:50:26.450 findCollectFertilizerButton: not found by text, root childCount=4
+19:50:26.478 openTaskList: [UC闭环] WebView not ready (rootChildCount=4, descendantEstimate=5), skip coordinate click, re-navigate
+19:50:26.481 state: OPENING_TASK_LIST -> NAVIGATING
+19:50:31.631 [navigate-start] snapshot: pkg=com.android.systemui, act=android.widget.FrameLayout, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:50:31.663 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:50:31.710 navigate: on farm page, platform=UC
+19:50:31.722 hasFarmContentLoaded: text count=2, sample=[开始观看, 得肥料]
+19:50:31.724 hasFarmContentLoaded: realContent count=2
+19:50:31.726 navigate: hasFarmContentLoaded=true, attempt=0
+19:50:31.727 state: NAVIGATING -> COLLECTING_DIRECT
+19:50:33.862 [collectDirect-start] snapshot: pkg=com.android.systemui, act=android.widget.FrameLayout, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:50:33.876 [collectDirect-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:50:33.890 collectDirect: found 0 direct buttons, attempt=0
+19:50:33.901 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+19:50:36.036 [openTaskList-start] snapshot: pkg=com.android.systemui, act=android.widget.FrameLayout, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:50:36.046 [openTaskList-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:50:36.056 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+19:50:36.059 openTaskList: [UC闭环] heuristic text search (attempt=0)
+19:50:36.071 findCollectFertilizerButton: not found by text, root childCount=4
+19:50:36.092 openTaskList: [UC闭环] WebView not ready (rootChildCount=4, descendantEstimate=5), skip coordinate click, re-navigate
+19:50:36.094 state: OPENING_TASK_LIST -> NAVIGATING
+19:50:41.197 [navigate-start] snapshot: pkg=com.android.systemui, act=android.widget.FrameLayout, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:50:41.208 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:50:41.227 navigate: on farm page, platform=UC
+19:50:41.236 hasFarmContentLoaded: text count=2, sample=[开始观看, 得肥料]
+19:50:41.238 hasFarmContentLoaded: realContent count=2
+19:50:41.240 navigate: hasFarmContentLoaded=true, attempt=0
+19:50:41.241 state: NAVIGATING -> COLLECTING_DIRECT
+19:50:43.400 [collectDirect-start] snapshot: pkg=com.android.systemui, act=android.widget.FrameLayout, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:50:43.408 [collectDirect-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:50:43.417 collectDirect: found 0 direct buttons, attempt=0
+19:50:43.423 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+19:50:45.431 isOnFarmPage: activeRootPkg='com.hihonor.aod' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+19:50:45.455 [openTaskList-start] snapshot: pkg=com.hihonor.aod, act=android.widget.FrameLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:50:45.459 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+19:50:45.460 openTaskList: [UC闭环] heuristic text search (attempt=0)
+19:50:45.462 findCollectFertilizerButton: root is null!
+19:50:45.464 openTaskList: [UC闭环] not on farm page (no entry button and not on farm), re-navigating instead of coordinate fallback
+19:50:45.465 state: OPENING_TASK_LIST -> NAVIGATING
+19:50:48.204 [navigate-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:50:48.213 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:50:48.324 navigate: calling navigateToFarm, platform=UC
+19:50:49.839 navigate stepTab: 芭芭农场 not found (retry=0), pressing back to go home
+19:50:49.896 state: NAVIGATING -> STOPPING
+19:50:49.899 cancelNavigation: all navigation callbacks cancelled
+19:50:49.901 state: STOPPING -> IDLE
+19:50:55.222 saveToken: saved (len=93, head='gith', tail='McKr')
+19:50:55.224 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+19:50:55.226 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260721_195055.log, localFile=debug.log (11547 bytes)
