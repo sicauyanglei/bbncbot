@@ -983,6 +983,26 @@ object AutomationController {
         val buttons = service.findDirectCollectButtons()
         debugLog("collectDirect: found ${buttons.size} direct buttons, attempt=$attempt")
 
+        // build596 诊断（用户反馈"uc芭芭农场主页,'点击领取'没有执行点击操作"）：
+        // 当 findDirectCollectButtons 返回 0 时,dump 主页全部 text/desc 节点（含 bounds+clickable）,
+        // 确认"点击领取"是否在无障碍树里。H5/Canvas 图像按钮不暴露 text 节点时,
+        // 日志会显示无"点击领取",需用 AI 视觉识别坐标。
+        if (buttons.isEmpty() && attempt == 0) {
+            try {
+                val root = service.getRootInFarmApp()
+                if (root != null) {
+                    val allNodes = mutableListOf<String>()
+                    service.collectAllTextNodesForDiag(root, allNodes, maxCount = 200)
+                    debugLog("collectDirect: dump all text/desc nodes (count=${allNodes.size}) for '点击领取' diagnosis:")
+                    for (line in allNodes) {
+                        debugLog("collectDirect:   $line")
+                    }
+                }
+            } catch (e: Exception) {
+                debugLog("collectDirect: dump all text/desc nodes error: ${e.message}")
+            }
+        }
+
         // build586: 跨平台跳转按钮检测（"去支付宝农场领肥料"等）
         // 用户需求（debug_test_20260721_173039.log, build585, UC 平台 line 25）：
         // UC 主页底部"去支付宝农场领肥料"按钮,点击跳转支付宝领跨平台奖励,需像 processTask 的

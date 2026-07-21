@@ -4864,6 +4864,32 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build596 诊断（用户反馈"uc芭芭农场主页,'点击领取'没有执行点击操作"）：
+     * dump 主页全部 text + desc 节点（含 bounds + clickable），用于确认"点击领取"
+     * 是否在无障碍树里。H5/Canvas 绘制的图像按钮（文字+彩色背景）不会暴露 text 节点,
+     * 此函数可帮助确认是否需要 AI 视觉识别坐标。
+     *
+     * 调用方：[AutomationController.runCollectingDirect] 当 findDirectCollectButtons 返回 0 时
+     *
+     * @param out 输出列表,每项格式 "text='xxx' desc='yyy' bounds=[a,b][c,d] clickable=true/false"
+     * @param maxCount 最多输出节点数（避免日志过大）
+     */
+    fun collectAllTextNodesForDiag(node: AccessibilityNodeInfo, out: MutableList<String>, maxCount: Int = 200) {
+        if (out.size >= maxCount) return
+        val text = node.text?.toString()?.trim().orEmpty()
+        val desc = node.contentDescription?.toString()?.trim().orEmpty()
+        if (text.isNotEmpty() || desc.isNotEmpty()) {
+            val rect = android.graphics.Rect()
+            node.getBoundsInScreen(rect)
+            out.add("text='$text' desc='$desc' bounds=${rect.toShortString()} clickable=${node.isClickable}")
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            collectAllTextNodesForDiag(child, out, maxCount)
+        }
+    }
+
+    /**
      * 判断当前是否在广告Activity
      * - 通用广告活动识别（适用于所有平台）
      */
