@@ -814,8 +814,8 @@ object AutomationController {
                 debugLog("navigate: third-party overlay pkg=$overlayPkg detected, forceKillApp(pressBackFirst=false) + launchPlatformApp to dismiss")
                 service.forceKillApp(overlayPkg, pressBackFirst = false)
                 // kill 后激活农场 App 到前台（用户需求："把跳转前的app激活到前台窗口,然后kill掉跳转到的app"）
-                if (currentPlatform != Platform.UNKNOWN) {
-                    service.launchPlatformApp(currentPlatform)
+                if (service.currentPlatform != Platform.UNKNOWN) {
+                    service.launchPlatformApp(service.currentPlatform)
                 }
                 handler.postDelayed({
                     if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
