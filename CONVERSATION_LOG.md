@@ -32,7 +32,33 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: 跳转第三方 App 后激活农场到前台 + kill 跳转 App（4 处统一顺序 + deep link setPackage + forceKillApp HOME 兜底）
+### commit (待提交) - refactor: 三平台逻辑隔离（UC/支付宝/淘宝 独立配置 + reward-jump/pressBack/claimButton 门控）
+**用户需求**: 三个平台都执行逻辑需要区分开来,不要修改其中一个平台的逻辑影响到其它平台
+
+**调研结论**（search agent 全量梳理）:
+- Platform.kt 配置层:除 farmDeepLink（UC 特有非 null）和 supportsFasterReward（UC 特有 true）外,所有字段三平台都填,差异化通过字段值不同实现
+- AutomationController.kt:仅 2 处真正的平台分支影响执行逻辑——runNavigating 行 748 的 Platform.UC 硬编码 + runWatchingAd 的 supportsFasterReward 配置门控
+- FarmAccessibilityService.kt:仅 1 处显式平台分支——navigateToFarm 行 4822 的 when(platform)
+- findClaimRewardButton/findClaimRewardButtonExact 的 keywords 硬编码 14 个关键词三平台共用,但只有 ALIPAY 的 directCollectTexts 配了"拿奖励"系列 → UC/淘宝广告页若出现"拿奖励"文案会误触发 reward-jump 流程
+
+**修改要点**:
+1. PlatformConfig 接口新增 4 个字段,三平台独立配置:
+   - `supportsRewardJump: Boolean` — UC=false/ALIPAY=true/TAOBAO=false
+   - `adPressBackEnabled: Boolean` — UC=false/ALIPAY=true/TAOBAO=true
+   - `claimRewardButtonTexts: List<String>` — UC/TAOBAO 基础领取关键词,ALIPAY 含"拿奖励/跳转拿"系列
+   - `claimRewardButtonExactTexts: List<String>` — 同上,加上"立即领取"放最前
+2. FarmAccessibilityService.findClaimRewardButton/findClaimRewardButtonExact:
+   - keywords 从硬编码 14 个改为读 `currentPlatformConfig().claimRewardButtonTexts/claimRewardButtonExactTexts`
+3. AutomationController reward-jump 流程加 supportsRewardJump 门控:
+   - executeAiVisionAction CLICK_CLAIM 分支:`if (supportsRewardJump && isRewardJumpButtonText(claimText))` 才设置 rewardJumpClicked=true
+   - AI 视觉兜底分支:`else if (supportsRewardJump && targetX >= 0f && targetY >= 0f)` 才走 reward-jump 流程
+   - 新增 else if 分支:UC/TAOBAO 的 AI 坐标点击直接 dispatchGestureClick,不设置 rewardJumpClicked
+   - runWatchingAd `if (rewardJumpClicked)` 块加注释说明 UC/TAOBAO 不会进入
+4. AutomationController.runNavigating 行 748 的 Platform.UC 硬编码改为 `!currentPlatformConfig().adPressBackEnabled`:
+   - UC=false → 不 pressBack,等广告自然结束（激励视频 pressBack 无效）
+   - ALIPAY=true、TAOBAO=true → pressBack 尝试关闭 H5 广告
+
+### commit 5f3a66b - fix: 跳转第三方 App 后激活农场到前台 + kill 跳转 App（4 处统一顺序 + deep link setPackage + forceKillApp HOME 兜底）
 **用户需求**: 跳到另外一个app,能在完成任务后把跳转前的app激活到前台窗口,然后kill掉跳转到的app
 
 **日志分析**（debug_test_20260719_163645.log, build561-e4467db, UC 平台）:

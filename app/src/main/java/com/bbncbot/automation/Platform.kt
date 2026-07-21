@@ -119,6 +119,61 @@ interface PlatformConfig {
     /** 是否处理"我要更快拿奖"跳转流程（UC 特有，其他平台为 false） */
     val supportsFasterReward: Boolean
 
+    /**
+     * 是否处理"跳转拿奖励"类任务（点击按钮 → 跳第三方 App → 点商品 → 等待 → 切农场 + kill 第三方）
+     *
+     * build566 三平台隔离（用户需求："三个平台都执行逻辑需要区分开来,不要修改其中一个平台的逻辑影响到其它平台"）：
+     * 历史问题：reward-jump 流程对所有平台都执行（isRewardJumpButtonText/findClaimRewardButton 的
+     * "拿奖励/跳转拿"关键词硬编码通用），但只有 ALIPAY 的 directCollectTexts 配了"拿奖励"系列,
+     * UC/TAOBAO 没配。若 UC/淘宝广告页恰好出现"拿奖励"文案（虽概率低）也会触发 reward-jump 流程
+     * （停留 15s + kill），造成不必要的等待。
+     *
+     * 修复：reward-jump 流程加 supportsRewardJump 门控,只有显式支持的平台才执行。
+     * - UC = false（UC 用 supportsFasterReward,无 reward-jump 任务）
+     * - ALIPAY = true（directCollectTexts 含"拿奖励/跳转拿"系列）
+     * - TAOBAO = false（无 reward-jump 任务）
+     */
+    val supportsRewardJump: Boolean
+
+    /**
+     * 广告播放期间是否按返回键尝试关闭广告
+     *
+     * build566 三平台隔离（用户需求："三个平台都执行逻辑需要区分开来,不要修改其中一个平台的逻辑影响到其它平台"）：
+     * 历史问题：runNavigating 行 748 硬编码 `if (service.currentPlatform == Platform.UC)`,
+     * UC 激励视频 pressBack 无效（只 Log 等待）,其他平台 pressBack 尝试关闭横幅/H5 广告。
+     * 若未来支付宝/淘宝也出现激励视频,需改代码而非改配置。
+     *
+     * 修复：把硬编码平台名改为配置字段。
+     * - UC = false（激励视频 pressBack 无效,等广告自然结束）
+     * - ALIPAY = true（H5 广告 pressBack 可关闭）
+     * - TAOBAO = true（H5 广告 pressBack 可关闭）
+     */
+    val adPressBackEnabled: Boolean
+
+    /**
+     * 广告页/弹窗里"领取奖励/签到/拿奖励"等领取按钮文本候选
+     *
+     * build566 三平台隔离（用户需求："三个平台都执行逻辑需要区分开来,不要修改其中一个平台的逻辑影响到其它平台"）：
+     * 历史问题：FarmAccessibilityService.findClaimRewardButton 的 keywords 硬编码 14 个关键词
+     * （含"立即签到/签到/领取奖励/我要直接拿奖励/拿奖励/跳转拿"等）,三平台共用。
+     * 但只有 ALIPAY 的 directCollectTexts 配了"拿奖励"系列,UC/TAOBAO 没配。
+     * 若 UC/淘宝广告页出现"拿奖励"文案会误识别为跳转奖励按钮,触发不必要的 reward-jump 流程。
+     *
+     * 修复：把 keywords 改为 PlatformConfig 字段,三平台独立配置。
+     * - UC：基础领取关键词（签到/领取/确定/知道了）,不含"拿奖励"系列
+     * - ALIPAY：全部关键词（基础 + "拿奖励/跳转拿"系列）
+     * - TAOBAO：基础领取关键词,不含"拿奖励"系列
+     */
+    val claimRewardButtonTexts: List<String>
+
+    /**
+     * findClaimRewardButtonExact 的精确匹配关键词候选（与 claimRewardButtonTexts 配对）
+     *
+     * 精确匹配场景：按钮 text 完全等于关键词（不 contains）,用于点击特定弹窗的领取按钮。
+     * 三平台独立配置,与 claimRewardButtonTexts 同步。
+     */
+    val claimRewardButtonExactTexts: List<String>
+
     /** 平台特有的广告关闭按钮文本/描述提示（除通用的"×"/"关闭"外） */
     val adCloseButtonTexts: List<String>
 
@@ -252,6 +307,18 @@ object UcPlatformConfig : PlatformConfig {
     override val adDefaultMaxDurationMs = 90000L      // 含"更快拿奖"跳转流程，上限放宽到 90s
     override val adEndCheckIntervalMs = 5000L         // 5s 检测间隔（"更快拿奖"流程需较稳定轮询）
     override val supportsFasterReward = true          // UC 特有："我要更快拿奖"跳转流程
+    // build566 三平台隔离：UC 无 reward-jump 任务（用 supportsFasterReward 代替）
+    override val supportsRewardJump = false
+    // build566 三平台隔离：UC 激励视频 pressBack 无效,等广告自然结束
+    override val adPressBackEnabled = false
+    // build566 三平台隔离：UC 领取按钮关键词（不含"拿奖励"系列,UC directCollectTexts 也未配）
+    override val claimRewardButtonTexts = listOf(
+        "立即签到", "签到领取", "签到", "领取奖励", "领取", "确定", "知道了"
+    )
+    override val claimRewardButtonExactTexts = listOf(
+        // "立即领取"放最前：弹窗确认按钮优先精确匹配
+        "立即领取", "立即签到", "签到领取", "签到", "领取奖励", "领取", "确定", "知道了"
+    )
     override val adCloseButtonTexts = listOf("跳过广告", "跳过视频", "关闭广告")
     override val adInstallButtonTexts = listOf(
         "立即下载", "立即安装", "点击下载", "免费下载",
@@ -364,6 +431,23 @@ object AlipayPlatformConfig : PlatformConfig {
     override val adDefaultMaxDurationMs = 60000L      // 无跳转流程，上限收紧到 60s
     override val adEndCheckIntervalMs = 3000L         // 3s 检测间隔（更激进，快速发现广告结束）
     override val supportsFasterReward = false         // 支付宝无"更快拿奖"流程
+    // build566 三平台隔离：支付宝有 reward-jump 任务（directCollectTexts 含"拿奖励/跳转拿"系列）
+    override val supportsRewardJump = true
+    // build566 三平台隔离：支付宝 H5 广告 pressBack 可关闭
+    override val adPressBackEnabled = true
+    // build566 三平台隔离：支付宝领取按钮关键词（含"拿奖励/跳转拿"系列,与 directCollectTexts 同步）
+    override val claimRewardButtonTexts = listOf(
+        "立即签到", "签到领取", "签到", "领取奖励", "领取", "确定", "知道了",
+        // build562/565：支付宝"我要直接拿奖励/点击跳转拿奖励"跳转奖励任务关键词
+        "我要直接拿奖励", "直接拿奖励", "立即拿奖励", "马上拿奖励",
+        "点击跳转拿奖励", "跳转拿奖励", "拿奖励", "跳转拿"
+    )
+    override val claimRewardButtonExactTexts = listOf(
+        // "立即领取"放最前：弹窗确认按钮优先精确匹配
+        "立即领取", "立即签到", "签到领取", "签到", "领取奖励", "领取", "确定", "知道了",
+        "我要直接拿奖励", "直接拿奖励", "立即拿奖励", "马上拿奖励",
+        "点击跳转拿奖励", "跳转拿奖励", "拿奖励", "跳转拿"
+    )
     override val adCloseButtonTexts = listOf("关闭广告", "跳过", "关闭")
     // 陷阱按钮黑名单（支付宝 H5 广告与 UC 模式一致，沿用通用诱导文案）
     override val adInstallButtonTexts = listOf(
@@ -452,6 +536,18 @@ object TaobaoPlatformConfig : PlatformConfig {
     override val adDefaultMaxDurationMs = 75000L      // 无跳转流程，上限 75s
     override val adEndCheckIntervalMs = 3000L         // 3s 检测间隔（更激进，快速发现广告结束）
     override val supportsFasterReward = false         // 淘宝无"更快拿奖"流程
+    // build566 三平台隔离：淘宝无 reward-jump 任务（directCollectTexts 未配"拿奖励"系列）
+    override val supportsRewardJump = false
+    // build566 三平台隔离：淘宝 H5 广告 pressBack 可关闭
+    override val adPressBackEnabled = true
+    // build566 三平台隔离：淘宝领取按钮关键词（不含"拿奖励"系列,与 directCollectTexts 同步）
+    override val claimRewardButtonTexts = listOf(
+        "立即签到", "签到领取", "签到", "领取奖励", "领取", "确定", "知道了"
+    )
+    override val claimRewardButtonExactTexts = listOf(
+        // "立即领取"放最前：弹窗确认按钮优先精确匹配
+        "立即领取", "立即签到", "签到领取", "签到", "领取奖励", "领取", "确定", "知道了"
+    )
     override val adCloseButtonTexts = listOf("跳过广告", "跳过", "关闭")
 
     // ---------- 淘宝平台差异化任务关键词 ----------

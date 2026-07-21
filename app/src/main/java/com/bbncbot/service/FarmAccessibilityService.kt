@@ -3542,19 +3542,11 @@ class FarmAccessibilityService : AccessibilityService() {
         // 签到专属关键词放最前：签到页面的"立即签到"/"签到领取"按钮需要优先匹配，
         // 避免"领取"子串先命中无关文案。签到按钮不是诱导按钮，无需 trapTexts 过滤。
         // 通用关键词"领取奖励"/"领取"/"确定"/"知道了"用于广告结束/奖励弹窗。
-        // build565（用户反馈"点击跳转拿奖励"与"我要直接拿奖励"都是一类的跳转奖励任务）：
-        // 新增"拿奖励"/"跳转拿"关键词,让 findClaimRewardButton 能找到"我要直接拿奖励"/
-        // "点击跳转拿奖励"/"跳转拿奖励"等跳转奖励任务按钮。
-        // 这些按钮点击后会跳转到第三方 App 停留 15s+ 才能获得肥料,
-        // executeAiVisionAction CLICK_CLAIM 会用 isRewardJumpButtonText 检测文案,
-        // 若是跳转奖励按钮则走 reward-jump 流程（停留 + 切农场 App + kill）。
-        val keywords = listOf(
-            "立即签到", "签到领取", "签到",
-            "领取奖励", "领取", "确定", "知道了",
-            // 拿奖励类跳转奖励任务按钮（与 findClaimRewardButtonExact 保持一致并扩展）
-            "我要直接拿奖励", "直接拿奖励", "立即拿奖励", "马上拿奖励",
-            "点击跳转拿奖励", "跳转拿奖励", "拿奖励", "跳转拿"
-        )
+        // build566 三平台隔离：keywords 改为读 PlatformConfig.claimRewardButtonTexts,
+        // 三平台独立配置。UC/TAOBAO 不含"拿奖励"系列（无 reward-jump 任务）,
+        // ALIPAY 含"拿奖励/跳转拿"系列（directCollectTexts 也配了）。
+        // 历史问题：硬编码 14 个关键词三平台共用,UC/淘宝广告页若出现"拿奖励"文案会误触发 reward-jump。
+        val keywords = currentPlatformConfig().claimRewardButtonTexts
         for (kw in keywords) {
             val node = findNodeByText(root, kw)
             if (node != null) {
@@ -3585,14 +3577,10 @@ class FarmAccessibilityService : AccessibilityService() {
         val trapTexts = currentPlatformConfig().adInstallButtonTexts
         // "立即领取"放最前：弹窗里的确认按钮文字通常是"立即领取"，优先精确匹配
         // （"领取"为子串匹配，会命中"立即领取"，但放前面更明确，避免先命中无关的"领取"文案）
-        // build562: 新增"我要直接拿奖励"类文案(用户反馈是需要点击的领取按钮)
-        // build565: 新增"点击跳转拿奖励"/"跳转拿奖励"/"拿奖励"/"跳转拿"关键词
-        // （用户反馈"点击跳转拿奖励"与"我要直接拿奖励"都是一类的跳转奖励任务）
-        val keywords = listOf(
-            "立即领取", "领取奖励", "领取", "确定", "知道了",
-            "我要直接拿奖励", "直接拿奖励", "立即拿奖励", "马上拿奖励",  // 拿奖励类文案
-            "点击跳转拿奖励", "跳转拿奖励", "拿奖励", "跳转拿"  // build565 跳转拿奖励类文案
-        )
+        // build566 三平台隔离：keywords 改为读 PlatformConfig.claimRewardButtonExactTexts,
+        // 三平台独立配置。UC/TAOBAO 不含"拿奖励"系列,ALIPAY 含"拿奖励/跳转拿"系列。
+        // 历史问题：硬编码 13 个关键词三平台共用,UC/淘宝广告页若出现"拿奖励"文案会误触发 reward-jump。
+        val keywords = currentPlatformConfig().claimRewardButtonExactTexts
         for (kw in keywords) {
             val node = findNodeByText(root, kw)
             if (node != null) {

@@ -745,9 +745,13 @@ object AutomationController {
             //
             // 修复：UC 平台(激励视频广告)不 pressBack,只等待广告自然结束。
             // 其他平台(支付宝/淘宝)保留原 pressBack 行为(可能是可关闭的横幅/H5 广告)。
-            if (service.currentPlatform == Platform.UC) {
-                Log.i(TAG, "navigate: UC reward video ad playing, waiting for it to finish (not pressing back)")
-                debugLog("navigate: UC ad (act=${service.getCurrentActivityName()}), waiting instead of pressBack")
+            // build566 三平台隔离：把硬编码 Platform.UC 改为读 PlatformConfig.adPressBackEnabled,
+            // 三平台独立配置。UC=false（激励视频 pressBack 无效,等广告自然结束）,
+            // ALIPAY=true、TAOBAO=true（H5 广告 pressBack 可关闭）。
+            // 历史问题：硬编码平台名,若未来支付宝/淘宝也出现激励视频,需改代码而非改配置。
+            if (!service.currentPlatformConfig().adPressBackEnabled) {
+                Log.i(TAG, "navigate: ${service.currentPlatform} reward video ad playing, waiting for it to finish (not pressing back)")
+                debugLog("navigate: ${service.currentPlatform} ad (act=${service.getCurrentActivityName()}), waiting instead of pressBack (adPressBackEnabled=false)")
             } else {
                 Log.w(TAG, "navigate: in ad, trying to close")
                 service.pressBack()
@@ -3156,7 +3160,10 @@ object AutomationController {
                     //   3. 点击按钮（触发跳转）
                     //   4. 5s 后 checkTaskResult → runProcessingTask 深链检测 → 切到 WATCHING_AD
                     //   5. runWatchingAd 的"我要直接拿奖励"分支接管：等停留时长 + 切农场 App + kill 跳转的 App
-                    if (isRewardJumpButtonText(claimText)) {
+                    // build566 三平台隔离：reward-jump 流程加 supportsRewardJump 门控,
+                    // 只有显式支持的平台才走 reward-jump（UC/TAOBAO=false,ALIPAY=true）。
+                    // 历史问题：reward-jump 对所有平台都执行,UC/淘宝广告页若出现"拿奖励"文案会误触发。
+                    if (service.currentPlatformConfig().supportsRewardJump && isRewardJumpButtonText(claimText)) {
                         // 解析弹窗"x秒之后拿奖励"提示,得到需要停留的秒数
                         val parsedSeconds = service.findRewardJumpDurationHint()
                         val stayMs = if (parsedSeconds > 0) {
@@ -3175,7 +3182,7 @@ object AutomationController {
                         rewardJumpProductClicked = false
                     }
                     service.performClickSafe(claimBtn)
-                } else if (targetX >= 0f && targetY >= 0f) {
+                } else if (service.currentPlatformConfig().supportsRewardJump && targetX >= 0f && targetY >= 0f) {
                     // build565 修复（用户反馈"我要直接拿奖励"/"点击跳转拿奖励"可能是图像类型文本）：
                     // 历史问题：findClaimRewardButton 在无障碍树找不到 H5/Canvas 绘制的图像按钮,
                     // 直接 pressBack 关闭页面,跳转奖励任务被跳过,丢失肥料奖励。
@@ -3185,6 +3192,9 @@ object AutomationController {
                     // 让 runWatchingAd 的 reward-jump 分支接管后续停留 + 切农场 + kill 流程。
                     // 若 AI 误判（实际是普通领取按钮）,reward-jump 流程最多多等 15s,
                     // 不会丢失奖励（普通领取按钮点击后弹窗会保留,切回农场仍能识别）。
+                    // build566 三平台隔离：加 supportsRewardJump 门控,只对 ALIPAY 生效。
+                    // UC/TAOBAO 无 reward-jump 任务,即使 AI 误判也不走 reward-jump 流程,
+                    // 改为直接按坐标点击（不设置 rewardJumpClicked）。
                     val metrics = service.screenMetrics
                     if (metrics != null) {
                         val px = targetX * metrics.widthPixels
@@ -3207,6 +3217,22 @@ object AutomationController {
                         rewardJumpStayMs = stayMs
                         rewardJumpAppPkg = null
                         rewardJumpProductClicked = false
+                        service.dispatchGestureClick(px, py)
+                    } else {
+                        debugLog("executeAiVisionAction: no claim button and no screen metrics, pressing back")
+                        service.pressBack()
+                    }
+                } else if (targetX >= 0f && targetY >= 0f) {
+                    // build566 三平台隔离：UC/TAOBAO 不支持 reward-jump,但 AI 返回了有效坐标,
+                    // 直接按坐标点击图像按钮（如 UC 的"签到"/"立即领取"图像按钮）,不设置 rewardJumpClicked。
+                    // 历史问题：原 else if (targetX >= 0f && targetY >= 0f) 对所有平台都走 reward-jump 流程,
+                    // UC/TAOBAO 也会设置 rewardJumpClicked → runWatchingAd 误走 reward-jump 分支（停留 15s + kill）。
+                    val metrics = service.screenMetrics
+                    if (metrics != null) {
+                        val px = targetX * metrics.widthPixels
+                        val py = targetY * metrics.heightPixels
+                        Log.i(TAG, "executeAiVisionAction: CLICK_CLAIM by AI target=($targetX,$targetY) -> px=($px,$py) (non-reward-jump platform, plain click)")
+                        debugLog("executeAiVisionAction: no claim button in tree, clicking AI target=($targetX,$targetY) px=($px,$py) (non-reward-jump)")
                         service.dispatchGestureClick(px, py)
                     } else {
                         debugLog("executeAiVisionAction: no claim button and no screen metrics, pressing back")
@@ -3501,6 +3527,8 @@ object AutomationController {
         // - "更快拿奖"是 UC 特有流程（supportsFasterReward=true）,含入口按钮/确认弹窗/允许多阶段状态机
         // - "我要直接拿奖励"无确认弹窗,直接点击按钮就跳转,流程更简单
         // - 两者停留后都用 launchPlatformApp + forceKillApp 切回农场 + kill 跳转的 App
+        // build566 三平台隔离：rewardJumpClicked 只在 supportsRewardJump=true 的平台（ALIPAY）
+        // 才会被设置为 true（见 executeAiVisionAction CLICK_CLAIM 分支），UC/TAOBAO 永远不会进入此分支。
         if (rewardJumpClicked) {
             val sinceClickMs = System.currentTimeMillis() - rewardJumpClickTimeMs
             val onFarmNow = service.isOnFarmPage()
