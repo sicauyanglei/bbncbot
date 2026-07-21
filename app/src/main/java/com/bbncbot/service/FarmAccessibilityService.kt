@@ -4913,8 +4913,21 @@ class FarmAccessibilityService : AccessibilityService() {
             return
         }
         // 6次重试都失败，尝试从"我的淘宝"路径进入
-        debugLog("navigate stepTab: 芭芭农场 tab not found after 6 retries, trying 我的淘宝 path")
-        stepClickFarmTabByGesture(platform, 0)
+        // build581 加固：stepClickFarmTabByGesture 是淘宝专用方法（依赖淘宝主页底部 tab 栏
+        // "我的淘宝"入口 + 固定坐标 (1080,2572)/(161,1534)），对 UC/支付宝完全无效。
+        // 日志 debug_test_20260721_152904.log line 4916-4917 在 UC 平台 PortraitADActivity
+        // 卡死时,错误 fallback 到 stepClickFarmTabByGesture,打出"not on taobao main page"
+        // 误导用户以为切到了淘宝。修复：仅在 TAOBAO 平台时才走淘宝专用路径,
+        // UC/ALIPAY 平台直接放弃导航（clearNavigatingFlag），由 AutomationController
+        // 下一轮 runNavigating 重新决策（如 reopenFarmByDeepLink）。
+        if (platform == Platform.TAOBAO) {
+            debugLog("navigate stepTab: 芭芭农场 tab not found after 6 retries, trying 我的淘宝 path (platform=$platform)")
+            stepClickFarmTabByGesture(platform, 0)
+        } else {
+            Log.w(TAG, "navigate stepTab: 芭芭农场 tab not found after 6 retries on $platform, abort (stepClickFarmTabByGesture is taobao-only)")
+            debugLog("navigate stepTab: abort on $platform (taobao-only gesture fallback skipped)")
+            clearNavigatingFlag()
+        }
     }
 
     /**
