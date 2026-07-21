@@ -205,7 +205,17 @@ object UcPlatformConfig : PlatformConfig {
         "集肥料", "领取肥料", "获取肥料", "收集肥料", "开始施肥", "看视频", "看广告领奖"
     )
     override val goCompleteTexts = listOf("去完成", "立即完成", "去观看", "去领取", "立即观看", "去赚钱", "去签到", "去答题", "去逛逛", "签到")
-    override val directCollectTexts = listOf("可领取", "挖肥料")
+    override val directCollectTexts = listOf(
+        "可领取", "挖肥料",
+        // build593 修复（用户反馈"uc浏览器到'点击领取'，和'签到'没有点击"）：
+        // 历史问题：UC directCollectTexts 只含 ["可领取","挖肥料"],不含"点击领取"和"签到"。
+        // UC 主页的"点击领取"按钮（每日登录奖励/7天奖励）和"签到"按钮（每日签到入口）
+        // 是主页独立按钮,不在任务列表结构内,不会被 OPENING_TASK_LIST 找到。
+        // build535 已在支付宝 directCollectTexts 加"点击领取",UC 同步缺失。
+        // 过滤逻辑已排除"已领取"/"还差"/"明日"/"施肥"/"生产中"等锁定状态,"点击领取"加入是安全的。
+        // "签到"是纯按钮文案（非"签到肥料"装饰性文字,findGoCompleteButtons 已加精确过滤）。
+        "点击领取", "签到"
+    )
     override val collectFertilizerCoords = listOf(
         Pair(0.867f, 0.815f),  // 集肥料按钮（OCR 确认，右下角，1200x2664 屏幕）
         Pair(0.867f, 0.838f),  // 集肥料文字位置备用

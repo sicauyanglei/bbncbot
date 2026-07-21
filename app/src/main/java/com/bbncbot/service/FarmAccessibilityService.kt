@@ -2253,16 +2253,18 @@ class FarmAccessibilityService : AccessibilityService() {
         // "全部任务完成"（currentTaskIndex >= taskButtons.size），跳过剩余任务。
         val result = raw.mapNotNull { node ->
             // 1. 必须可点击（UC 平台"去完成"本身不可点击，向上找最近的 clickable 父节点）
+            // build593: 向上查找层数从 5 增到 10（debug_test_20260721_213604.log, build591 显示
+            // UC H5 WebView 里"去完成"按钮 5 层内找不到 clickable 祖先,被全部 drop 导致任务列表打不开）
             var clickTarget = node
             if (!node.isClickable) {
                 var p: AccessibilityNodeInfo? = node.parent
                 var depth = 0
-                while (p != null && depth < 5) {
+                while (p != null && depth < 10) {
                     if (p.isClickable) { clickTarget = p; break }
                     p = p.parent; depth++
                 }
                 if (!clickTarget.isClickable) {
-                    debugLog("findGoCompleteButtons: drop non-clickable node text='${node.text?.toString()?.take(30)}' (no clickable ancestor)")
+                    debugLog("findGoCompleteButtons: drop non-clickable node text='${node.text?.toString()?.take(30)}' (no clickable ancestor within 10 levels)")
                     return@mapNotNull null
                 }
             }
@@ -4710,7 +4712,12 @@ class FarmAccessibilityService : AccessibilityService() {
             !combined.contains("明日") &&
             !combined.contains("已领取") &&
             // 排除"还差X次领肥"等锁定状态进度提示（达到阈值后会变成"立即领肥"）
-            !combined.contains("还差")
+            !combined.contains("还差") &&
+            // build593: 签到精确过滤（与 findGoCompleteButtons 同步）
+            // directCollectTexts 加了"签到"后会误匹配"签到肥料"（装饰性文字）、
+            // "已签到"（已完成）、"签到有礼"（标题）等非按钮文字。
+            // 当 combined 含"签到"时,只接受纯按钮文案。
+            !(combined.contains("签到") && combined !in setOf("签到", "去签到", "立即签到", "马上签到", "补签到"))
         }
         Log.d(TAG, "findDirectCollectButtons: found ${result.size} raw, ${filtered.size} after filter")
         return filtered
