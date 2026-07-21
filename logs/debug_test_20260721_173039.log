@@ -1,0 +1,54 @@
+=== cleared on app start (version=2.2, build=build585-2c84ece, time=17:29:38) ===
+17:29:38.645 killPlatformApps: killed com.ucmobile.lite for UC
+17:29:38.647 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+17:29:38.648 killPlatformApps: killed com.taobao.taobao for TAOBAO
+17:29:47.426 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+17:29:47.431 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+17:29:50.557 === Automation v2 Started === platform=UC
+17:29:50.558 cancelNavigation: all navigation callbacks cancelled
+17:29:50.571 reset platform complete: UC
+17:29:50.572 state: IDLE -> NAVIGATING
+17:29:51.051 [navigate-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+17:29:51.061 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+17:29:51.115 navigate: on farm page, platform=UC
+17:29:51.136 hasFarmContentLoaded: text count=16, sample=[后退, 智能组件, 菜单, 多窗口, 6, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+17:29:51.136 hasFarmContentLoaded: realContent count=15
+17:29:51.139 navigate: hasFarmContentLoaded=true, attempt=0
+17:29:51.140 state: NAVIGATING -> COLLECTING_DIRECT
+17:29:53.669 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+17:29:53.682 [collectDirect-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+17:29:53.699 collectDirect: found 0 direct buttons, attempt=0
+17:29:53.703 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+17:29:57.288 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 6]
+17:29:57.301 [openTaskList-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+17:29:57.316 [openTaskList-start] claim-text-nodes (count=1):
+17:29:57.317 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[255,3245][694,2509] clickable=false
+17:29:57.340 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+17:29:57.341 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+17:29:57.341 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+17:29:57.344 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+17:29:57.345 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+17:29:57.347 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+17:29:57.348 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+17:29:57.348 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+17:29:57.349 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+17:29:57.350 openTaskList: [UC闭环] heuristic text search (attempt=0)
+17:29:57.380 findCollectFertilizerButton: found by text='看视频' bounds=[78,1215][222,1359]
+17:29:57.381 openTaskList: [UC闭环] clicking entry button by text (attempt=0)
+17:29:57.381 performClickSafe: text='看视频得巨额肥料' desc='' bounds=[78,1215][222,1359] clickable=false
+17:29:57.383 performClickSafe: ACTION_CLICK failed, trying gesture
+17:29:57.383 dispatchGesture: screen=[[78,1215][222,1359]] window=[[0,0][0,0]]
+17:29:57.384 dispatchGesture: not in popup, screen bounds valid, click at (150.0, 1287.0)
+17:30:02.386 checkTaskListOpened: ad detected (act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity), start waiting for ad to finish (taskListCheckAttempt=0 not incremented)
+17:30:02.601 checkTaskListOpened: ad still playing (elapsed=0ms, max=90000ms), waiting...
+17:30:07.801 checkTaskListOpened: ad still playing (elapsed=5222ms, max=90000ms), waiting...
+17:30:12.825 checkTaskListOpened: ad still playing (elapsed=10424ms, max=90000ms), waiting...
+17:30:17.855 checkTaskListOpened: ad still playing (elapsed=15448ms, max=90000ms), waiting...
+17:30:22.883 checkTaskListOpened: ad still playing (elapsed=20477ms, max=90000ms), waiting...
+17:30:27.969 checkTaskListOpened: ad still playing (elapsed=25505ms, max=90000ms), waiting...
+17:30:31.249 state: OPENING_TASK_LIST -> STOPPING
+17:30:31.251 cancelNavigation: all navigation callbacks cancelled
+17:30:31.252 state: STOPPING -> IDLE
+17:30:39.105 saveToken: saved (len=93, head='gith', tail='McKr')
+17:30:39.108 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+17:30:39.112 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260721_173039.log, localFile=debug.log (5108 bytes)
