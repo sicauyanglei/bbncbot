@@ -5256,12 +5256,23 @@ class FarmAccessibilityService : AccessibilityService() {
             // 排除搜索框/搜索按钮：搜索框内部含"芭芭农场"占位文字（如"搜索 芭芭农场"）时，
             // findNodeByText 会把搜索框本身作为最近可点击父节点返回，导致误点搜索框
             val isSearchNode = entryDesc.contains("搜索") || entryText.contains("搜索")
+            // build587 修复（debug_test_20260721_175556.log, build586, UC→ALIPAY 跨平台 line 276-300）：
+            // 历史问题：搜索框区域的"芭芭农场"文字（历史搜索词/推荐词, bounds=[268,121][1020,278],
+            // y=121 在屏幕顶部 5%）isClickable=true, isSearchNode=false（text 不含"搜索"）,
+            // 被当作有效入口反复点击,但点击后不跳转（搜索框文字不是入口）,卡 2 分钟。
+            // 修复：排除屏幕顶部 y < 20% 的"芭芭农场"节点（搜索框区域）,直接走策略2 搜索。
+            val screenHeight = resources.displayMetrics.heightPixels
+            val isSearchBarArea = screenHeight > 0 && rect.top < screenHeight * 0.20f
+            if (isSearchBarArea && !isSearchNode) {
+                debugLog("navigateAlipay: 芭芭农场 entry at ${rect.toShortString()} is in search bar area (top=${rect.top} < ${screenHeight * 0.20f}), skip and fallback to search")
+                // 直接走策略2（搜索框搜索）
+                farmEntry.recycle()
+            } else
             // 排除超大容器，且必须 bounds 合法（left<right, top<bottom，且在屏幕范围内）
             // 否则可能拿到 WebView 内的离屏节点（如 bounds=[4476,822][1200,1139]），点击无效
-            val boundsValid = rect.width() > 0 && rect.height() > 0 &&
+            if (rect.width() > 0 && rect.height() > 0 &&
                 rect.left < rect.right && rect.top < rect.bottom &&
-                rect.left >= 0 && rect.top >= 0
-            if (boundsValid && !isSearchNode && rect.height() < 600 && rect.width() < 1000) {
+                rect.left >= 0 && rect.top >= 0) {
                 // build534 修复（debug_test_20260719_072400.log, build534-6db91cf）：
                 // 历史问题：原逻辑只检查 bounds 合法就点击，不检查 clickable。
                 // 但日志显示在支付宝首页找到了"芭芭农场"文本节点（位置 [111,494][298,598]，
@@ -5297,8 +5308,9 @@ class FarmAccessibilityService : AccessibilityService() {
                     }, 8000L)
                     return
                 }
+            } else {
+                debugLog("navigateAlipay: 芭芭农场 entry invalid (searchNode=$isSearchNode, bounds=${rect.toShortString()}), fallback to search")
             }
-            debugLog("navigateAlipay: 芭芭农场 entry invalid (searchNode=$isSearchNode, bounds=${rect.toShortString()}), fallback to search")
         }
 
         // 策略2：点击首页搜索框，搜索"芭芭农场"
@@ -5320,17 +5332,56 @@ class FarmAccessibilityService : AccessibilityService() {
                         navHandler.postDelayed(resultStep@{
                             val resultRoot = getRootInFarmApp() ?: rootInActiveWindowSafe()
                             if (resultRoot != null) {
-                                val result = findNodeByText(resultRoot, "芭芭农场")
-                                if (result != null) {
+                                // build587 修复（debug_test_20260721_175556.log, build586, UC→ALIPAY 跨平台）：
+                                // 历史问题：搜索结果列表有多个"芭芭农场"条目（小程序/生活号/网页等）,
+                                // findNodeByText 只返回第一个,可能点错条目（如点到了网页结果）。
+                                // 且点击后只 postDelayed 8s 清 flag,不验证是否真的跳转到芭芭农场,
+                                // 导致卡在搜索结果页反复点击无效条目。
+                                // 修复：
+                                // 1. 收集所有"芭芭农场"文本节点,优先选带"小程序"标识的（支付宝小程序入口）
+                                // 2. 点击后 3s 验证 isOnFarmPage,未跳转则用 dispatchGesture 点坐标兜底
+                                // 3. 仍失败则 pressBack 退出搜索页重试
+                                val allResults = mutableListOf<AccessibilityNodeInfo>()
+                                val seen = HashSet<Int>()
+                                collectNodesByText(resultRoot, listOf("芭芭农场"), allResults, seen)
+                                if (allResults.isNotEmpty()) {
+                                    // 优先选带"小程序"标识的节点（支付宝芭芭农场是小程序）
+                                    val mpNode = allResults.firstOrNull { node ->
+                                        val parent = node.parent
+                                        parent != null && collectAllText(parent).any {
+                                            it.contains("小程序") || it.contains("生活号") || it.contains("官方")
+                                        }
+                                    } ?: allResults.first()
                                     val rRect = android.graphics.Rect()
-                                    result.getBoundsInScreen(rRect)
+                                    mpNode.getBoundsInScreen(rRect)
                                     val rValid = rRect.width() > 0 && rRect.height() > 0 &&
                                         rRect.left < rRect.right && rRect.top < rRect.bottom &&
                                         rRect.left >= 0 && rRect.top >= 0
                                     if (rValid) {
-                                        debugLog("navigateAlipay: clicking search result '芭芭农场' at ${rRect.toShortString()}")
-                                        performClickSafe(result)
-                                        navHandler.postDelayed({ clearNavigatingFlag() }, 8000L)
+                                        debugLog("navigateAlipay: clicking search result '芭芭农场' at ${rRect.toShortString()} (candidates=${allResults.size})")
+                                        // 先用 performClickSafe（向上找 clickable 祖先）
+                                        performClickSafe(mpNode)
+                                        // build587: 3s 后验证是否跳转到芭芭农场,未跳转用 dispatchGesture 点坐标兜底
+                                        navHandler.postDelayed(verifyStep@{
+                                            if (isOnFarmPage()) {
+                                                debugLog("navigateAlipay: search result click succeeded, on farm page now")
+                                                clearNavigatingFlag()
+                                                return@verifyStep
+                                            }
+                                            // 未跳转,用 dispatchGesture 直接点击文本节点坐标
+                                            debugLog("navigateAlipay: search result click did not navigate, trying dispatchGesture at (${rRect.exactCenterX()}, ${rRect.exactCenterY()})")
+                                            dispatchGestureClick(rRect.exactCenterX(), rRect.exactCenterY())
+                                            navHandler.postDelayed({
+                                                if (isOnFarmPage()) {
+                                                    debugLog("navigateAlipay: dispatchGesture click succeeded, on farm page now")
+                                                    clearNavigatingFlag()
+                                                } else {
+                                                    debugLog("navigateAlipay: dispatchGesture also failed, pressBack and retry")
+                                                    pressBack()
+                                                    navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 3000L)
+                                                }
+                                            }, 4000L)
+                                        }, 3000L)
                                         return@resultStep
                                     }
                                     debugLog("navigateAlipay: search result bounds invalid: ${rRect.toShortString()}")
