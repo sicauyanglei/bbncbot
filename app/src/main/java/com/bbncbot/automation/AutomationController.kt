@@ -142,11 +142,17 @@ object AutomationController {
      * - 流程：小说任务页(开始阅读) → 点"开始阅读" → 小说列表页 → 点击一部小说 → 小说内容页 → 上下滑动15秒
      * - browsingNovelStarted: 已点"开始阅读"（进入小说列表页）
      * - browsingNovelEnteredContent: 已点击一部小说（进入小说内容页,可以开始滑动）
+     *
+     * build590 扩展：用户需求"开始观看得肥料"短剧任务,点击视频播放15秒后退出回主页
+     * - 流程：短剧任务页(开始观看) → 点"开始观看" → 短剧播放页 → 等待15秒（滑动模拟活跃）→ pressBack 退出
+     * - browsingShortDramaStarted: 已点"开始观看"（进入短剧播放页,可以开始等待/滑动）
      */
     @Volatile
     private var browsingNovelStarted: Boolean = false
     @Volatile
     private var browsingNovelEnteredContent: Boolean = false
+    @Volatile
+    private var browsingShortDramaStarted: Boolean = false
 
     /**
      * 标记当前浏览任务是否从"搜索后浏览立得奖励"任务页进入
@@ -509,6 +515,7 @@ object AutomationController {
         lastDirectClickedBounds = ""
         browsingNovelStarted = false  // build584: 复位小说阅读任务标记
         browsingNovelEnteredContent = false  // build585: 复位小说内容页标记
+        browsingShortDramaStarted = false  // build590: 复位短剧观看任务标记
         // 重置当前平台的广告完成标记（新一轮运行可重新标记完成）
         resetCurrentPlatformComplete(service)
         moveTo(AutomationState.NAVIGATING)
@@ -742,6 +749,23 @@ object AutomationController {
                 moveTo(AutomationState.BROWSING_TASK)
                 // 直接从 swipeCount=1 开始（跳过 runBrowsingTask 的"点击去完成按钮"步骤,
                 // 因为已经在小说任务页了,下一步是点"开始阅读"）
+                handler.postDelayed({ runBrowsingTask(swipeCount = 1) }, INTERVAL_CLICK_MS)
+                return
+            }
+            // build590 修复：UC "开始观看得肥料"短剧任务页同样可能被 isGenericPopup 误判为弹窗
+            // （短剧页可能有右上角关闭按钮,且 collectAllText 可能拿不到"得肥料"文本导致
+            // isGenericPopup 的 fertilizerKeywords 检查失效）。
+            // 修复：generic popup 分支前先检测 isShortDramaPage,若是短剧页直接进 BROWSING_TASK
+            // （点击"开始观看" → 等待15秒 → pressBack 退出回主页）。
+            if (service.isShortDramaPage()) {
+                Log.i(TAG, "navigate: short drama page detected (开始观看得肥料), entering BROWSING_TASK")
+                debugLog("navigate: short drama page (开始观看+得肥料), entering BROWSING_TASK to click 开始观看 + wait 15s")
+                browsingShortDramaStarted = false  // 复位,让 runBrowsingTask 重新走"点开始观看"流程
+                taskButtons = emptyList()  // 短剧页没有 taskButton,runBrowsingTask swipeCount=0 会跳过点击 taskButton 步骤
+                currentTaskIndex = 0
+                moveTo(AutomationState.BROWSING_TASK)
+                // 直接从 swipeCount=1 开始（跳过 runBrowsingTask 的"点击去完成按钮"步骤,
+                // 因为已经在短剧任务页了,下一步是点"开始观看"）
                 handler.postDelayed({ runBrowsingTask(swipeCount = 1) }, INTERVAL_CLICK_MS)
                 return
             }
@@ -1874,6 +1898,8 @@ object AutomationController {
             // build584: 重置小说阅读任务标记（新一轮浏览任务开始）
             browsingNovelStarted = false
             browsingNovelEnteredContent = false
+            // build590: 重置短剧观看任务标记（新一轮浏览任务开始）
+            browsingShortDramaStarted = false
             // 第一步：点击"去完成"按钮进入浏览页面
             val button = taskButtons.getOrNull(currentTaskIndex)
             if (button == null) {
@@ -2140,6 +2166,37 @@ object AutomationController {
             debugLog("browseTask: no novel book node found (browsingNovelStarted=true), proceeding to swipe")
             browsingNovelEnteredContent = true
             browseTaskTargetSwipes = 8  // build585: 小说任务默认 8 次滑动（15秒）
+        }
+
+        // build590: 短剧观看任务页检测——点击"开始观看"进入播放页,等待15秒后退出
+        // 用户需求："开始观看得肥料"短剧任务,点击视频播放15秒,然后退出到uc芭芭农场主页
+        // 流程：
+        //   1) 短剧任务页(开始观看, 得肥料) → 点"开始观看" → 进入短剧播放页
+        //   2) 短剧播放页 → 视频自动播放,滑动模拟活跃（避免被判定挂机）→ 等待15秒
+        //   3) 15秒后 isTaskCompletePage/isFertilizerGrantedPage 检测到完成 → pressBack 退出回主页
+        // 标志位：
+        //   browsingShortDramaStarted: 已点"开始观看"（在短剧播放页,可以开始等待/滑动）
+        // 与小说任务区别：短剧只需点一次"开始观看"（不像小说要点"开始阅读"+再点一部小说）
+        if (!browsingShortDramaStarted && service.isShortDramaPage()) {
+            val playBtn = service.findShortDramaPlayButton()
+            if (playBtn != null) {
+                val btnText = playBtn.text?.toString().orEmpty()
+                debugLog("browseTask: short drama page detected, clicking '$btnText' to enter player")
+                Log.i(TAG, "browseTask: clicking '$btnText' on short drama page (enter player, wait 15s)")
+                browsingShortDramaStarted = true
+                // build590: 用户需求"播放15秒" → 15秒 / 2秒间隔 = 8 次滑动（与小说任务一致）
+                browseTaskTargetSwipes = 8
+                debugLog("browseTask: short drama target swipes = 8 (15s / 2s interval)")
+                service.performClickSafe(playBtn)
+                // 等待短剧播放页加载后开始滑动（模拟活跃,避免挂机判定）
+                handler.postDelayed({
+                    if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            debugLog("browseTask: short drama page detected but no 开始观看/继续观看 button found, swiping directly")
+            browsingShortDramaStarted = true  // 避免重复检测
+            browseTaskTargetSwipes = 8  // build590: 短剧任务默认 8 次滑动（15秒）
         }
 
         // 执行滑动：在屏幕中部轻微上下交替滑动（不需要一直向下滑，小幅上下滑动即可模拟浏览）

@@ -747,12 +747,19 @@ class FarmAccessibilityService : AccessibilityService() {
         // hasFarmCore 因 "得肥料" 子串匹配返回 true → isOnFarmPage=true → 误判为农场主页,
         // state 进 COLLECTING_DIRECT/OPENING_TASK_LIST,从不点击小说、不滑动,任务失败。
         // 修复：检测到小说/阅读任务页特征文字时,排除 hasFarmCore（小说页不是农场主页）。
+        // build590 扩展：UC "开始观看得肥料"短剧任务页同样有"得肥料"文案,会被 hasFarmCore
+        // 误判为农场主页,这里同时检测短剧页特征（"开始观看"/"继续观看" + "得肥料"）一并排除。
         val isNovelReadPage = allText.any { text ->
             (text.contains("开始阅读") || text.contains("继续阅读")) &&
             allText.any { it.contains("得肥料") || it.contains("肥料") }
         }
-        val hasFarmCoreEffective = if (isNovelReadPage) {
-            debugLog("isOnFarmPage: novel read page detected (开始阅读/继续阅读 + 得肥料), exclude hasFarmCore")
+        val isShortDramaPage = allText.any { text ->
+            (text.contains("开始观看") || text.contains("继续观看")) &&
+            allText.any { it.contains("得肥料") || it.contains("肥料") }
+        }
+        val isNovelOrShortDramaPage = isNovelReadPage || isShortDramaPage
+        val hasFarmCoreEffective = if (isNovelOrShortDramaPage) {
+            debugLog("isOnFarmPage: novel/short-drama page detected (isNovelReadPage=$isNovelReadPage, isShortDramaPage=$isShortDramaPage), exclude hasFarmCore")
             false
         } else {
             hasFarmCore
@@ -790,7 +797,8 @@ class FarmAccessibilityService : AccessibilityService() {
                 text.contains("签到成功") || text.contains("1分钱领水果")
         }
         // build584: 小说阅读页同样不应判为农场主页（与上方 hasFarmCoreEffective 同步）
-        val hasFarmContentEffective = if (isNovelReadPage) false else hasFarmContent
+        // build590: 短剧任务页同处理（"开始观看得肥料"会被 hasFarmContent 误判）
+        val hasFarmContentEffective = if (isNovelOrShortDramaPage) false else hasFarmContent
         // 单独的"芭芭农场"不算，搜索推荐页也会有这个文字
         if (!hasFarmContentEffective) {
             // H5 WebView 兜底：支付宝/淘宝农场页是 H5 页面，WebView 可能不暴露文本节点，
@@ -2508,13 +2516,16 @@ class FarmAccessibilityService : AccessibilityService() {
         // "下单得奖励"是浏览搜索结果页面的任务，浏览后就能得肥料
         // "发现精选好物"、"搜一搜你心仪得宝贝"、"看严选推荐商品" 需要点击商品并滑动浏览
         // build584: "看一本喜欢的小说"任务需点击小说+上下滑动阅读得肥料,归类为 browse 任务
+        // build590: "开始观看得肥料"短剧任务需点击播放视频+等待15秒,归类为 browse 任务
         // 通用浏览关键词 + 平台专属浏览关键词（差异化：淘宝浏览任务最多）
         val browseKeywords = listOf(
             "浏览", "逛逛", "滑动", "看一看", "看商品", "下单得", "搜索",
             "精选好物", "心仪", "严选推荐", "发现精选", "搜一搜",
             "宝贝", "好物", "推荐商品", "发现", "严选",
             // 小说阅读任务（UC 平台"看一本喜欢的小说"）
-            "小说", "阅读", "看一本"
+            "小说", "阅读", "看一本",
+            // 短剧观看任务（UC 平台"开始观看得肥料"）
+            "短剧", "观看", "看一部"
         ) + currentPlatformConfig().browseTaskKeywords
         val contextText = collectTaskContextText(button)
         val isBrowse = browseKeywords.any { contextText.contains(it) }
@@ -2562,6 +2573,50 @@ class FarmAccessibilityService : AccessibilityService() {
         // findNodeByText 内部用 contains 匹配，优先"开始阅读"再"继续阅读"
         var btn = findNodeByText(root, "开始阅读")
         if (btn == null) btn = findNodeByText(root, "继续阅读")
+        return btn
+    }
+
+    /**
+     * build590: 检测当前页面是否是短剧观看任务页
+     *
+     * 用户需求：UC 平台"开始观看得肥料"短剧任务,点击视频播放15秒后退出回主页。
+     * 短剧任务页特征：
+     * - "开始观看"（首次进入）/"继续观看"（非首次）按钮 + "得肥料"奖励提示
+     * - 与农场主页区别：无"集肥料"/"施肥"/"芭芭农场"等种植页核心元素
+     * - 与小说阅读页区别：按钮文案是"开始观看"/"继续观看"而非"开始阅读"/"继续阅读"
+     *
+     * @return true 表示当前是短剧观看任务页（需先点"开始观看"再等待15秒）
+     */
+    fun isShortDramaPage(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        val hasWatchBtn = allText.any {
+            it.contains("开始观看") || it.contains("继续观看")
+        }
+        val hasFertilizerHint = allText.any {
+            it.contains("得肥料") || it.contains("肥料")
+        }
+        // 排除农场主页：农场主页也有"得肥料"文案,但不会有"开始观看"/"继续观看"按钮
+        val isFarmHome = allText.any {
+            it.contains("集肥料") || it.contains("施肥") || it.contains("芭芭农场")
+        }
+        val isShortDrama = hasWatchBtn && hasFertilizerHint && !isFarmHome
+        if (isShortDrama) {
+            debugLog("isShortDramaPage: YES (hasWatchBtn=$hasWatchBtn, hasFertilizerHint=$hasFertilizerHint, isFarmHome=$isFarmHome)")
+        }
+        return isShortDrama
+    }
+
+    /**
+     * build590: 查找短剧观看任务页的"开始观看"/"继续观看"按钮
+     *
+     * @return 按钮节点；找不到返回 null
+     */
+    fun findShortDramaPlayButton(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        // findNodeByText 内部用 contains 匹配，优先"开始观看"再"继续观看"
+        var btn = findNodeByText(root, "开始观看")
+        if (btn == null) btn = findNodeByText(root, "继续观看")
         return btn
     }
 
