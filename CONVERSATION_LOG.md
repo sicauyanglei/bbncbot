@@ -32,6 +32,49 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit 6e03bc2 - fix: build593 修复 UC "点击领取"和"签到"不点击 + "去完成"按钮 clickable 祖先查找层数不足
+**用户需求**: "uc浏览器到'点击领取'，和'签到'没有点击"
+**日志**: debug_test_20260721_213604.log (build591-605226a)
+
+**问题1：UC directCollectTexts 不含"点击领取"和"签到"**
+- UC directCollectTexts = ["可领取","挖肥料"],缺"点击领取"和"签到"
+- UC 主页的"点击领取"按钮（每日登录奖励/7天奖励）和"签到"按钮（每日签到入口）
+  是主页独立按钮,不在任务列表结构内,不会被 OPENING_TASK_LIST 找到
+- build535 已在支付宝 directCollectTexts 加"点击领取",UC 同步缺失
+- 日志 line 24: `collectDirect: found 0 direct buttons` → "点击领取"被漏掉
+
+**修复1**：[Platform.kt#L208](file:///workspace/app/src/main/java/com/bbncbot/automation/Platform.kt#L208) UC directCollectTexts 加"点击领取"和"签到"
+```kotlin
+override val directCollectTexts = listOf(
+    "可领取", "挖肥料",
+    "点击领取", "签到"  // build593 新增
+)
+```
+
+**问题2：directCollectTexts 加"签到"后会误匹配"签到肥料"等非按钮文字**
+- "签到肥料"是装饰性文字（clickable=false）
+- "已签到"是已完成状态,"签到有礼"是标题,"每日签到"是标题
+- build592 已在 findGoCompleteButtons 加签到精确过滤,findDirectCollectButtons 需同步
+
+**修复2**：[findDirectCollectButtons#L4714](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4714) filter 加签到精确过滤
+```kotlin
+!(combined.contains("签到") && combined !in setOf("签到","去签到","立即签到","马上签到","补签到"))
+```
+
+**问题3：UC 任务列表"去完成"按钮 clickable 祖先查找层数不足**
+- 日志 line 31-35: 5 个"去完成"按钮都 `drop non-clickable (no clickable ancestor)`
+- UC H5 WebView 层级深,"去完成"本身不可点击,向上 5 层找不到 clickable 祖先
+- 导致 findGoCompleteButtons 返回 0 个按钮 → 反复点"集肥料"重试 → STOPPING
+
+**修复3**：[findGoCompleteButtons#L2262](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L2262) 向上找 clickable 祖先从 5 层增到 10 层
+```kotlin
+while (p != null && depth < 10)  // 原 depth < 5
+```
+
+**编译验证**: GitHub Actions run #593 (build593-6e03bc2) ✅ success
+
+---
+
 ### commit e974b10 - fix: build592 修复 UC 极速版芭芭农场"签到"按钮不点击问题
 **用户需求**: "uc极速版芭芭农场，'签到'为什么不点击" + "不是'去签到'，按钮就叫'签到'"
 
