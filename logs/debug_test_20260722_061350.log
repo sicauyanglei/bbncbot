@@ -1,0 +1,17 @@
+=== cleared on app start (version=2.2, build=build603-fb02a0d, time=06:13:18) ===
+06:13:18.752 killPlatformApps: killed com.ucmobile.lite for UC
+06:13:18.763 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+06:13:18.765 killPlatformApps: killed com.taobao.taobao for TAOBAO
+06:13:29.439 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+06:13:29.442 openApp: shortcut unavailable for TAOBAO, fallback to deep link / navigation
+06:13:29.443 killPlatformApps: killed com.taobao.taobao for TAOBAO
+06:13:31.471 navigateToFarm: taobao, using 我的淘宝 path
+06:13:33.513 isOnTaobaoHomePage: not on main page, found=0 tabs=[] pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity screenW=1200 screenH=2543
+06:13:33.516 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=0/1200 x 2543), pressing back first
+06:13:35.849 isOnTaobaoHomePage: found 2 tabs=[首页, 购物车] (path2 relaxed, taobao pkg), on main page, screenW=1200 screenH=2543 act=com.taobao.themis.container.app.tmsactivity
+06:13:35.851 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab at (1080.0, 2456.538) [screen=1200 x 2543 ratio=0.9,0.966]
+06:13:37.853 navigate stepTab gesture: step 2 - click 芭芭农场 at (160.8, 1464.768) [screen=1200 x 2543 ratio=0.134,0.576]
+06:13:37.858 navigate stepTab gesture: done, waiting 8s for farm page
+06:13:50.212 saveToken: saved (len=93, head='gith', tail='McKr')
+06:13:50.218 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+06:13:50.221 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260722_061350.log, localFile=debug.log (1647 bytes)
