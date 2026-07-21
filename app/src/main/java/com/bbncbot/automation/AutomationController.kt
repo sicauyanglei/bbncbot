@@ -133,6 +133,20 @@ object AutomationController {
     private var lastDirectClickedBounds: String = ""
 
     /**
+     * build596: AI 视觉识别"点击领取"按钮坐标的防死循环标记
+     * - false：本轮未用 AI 视觉识别点击过"点击领取"
+     * - true：已用 AI 视觉识别点击过一次,不再重复（避免无限循环点击同一坐标）
+     * - 进入 COLLECTING_DIRECT 阶段时复位
+     *
+     * 用户反馈："uc芭芭农场主页,'点击领取'没有执行点击操作"
+     * UC 主页"点击领取"是 H5/Canvas 图像按钮（文字+彩色背景）,无障碍树抓不到 text 节点,
+     * findDirectCollectButtons 返回 0。需用 AI 视觉识别按钮坐标并点击。
+     * 每轮只尝试一次 AI 视觉识别,避免无限循环。
+     */
+    @Volatile
+    private var aiVisionDirectClickAttempted: Boolean = false
+
+    /**
      * build584 小说阅读任务：是否已点击"开始阅读"/"继续阅读"按钮进入小说内容页
      * - false：未点击，滑动前检测到小说页需先点按钮
      * - true：已点击或非小说页，直接滑动
@@ -513,6 +527,7 @@ object AutomationController {
         browseFromSearchBrowse = false  // 复位搜索浏览任务标记，避免上一轮残留
         lastDirectClickedText = ""  // build581: 复位 direct 防死循环标记
         lastDirectClickedBounds = ""
+        aiVisionDirectClickAttempted = false  // build596: 复位 AI 视觉识别点击标记
         browsingNovelStarted = false  // build584: 复位小说阅读任务标记
         browsingNovelEnteredContent = false  // build585: 复位小说内容页标记
         browsingShortDramaStarted = false  // build590: 复位短剧观看任务标记
@@ -1001,6 +1016,80 @@ object AutomationController {
             } catch (e: Exception) {
                 debugLog("collectDirect: dump all text/desc nodes error: ${e.message}")
             }
+        }
+
+        // build596 修复（用户反馈"uc芭芭农场主页,'点击领取'没有执行点击操作"）：
+        // UC 主页"点击领取"是 H5/Canvas 图像按钮（文字+彩色背景）,无障碍树抓不到 text 节点,
+        // findDirectCollectButtons 返回 0。需用 AI 视觉识别按钮坐标并点击。
+        // 策略：当 buttons 为空 且 未尝试过 AI 视觉识别 且 至少尝试过一次（attempt >= 1）时,
+        // 截图交给 GLM-4.6V-Flash 识别"点击领取"按钮坐标,用 dispatchGesture 点击。
+        // 防死循环：每轮只尝试一次 AI 视觉识别（aiVisionDirectClickAttempted 标记）。
+        if (buttons.isEmpty() && !aiVisionDirectClickAttempted && attempt >= 1) {
+            aiVisionDirectClickAttempted = true
+            debugLog("collectDirect: no direct buttons found, trying AI vision to locate '点击领取' button")
+            Log.i(TAG, "collectDirect: trying AI vision to locate '点击领取' button (H5/Canvas image button)")
+            val appContext = service.applicationContext
+            val sceneContext = "UC芭芭农场主页, 平台=${service.currentPlatform}, " +
+                "pkg=${service.getCurrentWindowPackage()}, act=${service.getCurrentActivityName()}"
+            Thread {
+                val bitmap = service.takeScreenshotBitmap()
+                if (bitmap == null) {
+                    debugLog("collectDirect: AI vision skipped, screenshot not available")
+                    handler.post {
+                        if (state != AutomationState.COLLECTING_DIRECT) return@post
+                        // 截图失败,继续 attempt+1 重试
+                        handler.postDelayed({
+                            if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
+                        }, INTERVAL_CLICK_MS)
+                    }
+                    return@Thread
+                }
+                try {
+                    val result = AiVisionClient.findButtonLocationByVision(
+                        appContext, bitmap, sceneContext, "点击领取"
+                    )
+                    bitmap.recycle()
+                    handler.post {
+                        if (state != AutomationState.COLLECTING_DIRECT) return@post
+                        if (result == null) {
+                            debugLog("collectDirect: AI vision did not find '点击领取' button, continue to cross-platform/task-list")
+                            Log.i(TAG, "collectDirect: AI vision did not find '点击领取' button")
+                            // AI 未找到,继续 attempt+1 重试（会走跨平台跳转/OPENING_TASK_LIST）
+                            handler.postDelayed({
+                                if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
+                            }, INTERVAL_CLICK_MS)
+                            return@post
+                        }
+                        // 计算屏幕坐标
+                        val metrics = service.resources.displayMetrics
+                        val clickX = result.xRatio * metrics.widthPixels
+                        val clickY = result.yRatio * metrics.heightPixels
+                        debugLog("collectDirect: AI vision found '点击领取' at ratio=(${result.xRatio}, ${result.yRatio}), " +
+                            "screen=(${clickX}, ${clickY}), reason='${result.reason.take(80)}', clicking")
+                        Log.i(TAG, "collectDirect: AI vision found '点击领取' at (${clickX}, ${clickY}), clicking")
+                        // 记录防死循环（用 AI 视觉点击的坐标作为 bounds 标记）
+                        lastDirectClickedText = "点击领取(AI)"
+                        lastDirectClickedBounds = "(${result.xRatio},${result.yRatio})"
+                        // 用 dispatchGesture 坐标点击
+                        val clicked = service.dispatchGestureClick(clickX, clickY)
+                        debugLog("collectDirect: AI vision click dispatched=$clicked at ($clickX, $clickY)")
+                        // 点击后等待页面变化,继续 COLLECTING_DIRECT 下一轮（会重新检测 direct buttons）
+                        handler.postDelayed({
+                            if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
+                        }, INTERVAL_PAGE_LOAD_MS)
+                    }
+                } catch (e: Exception) {
+                    debugLog("collectDirect: AI vision exception: ${e.message}")
+                    try { bitmap.recycle() } catch (_: Exception) {}
+                    handler.post {
+                        if (state != AutomationState.COLLECTING_DIRECT) return@post
+                        handler.postDelayed({
+                            if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
+                        }, INTERVAL_CLICK_MS)
+                    }
+                }
+            }
+            return
         }
 
         // build586: 跨平台跳转按钮检测（"去支付宝农场领肥料"等）

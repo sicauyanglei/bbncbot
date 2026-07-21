@@ -578,4 +578,236 @@ object AiVisionClient {
             ""
         }
     }
+
+    // ---------- 按钮坐标视觉识别（build596：用户反馈"点击领取"没执行点击） ----------
+    // 用户需求：UC 芭芭农场主页"点击领取"按钮是 H5/Canvas 绘制的图像按钮（文字+彩色背景），
+    // 无障碍树抓不到 text 节点，findDirectCollectButtons 返回 0。
+    // 需用 AI 视觉识别按钮在截图中的位置（坐标比例），再用 dispatchGesture 点击。
+
+    /**
+     * AI 视觉按钮坐标识别结果
+     *
+     * @param xRatio 按钮中心 x 坐标比例（0.0-1.0，相对屏幕宽度）
+     * @param yRatio 按钮中心 y 坐标比例（0.0-1.0，相对屏幕高度）
+     * @param reason AI 给出的描述（用于日志）
+     */
+    data class ButtonLocationResult(
+        val xRatio: Float,
+        val yRatio: Float,
+        val reason: String
+    )
+
+    /**
+     * 让 AI 分析截图并识别指定按钮的位置坐标
+     *
+     * build596（用户反馈"uc芭芭农场主页,'点击领取'没有执行点击操作"）：
+     * - UC 主页"点击领取"按钮是 H5/Canvas 图像按钮（文字+彩色背景），无障碍树抓不到 text 节点
+     * - 此函数截图交给 GLM-4.6V-Flash，让 AI 识别"点击领取"按钮在截图中的位置（坐标比例）
+     * - 调用方拿到坐标比例后用 dispatchGesture 点击
+     *
+     * @param context      任意 Context（用于读取 API Key）
+     * @param bitmap       截图 Bitmap
+     * @param sceneContext 当前场景上下文（如"UC芭芭农场主页"）
+     * @param targetButtonText 要识别的按钮文字（如"点击领取"）
+     * @return [ButtonLocationResult]；未找到按钮或失败返回 null
+     */
+    fun findButtonLocationByVision(
+        context: Context,
+        bitmap: Bitmap,
+        sceneContext: String,
+        targetButtonText: String
+    ): ButtonLocationResult? {
+        val apiKey = QuizAnswerClient.loadApiKey(context)
+        if (apiKey.isEmpty()) {
+            Log.w(TAG, "findButtonLocationByVision: GLM API Key not configured, skip AI vision")
+            return null
+        }
+        val base64Image = encodeBitmapToBase64(bitmap)
+        if (base64Image.isEmpty()) {
+            Log.w(TAG, "findButtonLocationByVision: encode bitmap failed")
+            return null
+        }
+        val prompt = buildButtonLocationPrompt(sceneContext, targetButtonText)
+        // 依次尝试视觉模型列表（与 analyzeScreenshot 相同的 fallback 策略）
+        for (model in VISION_MODELS) {
+            var retry = 0
+            var result: ButtonLocationResult? = null
+            while (retry <= 2) {
+                result = callVisionModelForButtonLocation(apiKey, model, prompt, base64Image, sceneContext, targetButtonText)
+                if (result != null) return result
+                if (lastErrorCode == 429 || lastErrorMessage.contains("1305") || lastErrorMessage.contains("访问量过大")) {
+                    retry++
+                    if (retry <= 2) {
+                        val backoffMs = if (retry == 1) 5000L else 10000L
+                        Log.i(TAG, "findButtonLocationByVision: $model rate-limited (429), backing off ${backoffMs}ms before retry $retry/2")
+                        try {
+                            Thread.sleep(backoffMs)
+                        } catch (ie: InterruptedException) {
+                            Thread.currentThread().interrupt()
+                            return null
+                        }
+                    }
+                } else {
+                    break
+                }
+            }
+        }
+        Log.w(TAG, "findButtonLocationByVision: all vision models failed or button not found (target='$targetButtonText')")
+        return null
+    }
+
+    /**
+     * 调用视觉模型识别按钮坐标（与 [callVisionModelForProgress] 类似，但用按钮坐标专用提示词与解析器）
+     */
+    private fun callVisionModelForButtonLocation(
+        apiKey: String,
+        model: String,
+        prompt: String,
+        base64Image: String,
+        sceneContext: String,
+        targetButtonText: String
+    ): ButtonLocationResult? {
+        var conn: java.net.HttpURLConnection? = null
+        return try {
+            val url = java.net.URL(API_URL)
+            conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 20000
+                readTimeout = 45000
+                setRequestProperty("Authorization", "Bearer $apiKey")
+                setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                setRequestProperty("User-Agent", "bbncbot-app")
+                doOutput = true
+            }
+            val content = JSONArray().apply {
+                put(JSONObject().apply {
+                    put("type", "text")
+                    put("text", prompt)
+                })
+                put(JSONObject().apply {
+                    put("type", "image_url")
+                    put("image_url", JSONObject().apply {
+                        put("url", "data:image/jpeg;base64,$base64Image")
+                    })
+                })
+            }
+            val messages = JSONArray().apply {
+                put(JSONObject().apply {
+                    put("role", "system")
+                    put("content", "你是安卓自动化助手的按钮坐标识别模块。" +
+                        "用户会给你一张手机屏幕截图和目标按钮文字，你需要识别该按钮在截图中的位置。" +
+                        "只返回一个 JSON 对象，不要任何额外文字。")
+                })
+                put(JSONObject().apply {
+                    put("role", "user")
+                    put("content", content)
+                })
+            }
+            val jsonBody = JSONObject().apply {
+                put("model", model)
+                put("messages", messages)
+                put("temperature", 0.1)
+                put("max_tokens", 200)
+            }.toString()
+
+            conn.outputStream.use { os ->
+                os.write(jsonBody.toByteArray(Charsets.UTF_8))
+            }
+
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                val err = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                lastErrorCode = code
+                lastErrorMessage = err
+                Log.w(TAG, "callVisionModelForButtonLocation($model) failed (HTTP $code): ${err.take(200)}")
+                return null
+            }
+            lastErrorCode = 0
+            lastErrorMessage = ""
+
+            val response = conn.inputStream.bufferedReader().use { it.readText() }
+            val contentStr = parseContent(response)
+            if (contentStr.isBlank()) {
+                Log.w(TAG, "callVisionModelForButtonLocation($model): empty content, response=${response.take(200)}")
+                return null
+            }
+            val result = parseButtonLocationResult(contentStr)
+            if (result == null) {
+                Log.i(TAG, "callVisionModelForButtonLocation($model): button '$targetButtonText' not found in screenshot (scene='$sceneContext')")
+                return null
+            }
+            Log.i(TAG, "callVisionModelForButtonLocation($model) success: scene='$sceneContext', " +
+                "target='$targetButtonText', xRatio=${result.xRatio}, yRatio=${result.yRatio}, " +
+                "reason='${result.reason.take(80)}'")
+            result
+        } catch (e: Exception) {
+            Log.e(TAG, "callVisionModelForButtonLocation($model) exception: ${e.message}")
+            lastErrorCode = -1
+            lastErrorMessage = e.message ?: "exception"
+            null
+        } finally {
+            conn?.disconnect()
+        }
+    }
+
+    /**
+     * 构造按钮坐标识别提示词
+     *
+     * 约束 AI 返回 JSON，含 found（是否找到）+ x_ratio + y_ratio（按钮中心坐标比例 0.0-1.0）
+     */
+    private fun buildButtonLocationPrompt(sceneContext: String, targetButtonText: String): String {
+        return buildString {
+            append("当前场景上下文：").append(sceneContext).append("\n\n")
+            append("请分析这张手机截图，识别其中文字为「").append(targetButtonText).append("」的按钮位置。\n\n")
+            append("识别要点：\n")
+            append("1. 该按钮可能是 H5/Canvas 绘制的图像按钮（文字+彩色背景），不是原生按钮\n")
+            append("2. 按钮文字可能完全匹配「").append(targetButtonText).append("」，也可能含该文字（如「点击领取 50 肥料」）\n")
+            append("3. 按钮通常有彩色背景（橙色/红色/蓝色等），与页面其他文字有视觉区分\n")
+            append("4. 识别按钮的中心位置，返回相对屏幕的坐标比例（0.0-1.0）\n\n")
+            append("返回严格的 JSON 格式：\n")
+            append("{\"found\": <true|false>, \"x_ratio\": <0.0-1.0浮点>, \"y_ratio\": <0.0-1.0浮点>, \"reason\": \"<简要描述按钮位置与外观>\"}\n\n")
+            append("说明：\n")
+            append("- found：是否找到「").append(targetButtonText).append("」按钮\n")
+            append("- x_ratio：按钮中心 x 坐标 / 屏幕宽度（0.0=最左，1.0=最右）\n")
+            append("- y_ratio：按钮中心 y 坐标 / 屏幕高度（0.0=最上，1.0=最下）\n")
+            append("- reason：简要描述按钮位置（如「屏幕右中部，橙色背景按钮」）\n\n")
+            append("注意：\n")
+            append("- 只识别可点击的「").append(targetButtonText).append("」按钮，不要把标题/装饰文字当按钮\n")
+            append("- 若截图中有多个匹配按钮，返回最显眼/最像按钮的那个\n")
+            append("- 若未找到按钮，found 返回 false，x_ratio/y_ratio 填 0\n\n")
+            append("只返回 JSON，不要 markdown 代码块，不要解释。")
+        }
+    }
+
+    /**
+     * 解析按钮坐标识别结果
+     *
+     * 容错策略：先 JSON 解析；失败则返回 null（无法提取坐标）。
+     */
+    private fun parseButtonLocationResult(content: String): ButtonLocationResult? {
+        try {
+            val cleaned = content
+                .replace("```json", "")
+                .replace("```", "")
+                .trim()
+            val json = JSONObject(cleaned)
+            val found = json.optBoolean("found", false)
+            if (!found) {
+                Log.i(TAG, "parseButtonLocationResult: AI reports button not found (found=false)")
+                return null
+            }
+            val xRatio = json.optDouble("x_ratio", -1.0).toFloat().coerceIn(0.0f, 1.0f)
+            val yRatio = json.optDouble("y_ratio", -1.0).toFloat().coerceIn(0.0f, 1.0f)
+            // 坐标为 0 可能是 AI 未识别（found=true 但坐标 0），保守拒绝
+            if (xRatio <= 0.0f && yRatio <= 0.0f) {
+                Log.w(TAG, "parseButtonLocationResult: found=true but x_ratio=$xRatio y_ratio=$yRatio, treat as not found")
+                return null
+            }
+            val reason = json.optString("reason", "")
+            return ButtonLocationResult(xRatio, yRatio, reason)
+        } catch (e: Exception) {
+            Log.w(TAG, "parseButtonLocationResult: JSON parse failed: ${e.message}")
+            return null
+        }
+    }
 }
