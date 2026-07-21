@@ -32,6 +32,53 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit 5784d81 - fix: build595 修复 UC 推送权限弹窗干扰 + 支付宝搜索框误识别 + 跨平台跳转保守化
+**用户需求**: "全部修复"（build594 新日志 debug_test_20260722_023550.log 发现的 3 个问题）
+**日志**: debug_test_20260722_023550.log (build594-6f39eea, 02:33-02:35)
+
+**问题1 (核心): UC 推送权限弹窗干扰任务列表打开**
+- 02:34:46 弹出 Activity=com.uc.base.push.permission.guide.e 权限授权弹窗
+- 弹窗遮住任务列表, checkTaskListOpened 5 次找不到"去完成"按钮
+- isOnFarmPage 返回 false (activity 不在 farm keywords)
+- 流程回退 NAVIGATING → 重进农场又弹权限弹窗, 死循环失败
+
+**修复1**:
+- [FarmAccessibilityService#L1876](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L1876) 新增 `isSystemPermissionPopup()` 识别权限弹窗
+  - activity 含 permission + (push|guide|notification) 即识别
+  - 文案匹配"开启通知/允许通知/打开通知"等推送授权文案
+- [FarmAccessibilityService#L1914](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L1914) 新增 `findSystemPermissionDenyButton()` 查找拒绝按钮
+  - 优先级: 拒绝 > 不允许 > 暂不开启 > 暂不 > 以后再说 > 关闭 > 取消
+  - 绝不点"允许/开启"避免开启推送权限
+- PageScene 枚举新增 SYSTEM_PERMISSION
+- [identifyCurrentScene#L1680](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L1680) 前置检测权限弹窗 (最高优先级,在 TRAP_RECHARGE 之前)
+- [AutomationController#L1383](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1383) `checkTaskListOpened` 加权限弹窗处理
+- [AutomationController#L766](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L766) `runNavigating` 加权限弹窗处理 (前置在 GENERIC_POPUP 之前)
+- [AutomationController#L3908](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L3908) `runWatchingAd` 加权限弹窗处理 (广告播放期间也可能弹出)
+
+**问题2: navigateAlipay 搜索框误识别为芭芭农场入口**
+- 02:35:09 找到 bounds=[214,147][1035,254] clickable=true desc='搜索框'
+- 原条件 `isSearchBarArea && !isSearchNode` 在 isSearchNode=true 时
+  (desc='搜索框'含"搜索") 变成 true && !true = false, 没跳过搜索框
+
+**修复2**: [FarmAccessibilityService#L5489](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L5489)
+- `isSearchNode=true` 时直接跳过 (不需要 isSearchBarArea 联合条件)
+- 搜索框/搜索按钮绝不是农场入口, 无论位置在哪里都不应该点击
+
+**问题3: 跨平台跳转保守化**
+- UC 主页底部"和淘宝,支付宝农场共种一棵树"区域含"去支付宝农场领肥料"横幅
+- COLLECTING_DIRECT 第一轮 (attempt=0) 就触发跨平台跳转
+- 任务列表还没打开就跳走, UC 任务流程完全无法执行
+
+**修复3**: [AutomationController#L1000](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1000)
+- `collectDirect` 中只有在 `buttons.isEmpty() && attempt >= 1` 时
+  才检查跨平台跳转按钮
+- 首次进入优先找 direct 按钮 + 打开任务列表
+- 避免主页横幅在第一轮就误触发跳转
+
+**编译验证**: GitHub Actions run #29858309063 (build595-5784d81) ✅ success (2026-07-21T18:43:41Z)
+
+---
+
 ### commit 6f39eea - fix: build594 修复 UC "去完成"按钮无 clickable 祖先被全部 drop
 **用户需求**: "分析日志"（延续 build593 测试日志 debug_test_20260721_222311.log 分析）
 **日志**: debug_test_20260721_222311.log (build593-6e03bc2)
