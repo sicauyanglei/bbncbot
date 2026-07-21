@@ -1,0 +1,222 @@
+=== cleared on app start (version=2.2, build=build594-6f39eea, time=02:33:51) ===
+02:33:51.084 killPlatformApps: killed com.ucmobile.lite for UC
+02:33:51.087 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+02:33:51.088 killPlatformApps: killed com.taobao.taobao for TAOBAO
+02:33:59.154 FarmAccessibilityService connected, API=36
+02:34:11.997 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+02:34:11.999 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+02:34:18.501 === Automation v2 Started === platform=UC
+02:34:18.535 cancelNavigation: all navigation callbacks cancelled
+02:34:18.546 reset platform complete: UC
+02:34:18.550 state: IDLE -> NAVIGATING
+02:34:19.027 isOnFarmPage: no farm content, sample=[后退, 智能组件, 菜单, 多窗口, 1, 首页]
+02:34:19.549 [navigate-start] snapshot: pkg=com.android.systemui, act=android.widget.FrameLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+02:34:19.563 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+02:34:20.764 navigate: calling navigateToFarm, platform=UC
+02:34:22.320 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+02:34:22.321 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+02:34:22.358 performClickSafe: ACTION_CLICK failed, trying gesture
+02:34:22.359 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+02:34:22.360 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+02:34:26.441 navigate: on farm page, platform=UC
+02:34:26.476 hasFarmContentLoaded: text count=30, sample=[后退, 智能组件, 菜单, 多窗口, 1, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+02:34:26.477 hasFarmContentLoaded: realContent count=29
+02:34:26.478 navigate: hasFarmContentLoaded=true, attempt=1
+02:34:26.479 state: NAVIGATING -> COLLECTING_DIRECT
+02:34:28.762 [collectDirect-start] snapshot: pkg=com.android.systemui, act=android.widget.FrameLayout, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+02:34:28.781 [collectDirect-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+02:34:28.799 collectDirect: found 0 direct buttons, attempt=0
+02:34:28.823 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+02:34:31.091 [openTaskList-start] snapshot: pkg=com.android.systemui, act=android.widget.FrameLayout, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+02:34:31.107 [openTaskList-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+02:34:31.141 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+02:34:31.143 openTaskList: [UC闭环] heuristic text search (attempt=0)
+02:34:31.154 findCollectFertilizerButton: found by text='集肥料' bounds=[949,2380][1129,2509]
+02:34:31.156 openTaskList: [UC闭环] clicking entry button by text (attempt=0)
+02:34:31.158 performClickSafe: text='集肥料' desc='' bounds=[949,2380][1129,2509] clickable=false
+02:34:31.160 performClickSafe: ACTION_CLICK failed, trying gesture
+02:34:31.162 dispatchGesture: screen=[[949,2380][1129,2509]] window=[[0,0][0,0]]
+02:34:31.164 dispatchGesture: not in popup, screen bounds valid, click at (1039.0, 2444.5)
+02:34:36.233 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+02:34:38.257 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+02:34:40.281 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+02:34:42.307 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=3, currentIndex=0
+02:34:44.332 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=4, currentIndex=0
+02:34:46.392 findCollectFertilizerButton: not found by text, root childCount=1
+02:34:46.396 openTaskList: findCollectFertilizerButton=false, attempt=1
+02:34:46.415 isOnFarmPage: activity=com.uc.base.push.permission.guide.e not in farm keywords, not on farm page
+02:34:46.417 openTaskList: [坐标兜底] not on farm page (findCollectFertilizerButton=null), re-navigating instead of coordinate fallback
+02:34:46.420 state: OPENING_TASK_LIST -> NAVIGATING
+02:34:48.449 isOnFarmPage: activity=com.uc.base.push.permission.guide.e not in farm keywords, not on farm page
+02:34:48.473 isOnFarmPage: activity=com.uc.base.push.permission.guide.e not in farm keywords, not on farm page
+02:34:48.513 isOnFarmPage: activity=com.uc.base.push.permission.guide.e not in farm keywords, not on farm page
+02:34:48.565 isOnFarmPage: activity=com.uc.base.push.permission.guide.e not in farm keywords, not on farm page
+02:34:48.614 isOnFarmPage: activity=com.uc.base.push.permission.guide.e not in farm keywords, not on farm page
+02:34:48.664 [navigate-start] snapshot: pkg=com.android.systemui, act=com.uc.base.push.permission.guide.e, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+02:34:48.680 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+02:34:48.746 isOnFarmPage: activity=com.uc.base.push.permission.guide.e not in farm keywords, not on farm page
+02:34:48.861 isOnFarmPage: activity=com.uc.base.push.permission.guide.e not in farm keywords, not on farm page
+02:34:48.978 isOnFarmPage: activity=com.uc.base.push.permission.guide.e not in farm keywords, not on farm page
+02:34:49.095 navigate: calling navigateToFarm, platform=UC
+02:34:50.625 navigate stepTab: 芭芭农场 not found (retry=0), pressing back to go home
+02:34:54.758 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+02:34:54.760 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+02:34:54.761 performClickSafe: ACTION_CLICK failed, trying gesture
+02:34:54.763 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+02:34:54.764 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+02:34:54.859 navigate: on farm page, platform=UC
+02:34:54.876 hasFarmContentLoaded: text count=145, sample=[后退, 智能组件, 菜单, 多窗口, 1, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+02:34:54.879 hasFarmContentLoaded: realContent count=135
+02:34:54.880 navigate: hasFarmContentLoaded=true, attempt=1
+02:34:54.881 state: NAVIGATING -> COLLECTING_DIRECT
+02:34:58.048 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+02:34:58.077 [collectDirect-start] claim-text-nodes (count=2):
+02:34:58.078 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+02:34:58.079 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2230][694,2299] clickable=false
+02:34:58.099 collectDirect: found 1 direct buttons, attempt=0
+02:34:58.111 findCrossPlatformJumpButton: found text='去支付宝农场领肥料' bounds=[78,2230][222,2374] clickable=false
+02:34:58.112 collectDirect: cross-platform jump '去支付宝农场领肥料' → ALIPAY, entering SWITCHING_PLATFORM
+02:34:58.113 performClickSafe: text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+02:34:58.114 performClickSafe: ACTION_CLICK failed, trying gesture
+02:34:58.114 dispatchGesture: screen=[[78,2230][222,2374]] window=[[0,0][0,0]]
+02:34:58.115 dispatchGesture: not in popup, screen bounds valid, click at (150.0, 2302.0)
+02:34:58.116 state: COLLECTING_DIRECT -> SWITCHING_PLATFORM
+02:35:03.165 isOnFarmPage: no farm content, sample=[松开刷新, 返回, , 更多, , 更多, 关闭, ]
+02:35:03.491 [switchPlatform-LAUNCH_TARGET] snapshot: pkg=com.android.systemui, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+02:35:03.533 [switchPlatform-LAUNCH_TARGET] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+02:35:03.534 switchPlatform: stage=LAUNCH_TARGET, retry=0, target=ALIPAY, original=UC
+02:35:03.547 switchPlatform: target ALIPAY already loaded (auto-jump), navigating to farm
+02:35:03.547 cancelNavigation: all navigation callbacks cancelled
+02:35:05.069 navigateAlipay: no search or farm entry found, retry=0
+02:35:07.542 navigateAlipay: 芭芭农场 entry invalid (searchNode=false, bounds=[49,6517][1152,2666]), fallback to search
+02:35:07.574 navigateAlipay: no search or farm entry found, pressing back to exit sub-page (retry=1)
+02:35:09.881 navigateAlipay: found 芭芭农场 entry at [214,147][1035,254], clickable=true, clicking
+02:35:09.882 performClickSafe: text='' desc='搜索框' bounds=[214,147][1035,254] clickable=true
+02:35:09.955 performClickSafe: ACTION_CLICK success at depth=0
+02:35:09.956 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+02:35:13.594 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:13.639 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:13.705 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:13.748 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:13.991 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:14.163 [switchPlatform-NAVIGATE_TARGET_FARM] snapshot: pkg=com.android.systemui, act=com.alipay.android.phone.businesscommon.globalsearch.ui.MainSearchActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+02:35:14.181 [switchPlatform-NAVIGATE_TARGET_FARM] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+02:35:14.183 switchPlatform: stage=NAVIGATE_TARGET_FARM, retry=0, target=ALIPAY, original=UC
+02:35:14.203 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:16.271 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:16.304 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:16.487 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:16.536 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:16.586 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:16.619 [switchPlatform-NAVIGATE_TARGET_FARM] snapshot: pkg=com.android.systemui, act=com.alipay.android.phone.businesscommon.globalsearch.ui.MainSearchActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+02:35:16.636 [switchPlatform-NAVIGATE_TARGET_FARM] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+02:35:16.637 switchPlatform: stage=NAVIGATE_TARGET_FARM, retry=1, target=ALIPAY, original=UC
+02:35:16.669 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:17.980 navigateAlipay: 芭芭农场 entry at [26,420][251,512] is in search bar area (top=420 < 508.6), skip and fallback to search
+02:35:17.983 navigateAlipay: clicking search button
+02:35:17.985 performClickSafe: text='搜索历史' desc='' bounds=[26,330][222,394] clickable=false
+02:35:17.987 performClickSafe: ACTION_CLICK failed, trying gesture
+02:35:17.988 dispatchGesture: screen=[[26,330][222,394]] window=[[26,330][222,394]]
+02:35:17.990 dispatchGesture: not in popup, screen bounds valid, click at (124.0, 362.0)
+02:35:18.693 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:18.727 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:18.759 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:18.792 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:18.825 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:18.858 [switchPlatform-NAVIGATE_TARGET_FARM] snapshot: pkg=com.android.systemui, act=com.alipay.android.phone.businesscommon.globalsearch.ui.MainSearchActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+02:35:18.875 [switchPlatform-NAVIGATE_TARGET_FARM] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+02:35:18.876 switchPlatform: stage=NAVIGATE_TARGET_FARM, retry=2, target=ALIPAY, original=UC
+02:35:18.891 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:20.918 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:20.950 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:21.017 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:21.053 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:21.099 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:21.138 [switchPlatform-NAVIGATE_TARGET_FARM] snapshot: pkg=com.android.systemui, act=com.alipay.android.phone.businesscommon.globalsearch.ui.MainSearchActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+02:35:21.156 [switchPlatform-NAVIGATE_TARGET_FARM] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+02:35:21.158 switchPlatform: stage=NAVIGATE_TARGET_FARM, retry=3, target=ALIPAY, original=UC
+02:35:21.186 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:21.249 navigateAlipay: entered search text '芭芭农场'
+02:35:23.224 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:23.245 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:23.330 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:23.355 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:23.382 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:23.408 [switchPlatform-NAVIGATE_TARGET_FARM] snapshot: pkg=com.android.systemui, act=com.alipay.android.phone.businesscommon.globalsearch.ui.MainSearchActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+02:35:23.416 [switchPlatform-NAVIGATE_TARGET_FARM] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+02:35:23.417 switchPlatform: stage=NAVIGATE_TARGET_FARM, retry=4, target=ALIPAY, original=UC
+02:35:23.433 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:24.269 navigateAlipay: clicking search result '芭芭农场' at [0,278][1200,431] (candidates=9)
+02:35:24.270 performClickSafe: text='' desc='' bounds=[0,278][1200,431] clickable=true
+02:35:24.287 performClickSafe: ACTION_CLICK success at depth=0
+02:35:25.454 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:25.476 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:25.589 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:25.608 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:25.615 isNonAdTaskPage: YES, matched non-ad task in [全部, 生活号, 视频, 服务, 理财, 保险, 商品, 市民服务]
+02:35:25.627 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:25.637 [switchPlatform-NAVIGATE_TARGET_FARM] snapshot: pkg=com.android.systemui, act=com.alipay.android.phone.businesscommon.globalsearch.ui.MainSearchActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+02:35:25.642 [switchPlatform-NAVIGATE_TARGET_FARM] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+02:35:25.643 switchPlatform: stage=NAVIGATE_TARGET_FARM, retry=5, target=ALIPAY, original=UC
+02:35:25.650 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:27.304 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:27.306 navigateAlipay: search result click did not navigate, trying dispatchGesture at (600.0, 354.5)
+02:35:27.678 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:27.696 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:28.346 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:28.398 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:28.418 isNonAdTaskPage: YES, matched non-ad task in [搜索中, 全部, 生活号, 视频, 服务, 理财, 保险, 商品]
+02:35:28.431 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:28.466 [switchPlatform-NAVIGATE_TARGET_FARM] snapshot: pkg=com.android.systemui, act=com.alipay.android.phone.businesscommon.globalsearch.ui.MainSearchActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+02:35:28.479 [switchPlatform-NAVIGATE_TARGET_FARM] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+02:35:28.480 switchPlatform: stage=NAVIGATE_TARGET_FARM, retry=6, target=ALIPAY, original=UC
+02:35:28.496 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:30.517 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:30.531 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:30.653 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:30.669 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:30.672 isNonAdTaskPage: YES, matched non-ad task in [全部, 生活号, 视频, 服务, 理财, 保险, 商品, 市民服务]
+02:35:30.684 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:30.696 [switchPlatform-NAVIGATE_TARGET_FARM] snapshot: pkg=com.android.systemui, act=com.alipay.android.phone.businesscommon.globalsearch.ui.MainSearchActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+02:35:30.702 [switchPlatform-NAVIGATE_TARGET_FARM] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+02:35:30.702 switchPlatform: stage=NAVIGATE_TARGET_FARM, retry=7, target=ALIPAY, original=UC
+02:35:30.711 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, not on farm page
+02:35:30.711 switchPlatform: target farm not loaded, returning to original
+02:35:30.713 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+02:35:30.713 reopenFarmByDeepLink: pressing HOME to background UC before kill
+02:35:30.715 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+02:35:30.716 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+02:35:30.737 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+02:35:30.739 launchPlatformApp: opened UC via deep link
+02:35:31.316 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+02:35:31.333 navigateAlipay: dispatchGesture also failed, pressBack and retry
+02:35:34.344 navigateAlipay: active root pkg=com.hihonor.android.launcher is launcher (app probably restarting), waiting for app to come to foreground (retry=4)
+02:35:35.758 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+02:35:36.576 [switchPlatform-RETURN_ORIGINAL] snapshot: pkg=com.android.systemui, act=null, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+02:35:36.585 switchPlatform: stage=RETURN_ORIGINAL, retry=0, target=ALIPAY, original=UC
+02:35:36.586 switchPlatform: returning to original UC
+02:35:36.588 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+02:35:36.588 reopenFarmByDeepLink: pressing HOME to background UC before kill
+02:35:36.590 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+02:35:36.591 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+02:35:36.606 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+02:35:36.608 launchPlatformApp: opened UC via deep link
+02:35:36.664 navigateAlipay: active root pkg=com.hihonor.android.launcher is launcher (app probably restarting), waiting for app to come to foreground (retry=5)
+02:35:38.655 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+02:35:39.468 [switchPlatform-RETURN_ORIGINAL] snapshot: pkg=com.android.systemui, act=null, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+02:35:39.484 switchPlatform: stage=RETURN_ORIGINAL, retry=1, target=ALIPAY, original=UC
+02:35:39.502 navigateAlipay: active root pkg=com.hihonor.android.launcher is launcher, retry=6, actively relaunching farm app
+02:35:39.510 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+02:35:39.512 reopenFarmByDeepLink: pressing HOME to background UNKNOWN before kill
+02:35:39.518 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+02:35:39.521 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+02:35:39.552 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UNKNOWN (pkg=com.ucmobile.lite)
+02:35:41.504 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+02:35:41.618 [switchPlatform-RETURN_ORIGINAL] snapshot: pkg=com.android.systemui, act=null, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+02:35:41.627 switchPlatform: stage=RETURN_ORIGINAL, retry=2, target=ALIPAY, original=UC
+02:35:41.637 state: SWITCHING_PLATFORM -> STOPPING
+02:35:41.638 cancelNavigation: all navigation callbacks cancelled
+02:35:41.639 state: STOPPING -> IDLE
+02:35:49.999 saveToken: saved (len=93, head='gith', tail='McKr')
+02:35:50.002 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+02:35:50.004 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260722_023550.log, localFile=debug.log (26973 bytes)
