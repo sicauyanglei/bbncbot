@@ -2225,8 +2225,27 @@ class FarmAccessibilityService : AccessibilityService() {
                     p = p.parent; depth++
                 }
                 if (!clickTarget.isClickable) {
-                    debugLog("findGoCompleteButtons: drop non-clickable node text='${node.text?.toString()?.take(30)}' (no clickable ancestor)")
-                    return@mapNotNull null
+                    // build566 修复（debug_test_20260719_144835.log, build555-41e3bbc, UC 平台）：
+                    // 历史问题：UC 任务列表是 H5 虚拟列表,"去完成"按钮全是 clickable=false 且无 clickable 祖先
+                    // （H5 JS 绑定点击事件,无障碍树无 clickable 属性）,被直接丢弃 → taskButtons 为空 →
+                    // checkTaskListOpened 反复 0 个按钮 → openTaskList 重试 5 次失败 → NAVIGATING → STOPPING。
+                    //
+                    // 修复：对这类 H5 虚拟列表节点不直接丢弃,保留 node 本身（让 processTask 调
+                    // performClickSafe 时 ACTION_CLICK 失败后 fallback 到 dispatchGesture 按坐标点击）。
+                    // 但要校验 bounds 合法性,避免保留完全无效的节点（bounds 全 0 或倒置严重）。
+                    val rectCheck = android.graphics.Rect()
+                    node.getBoundsInScreen(rectCheck)
+                    val boundsUsable = rectCheck.width() > 0 && rectCheck.height() > 0 &&
+                        rectCheck.top < rectCheck.bottom && rectCheck.top in 0..2800
+                    if (boundsUsable) {
+                        debugLog("findGoCompleteButtons: H5 non-clickable node retained (will use dispatchGesture) text='$buttonText' bounds=${rectCheck.toShortString()}")
+                        // 保留 node 本身（clickable=false）,processTask 调 performClickSafe 时
+                        // ACTION_CLICK 失败 → fallback dispatchGestureClickWithWebViewFix 按坐标点击
+                        clickTarget = node
+                    } else {
+                        debugLog("findGoCompleteButtons: drop non-clickable node text='$buttonText' (no clickable ancestor, bounds invalid=${rectCheck.toShortString()})")
+                        return@mapNotNull null
+                    }
                 }
             }
             // 2. 文本长度过滤（防止规则条款被误识别）

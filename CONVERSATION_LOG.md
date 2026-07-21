@@ -32,7 +32,38 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - refactor: 三平台逻辑隔离（UC/支付宝/淘宝 独立配置 + reward-jump/pressBack/claimButton 门控）
+### commit (待提交) - fix: UC 任务列表 H5 虚拟列表 clickable=false 按钮被丢弃（findGoCompleteButtons 保留 non-clickable 节点）
+**用户需求**: 分析日志（支付宝/UC 平台 build555 日志）
+
+**日志分析**（debug_test_20260719_144835.log, build555-41e3bbc, UC 平台 line 1075-1098）:
+1. 14:48:10 UC 任务列表已打开（有 10 个"去完成"按钮节点）
+2. 但 10 个"去完成"按钮全是 `clickable=false` 且无 clickable 祖先（H5 JS 绑定点击事件,无障碍树无 clickable 属性）
+3. findGoCompleteButtons line 2227-2230 直接丢弃 → taskButtons 为空
+4. checkTaskListOpened 反复 5 次找到 0 个 goComplete buttons → openTaskList 重试失败
+5. 14:48:26 state: OPENING_TASK_LIST -> NAVIGATING → STOPPING
+
+**修改要点**:
+- FarmAccessibilityService.findGoCompleteButtons clickable=false 节点处理修复:
+  - 原逻辑：clickable=false 且无 clickable 祖先 → 直接丢弃
+  - 新逻辑：校验 node 本身 bounds 合法性（width>0, height>0, top<bottom, top in 0..2800）
+    - bounds 合法：保留 node 本身（processTask 调 performClickSafe 时 ACTION_CLICK 失败 → fallback dispatchGestureClickWithWebViewFix 按坐标点击）
+    - bounds 无效：丢弃（避免保留完全无效的节点）
+  - 适用场景：UC/支付宝/淘宝 H5 虚拟列表,JS 绑定点击事件,无障碍树无 clickable 属性
+
+**问题 2（UC NAVIGATING 激励视频 STOPPING）经核查非 bug**：
+- 日志 line 1100-1105 显示 14:48:26 进入 NAVIGATING,14:48:28 就 STOPPING,仅 2 秒
+- 这是用户手动点停止按钮,不是代码 bug,无需修复
+
+### commit 9d15cb2 - fix: 修复流水线编译错误 - AutomationController.kt:817-818 Unresolved reference: currentPlatform
+**用户需求**: 流水线出错了
+
+**错误**: commit 7b523b6（三平台逻辑隔离）在 navigate 第三方 overlay 分支新增 launchPlatformApp 调用,误用了 currentPlatform 而非 service.currentPlatform,导致 Kotlin 编译失败:
+- e: AutomationController.kt:817:21 Unresolved reference: currentPlatform
+- e: AutomationController.kt:818:47 Unresolved reference: currentPlatform
+
+**修复**: currentPlatform 改为 service.currentPlatform。流水线 #576 成功。
+
+### commit 7b523b6 - refactor: 三平台逻辑隔离（UC/支付宝/淘宝 独立配置 + reward-jump/pressBack/claimButton 门控）
 **用户需求**: 三个平台都执行逻辑需要区分开来,不要修改其中一个平台的逻辑影响到其它平台
 
 **调研结论**（search agent 全量梳理）:
