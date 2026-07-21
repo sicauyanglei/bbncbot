@@ -1,8 +1,0 @@
-=== cleared on app start (version=2.1, time=08:14:40) ===
-08:14:40.147 killPlatformApps: killed com.ucmobile.lite for UC
-08:14:40.150 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
-08:14:40.152 killPlatformApps: killed com.taobao.taobao for TAOBAO
-08:14:45.561 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
-08:14:45.566 FarmShortcut: startFarmShortcut: not default launcher, cannot enumerate shortcuts
-08:14:45.566 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
-08:14:45.567 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY

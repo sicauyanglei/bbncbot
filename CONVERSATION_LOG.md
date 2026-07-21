@@ -32,6 +32,83 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit 51e4f57 - feat: 芭芭农场默认从桌面快捷方式进入（按 HOME 一键进农场）
+**用户需求**: "芭芭农场默认从桌面快捷方式进入"
+
+**背景**: 本 App 已注册为默认桌面（AndroidManifest 含 CATEGORY_HOME）。用户按 HOME 键回到本应用时,期望直接进入 UC 芭芭农场,无需手动点击"打开 UC 芭芭农场"按钮。
+
+**修改要点**（[MainActivity.kt](file:///workspace/app/src/main/java/com/bbncbot/MainActivity.kt)）:
+1. 新增字段 `isFirstResume: Boolean = true`
+   - true: 本次 onResume 应触发默认进入农场（权限就绪时调 `openFarmInUcBrowser()`）
+   - false: 跳过默认行为,仅展示主界面（让用户配置 Token / 启动悬浮窗等）
+2. `onNewIntent()` 检测 `Intent.CATEGORY_HOME`:
+   - 用户按 HOME 键回到本应用（默认桌面）时,置 `isFirstResume = true`
+   - 程序化拉起（悬浮窗 home 按钮 / 桌面快捷方式 intent）不带 CATEGORY_HOME,不会触发,从而允许用户回到主界面配置
+3. `onResume()` 新增默认进入农场分支:
+   - 条件: `isFirstResume && allPermissionsReady() && !AutomationController.isRunning`
+   - 满足时调 `openFarmInUcBrowser()`（内部优先用 `FarmShortcutLauncher.startFarmShortcut` 从桌面快捷方式进入,失败回退 UC 浏览器打开 deep link）
+   - 真正执行后清零 `isFirstResume = false`,避免从农场按返回键回到 MainActivity 时被反复拉起
+   - 权限未就绪时不清零,等下次 onResume 权限齐备再触发（确保用户授完权限后能自动进入农场）
+4. 新增 `allPermissionsReady()` 私有方法: 检测悬浮窗 + 无障碍 + 默认桌面三项权限齐备
+   - 默认进入农场流程要求三项齐备,否则仍走 `guideNextMissingPermission()` 引导
+
+**关键代码片段**（onResume 默认进入分支）:
+```kotlin
+if (isFirstResume && allPermissionsReady() &&
+    !com.bbncbot.automation.AutomationController.isRunning
+) {
+    isFirstResume = false
+    debugLog("onResume: first resume & all permissions ready & automation idle, default to opening UC farm via shortcut")
+    openFarmInUcBrowser()
+    return
+}
+```
+
+**关键代码片段**（onNewIntent 检测 HOME 键）:
+```kotlin
+if (intent?.categories?.contains(Intent.CATEGORY_HOME) == true) {
+    isFirstResume = true
+    debugLog("onNewIntent: CATEGORY_HOME detected, will default to opening farm on resume")
+}
+```
+
+**边界处理**:
+- 自动化运行中（`AutomationController.isRunning`）不触发默认进入,避免干扰施肥流程
+- 待执行平台快捷方式（`pendingPlatform != null`）优先级最高,默认进入农场分支不执行
+- 用户从农场按 BACK 返回 MainActivity 时,onNewIntent 不会被调用（BACK 不触发 onNewIntent）,`isFirstResume` 保持 false,不会反复拉起
+
+**编译验证**: commit 51e4f57 已提交（含本修改 + gradle-wrapper.properties 误改,见下条修复）
+
+---
+
+### commit (待提交) - fix: logs/ 目录被误提交到 git 仓库 + 还原 gradle-wrapper 误改
+**用户需求**: "继承之前的任务,有个操作文件一直上传到了github" + "有个操作记录文件,你的任务应该延续这个记录文件"
+
+**问题1（核心）**: `logs/` 目录的 352 个 `debug_test_*.log` / `debug_sess_*.log` 文件被提交到了 git 仓库
+- 根因: `.gitignore` 只有 `*.log` 规则（git 的 `*.log` 不带前缀斜杠时,会递归匹配所有目录下的 .log 文件,但**只对未跟踪文件生效**）;历史 commit 已把 logs/ 下的文件加入索引后,.gitignore 规则不再对它们生效
+- 影响: 每次 LogUploader 通过 GitHub Contents API 上传日志后,本地 logs/ 目录会新增文件,git status 会显示 untracked,容易误提交污染版本历史
+
+**修复1**: [.gitignore](file:///workspace/.gitignore)
+- 在 `# Logs` 段下新增 `logs/` 规则（明确忽略整个目录,而非依赖 `*.log` 递归匹配）
+- 注释说明: "App 运行时上传的调试日志目录（LogUploader 通过 GitHub Contents API 上传,不应进入版本库,否则每次上传日志都会产生 commit 污染历史）"
+- 执行 `git rm -r --cached logs/` 从 git 索引移除 352 个文件（本地保留,只从版本库移除）
+- 验证: `git check-ignore -v logs/debug_test.log` 命中 `.gitignore:26:logs/` 规则 ✅
+
+**问题2**: commit 51e4f57 误改了 `gradle/wrapper/gradle-wrapper.properties`
+- 当时为尝试本地编译（gradle 下载超时）,临时把 `networkTimeout=10000` 改成 `120000`
+- 这个修改不该入库,会改变 CI 构建行为
+
+**修复2**: [gradle/wrapper/gradle-wrapper.properties](file:///workspace/gradle/wrapper/gradle-wrapper.properties) 还原 `networkTimeout=10000`
+
+**问题3（工作流程）**: 没有按 CONVERSATION_LOG.md 的工作流程操作
+- 规则要求: "每次会话开始时,先读取本文件了解项目当前状态和历史决策。每次提交代码时同步更新本文件"
+- 本轮前两次提交没有先读本文件,也没有提交后更新本文件
+- 修复: 本次提交同步更新 CONVERSATION_LOG.md,后续严格遵循工作流程
+
+**待验证**: CI 构建通过后,确认 `logs/` 目录不再出现在 git status 中
+
+---
+
 ### commit 5784d81 - fix: build595 修复 UC 推送权限弹窗干扰 + 支付宝搜索框误识别 + 跨平台跳转保守化
 **用户需求**: "全部修复"（build594 新日志 debug_test_20260722_023550.log 发现的 3 个问题）
 **日志**: debug_test_20260722_023550.log (build594-6f39eea, 02:33-02:35)

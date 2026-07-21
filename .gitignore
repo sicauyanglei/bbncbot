@@ -21,6 +21,9 @@ Thumbs.db
 
 # Logs
 *.log
+# App 运行时上传的调试日志目录（LogUploader 通过 GitHub Contents API 上传，
+# 不应进入版本库，否则每次上传日志都会产生 commit 污染历史）
+logs/
 
 # APK & build outputs
 *.apk

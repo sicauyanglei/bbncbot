@@ -1,9 +1,0 @@
-=== recording.log cleared on app start (version=2.1/12 build=build461-1d57d90, time=05:18:35.030) ===
-05:19:09.199 === 录制开始 session=sess_1784063949197 name='流程9179' ===
-05:19:09.389 [start] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差4次领肥料 | 切换摇钱树 | 逛农货 | 游戏奖励 | 我的收获) → 尝试 OCR 兜底
-05:19:09.563 [start] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='provider_exception:IllegalArgumentException:Unknown authority com.bbncbot.ocr.provider' ocrProviderBuild='' (无障碍和OCR均未识别到肥料总数)
-05:19:16.319 STOP_ENTER recordedCount=0 thread=main autoStop=false sessId=sess_1784063949197
-05:19:16.752 [stop] FERTILIZER_ACCESSIBILITY_FAIL reason=no_fertilize_button (找不到施肥按钮，可能不在农场主页；页面样本: 松开刷新 | 任务列表 | 农场乐园入口 | 还差4次领肥料 | 切换摇钱树 | 逛农货 | 游戏奖励 | 我的收获) → 尝试 OCR 兜底
-05:19:16.919 [stop] FERTILIZER_READ_FAIL reason=ocr_fail ocrApkInstalled=true ocrError='provider_exception:IllegalArgumentException:Unknown authority com.bbncbot.ocr.provider' ocrProviderBuild='' (无障碍和OCR均未识别到肥料总数)
-05:19:16.921 === 录制结束 session=sess_1784063949197 DISCARD reason=未录制任何操作(steps=0) steps=0 autoStop=false ===
-05:19:25.329 LOG_UPLOAD_RESULT n=6 tag=sess_949197 detail=上传成功：6 个文件（tag=sess_949197，含 0 张截图）
