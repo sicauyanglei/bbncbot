@@ -32,6 +32,77 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit fef7ce2 - fix: build588 跨平台跳转按钮误点广告 + UC deep link 被 Chrome 截获 + switchPlatform 失败未恢复 currentPlatform
+**用户需求**: "分析日志"（debug_test_20260721_184040.log, build587-1582380, UC 平台 18:20-18:24, 200 行）
+
+**日志分析（3 个严重问题）**:
+- **问题1（line 25-33）**: UC 主页"去支付宝农场领肥料"按钮 bounds=[255,3042][694,2509]（top=3042 > bottom=2509 异常），performClickSafe ACTION_CLICK 失败 → dispatchGesture 回退到 ancestor bounds 中心 (600.5, 1840.5) 点击 → 拉起中国移动 APP（`com.greenpoint.android.mc10086.activity`），触发了广告跳转
+- **问题2（line 89-194）**: switchPlatform 失败后 `currentPlatform=UNKNOWN` → navigate 用 UNKNOWN 平台 deep link（实际是 UC 的 `https://broccoli.uc.cn/...`）→ 但 `Intent.ACTION_VIEW` 没指定 `setPackage`，HTTPS URL 被 Chrome（`com.android.chrome`）打开，而不是 UC 浏览器（`com.ucmobile.lite`）→ 反复 reopenFarmByDeepLink 始终进不了 UC 芭芭农场
+- **问题3（line 69-82）**: switchPlatform 失败分支直接 `moveTo(PROCESSING_TASK)`，没有恢复 `service.currentPlatform` 到 `switchOriginalPlatform`，导致后续 navigate 时 `currentPlatform=UNKNOWN`，`isFarmAppInForeground` 判断错误
+
+**修改要点（3 处修复）**:
+- **FarmAccessibilityService.findCrossPlatformJumpButton（问题1）**: 跳过 bounds 异常节点（top >= bottom 或 left >= right 或宽高<=0），避免 performClickSafe 回退到 ancestor 中心点错位置触发广告跳转
+- **FarmAccessibilityService.reopenFarmByDeepLink（问题2）**: `intent.setPackage(targetPkg)` 强制用目标平台 App 打开 deep link，避免 HTTPS URL 被 Chrome 截获
+- **AutomationController.runSwitchingPlatform（问题3）**: LAUNCH_TARGET/RETURN_ORIGINAL 失败分支恢复 `service.setCurrentPlatform(switchOriginalPlatform)` + `service.launchPlatformApp(switchOriginalPlatform)`，确保失败后能回到原平台继续任务
+
+**编译修复**:
+- 第一次提交（c75a423）编译失败：`Cannot assign to 'currentPlatform': the setter is private in 'FarmAccessibilityService'`
+- 第二次提交（fef7ce2）：新增 `FarmAccessibilityService.setCurrentPlatform(platform: Platform)` public 方法（属性 setter 是 private，通过此方法暴露受控的外部写入入口），AutomationController 改用 `service.setCurrentPlatform(switchOriginalPlatform)`
+
+**编译验证**: GitHub Actions run #589 (build589-fef7ce2) ✅ success
+
+**关键代码片段 - findCrossPlatformJumpButton bounds 异常过滤**（line ~2582）:
+```kotlin
+// build588 修复：跳过 bounds 异常节点（top >= bottom 或 left >= right 或宽高<=0），
+// 宁可不点击也不要点错位置触发广告跳转。
+val valid = result.firstOrNull { node ->
+    val r = android.graphics.Rect().also { node.getBoundsInScreen(it) }
+    r.width() > 0 && r.height() > 0 && r.top < r.bottom && r.left < r.right
+}
+if (valid == null) {
+    debugLog("findCrossPlatformJumpButton: all ${result.size} nodes have invalid bounds ..., skip to avoid misclick on ad")
+    return null
+}
+```
+
+**关键代码片段 - reopenFarmByDeepLink setPackage**（line ~4833）:
+```kotlin
+val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
+    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    val targetPkg = targetPlatform.config.packageNames.firstOrNull()
+    if (targetPkg != null) {
+        try { setPackage(targetPkg) } catch (e: Exception) { /* fallback */ }
+    }
+}
+```
+
+**关键代码片段 - switchPlatform 失败恢复 currentPlatform**（line ~4592, 4660）:
+```kotlin
+debugLog("switchPlatform: restoring currentPlatform to $switchOriginalPlatform and relaunching")
+service.setCurrentPlatform(switchOriginalPlatform)
+service.launchPlatformApp(switchOriginalPlatform)
+currentTaskIndex++
+moveTo(AutomationState.PROCESSING_TASK)
+```
+
+**遗留问题**:
+- UC H5 页"去支付宝农场领肥料"按钮 bounds 持续异常（top > bottom），build588 选择"宁可不点击也不要点错位置触发广告跳转"。如果用户反馈希望即使 bounds 异常也要尝试点击，可考虑：
+  - 用 ancestor bounds 的 bottom 区域（按钮文案实际位于 ancestor 底部）作为点击坐标
+  - 或调用 AI 视觉识别按钮真实位置
+- 后续 build590+ 待用户测试 build589 后反馈新日志
+
+---
+
+### commit 5a91bb6 ~ 1582380 - build582~587 修复（已合并,详情见 git log）
+本轮会话前置提交（build582~587）已合并到 main，包括：
+- build583: onAccessibilityEvent 无条件覆盖 currentPlatform（淘宝跳转后回不到 UC）
+- build584: hasFarmContentLoaded 误判小说页为农场主页（isNovelReadPage 排除 hasFarmCore/hasFarmContent）
+- build585: navigate 把小说页当 generic popup（两步进入小说内容页 + 滑动 15 秒）
+- build586: 跨平台跳转按钮（"去支付宝农场领肥料"）未处理（findCrossPlatformJumpButton）
+- build587: navigateAlipay 搜索框区域误判入口 + 搜索结果点击未验证跳转
+
+---
+
 ### commit 00640ac - fix: 广告结束后'恭喜获取奖励'页主动关闭 + collectDirect 防死循环 (build581)
 **用户需求**: 分析日志（debug_test_20260721_152904.log, build580-851d3ea, UC 平台）→ 用户明确指出："右上角'恭喜获取奖励'，右侧有个关闭按钮，获得奖励后需要点击关闭退出广告页面"
 
