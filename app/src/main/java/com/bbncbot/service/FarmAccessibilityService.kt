@@ -5852,22 +5852,56 @@ class FarmAccessibilityService : AccessibilityService() {
             return
         }
 
-        // 已在淘宝主页，执行手势导航（build600: 改用比例坐标适配多屏幕）
-        // "我的淘宝" tab: 1200x2664 屏幕 dump 确认 bounds=[960,2481][1200,2664]，中心 (1080, 2572)
-        // 比例换算：x=1080/1200=0.9, y=2572/2664=0.9655
-        val myTaobaoTabX = screenW * 0.9f
-        val myTaobaoTabY = screenH * 0.966f
-        debugLog("navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab at ($myTaobaoTabX, $myTaobaoTabY) [screen=$screenW x $screenH ratio=0.9,0.966]")
-        dispatchGestureClick(myTaobaoTabX, myTaobaoTabY)
+        // 已在淘宝主页，执行导航
+        // build601 改进：优先用 findNodeByText 找"我的淘宝"tab 节点点击其 bounds 中心，
+        // 比固定比例坐标更可靠（避免屏幕高度差异 2543 vs 2664 导致 y 偏移点到导航栏）
+        val root = rootInActiveWindowSafe()
+        val myTaobaoNode = root?.let { findNodeByText(it, "我的淘宝") }
+        if (myTaobaoNode != null) {
+            val rect = android.graphics.Rect()
+            myTaobaoNode.getBoundsInScreen(rect)
+            val cx = rect.exactCenterX()
+            val cy = rect.exactCenterY()
+            debugLog("navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab NODE at ($cx, $cy) bounds=${rect.toShortString()} [screen=$screenW x $screenH]")
+            dispatchGestureClick(cx, cy)
+        } else {
+            // 兜底：比例坐标（基于 1200x2664 屏幕 dump 换算）
+            val myTaobaoTabX = screenW * 0.9f
+            val myTaobaoTabY = screenH * 0.966f
+            debugLog("navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab by RATIO at ($myTaobaoTabX, $myTaobaoTabY) [screen=$screenW x $screenH ratio=0.9,0.966] (node not found)")
+            dispatchGestureClick(myTaobaoTabX, myTaobaoTabY)
+        }
         navHandler.postDelayed({
-            // "芭芭农场"入口: 1200x2664 屏幕 dump 确认 bounds=[52,1424][270,1644]，中心 (161, 1534)
-            // 比例换算：x=161/1200=0.1342, y=1534/2664=0.5758
-            val farmEntryX = screenW * 0.134f
-            val farmEntryY = screenH * 0.576f
-            debugLog("navigate stepTab gesture: step 2 - click 芭芭农场 at ($farmEntryX, $farmEntryY) [screen=$screenW x $screenH ratio=0.134,0.576]")
-            dispatchGestureClick(farmEntryX, farmEntryY)
+            // step 2: 点击"芭芭农场"入口
+            // build601: 优先用 findNodeByText 找"芭芭农场"节点（在"我的淘宝"页面会有入口卡片）
+            val root2 = rootInActiveWindowSafe()
+            val farmNode = root2?.let { findNodeByText(it, "芭芭农场") }
+            if (farmNode != null) {
+                val rect2 = android.graphics.Rect()
+                farmNode.getBoundsInScreen(rect2)
+                val cx2 = rect2.exactCenterX()
+                val cy2 = rect2.exactCenterY()
+                debugLog("navigate stepTab gesture: step 2 - click 芭芭农场 NODE at ($cx2, $cy2) bounds=${rect2.toShortString()} [screen=$screenW x $screenH]")
+                dispatchGestureClick(cx2, cy2)
+            } else {
+                // 兜底：比例坐标（1200x2664 屏幕 dump bounds=[52,1424][270,1644] 中心 (161, 1534)）
+                val farmEntryX = screenW * 0.134f
+                val farmEntryY = screenH * 0.576f
+                debugLog("navigate stepTab gesture: step 2 - click 芭芭农场 by RATIO at ($farmEntryX, $farmEntryY) [screen=$screenW x $screenH ratio=0.134,0.576] (node not found)")
+                dispatchGestureClick(farmEntryX, farmEntryY)
+            }
             debugLog("navigate stepTab gesture: done, waiting 8s for farm page")
             Log.i(TAG, "navigateToFarm: done (gesture), platform=$platform, waiting 8s for farm page to load")
+            // build601: 点击后 3 秒打印一次状态诊断，确认是否进入农场页
+            navHandler.postDelayed({
+                val act2 = currentActivityName?.lowercase().orEmpty()
+                val pkg2 = currentEventPkg?.lowercase().orEmpty()
+                val onFarm = isOnFarmPage()
+                val root3 = rootInActiveWindowSafe()
+                val farmTexts = root3?.let { collectAllText(it) } ?: emptyList()
+                val hasFarmKeyword = farmTexts.any { it.contains("芭芭农场") || it.contains("施肥") || it.contains("集肥料") }
+                debugLog("navigate stepTab gesture: 3s after click 芭芭农场 - pkg=$pkg2 act=$act2 onFarm=$onFarm hasFarmKeyword=$hasFarmKeyword sampleTexts=${farmTexts.take(15)}")
+            }, 3000L)
             navHandler.postDelayed({ clearNavigatingFlag() }, 8000L)
         }, 2000L)
     }
