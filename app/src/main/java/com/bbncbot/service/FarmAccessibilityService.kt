@@ -3710,6 +3710,14 @@ class FarmAccessibilityService : AccessibilityService() {
      * @return true 表示是任务完成页面
      */
     fun isTaskCompletePage(): Boolean {
+        // build579 修复（debug_test_20260721_085502.log）：
+        // UC 激励视频广告页（HCRewardVideoActivity）播放时,农场 H5 窗口仍在 windows 列表里
+        // （后台窗口）,getRootInFarmApp 会拿到它。若该残留窗口含"已完成"等文字,会误判为
+        // 任务完成页,导致 identifyCurrentScene 返回 AD_ENDED（实际广告还在播放）。
+        // 修复：如果当前活跃窗口是广告 Activity,直接返回 false（广告播放中不可能任务完成）。
+        if (isAdActivity()) {
+            return false
+        }
         val root = getRootInFarmApp() ?: return false
         val allText = collectAllText(root)
         // 收紧完成关键词：移除"恭喜获得"、"获得肥料"等过宽关键词
@@ -4722,6 +4730,26 @@ class FarmAccessibilityService : AccessibilityService() {
         // 2. kill 目标平台老进程后重开（deep link 直达 或 启动 App + 导航）
         // 任务完成时目标 App 在前台，killBackgroundProcesses 只能 kill 后台进程，
         // 所以先按 HOME 键把目标 App 退到后台，再 kill
+        //
+        // build579 修复（debug_test_20260721_133522.log）：
+        // 历史问题：navigate 中 forceKillApp(第三方 App) 后,下一轮 runNavigating 检测到
+        // !isFarmAppInForeground()（农场 App 还没回前台）,触发 line 809 调 reopenFarmByDeepLink,
+        // 它内部 HOME + kill 农场 App + reopen deep link。但农场 App 被杀后 deep link 启动
+        // 停在启动页/首页,没进农场页,导致 UC 一直停在 launcher,navigate 超时停止。
+        //
+        // 修复：如果当前活跃窗口已经是目标农场 App（说明农场 App 已在前台,只是不在农场 H5 页）,
+        // 跳过 kill+reopen,直接返回 true,让调用方 navigate 流程通过 navigateToFarm 处理。
+        // 这样避免误杀已在前台的农场 App,导致 deep link 启动后停在首页的问题。
+        val activeRootPkg = rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+        val isFarmAppAlreadyInForeground = activeRootPkg.isNotEmpty() &&
+            targetPlatform.config.packageNames.any { activeRootPkg == it || activeRootPkg.startsWith("${it}.") }
+        if (isFarmAppAlreadyInForeground) {
+            debugLog("reopenFarmByDeepLink: $targetPlatform (pkg=$activeRootPkg) already in foreground, skip kill+reopen, let navigateToFarm handle farm page navigation")
+            if (targetPlatform != currentPlatform) {
+                currentPlatform = Platform.UNKNOWN
+            }
+            return true
+        }
         debugLog("reopenFarmByDeepLink: pressing HOME to background $targetPlatform before kill")
         performGlobalAction(GLOBAL_ACTION_HOME)
         // 等待 HOME 切换生效后再 kill（无延迟，killBackgroundProcesses 会异步生效）

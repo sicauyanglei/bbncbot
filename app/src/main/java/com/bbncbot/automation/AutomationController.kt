@@ -1001,13 +1001,51 @@ object AutomationController {
         maxRetry: Int
     ) {
         var retryLeft = maxRetry
+        // build579 防死循环：记录上次点击的 claimBtn 的 text+bounds,
+        // 若新一轮找到完全相同的节点（text+bounds 一样）,说明点击无效（页面没变化）,
+        // 放弃重试直接进 OPENING_TASK_LIST。
+        // 场景（debug_test_20260721_085502.log）：UC '签到肥料' 是 H5 Canvas 图像按钮的文字标签,
+        // clickable=false,bounds=[78,920][209,1031],performClickSafe fallback 到 gesture 点击中心
+        // (143.5, 975.5) 但点击区域不对（实际可点击区域不在 text bounds 内）,导致 6 次重复点击无效。
+        var lastClickedText: String? = null
+        var lastClickedBounds: String? = null
         fun attemptClaim() {
             if (state != AutomationState.COLLECTING_DIRECT) return
+            // build579（debug_test_20260721_133522.log）：
+            // AI 视觉点击后可能拉起第三方 App（AI 坐标偏差,点到了广告位而非签到按钮）。
+            // 检测到第三方 overlay → kill 第三方 App + 回农场 + 直接进 OPENING_TASK_LIST
+            // （不再用 AI 策略,避免再次点错）。
+            val overlayPkg = service.getThirdPartyOverlayPkg()
+            if (overlayPkg != null) {
+                Log.w(TAG, "collectDirect: 3rd-party app '$overlayPkg' opened after AI click (AI mis-clicked ad slot), killing it + back to farm")
+                debugLog("collectDirect: 3rd-party overlay '$overlayPkg' detected after AI click, killing + back to farm + opening task list")
+                service.forceKillApp(overlayPkg, pressBackFirst = false)
+                if (service.currentPlatform != Platform.UNKNOWN) {
+                    service.launchPlatformApp(service.currentPlatform)
+                }
+                moveTo(AutomationState.OPENING_TASK_LIST)
+                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
             // 尝试点击确认领取按钮（精确匹配，已含诱导黑名单过滤）
             val claimBtn = service.findClaimRewardButtonExact()
             if (claimBtn != null) {
+                val btnText = claimBtn.text?.toString().orEmpty()
+                val btnRect = android.graphics.Rect()
+                claimBtn.getBoundsInScreen(btnRect)
+                val btnBoundsStr = btnRect.toShortString()
+                // 防死循环：若与上次点击的节点完全相同,说明点击无效,放弃重试
+                if (lastClickedText == btnText && lastClickedBounds == btnBoundsStr) {
+                    Log.w(TAG, "collectDirect: claim button unchanged after click (text='$btnText' bounds=$btnBoundsStr), giving up to avoid loop")
+                    debugLog("collectDirect: claim button unchanged (text='$btnText' bounds=$btnBoundsStr clickable=${claimBtn.isClickable}), giving up retry, opening task list")
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    return
+                }
+                lastClickedText = btnText
+                lastClickedBounds = btnBoundsStr
                 Log.i(TAG, "collectDirect: found exact claim button (retry left=$retryLeft), clicking")
-                debugLog("collectDirect: claim button found, clicking (retry left=$retryLeft)")
+                debugLog("collectDirect: claim button found (text='$btnText' bounds=$btnBoundsStr clickable=${claimBtn.isClickable}), clicking (retry left=$retryLeft)")
                 service.performClickSafe(claimBtn)
                 // 领取后等待弹窗按钮文字更新（"立即领取"→"点此逛一逛再赚1000肥料"）
                 handler.postDelayed({
@@ -1364,6 +1402,24 @@ object AutomationController {
      * - true=已点击商品,继续等待剩余停留时长,满后切回农场 + kill 跳转的 App
      */
     private var rewardJumpProductClicked: Boolean = false
+
+    /**
+     * 通用"点击商品,领取奖励"广告页商品点击标志位（build579）
+     *
+     * 用于 [runWatchingAd] 主流程（非 rewardJump 分支）,适用于 UC/TAOBAO 激励视频广告页。
+     * - false=未点击商品(或已重置),检测到"点击商品"页面会调 findAdProductNode 点击商品
+     * - true=已点击商品,不再重复点击（商品详情页会覆盖原页面,继续等待广告/任务流程）
+     *
+     * 与 [rewardJumpProductClicked] 的区别：
+     * - rewardJumpProductClicked 仅用于 ALIPAY 的"我要直接拿奖励"跳转第三方 App 场景
+     * - watchingAdProductClicked 用于 UC/TAOBAO 激励视频广告页（不跳转第三方 App,仍在广告 Activity）
+     *
+     * 与 [adProductClicked] 的区别：
+     * - adProductClicked 用于 OPENING_TASK_LIST 状态的 checkTaskListOpened（等待广告结束时点商品）
+     * - watchingAdProductClicked 用于 WATCHING_AD 状态的 runWatchingAd（广告播放中点商品）
+     * 两者独立,避免状态冲突。
+     */
+    private var watchingAdProductClicked: Boolean = false
 
     private fun checkTaskListOpened(service: FarmAccessibilityService, openingAttempt: Int) {
         if (state != AutomationState.OPENING_TASK_LIST) return
@@ -3513,6 +3569,8 @@ object AutomationController {
             prevAdHadCountdown = false  // 重置倒计时状态，供多信号融合检测用
             // build529：进入广告时重置 AI 视觉进度识别节流（每个广告独立计数）
             lastAiProgressCheckMs = 0L
+            // build579：进入广告时重置通用"点击商品"标志位（每个广告独立计数）
+            watchingAdProductClicked = false
             watchingAdPlatform = service.currentPlatform  // 记录农场平台，强杀深链 App 后重新启动此平台
             // 按平台广告策略加载默认时长与检测间隔（UC/支付宝/淘宝差异化）
             val platformCfg = service.currentPlatformConfig()
@@ -3664,6 +3722,40 @@ object AutomationController {
                 }
             }, INTERVAL_PAGE_LOAD_MS)
             return
+        }
+
+        // build579（用户反馈"右上角有个'点击商品,领取奖励',页面应该还是在uc浏览器,可以点击商品"）：
+        // 通用"点击商品,领取奖励"检测，对所有平台生效（UC/支付宝/淘宝）。
+        // 场景（debug_test_20260721_085502.log, build579, UC）：
+        // - UC 集肥料点击"去完成"→ 弹激励视频广告（穿山甲/汇川 HCRewardVideoActivity）
+        // - 广告页顶部出现"点击商品，领取奖励"提示（clickable=false）
+        // - 用户必须点击广告中的商品（图片卡片）才能触发肥料奖励
+        // - 不点击商品的话广告会一直播放，watchAd 卡在 waiting min duration 直到超时
+        //
+        // 历史修复（build565）：仅在 runNavigating 加了 isClickProductAd 检测，
+        // 但实际流程是 processTask → WATCHING_AD，不走 runNavigating，所以检测没触发。
+        //
+        // 本修复：在 runWatchingAd 主流程（rewardJumpClicked 分支之后）加通用检测，
+        // 用一个标志位避免重复点击（点击一次即可，点击后商品详情页会覆盖原页面）。
+        // 注意：rewardJumpClicked 分支（ALIPAY）已有自己的"点击商品"检测，会先 return，
+        //       不会走到这里。这里处理的是 UC/TAOBAO 的激励视频广告页。
+        if (!watchingAdProductClicked && service.isClickProductAd()) {
+            val productNode = service.findAdProductNode()
+            if (productNode != null) {
+                val rect = android.graphics.Rect()
+                productNode.getBoundsInScreen(rect)
+                Log.i(TAG, "watchAd: '点击商品,领取奖励' page detected (generic), clicking product at ${rect.toShortString()}")
+                debugLog("watchAd: generic 点击商品 page detected, clicking product node bounds=${rect.toShortString()}")
+                service.performClickSafe(productNode)
+                watchingAdProductClicked = true
+                // 点击商品后等 2s 让商品详情页加载,再继续等待广告/任务流程
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + 2000L)
+                }, 2000L)
+                return
+            } else {
+                debugLog("watchAd: generic 点击商品 page detected but no clickable product node, retrying next poll")
+            }
         }
 
         // "更快拿奖"流程仅在支持的平台执行（UC 特有，支付宝/淘宝跳过）

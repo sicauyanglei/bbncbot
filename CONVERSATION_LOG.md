@@ -32,6 +32,104 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: UC 激励视频广告页 WATCHING_AD 点击商品 + collectDirect 死循环 + scene=AD_ENDED 误判 + AI 误点广告位 + reopenFarmByDeepLink 误杀农场 App
+**用户需求**: 分析日志（build579 UC 平台 085502 + 133522）→ 修复所有问题
+
+**日志分析**:
+- **debug_test_20260721_085502.log (build579, UC)**:
+  1. **问题2（核心）**: 08:53:47 UC 集肥料点击"去完成"→ 弹激励视频广告（HCRewardVideoActivity），顶部出现"点击商品，领取奖励"提示 bounds=[628,59][1033,111] clickable=false。原代码只在 runNavigating 和 rewardJumpClicked（ALIPAY）分支检测"点击商品"，UC processTask → WATCHING_AD 流程不触发 → 广告页卡 30s 直至用户手动停止
+  2. **问题1**: 08:52:59-08:53:37 collectDirect AI 视觉返回坐标 (0.8,0.45)→(960,1144) 点击，但实际签到按钮在 (143,975)，AI 坐标偏差。随后 tryClaimDirectPopup 找到 '签到肥料'（clickable=false H5 Canvas 文字标签），performClickSafe fallback gesture 点击 (143.5,975.5) 无效，重复 6 次死循环 38 秒
+  3. **问题3**: 08:53:50 watchAd scene=AD_ENDED 误判（elapsed=0ms 广告刚开始）。根因：isTaskCompletePage 用 getRootInFarmApp 遍历所有窗口，UC 广告 Activity 覆盖时农场 H5 后台窗口仍在 windows 列表，残留"已完成"文字被误判 → identifyCurrentScene 返回 AD_ENDED
+- **debug_test_20260721_133522.log (build579, UC)**:
+  4. **问题4（新）**: 13:34:29 AI 视觉返回 CLICK_CLAIM (0.8,0.6)→(960,1525) 点击屏幕右侧中部，点到了 UC 农场主页右侧的"领水果"广告位，11 秒后跳转到第三方 App `com.ss.android.article.lite`（抖音/头条 lite）。tryClaimDirectPopup 期间没检测第三方 App 跳转，3 次重试耗尽后进 OPENING_TASK_LIST，再检测到 overlay 才处理
+  5. **问题5（新）**: 13:34:42 forceKillApp(第三方 App) 后，下一轮 runNavigating 检测到 !isFarmAppInForeground()（UC 还没回前台），触发 line 809 调 reopenFarmByDeepLink，它内部 HOME + kill UC + reopen deep link。但 UC 被杀后 deep link 启动停在启动页/首页，没进农场页，导致 UC 一直停在 launcher，navigate 超时停止
+
+**修改要点**:
+- **AutomationController.runWatchingAd（问题2核心修复）**: 在 rewardJumpClicked 分支之后、fasterRewardStage 分支之前，新增通用"点击商品"检测（对所有平台生效）：
+  - 检测 `isClickProductAd()` → 调 `findAdProductNode()` 找可点击商品 → `performClickSafe` 点击 → 等 2s → 继续轮询
+  - 用新标志位 `watchingAdProductClicked` 避免重复点击（与 `adProductClicked`/`rewardJumpProductClicked` 独立，避免状态冲突）
+  - 进入 WATCHING_AD 时（elapsedMs==0L）重置 `watchingAdProductClicked = false`
+- **AutomationController.tryClaimDirectPopup（问题1死循环 + 问题4第三方 App 跳转检测）**:
+  - 开头检测 `getThirdPartyOverlayPkg()`：若检测到第三方 App（说明 AI 误点广告位拉起第三方），kill 第三方 App + `launchPlatformApp` 激活农场 + 直接进 OPENING_TASK_LIST（不再用 AI 策略，避免再次点错）
+  - 记录上次点击的 claimBtn 的 text+bounds，若新一轮找到完全相同节点（text+bounds 一样），说明点击无效（页面没变化），放弃重试直接进 OPENING_TASK_LIST
+- **FarmAccessibilityService.isTaskCompletePage（问题3误判修复）**: 开头加 `if (isAdActivity()) return false`，广告 Activity 活跃时不判为任务完成页（避免后台农场 H5 窗口残留文字误判）
+- **FarmAccessibilityService.reopenFarmByDeepLink（问题5误杀农场 App 修复）**: 在 HOME+kill+reopen 之前加检查：如果当前活跃窗口已经是目标农场 App（说明农场 App 已在前台，只是不在农场 H5 页），跳过 kill+reopen，直接返回 true，让 navigate 流程通过 navigateToFarm 处理。避免误杀已在前台的农场 App 导致 deep link 启动后停在首页
+
+**关键代码片段 - runWatchingAd 通用"点击商品"检测**（line ~3742）:
+```kotlin
+if (!watchingAdProductClicked && service.isClickProductAd()) {
+    val productNode = service.findAdProductNode()
+    if (productNode != null) {
+        val rect = android.graphics.Rect()
+        productNode.getBoundsInScreen(rect)
+        service.performClickSafe(productNode)
+        watchingAdProductClicked = true
+        handler.postDelayed({
+            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + 2000L)
+        }, 2000L)
+        return
+    }
+}
+```
+
+**关键代码片段 - tryClaimDirectPopup 第三方 App 跳转检测 + 防死循环**（line ~1012）:
+```kotlin
+fun attemptClaim() {
+    if (state != AutomationState.COLLECTING_DIRECT) return
+    // 检测第三方 App 跳转（AI 误点广告位）
+    val overlayPkg = service.getThirdPartyOverlayPkg()
+    if (overlayPkg != null) {
+        service.forceKillApp(overlayPkg, pressBackFirst = false)
+        if (service.currentPlatform != Platform.UNKNOWN) {
+            service.launchPlatformApp(service.currentPlatform)
+        }
+        moveTo(AutomationState.OPENING_TASK_LIST)
+        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+        return
+    }
+    val claimBtn = service.findClaimRewardButtonExact()
+    if (claimBtn != null) {
+        val btnText = claimBtn.text?.toString().orEmpty()
+        val btnBoundsStr = android.graphics.Rect().also { claimBtn.getBoundsInScreen(it) }.toShortString()
+        // 防死循环：若与上次点击的节点完全相同,放弃重试
+        if (lastClickedText == btnText && lastClickedBounds == btnBoundsStr) {
+            moveTo(AutomationState.OPENING_TASK_LIST)
+            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+        lastClickedText = btnText
+        lastClickedBounds = btnBoundsStr
+        service.performClickSafe(claimBtn)
+        // ...
+    }
+}
+```
+
+**关键代码片段 - isTaskCompletePage 广告 Activity 短路**（line ~3712）:
+```kotlin
+fun isTaskCompletePage(): Boolean {
+    if (isAdActivity()) {
+        return false
+    }
+    val root = getRootInFarmApp() ?: return false
+    // ...
+}
+```
+
+**关键代码片段 - reopenFarmByDeepLink 农场 App 已在前台时跳过 kill+reopen**（line ~4743）:
+```kotlin
+val activeRootPkg = rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+val isFarmAppAlreadyInForeground = activeRootPkg.isNotEmpty() &&
+    targetPlatform.config.packageNames.any { activeRootPkg == it || activeRootPkg.startsWith("${it}.") }
+if (isFarmAppAlreadyInForeground) {
+    debugLog("reopenFarmByDeepLink: $targetPlatform (pkg=$activeRootPkg) already in foreground, skip kill+reopen, let navigateToFarm handle farm page navigation")
+    if (targetPlatform != currentPlatform) {
+        currentPlatform = Platform.UNKNOWN
+    }
+    return true
+}
+```
+
 ### commit (待提交) - fix: UC 激励视频广告页"点击商品,领取奖励"检测点击商品（runNavigating 广告分支加 isClickProductAd 检测）
 **用户需求**: 右上角有个"点击商品,领取奖励",页面应该还是在uc浏览器,可以点击商品；分析日志,uc芭芭农场"签到","点击领取",没有去点击
 
