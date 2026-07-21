@@ -1634,15 +1634,16 @@ class FarmAccessibilityService : AccessibilityService() {
      * 2. TRAP_ABNORMAL   — 交易/下单页（违反禁止交易原则，立即退出）
      * 3. TRAP_MINIPROGRAM — 非农场小程序陷阱（支付宝/淘宝，立即退出）
      * 4. TRAP_LANDING    — 广告主落地页（下载/安装/应用商店，立即退出）
-     * 5. TRAP_INSTALL    — 诱导弹窗（立即下载/去购买，关闭后继续）
-     * 6. TRAP_REPLAY     — 复看陷阱（再看一个/加倍领取，关闭后继续）
-     * 7. SIGN_IN         — 签到页面（可点击签到/领取签到奖励）
-     * 8. REWARD_POPUP    — 奖励领取弹窗（可点击领取奖励）
-     * 9. AD_ENDED        — 广告已结束（可关闭/领取奖励）
-     * 10. AD_PLAYING     — 广告播放中（等待，勿点诱导按钮）
-     * 11. FARM_PAGE      — 农场主页（正常状态）
-     * 12. GENERIC_POPUP  — 未知弹窗（无肥料提示，需主动关闭）
-     * 13. UNKNOWN        — 未知场景（保守等待）
+     * 5. TRAP_INTERACTIVE — 摇一摇/扭一扭互动广告（无法模拟摇动，立即退出）
+     * 6. TRAP_INSTALL    — 诱导弹窗（立即下载/去购买，关闭后继续）
+     * 7. TRAP_REPLAY     — 复看陷阱（再看一个/加倍领取，关闭后继续）
+     * 8. SIGN_IN         — 签到页面（可点击签到/领取签到奖励）
+     * 9. REWARD_POPUP    — 奖励领取弹窗（可点击领取奖励）
+     * 10. AD_ENDED        — 广告已结束（可关闭/领取奖励）
+     * 11. AD_PLAYING     — 广告播放中（等待，勿点诱导按钮）
+     * 12. FARM_PAGE      — 农场主页（正常状态）
+     * 13. GENERIC_POPUP  — 未知弹窗（无肥料提示，需主动关闭）
+     * 14. UNKNOWN        — 未知场景（保守等待）
      */
     enum class PageScene {
         FARM_PAGE,           // 农场主页
@@ -1658,6 +1659,7 @@ class FarmAccessibilityService : AccessibilityService() {
         TRAP_RECHARGE,       // 充值/付费页陷阱
         TRAP_ABNORMAL,       // 交易/下单页陷阱
         TRAP_MINIPROGRAM,    // 非农场小程序陷阱
+        TRAP_INTERACTIVE,    // build599: 摇一摇/扭一扭互动广告陷阱（无法模拟摇动）
         SYSTEM_PERMISSION,   // build595: 系统级权限弹窗（如 UC 推送权限授权）
         UNKNOWN              // 未知场景
     }
@@ -1686,6 +1688,10 @@ class FarmAccessibilityService : AccessibilityService() {
         if (isMiniProgramTrap()) return PageScene.TRAP_MINIPROGRAM
         // 4. 广告主落地页陷阱（下载/安装/应用商店）
         if (isAdLandingPage()) return PageScene.TRAP_LANDING
+        // build599: 摇一摇/扭一扭互动广告陷阱（无法模拟摇动，立即退出）
+        // 必须在 FARM_PAGE 之后检测（互动广告在广告 Activity 内,非农场页）,
+        // 但要在 SIGN_IN/QUIZ_PAGE 之后（避免误判签到页/答题页）
+        if (isInteractiveAdPage()) return PageScene.TRAP_INTERACTIVE
         // 5. 签到页面（必须在 FARM_PAGE 之前检测：签到页在农场 App 的 WebView 内，
         //    isOnFarmPage 会返回 true，但签到页有专属签到按钮需要点击领取签到肥料）
         if (isSignInPage()) return PageScene.SIGN_IN
@@ -1773,6 +1779,38 @@ class FarmAccessibilityService : AccessibilityService() {
         )
         return allText.any { text ->
             replayTrapKeywords.any { kw -> text.contains(kw) }
+        }
+    }
+
+    /**
+     * build599: 检测"摇一摇/扭一扭"互动广告页（无法模拟摇动，立即退出）
+     *
+     * 用户反馈（debug_test_20260722_031850.log, build597-9cd958a line 153-253）：
+     * - 穿山甲 KsRewardVideoActivity 播放"摇一摇/扭一扭"互动广告
+     * - 文案: "扭一扭或点击跳转详情页或第三方应用", "shake_title", "rotate_view_container",
+     *         "rotate_view", "看", "10秒", "可直接拿奖励", "灵光"
+     * - 倒计时一直显示"10秒"（需用户摇手机/扭动才能触发，无障碍服务无法模拟）
+     * - 卡死 56 秒后超时 STOPPING, 浪费时间
+     *
+     * 识别特征：
+     * - 文案含"扭一扭"/"摇一摇"/"摇手机"/"摇晃手机"等互动提示
+     * - 或含"shake_title"/"rotate_view"/"rotate_view_container"等互动广告组件 ID
+     * - 或含"可直接拿奖励"（穿山甲互动广告特有文案）
+     *
+     * @return true 表示当前是摇一摇/扭一扭互动广告页（应立即退出）
+     */
+    private fun isInteractiveAdPage(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        // 互动广告特征文案（含摇一摇/扭一扭/晃动等互动动作提示）
+        val interactiveKeywords = listOf(
+            "扭一扭", "摇一摇", "摇手机", "摇晃手机", "晃动手机",
+            "摇动手机", "转动手机", "旋转手机", "翻转手机",
+            "可直接拿奖励",  // 穿山甲互动广告特有文案
+            "shake_title", "rotate_view", "rotate_view_container"
+        )
+        return allText.any { text ->
+            interactiveKeywords.any { kw -> text.contains(kw) }
         }
     }
 

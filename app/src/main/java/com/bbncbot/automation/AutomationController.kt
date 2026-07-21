@@ -3998,6 +3998,32 @@ object AutomationController {
                 }, INTERVAL_PAGE_LOAD_MS)
                 return
             }
+            // build599: 陷阱4.5：摇一摇/扭一扭互动广告（无法模拟摇动，立即退出）
+            // 用户反馈（debug_test_20260722_031850.log line 153-253）：
+            // - 穿山甲 KsRewardVideoActivity 播放"扭一扭或点击跳转详情页或第三方应用"广告
+            // - 倒计时一直显示"10秒"（需用户摇手机/扭动才能触发,无障碍服务无法模拟）
+            // - 卡死 56 秒后超时 STOPPING, 浪费时间
+            // 策略：立即 pressBack 退出广告,跳过任务（无法完成,避免卡死 90s）
+            // 注意：用 currentTaskIndex++（而非 advanceTaskIndex）— 互动广告任务直接跳过,不重玩
+            PageScene.TRAP_INTERACTIVE -> {
+                Log.w(TAG, "watchAd: interactive ad (shake/rotate) detected (scene=$scene), exiting immediately (cannot simulate)")
+                debugLog("watchAd: interactive ad (摇一摇/扭一扭) detected, cannot simulate shake, pressing back to exit")
+                service.setAdMode(false)
+                service.pressBack()
+                currentTaskIndex++  // 互动广告任务直接跳过,不重玩（避免再次卡死）
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) {
+                        if (!service.isOnFarmPage()) service.pressBack()
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) {
+                                moveTo(AutomationState.OPENING_TASK_LIST)
+                                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                            }
+                        }, INTERVAL_PAGE_LOAD_MS)
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
             // 陷阱5：诱导弹窗（页面上有"立即下载"等按钮，可能是广告播放中弹出的诱导遮罩）
             // 策略：优先点"关闭/暂不/拒绝"关闭弹窗，绝不点诱导按钮，继续轮询
             PageScene.TRAP_INSTALL -> {
