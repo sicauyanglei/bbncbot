@@ -763,6 +763,26 @@ object AutomationController {
             return
         }
 
+        // build595: 系统级权限弹窗（UC 推送权限授权等，最高优先级前置）
+        // 必须在 GENERIC_POPUP 之前：权限弹窗会遮住农场页,isOnFarmPage 返回 false,
+        // identifyCurrentScene 会返回 SYSTEM_PERMISSION,但需要 navigate 主动关闭
+        if (signInScene == FarmAccessibilityService.PageScene.SYSTEM_PERMISSION) {
+            Log.i(TAG, "navigate: system permission popup detected, closing it (deny button)")
+            debugLog("navigate: system permission popup detected, attempting to close")
+            val denyBtn = service.findSystemPermissionDenyButton()
+            if (denyBtn != null) {
+                debugLog("navigate: clicking deny button on permission popup (text='${denyBtn.text}')")
+                service.performClickSafe(denyBtn)
+            } else {
+                debugLog("navigate: no deny button found, pressing back to close popup")
+                service.pressBack()
+            }
+            handler.postDelayed({
+                if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
         // 通用弹窗检测（无肥料提示的弹窗，如分享好友/开通会员/评价/活动等）
         // 用户需求：弹框窗口如何没有肥料提示，需要关闭弹窗
         // 策略：主动关闭弹窗，避免 bot 卡在 UNKNOWN 场景反复调用 navigateToFarm
@@ -968,32 +988,43 @@ object AutomationController {
         // UC 主页底部"去支付宝农场领肥料"按钮,点击跳转支付宝领跨平台奖励,需像 processTask 的
         // cross-platform 任务一样处理（跳转→领奖励→返回原平台）。
         // 防死循环：用 lastDirectClickedText 记录已点击的跳转按钮,避免重复触发跨平台切换。
-        val jumpBtn = service.findCrossPlatformJumpButton()
-        if (jumpBtn != null) {
-            val jumpText = jumpBtn.text?.toString().orEmpty()
-            val jumpBoundsStr = android.graphics.Rect().also { jumpBtn.getBoundsInScreen(it) }.toShortString()
-            // 检测目标平台
-            val jumpTarget = service.detectCrossPlatformJumpTarget(jumpText)
-            if (jumpTarget != null && jumpTarget != service.currentPlatform) {
-                // 防死循环：若与上次点击的跳转按钮相同,跳过（避免跨平台切换失败后重复触发）
-                if (jumpText == lastDirectClickedText && jumpBoundsStr == lastDirectClickedBounds) {
-                    debugLog("collectDirect: cross-platform jump button '$jumpText' same as last clicked, skip (already tried)")
-                } else {
-                    Log.i(TAG, "collectDirect: cross-platform jump button detected '$jumpText', switching to $jumpTarget (like processTask cross-platform)")
-                    debugLog("collectDirect: cross-platform jump '$jumpText' → $jumpTarget, entering SWITCHING_PLATFORM")
-                    // 记录本次点击,防死循环
-                    lastDirectClickedText = jumpText
-                    lastDirectClickedBounds = jumpBoundsStr
-                    // 复用 processTask 的 cross-platform 流程
-                    switchOriginalPlatform = service.currentPlatform
-                    switchTargetPlatform = jumpTarget
-                    switchStage = "LAUNCH_TARGET"
-                    switchRetryCount = 0
-                    // 点击跳转按钮（部分任务点击后自动跳转目标平台）
-                    service.performClickSafe(jumpBtn)
-                    moveTo(AutomationState.SWITCHING_PLATFORM)
-                    handler.postDelayed({ runSwitchingPlatform() }, INTERVAL_PAGE_LOAD_MS)
-                    return
+        //
+        // build595 保守化（debug_test_20260722_023550.log, build594 line 72-83）：
+        // 历史问题：UC 农场主页底部"和淘宝,支付宝农场共种一棵树"区域含"去支付宝农场领肥料"
+        // 横幅,即使有 direct 按钮可领也会被优先识别触发跳转,且任务列表还没打开就跳走了。
+        // 当 COLLECTING_DIRECT 因权限弹窗/任务列表打不开回退到 NAVIGATING 重进后,
+        // 又会触发跨平台跳转,导致 UC 任务流程完全无法执行。
+        // 修复：只有在没有 direct 按钮可领 且 至少尝试过一次（attempt >= 1）时,才检查跨平台跳转。
+        // 首次进入 COLLECTING_DIRECT (attempt=0) 优先找 direct 按钮,找不到则进 OPENING_TASK_LIST,
+        // 避免主页横幅在第一轮就误触发跳转。
+        if (buttons.isEmpty() && attempt >= 1) {
+            val jumpBtn = service.findCrossPlatformJumpButton()
+            if (jumpBtn != null) {
+                val jumpText = jumpBtn.text?.toString().orEmpty()
+                val jumpBoundsStr = android.graphics.Rect().also { jumpBtn.getBoundsInScreen(it) }.toShortString()
+                // 检测目标平台
+                val jumpTarget = service.detectCrossPlatformJumpTarget(jumpText)
+                if (jumpTarget != null && jumpTarget != service.currentPlatform) {
+                    // 防死循环：若与上次点击的跳转按钮相同,跳过（避免跨平台切换失败后重复触发）
+                    if (jumpText == lastDirectClickedText && jumpBoundsStr == lastDirectClickedBounds) {
+                        debugLog("collectDirect: cross-platform jump button '$jumpText' same as last clicked, skip (already tried)")
+                    } else {
+                        Log.i(TAG, "collectDirect: cross-platform jump button detected '$jumpText', switching to $jumpTarget (like processTask cross-platform)")
+                        debugLog("collectDirect: cross-platform jump '$jumpText' → $jumpTarget, entering SWITCHING_PLATFORM")
+                        // 记录本次点击,防死循环
+                        lastDirectClickedText = jumpText
+                        lastDirectClickedBounds = jumpBoundsStr
+                        // 复用 processTask 的 cross-platform 流程
+                        switchOriginalPlatform = service.currentPlatform
+                        switchTargetPlatform = jumpTarget
+                        switchStage = "LAUNCH_TARGET"
+                        switchRetryCount = 0
+                        // 点击跳转按钮（部分任务点击后自动跳转目标平台）
+                        service.performClickSafe(jumpBtn)
+                        moveTo(AutomationState.SWITCHING_PLATFORM)
+                        handler.postDelayed({ runSwitchingPlatform() }, INTERVAL_PAGE_LOAD_MS)
+                        return
+                    }
                 }
             }
         }
@@ -1380,6 +1411,29 @@ object AutomationController {
     private fun checkTaskListOpened(service: FarmAccessibilityService, openingAttempt: Int) {
         if (state != AutomationState.OPENING_TASK_LIST) return
 
+        // build595 修复（debug_test_20260722_023550.log, build594 line 30-49）：
+        // UC 在打开任务列表过程中弹出推送权限授权弹窗（Activity=
+        // com.uc.base.push.permission.guide.e），弹窗遮住任务列表，
+        // checkTaskListOpened 找不到"去完成"按钮，5 次重试后 isOnFarmPage 返回 false
+        // → 回退 NAVIGATING → 重进农场又弹权限弹窗，死循环失败。
+        // 修复：检测到权限弹窗时,主动点击"拒绝/暂不/关闭"按钮关闭它,再继续找 goComplete。
+        if (service.isSystemPermissionPopup()) {
+            Log.i(TAG, "checkTaskListOpened: system permission popup detected, closing it (deny button)")
+            debugLog("checkTaskListOpened: system permission popup detected, attempting to close")
+            val denyBtn = service.findSystemPermissionDenyButton()
+            if (denyBtn != null) {
+                debugLog("checkTaskListOpened: clicking deny button on permission popup (text='${denyBtn.text}')")
+                service.performClickSafe(denyBtn)
+            } else {
+                debugLog("checkTaskListOpened: no deny button found, pressing back to close popup")
+                service.pressBack()
+            }
+            // 不增加 taskListCheckAttempt,继续等待任务列表打开
+            handler.postDelayed({
+                if (state == AutomationState.OPENING_TASK_LIST) checkTaskListOpened(service, openingAttempt)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
         // build559 修复（debug_test_20260719_153945.log, build558-44cd648）：
         // 历史问题：UC 平台"集肥料"按钮点击后会弹激励视频广告(穿山甲/汇川,30~42s),
         // 广告期间 rootInActiveWindow 是广告 Activity,findGoCompleteButtons 找不到"去完成"按钮。
@@ -3853,6 +3907,24 @@ object AutomationController {
                     service.performClickSafe(closeBtn)
                 } else {
                     debugLog("watchAd: no close button found for generic popup, pressing back")
+                    service.pressBack()
+                }
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                }, INTERVAL_CLICK_MS)
+                return
+            }
+            // build595: 系统级权限弹窗（如 UC 推送权限授权弹窗，广告播放期间也可能弹出）
+            // 策略：点击"拒绝/暂不/关闭"按钮,绝不点"允许/开启",继续轮询等待广告恢复
+            PageScene.SYSTEM_PERMISSION -> {
+                Log.i(TAG, "watchAd: system permission popup detected, closing it (deny button)")
+                debugLog("watchAd: system permission popup, attempting to close with deny button")
+                val denyBtn = service.findSystemPermissionDenyButton()
+                if (denyBtn != null) {
+                    debugLog("watchAd: clicking deny button on permission popup (text='${denyBtn.text}')")
+                    service.performClickSafe(denyBtn)
+                } else {
+                    debugLog("watchAd: no deny button found, pressing back to close popup")
                     service.pressBack()
                 }
                 handler.postDelayed({

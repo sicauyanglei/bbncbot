@@ -1658,6 +1658,7 @@ class FarmAccessibilityService : AccessibilityService() {
         TRAP_RECHARGE,       // 充值/付费页陷阱
         TRAP_ABNORMAL,       // 交易/下单页陷阱
         TRAP_MINIPROGRAM,    // 非农场小程序陷阱
+        SYSTEM_PERMISSION,   // build595: 系统级权限弹窗（如 UC 推送权限授权）
         UNKNOWN              // 未知场景
     }
 
@@ -1674,6 +1675,9 @@ class FarmAccessibilityService : AccessibilityService() {
      * @return 当前页面场景类型
      */
     fun identifyCurrentScene(): PageScene {
+        // 0. build595: 系统级权限弹窗（UC 推送权限授权等，最高优先级前置）
+        // 必须前置：权限弹窗会遮住农场页/任务列表,isOnFarmPage 返回 false 会导致误判
+        if (isSystemPermissionPopup()) return PageScene.SYSTEM_PERMISSION
         // 1. 充值/付费页（最高优先级，违反禁止交易原则）
         if (isRechargePage()) return PageScene.TRAP_RECHARGE
         // 2. 交易/下单页（违反禁止交易原则）
@@ -1853,6 +1857,91 @@ class FarmAccessibilityService : AccessibilityService() {
             closeKeywords.any { kw -> text.contains(kw) }
         }
         return hasCloseButton
+    }
+
+    /**
+     * build595: 检测系统级权限弹窗（如 UC 推送权限授权弹窗）
+     *
+     * 用户问题（debug_test_20260722_023550.log, build594）：
+     * UC 在打开任务列表过程中弹出推送权限授权弹窗（Activity=
+     * com.uc.base.push.permission.guide.e），弹窗遮住任务列表，
+     * checkTaskListOpened 找不到任何"去完成"按钮，isOnFarmPage 返回 false
+     * （activity 不在 farm keywords），流程回退到 NAVIGATING 重试，循环失败。
+     *
+     * 这类弹窗特征：
+     * - Activity 类名含"permission"或"push"或"guide"
+     * - 文案含"开启通知"/"允许通知"/"打开通知"等推送授权文案
+     * - 无肥料相关文案
+     *
+     * 处理策略：识别后主动点击"拒绝/暂不/关闭"按钮关闭弹窗
+     *
+     * @return true 表示当前是系统级权限弹窗
+     */
+    fun isSystemPermissionPopup(): Boolean {
+        val activity = getCurrentActivityName()?.lowercase() ?: return false
+        // UC 推送权限授权 Activity: com.uc.base.push.permission.guide.e
+        // 通用模式：含 permission + (push|guide|notification)
+        val isPermissionActivity = (activity.contains("permission") &&
+            (activity.contains("push") || activity.contains("guide") || activity.contains("notification")))
+        if (!isPermissionActivity) return false
+
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        if (allText.isEmpty()) return false
+
+        // 推送授权弹窗文案特征
+        val permissionKeywords = listOf(
+            "开启通知", "允许通知", "打开通知", "通知权限",
+            "推送通知", "接收通知", "接收推送", "消息通知",
+            "开启推送", "允许推送", "打开推送"
+        )
+        val hasPermissionText = allText.any { text ->
+            permissionKeywords.any { kw -> text.contains(kw) }
+        }
+        if (hasPermissionText) {
+            debugLog("isSystemPermissionPopup: YES (activity=$activity, permission text matched)")
+            return true
+        }
+        // activity 命中但文案没匹配,保守返回 true（activity 已足够特异）
+        debugLog("isSystemPermissionPopup: YES by activity (activity=$activity, no permission text but activity matched)")
+        return true
+    }
+
+    /**
+     * build595: 查找系统权限弹窗的"拒绝/关闭"按钮
+     *
+     * 优先点击"拒绝/暂不/关闭"等否定按钮（不点"允许/开启"避免开启推送权限）。
+     * 找不到时返回 null,调用方按返回键兜底。
+     *
+     * @return 拒绝类按钮节点；找不到返回 null
+     */
+    fun findSystemPermissionDenyButton(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        // 拒绝/否定类按钮文案（按优先级排序：拒绝 > 暂不 > 关闭 > 取消 > 以后再说）
+        val denyTexts = listOf(
+            "拒绝", "不允许", "暂不开启", "暂不", "以后再说", "稍后再说",
+            "关闭", "取消", "不再提示", "残忍拒绝"
+        )
+        for (text in denyTexts) {
+            val result = mutableListOf<AccessibilityNodeInfo>()
+            val seen = HashSet<Int>()
+            collectNodesByText(root, listOf(text), result, seen)
+            // 过滤：bounds 合法 + 含 deny 文案（精确匹配避免误匹配"允许"等）
+            val valid = result.firstOrNull { node ->
+                val nodeText = node.text?.toString().orEmpty()
+                val nodeDesc = node.contentDescription?.toString().orEmpty()
+                val combined = nodeText + nodeDesc
+                val r = android.graphics.Rect().also { node.getBoundsInScreen(it) }
+                r.width() > 0 && r.height() > 0 && r.top < r.bottom &&
+                    combined.contains(text)
+            }
+            if (valid != null) {
+                debugLog("findSystemPermissionDenyButton: found text='$text' bounds=${android.graphics.Rect().also { valid.getBoundsInScreen(it) }.toShortString()}")
+                return valid
+            }
+        }
+        debugLog("findSystemPermissionDenyButton: no deny button found")
+        return null
     }
 
     /**
@@ -5390,14 +5479,24 @@ class FarmAccessibilityService : AccessibilityService() {
             // 排除搜索框/搜索按钮：搜索框内部含"芭芭农场"占位文字（如"搜索 芭芭农场"）时，
             // findNodeByText 会把搜索框本身作为最近可点击父节点返回，导致误点搜索框
             val isSearchNode = entryDesc.contains("搜索") || entryText.contains("搜索")
+            val screenHeight = resources.displayMetrics.heightPixels
+            // build595 修复（debug_test_20260722_023550.log, build594 line 93-95）：
+            // 历史问题：UC→ALIPAY 跨平台跳转后, navigateAlipay 找到"芭芭农场"入口
+            // (bounds=[214,147][1035,254], clickable=true, desc='搜索框'), 但被误点。
+            // 原条件 `isSearchBarArea && !isSearchNode` 在 isSearchNode=true 时
+            // (desc='搜索框'含"搜索")变成 true && !true = false, 没跳过搜索框, 直接点击。
+            // 修复：isSearchNode=true 时直接跳过,不需要 isSearchBarArea 联合条件。
+            // 搜索框/搜索按钮绝不是农场入口,无论位置在哪里都不应该点击。
+            if (isSearchNode) {
+                debugLog("navigateAlipay: 芭芭农场 entry at ${rect.toShortString()} is search node (desc='$entryDesc', text='$entryText'), skip and fallback to search")
+                farmEntry.recycle()
+            } else
             // build587 修复（debug_test_20260721_175556.log, build586, UC→ALIPAY 跨平台 line 276-300）：
             // 历史问题：搜索框区域的"芭芭农场"文字（历史搜索词/推荐词, bounds=[268,121][1020,278],
             // y=121 在屏幕顶部 5%）isClickable=true, isSearchNode=false（text 不含"搜索"）,
             // 被当作有效入口反复点击,但点击后不跳转（搜索框文字不是入口）,卡 2 分钟。
             // 修复：排除屏幕顶部 y < 20% 的"芭芭农场"节点（搜索框区域）,直接走策略2 搜索。
-            val screenHeight = resources.displayMetrics.heightPixels
-            val isSearchBarArea = screenHeight > 0 && rect.top < screenHeight * 0.20f
-            if (isSearchBarArea && !isSearchNode) {
+            if (screenHeight > 0 && rect.top < screenHeight * 0.20f) {
                 debugLog("navigateAlipay: 芭芭农场 entry at ${rect.toShortString()} is in search bar area (top=${rect.top} < ${screenHeight * 0.20f}), skip and fallback to search")
                 // 直接走策略2（搜索框搜索）
                 farmEntry.recycle()
