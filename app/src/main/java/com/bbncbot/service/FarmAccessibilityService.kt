@@ -132,7 +132,24 @@ class FarmAccessibilityService : AccessibilityService() {
             // 自动检测平台
             val detected = Platform.fromPackage(pkg)
             if (detected != Platform.UNKNOWN) {
-                currentPlatform = detected
+                // build582 修复（debug_test_20260721_162351.log, build581, UC 平台 line 66）：
+                // 历史问题：UC 集肥料点击后 H5 跳转拉起淘宝 App,onAccessibilityEvent 收到
+                // WINDOW_STATE_CHANGED(pkg=com.taobao.taobao) 事件,currentPlatform 被覆盖成 TAOBAO。
+                // 但 AutomationController 启动时锁定的平台是 UC,后续 navigateToFarm(TAOBAO) 走
+                // stepClickFarmTabByGesture（淘宝专用路径），在淘宝芭芭农场 H5 页面点 (1080,2572)
+                // 我的淘宝 tab → (161,1534) 芭芭农场入口，反而退出农场页，卡 6 分钟。
+                // 修复：自动化运行期间（非 IDLE/SWITCHING_PLATFORM/STOPPING）不修改 currentPlatform,
+                // 保持 AutomationController 启动时锁定的平台。SWITCHING_PLATFORM 阶段是主动跨平台
+                // 切换,需要 currentPlatform 跟随目标平台更新,所以放行。
+                val ctrlState = AutomationController.currentState
+                val allowPlatformUpdate = ctrlState == com.bbncbot.automation.AutomationState.IDLE ||
+                    ctrlState == com.bbncbot.automation.AutomationState.SWITCHING_PLATFORM ||
+                    ctrlState == com.bbncbot.automation.AutomationState.STOPPING
+                if (allowPlatformUpdate) {
+                    currentPlatform = detected
+                } else {
+                    Log.d(TAG, "window-state-changed: automation running (state=$ctrlState), keep platform=$currentPlatform (ignore detected=$detected from pkg=$pkg)")
+                }
             }
             Log.d(TAG, "window-state-changed pkg=$pkg class=$className platform=$currentPlatform")
         }
