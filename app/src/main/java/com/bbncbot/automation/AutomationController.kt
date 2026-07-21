@@ -137,9 +137,16 @@ object AutomationController {
      * - false：未点击，滑动前检测到小说页需先点按钮
      * - true：已点击或非小说页，直接滑动
      * - 进入 BROWSING_TASK 时（swipeCount=0）重置
+     *
+     * build585 扩展：用户需求"需要点击一部小说进入，停留15秒上下滑动"
+     * - 流程：小说任务页(开始阅读) → 点"开始阅读" → 小说列表页 → 点击一部小说 → 小说内容页 → 上下滑动15秒
+     * - browsingNovelStarted: 已点"开始阅读"（进入小说列表页）
+     * - browsingNovelEnteredContent: 已点击一部小说（进入小说内容页,可以开始滑动）
      */
     @Volatile
     private var browsingNovelStarted: Boolean = false
+    @Volatile
+    private var browsingNovelEnteredContent: Boolean = false
 
     /**
      * 标记当前浏览任务是否从"搜索后浏览立得奖励"任务页进入
@@ -501,6 +508,7 @@ object AutomationController {
         lastDirectClickedText = ""  // build581: 复位 direct 防死循环标记
         lastDirectClickedBounds = ""
         browsingNovelStarted = false  // build584: 复位小说阅读任务标记
+        browsingNovelEnteredContent = false  // build585: 复位小说内容页标记
         // 重置当前平台的广告完成标记（新一轮运行可重新标记完成）
         resetCurrentPlatformComplete(service)
         moveTo(AutomationState.NAVIGATING)
@@ -719,6 +727,24 @@ object AutomationController {
         // 用户需求：弹框窗口如何没有肥料提示，需要关闭弹窗
         // 策略：主动关闭弹窗，避免 bot 卡在 UNKNOWN 场景反复调用 navigateToFarm
         if (signInScene == FarmAccessibilityService.PageScene.GENERIC_POPUP) {
+            // build585 修复（debug_test_20260721_171301.log, build584, UC 平台 line 55-112）：
+            // 历史问题：UC "看一本喜欢的小说"任务页有右上角关闭按钮,isGenericPopup 误判为通用弹窗,
+            // navigate 反复点击关闭按钮（line 56 [912,151][1043,268]）,但关闭后页面仍刷新成小说页,
+            // 形成"检测小说页 → 误判弹窗 → 点关闭 → 页面刷新 → 再检测小说页"死循环 3 分钟。
+            // 修复：generic popup 分支前先检测 isNovelReadPage,若是小说页直接进 BROWSING_TASK
+            // （点击"开始阅读"→ 点击一部小说 → 停留15秒上下滑动）。
+            if (service.isNovelReadPage()) {
+                Log.i(TAG, "navigate: novel read page detected (看一本喜欢的小说), entering BROWSING_TASK")
+                debugLog("navigate: novel read page (开始阅读+得肥料), entering BROWSING_TASK to click 开始阅读 + swipe")
+                browsingNovelStarted = false  // 复位,让 runBrowsingTask 重新走"点开始阅读"流程
+                taskButtons = emptyList()  // 小说页没有 taskButton,runBrowsingTask swipeCount=0 会跳过点击 taskButton 步骤
+                currentTaskIndex = 0
+                moveTo(AutomationState.BROWSING_TASK)
+                // 直接从 swipeCount=1 开始（跳过 runBrowsingTask 的"点击去完成按钮"步骤,
+                // 因为已经在小说任务页了,下一步是点"开始阅读"）
+                handler.postDelayed({ runBrowsingTask(swipeCount = 1) }, INTERVAL_CLICK_MS)
+                return
+            }
             Log.i(TAG, "navigate: generic popup detected (no fertilizer hint), closing it")
             debugLog("navigate: generic popup (no fertilizer), attempting to close")
             val closeBtn = service.findAdCloseButton()
@@ -1811,6 +1837,7 @@ object AutomationController {
             browseRedPacketCloseAttempts = 0
             // build584: 重置小说阅读任务标记（新一轮浏览任务开始）
             browsingNovelStarted = false
+            browsingNovelEnteredContent = false
             // 第一步：点击"去完成"按钮进入浏览页面
             val button = taskButtons.getOrNull(currentTaskIndex)
             if (button == null) {
@@ -2028,19 +2055,25 @@ object AutomationController {
             return
         }
 
-        // build584: 小说阅读任务页检测——点击"开始阅读"/"继续阅读"按钮进入小说内容页
-        // 日志 debug_test_20260721_164711.log 显示"看一本喜欢的小说"任务页显示
-        // "开始阅读, 得肥料"（首次）或"继续阅读, 得肥料"（非首次），需先点按钮进入小说内容页,
-        // 然后上下滑动累积阅读时长获得肥料。用 browsingNovelStarted 标志位避免重复点击。
+        // build584/585: 小说阅读任务页检测——两步进入小说内容页
+        // 用户需求（debug_test_20260721_171301.log）："需要点击一部小说进入，停留15秒上下滑动"
+        // 流程：
+        //   1) 小说任务页(开始阅读, 得肥料) → 点"开始阅读" → 进入小说列表页
+        //   2) 小说列表页(多本小说卡片) → 点击一部小说 → 进入小说内容页
+        //   3) 小说内容页 → 上下滑动15秒累积阅读时长 → 得肥料
+        // 标志位：
+        //   browsingNovelStarted: 已点"开始阅读"（在小说列表页）
+        //   browsingNovelEnteredContent: 已点击一部小说（在小说内容页,可以滑动）
         if (!browsingNovelStarted && service.isNovelReadPage()) {
+            // 步骤1：小说任务页,点击"开始阅读"进入小说列表页
             val readBtn = service.findNovelReadButton()
             if (readBtn != null) {
                 val btnText = readBtn.text?.toString().orEmpty()
-                debugLog("browseTask: novel read page detected, clicking '$btnText' to enter novel content")
-                Log.i(TAG, "browseTask: clicking '$btnText' on novel read page")
+                debugLog("browseTask: novel read page detected, clicking '$btnText' to enter novel list")
+                Log.i(TAG, "browseTask: clicking '$btnText' on novel read page (step 1: enter novel list)")
                 browsingNovelStarted = true
                 service.performClickSafe(readBtn)
-                // 等待小说内容页加载后继续滑动
+                // 等待小说列表页加载后继续（下一轮会走步骤2）
                 handler.postDelayed({
                     if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount)
                 }, INTERVAL_PAGE_LOAD_MS)
@@ -2048,6 +2081,29 @@ object AutomationController {
             }
             debugLog("browseTask: novel read page detected but no 开始阅读/继续阅读 button found, swiping directly")
             browsingNovelStarted = true  // 避免重复检测
+        }
+        // build585 步骤2：已点"开始阅读"但未进入小说内容页,点击一部小说
+        if (browsingNovelStarted && !browsingNovelEnteredContent) {
+            val novelNode = service.findNovelBookNode()
+            if (novelNode != null) {
+                val novelText = novelNode.text?.toString().orEmpty()
+                debugLog("browseTask: novel list page detected, clicking novel '$novelText' to enter content")
+                Log.i(TAG, "browseTask: clicking novel '$novelText' (step 2: enter novel content)")
+                browsingNovelEnteredContent = true
+                // build585: 用户需求"停留15秒上下滑动" → 15秒 / 2秒间隔 = 8 次滑动
+                browseTaskTargetSwipes = 8
+                debugLog("browseTask: novel content target swipes = 8 (15s / 2s interval)")
+                service.performClickSafe(novelNode)
+                // 等待小说内容页加载后开始滑动
+                handler.postDelayed({
+                    if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            // 兜底：找不到小说节点,可能在内容页或已进入,直接滑动
+            debugLog("browseTask: no novel book node found (browsingNovelStarted=true), proceeding to swipe")
+            browsingNovelEnteredContent = true
+            browseTaskTargetSwipes = 8  // build585: 小说任务默认 8 次滑动（15秒）
         }
 
         // 执行滑动：在屏幕中部轻微上下交替滑动（不需要一直向下滑，小幅上下滑动即可模拟浏览）

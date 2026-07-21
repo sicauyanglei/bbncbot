@@ -2558,6 +2558,62 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build585: 查找小说列表页的一部小说节点（点击进入小说内容页）
+     *
+     * 用户需求："需要点击一部小说进入，停留15秒上下滑动"
+     * 小说列表页特征：多本小说卡片排列,每个卡片有书名（如"都市之最强仙帝"等）。
+     * 由于小说列表页是 H5 页面,无障碍树可能不暴露书名文本节点,
+     * 策略：找页面中部（y: 30%-70%）的可点击节点,优先文本节点,其次任意可点击节点。
+     *
+     * @return 小说节点；找不到返回 null
+     */
+    fun findNovelBookNode(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        val metrics = resources.displayMetrics
+        val screenHeight = metrics.heightPixels
+        val centerYMin = screenHeight * 0.30f
+        val centerYMax = screenHeight * 0.70f
+
+        // 收集所有可点击节点,筛选在屏幕中部区域的
+        val candidates = mutableListOf<AccessibilityNodeInfo>()
+        collectClickableNodesInYRange(root, centerYMin, centerYMax, candidates)
+        if (candidates.isEmpty()) {
+            debugLog("findNovelBookNode: no clickable node in y range [$centerYMin, $centerYMax], screenH=$screenHeight")
+            return null
+        }
+        // 优先选有文本的节点（书名）,其次选第一个
+        val withText = candidates.firstOrNull {
+            !it.text?.toString().isNullOrBlank()
+        }
+        val chosen = withText ?: candidates.first()
+        val chosenText = chosen.text?.toString().orEmpty()
+        val chosenRect = android.graphics.Rect().also { chosen.getBoundsInScreen(it) }
+        debugLog("findNovelBookNode: found ${candidates.size} candidates, chosen text='$chosenText' bounds=${chosenRect.toShortString()}")
+        return chosen
+    }
+
+    /** 递归收集在 y 范围内的可点击节点 */
+    private fun collectClickableNodesInYRange(
+        node: AccessibilityNodeInfo,
+        yMin: Float,
+        yMax: Float,
+        out: MutableList<AccessibilityNodeInfo>
+    ) {
+        if (node.isClickable) {
+            val rect = android.graphics.Rect()
+            node.getBoundsInScreen(rect)
+            val centerY = (rect.top + rect.bottom) / 2f
+            if (centerY in yMin..yMax) {
+                out.add(node)
+            }
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            collectClickableNodesInYRange(child, yMin, yMax, out)
+        }
+    }
+
+    /**
      * 检测是否误入非农场小程序陷阱（支付宝/淘宝特有）
      *
      * 广告设计者意图：诱导用户点击后跳转到其他小程序（非芭芭农场），
