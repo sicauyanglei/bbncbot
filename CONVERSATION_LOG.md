@@ -32,6 +32,56 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit 0d6cc77 - fix: build591 修复 build590 短剧页检测失效（isShortDramaPage/isNovelReadPage 前置到 runNavigating 开头）
+**用户需求**: "分析日志"（debug_test_20260721_195055.log, build589-fef7ce2 + debug_test_20260721_210949.log, build590-85dc28e）
+
+**build590 测试日志分析（debug_test_20260721_210949.log）**:
+
+build588/590 修复生效确认：
+- line 24: `findCrossPlatformJumpButton: all 2 nodes have invalid bounds ... skip to avoid misclick on ad` ✅ build588 bounds 异常过滤生效
+- line 52: `isOnFarmPage: novel/short-drama page detected (isShortDramaPage=true), exclude hasFarmCore` ✅ build590 短剧页识别生效
+- line 92: `reopenFarmByDeepLink: opened ... for UC (pkg=com.ucmobile.lite)` ✅ build588 setPackage 生效
+
+build590 遗留问题（build591 修复）：
+- line 52-58: 短剧页 isOnFarmPage=false（build590 排除生效），但 navigate 没检测 isShortDramaPage
+  → 走 "不在农场页" 分支 → navigateToFarm → 反复 reopenFarmByDeepLink + navigate stepTab 失败 → 死循环
+- **根因**: build590 的 isShortDramaPage 检测只加在 navigate 的 generic popup 分支前,
+  而短剧页 isGenericPopup 返回 false（"得肥料"匹配 fertilizerKeywords）,
+  identifyCurrentScene 返回 UNKNOWN,不会走 generic popup 分支,
+  导致 isShortDramaPage 检测永不触发
+
+**修复**: 在 runNavigating 最开头（isOnFarmPage 之前）前置 isShortDramaPage/isNovelReadPage 检测,
+若是短剧页/小说页直接进 BROWSING_TASK,不依赖 isOnFarmPage/identifyCurrentScene。
+
+**关键代码片段**（line ~651）:
+```kotlin
+// build591 修复：在 runNavigating 最开头前置 isShortDramaPage/isNovelReadPage 检测
+if (service.isShortDramaPage()) {
+    Log.i(TAG, "navigate: short drama page detected at entry (开始观看得肥料), entering BROWSING_TASK")
+    browsingShortDramaStarted = false
+    taskButtons = emptyList()
+    currentTaskIndex = 0
+    moveTo(AutomationState.BROWSING_TASK)
+    handler.postDelayed({ runBrowsingTask(swipeCount = 1) }, INTERVAL_CLICK_MS)
+    return
+}
+if (service.isNovelReadPage()) {
+    // 同处理（小说页也前置检测）
+    ...
+}
+```
+
+**编译验证**: GitHub Actions run #591 (build591-605226a) ✅ success
+
+**build590 日志暴露的其他问题（build592 待修）**:
+- line 60-67: navigate stepTab 找到"前往手机支付宝-芭芭农场" bounds=[330,4080][815,2509]（top=4080 > bottom=2509 异常）,
+  performClickSafe fallback 到 ancestor 中心 (600.5, 1840.5) → 又落在中国移动广告上
+  (line 76: com.greenpoint.android.mc10086.activity)
+- 但 build591 修复后短剧页会在 runNavigating 开头被 isShortDramaPage 拦截,不会走到 navigate stepTab,
+  所以这个问题在短剧页场景不会出现。其他场景（如农场主页导航）仍可能触发,留待 build592 修复。
+
+---
+
 ### commit 85dc28e - feat: build590 新增 UC 短剧任务"开始观看得肥料"处理（点击播放+等待15秒+退出回主页）
 **用户需求**: "uc '开始观看得费劲'，如果是短剧，需要点击视频播放15秒，然后退出到uc芭芭农场主页"
 （"开始观看得费劲"是"开始观看得肥料"的语音输入误识别）
