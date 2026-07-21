@@ -4300,22 +4300,29 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * 解析主页"还差X次领肥料"按钮上的剩余施肥次数 X
+     * 解析主页"还差X次领肥料"/"再施X次领礼包"按钮上的剩余施肥次数 X
      *
      * build543 添加（用户反馈"还差3次施肥，那我们就施肥3次，然后还差3次施肥会变成'立即领取'"）：
      * - 主页"还差3次领肥料"按钮表示需要再施肥 3 次才能解锁领取
      * - 施肥 3 次后按钮会变成"立即领取"/"立即领肥"（被 directCollectTexts 识别）
      * - 本方法递归遍历 accessibility tree 找含"还差"且含"次"的文本节点，解析其中的数字
      *
+     * build597 扩展（用户反馈"'再施x次领礼包'，和'施肥'按钮可以结合起来获取肥料"）：
+     * - UC 主页还有"再施X次领礼包"提示文案，施肥 X 次后变成"立即领取"
+     * - 与"还差X次领肥料"是同类机制，只是文案不同
+     * - 正则扩展支持"再施X次"/"再施 X 次"格式
+     *
      * 匹配格式：
      * - "还差3次领肥料" / "还差 3 次领肥料" / "还差3次领肥"
      * - "还差3次" / "还差 3 次"
+     * - "再施3次领礼包" / "再施 3 次领礼包" / "再施3次"（build597 新增）
      *
      * @return 剩余施肥次数（≥1）；找不到返回 0
      */
     fun parseFertilizeRemainingCount(): Int {
         val root = getRootInFarmApp() ?: return 0
-        val pattern = Regex("""还差\s*(\d+)\s*次""")
+        // build597: 正则支持"还差X次"和"再施X次"两种文案
+        val pattern = Regex("""(?:还差|再施)\s*(\d+)\s*次""")
         // 递归遍历所有节点的 text 和 contentDescription
         fun walk(node: AccessibilityNodeInfo): Int {
             val text = node.text?.toString().orEmpty()
@@ -4339,7 +4346,7 @@ class FarmAccessibilityService : AccessibilityService() {
         }
         val n = walk(root)
         if (n == 0) {
-            debugLog("parseFertilizeRemainingCount: no '还差X次' node found")
+            debugLog("parseFertilizeRemainingCount: no '还差X次' or '再施X次' node found")
         }
         return n
     }
@@ -4359,7 +4366,10 @@ class FarmAccessibilityService : AccessibilityService() {
      */
     fun findRemainingFertilizerHintNode(): AccessibilityNodeInfo? {
         val root = getRootInFarmApp() ?: return null
-        val pattern = Regex("""还差\s*\d+\s*次.*肥""")
+        // build597: 正则支持"还差X次领肥"和"再施X次领礼包"两种文案
+        // - "还差X次领肥料"/"还差X次领肥" - 旧版主页提示
+        // - "再施X次领礼包"/"再施X次" - 新版主页提示（用户反馈）
+        val pattern = Regex("""(?:还差\s*\d+\s*次.*肥|再施\s*\d+\s*次.*(?:礼包|肥))""")
         fun walk(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
             val text = node.text?.toString().orEmpty()
             val desc = node.contentDescription?.toString().orEmpty()
@@ -4382,7 +4392,7 @@ class FarmAccessibilityService : AccessibilityService() {
         }
         val node = walk(root)
         if (node == null) {
-            debugLog("findRemainingFertilizerHintNode: no '还差X次领肥' hint node found")
+            debugLog("findRemainingFertilizerHintNode: no '还差X次领肥' or '再施X次领礼包' hint node found")
         }
         return node
     }

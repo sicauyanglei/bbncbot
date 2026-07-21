@@ -214,7 +214,13 @@ object UcPlatformConfig : PlatformConfig {
         // build535 已在支付宝 directCollectTexts 加"点击领取",UC 同步缺失。
         // 过滤逻辑已排除"已领取"/"还差"/"明日"/"施肥"/"生产中"等锁定状态,"点击领取"加入是安全的。
         // "签到"是纯按钮文案（非"签到肥料"装饰性文字,findGoCompleteButtons 已加精确过滤）。
-        "点击领取", "签到"
+        "点击领取", "签到",
+        // build597 修复（用户反馈"'再施x次领礼包'，和'施肥'按钮可以结合起来获取肥料"）：
+        // UC 主页"再施X次领礼包"提示,施肥 X 次后变成"立即领取"按钮。
+        // 加入"立即领取"让 findDirectCollectButtons 识别,FERTILIZING 阶段会检测到
+        // direct buttons 非空后切回 COLLECTING_DIRECT 领取。
+        // 过滤逻辑已排除"已领取"/"还差"/"明日"等,"立即领取"加入是安全的。
+        "立即领取"
     )
     override val collectFertilizerCoords = listOf(
         Pair(0.867f, 0.815f),  // 集肥料按钮（OCR 确认，右下角，1200x2664 屏幕）
