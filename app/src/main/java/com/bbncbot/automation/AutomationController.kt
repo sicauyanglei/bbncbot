@@ -648,6 +648,39 @@ object AutomationController {
             logPageSnapshot(service, "navigate-start")
         }
 
+        // build591 修复（debug_test_20260721_195055.log, build589-fef7ce2, UC 平台 line 50-96）：
+        // 历史问题：UC "开始观看得肥料"短剧任务页 root 是 systemui 的 FrameLayout,
+        // collectAllText 只拿到 [开始观看, 得肥料] 2 个文本。
+        // build590 在 isOnFarmPage 加了 isShortDramaPage 排除（让短剧页不被判为农场主页）,
+        // 但 navigate 的 isShortDramaPage 检测只加在 generic popup 分支前,
+        // 而短剧页 isGenericPopup 返回 false（"得肥料"匹配 fertilizerKeywords）,
+        // identifyCurrentScene 返回 UNKNOWN,不会走 generic popup 分支,
+        // 导致 isShortDramaPage 检测永不触发,短剧页死循环：
+        //   NAVIGATING(onFarm=false) → 跳过 line 677 → signInScene=UNKNOWN →
+        //   跳过 SIGN_IN/GENERIC_POPUP → attempt<10 重试 → 无限循环。
+        // 修复：在 runNavigating 最开头（isOnFarmPage 之前）前置 isShortDramaPage/isNovelReadPage
+        // 检测,若是短剧页/小说页直接进 BROWSING_TASK,不依赖 isOnFarmPage/identifyCurrentScene。
+        if (service.isShortDramaPage()) {
+            Log.i(TAG, "navigate: short drama page detected at entry (开始观看得肥料), entering BROWSING_TASK")
+            debugLog("navigate: short drama page at entry, entering BROWSING_TASK to click 开始观看 + wait 15s")
+            browsingShortDramaStarted = false
+            taskButtons = emptyList()
+            currentTaskIndex = 0
+            moveTo(AutomationState.BROWSING_TASK)
+            handler.postDelayed({ runBrowsingTask(swipeCount = 1) }, INTERVAL_CLICK_MS)
+            return
+        }
+        if (service.isNovelReadPage()) {
+            Log.i(TAG, "navigate: novel read page detected at entry (看一本喜欢的小说), entering BROWSING_TASK")
+            debugLog("navigate: novel read page at entry, entering BROWSING_TASK to click 开始阅读 + swipe")
+            browsingNovelStarted = false
+            taskButtons = emptyList()
+            currentTaskIndex = 0
+            moveTo(AutomationState.BROWSING_TASK)
+            handler.postDelayed({ runBrowsingTask(swipeCount = 1) }, INTERVAL_CLICK_MS)
+            return
+        }
+
         if (service.isOnFarmPage()) {
             // build538 修复（日志 debug_test_20260719_092915.log 暴露的问题）：
             // 历史问题：isOnFarmPage() 对 H5 商品详情页判断为 true（XRiverActivity 是农场
