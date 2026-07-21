@@ -1,0 +1,65 @@
+=== cleared on app start (version=2.2, build=build606-3bfc8bc, time=07:49:04) ===
+07:49:04.391 killPlatformApps: killed com.ucmobile.lite for UC
+07:49:04.393 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+07:49:04.394 killPlatformApps: killed com.taobao.taobao for TAOBAO
+07:49:22.177 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+07:49:22.178 openApp: shortcut unavailable for TAOBAO, fallback to deep link / navigation
+07:49:22.179 killPlatformApps: killed com.taobao.taobao for TAOBAO
+07:49:25.224 navigateToFarm: taobao, using 我的淘宝 path
+07:49:26.945 isOnTaobaoHomePage: ON main page (act=com.taobao.tao.tbmainactivity isMainAct=true, found=5 tabs=[首页, 消息, 我的淘宝, 视频, 购物车]), screenW=1200 screenH=2543
+07:49:26.950 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab NODE at (1080.0, 2572.5) bounds=[960,2481][1200,2664] [screen=1200 x 2543]
+07:49:29.041 navigate stepTab gesture: step 2 - click 芭芭农场 NODE at (161.0, 1615.5) bounds=[65,1587][257,1644] [screen=1200 x 2543]
+07:49:29.047 navigate stepTab gesture: done, waiting 8s for farm page
+07:49:32.408 navigate stepTab gesture: 3s after click 芭芭农场 - pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity onFarm=true hasFarmKeyword=true sampleTexts=[芭芭农场, 头像, 头像, 合种/帮种, 合种/帮种, line, 邀请好友, 邀请好友加速, undefined，, 更多，按钮, undefined，, undefined，, 买多返多, 品牌狂欢周, 一起种]
+07:49:56.090 === Automation v2 Started === platform=TAOBAO
+07:49:56.098 cancelNavigation: all navigation callbacks cancelled
+07:49:56.109 reset platform complete: TAOBAO
+07:49:56.112 state: IDLE -> NAVIGATING
+07:49:57.794 [navigate-start] snapshot: pkg=com.android.systemui, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:49:57.823 [navigate-start] claim-text-nodes (count=3):
+07:49:57.823 [navigate-start]   text='500，肥料，点击领取' desc='' bounds=[966,1441][1179,1676] clickable=true
+07:49:57.824 [navigate-start]   text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[22,1414][219,1611] clickable=true
+07:49:57.824 [navigate-start]   text='下单领肥料仅限大于0.5元订单' desc='' bounds=[163,29][799,140] clickable=false
+07:49:57.929 navigate: on farm page, platform=TAOBAO
+07:49:57.960 hasFarmContentLoaded: text count=85, sample=[芭芭农场, 12级, 500，肥料，点击领取, 兔兔挖肥料，50肥料，可领取, 好友林, 去砍价, 再施肥88.53%就快拿到啦, 去邀请, 换种, 再施肥 6 次可领 icon icon]
+07:49:57.963 hasFarmContentLoaded: realContent count=81
+07:49:57.965 navigate: hasFarmContentLoaded=true, attempt=0
+07:49:57.969 state: NAVIGATING -> COLLECTING_DIRECT
+07:49:57.975 state: COLLECTING_DIRECT -> STOPPING
+07:49:57.978 cancelNavigation: all navigation callbacks cancelled
+07:49:57.980 state: STOPPING -> IDLE
+07:49:58.839 === Automation v2 Started === platform=TAOBAO
+07:49:58.853 cancelNavigation: all navigation callbacks cancelled
+07:49:58.855 reset platform complete: TAOBAO
+07:49:58.858 state: IDLE -> NAVIGATING
+07:50:00.141 [navigate-start] snapshot: pkg=com.android.systemui, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:50:00.173 [navigate-start] claim-text-nodes (count=3):
+07:50:00.175 [navigate-start]   text='500，肥料，点击领取' desc='' bounds=[966,1441][1179,1676] clickable=true
+07:50:00.176 [navigate-start]   text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[22,1414][219,1611] clickable=true
+07:50:00.178 [navigate-start]   text='下单领肥料仅限大于0.5元订单' desc='' bounds=[163,137][799,245] clickable=false
+07:50:00.236 navigate: on farm page, platform=TAOBAO
+07:50:00.249 hasFarmContentLoaded: text count=85, sample=[芭芭农场, 12级, 500，肥料，点击领取, 兔兔挖肥料，50肥料，可领取, 好友林, 去砍价, 再施肥88.53%就快拿到啦, 去邀请, 换种, 再施肥 6 次可领 icon icon]
+07:50:00.251 hasFarmContentLoaded: realContent count=81
+07:50:00.252 navigate: hasFarmContentLoaded=true, attempt=0
+07:50:00.254 state: NAVIGATING -> COLLECTING_DIRECT
+07:50:03.784 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:50:03.821 [collectDirect-start] claim-text-nodes (count=3):
+07:50:03.823 [collectDirect-start]   text='500，肥料，点击领取' desc='' bounds=[966,1441][1179,1676] clickable=true
+07:50:03.825 [collectDirect-start]   text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[22,1414][219,1611] clickable=true
+07:50:03.828 [collectDirect-start]   text='下单领肥料仅限大于0.5元订单' desc='' bounds=[163,140][799,252] clickable=false
+07:50:03.855 collectDirect: found 1 direct buttons, attempt=0
+07:50:03.857 collectDirect: clicking button[0] text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[22,1414][219,1611] (attempt 1)
+07:50:03.859 performClickSafe: text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[22,1414][219,1611] clickable=true
+07:50:03.877 performClickSafe: ACTION_CLICK success at depth=0
+07:50:09.803 collectDirect: claim button found, clicking (retry left=3)
+07:50:09.812 performClickSafe: text='500，肥料，点击领取' desc='' bounds=[966,1441][1179,1676] clickable=true
+07:50:09.822 performClickSafe: ACTION_CLICK success at depth=0
+07:50:12.651 findBrowseEntryInPopup: not found
+07:50:12.669 collectDirect: found 0 direct buttons, attempt=1
+07:50:12.670 collectDirect: no direct buttons found, trying AI vision to locate '点击领取' button
+07:50:41.435 state: COLLECTING_DIRECT -> STOPPING
+07:50:41.440 cancelNavigation: all navigation callbacks cancelled
+07:50:41.442 state: STOPPING -> IDLE
+07:50:45.396 saveToken: saved (len=93, head='gith', tail='McKr')
+07:50:45.401 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+07:50:45.402 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260722_075045.log, localFile=debug.log (6377 bytes)
