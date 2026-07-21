@@ -116,6 +116,23 @@ object AutomationController {
     private var browseFromDirectPopup: Boolean = false
 
     /**
+     * 上一次 COLLECTING_DIRECT 阶段点击的 direct 按钮文本+bounds（防死循环）
+     *
+     * build581 修复（debug_test_20260721_152904.log, build580-851d3ea）：
+     * - 历史问题：findDirectCollectButtons 返回 11 个按钮,buttons[0]='签到肥料' clickable=false。
+     *   performClickSafe fallback dispatchGesture 点击 (143.5,975.5) 无效（签到肥料是装饰性文字
+     *   不可点击),但下一轮 findDirectCollectButtons 又返回相同 11 个按钮 buttons[0]='签到肥料'。
+     *   runCollectingDirect 重复点击同一按钮 5 次（attempt 1-5）才放弃,浪费时间。
+     * - 修复：记录上次点击的 text+bounds,若本轮 buttons[0] 与上次相同（页面无变化,说明点击无效），
+     *   跳过 buttons[0] 改用 buttons[1]；若 buttons[1] 也不存在或与上次相同,直接进 OPENING_TASK_LIST。
+     * - 进入 COLLECTING_DIRECT 阶段时复位（避免上一轮残留影响本轮判断）。
+     */
+    @Volatile
+    private var lastDirectClickedText: String = ""
+    @Volatile
+    private var lastDirectClickedBounds: String = ""
+
+    /**
      * 标记当前浏览任务是否从"搜索后浏览立得奖励"任务页进入
      * - true：浏览完成后需要返回两次（搜索结果页 → 搜索任务页 → 芭芭农场）
      * - false（默认）：正常退出流程
@@ -472,6 +489,8 @@ object AutomationController {
         taskButtons = emptyList()
         browseFromDirectPopup = false  // 复位 direct 弹窗标记，避免上一轮残留
         browseFromSearchBrowse = false  // 复位搜索浏览任务标记，避免上一轮残留
+        lastDirectClickedText = ""  // build581: 复位 direct 防死循环标记
+        lastDirectClickedBounds = ""
         // 重置当前平台的广告完成标记（新一轮运行可重新标记完成）
         resetCurrentPlatformComplete(service)
         moveTo(AutomationState.NAVIGATING)
@@ -732,6 +751,21 @@ object AutomationController {
             //
             // 修复：UC 平台(激励视频广告)不 pressBack,只等待广告自然结束。
             // 其他平台(支付宝/淘宝)保留原 pressBack 行为(可能是可关闭的横幅/H5 广告)。
+            //
+            // build580 修复（debug_test_20260721_152904.log, build580, UC 平台 line 230-515）：
+            // 历史问题：腾讯优量汇 PortraitADActivity 广告结束后,页面显示"恭喜获取奖励"+关闭按钮,
+            // 但仍在广告 Activity（adActivity=true）。原逻辑只等待,不主动关闭,导致 navigate
+            // 反复检测广告 → navigateToFarm → stepTab 找不到"芭芭农场" → 卡 6 分钟。
+            // 修复：检测到广告 Activity 时,先检查 isAdEndedMultiSignal。若广告已结束（"恭喜获取奖励"等
+            // 文字出现）,进入 CLOSING_AD 主动关闭广告,而不是无限等待。
+            if (service.isAdEndedMultiSignal(prevAdHadCountdown)) {
+                Log.i(TAG, "navigate: ad ended while in ad activity (恭喜获取奖励 etc), entering CLOSING_AD")
+                debugLog("navigate: ad ended detected (multi-signal), entering CLOSING_AD to close ad page")
+                service.setAdMode(true)
+                moveTo(AutomationState.CLOSING_AD)
+                handler.postDelayed({ runClosingAd(strategy = 0) }, INTERVAL_CLICK_MS)
+                return
+            }
             if (service.currentPlatform == Platform.UC) {
                 Log.i(TAG, "navigate: UC reward video ad playing, waiting for it to finish (not pressing back)")
                 debugLog("navigate: UC ad (act=${service.getCurrentActivityName()}), waiting instead of pressBack")
@@ -850,12 +884,42 @@ object AutomationController {
             return
         }
 
-        // 点击第一个可领取的按钮
-        val button = buttons[0]
+        // build581 防死循环：跳过与上次点击相同（text+bounds 一致）的按钮
+        // 场景：buttons[0]='签到肥料' clickable=false,dispatchGesture 点击无效,
+        // 下一轮 findDirectCollectButtons 仍返回 buttons[0]='签到肥料',避免重复点击。
+        var chosenIdx = -1
+        for (i in buttons.indices) {
+            val b = buttons[i]
+            val bText = b.text?.toString().orEmpty()
+            val bBoundsStr = android.graphics.Rect().also { b.getBoundsInScreen(it) }.toShortString()
+            if (bText == lastDirectClickedText && bBoundsStr == lastDirectClickedBounds) {
+                debugLog("collectDirect: skip button[$i] text='$bText' bounds=$bBoundsStr (same as last clicked, click had no effect)")
+                continue
+            }
+            chosenIdx = i
+            break
+        }
+        if (chosenIdx < 0) {
+            // 所有按钮都和上次点击相同（页面无任何变化），放弃 direct 阶段
+            Log.i(TAG, "collectDirect: all buttons same as last clicked (no progress), opening task list")
+            debugLog("collectDirect: all ${buttons.size} buttons match last clicked, give up direct collect")
+            lastDirectClickedText = ""
+            lastDirectClickedBounds = ""
+            moveTo(AutomationState.OPENING_TASK_LIST)
+            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 点击选中的可领取按钮（跳过了与上次相同的那一个）
+        val button = buttons[chosenIdx]
         val btnText = button.text?.toString().orEmpty()
         val btnDesc = button.contentDescription?.toString().orEmpty()
-        debugLog("collectDirect: clicking text='$btnText' desc='$btnDesc' (attempt ${attempt + 1})")
+        val btnBoundsStr = android.graphics.Rect().also { button.getBoundsInScreen(it) }.toShortString()
+        debugLog("collectDirect: clicking button[$chosenIdx] text='$btnText' desc='$btnDesc' bounds=$btnBoundsStr (attempt ${attempt + 1})")
         Log.i(TAG, "collectDirect: clicking '$btnText' (attempt ${attempt + 1})")
+        // 记录本次点击,下一轮若仍是同一按钮则跳过
+        lastDirectClickedText = btnText
+        lastDirectClickedBounds = btnBoundsStr
         service.performClickSafe(button)
 
         // 等待弹窗或页面变化（多策略领取：弹窗可能延迟出现，多次尝试找确认按钮）

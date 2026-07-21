@@ -42,6 +42,7 @@ class FarmAccessibilityService : AccessibilityService() {
         // 通用广告活动识别（适用于 UC / 支付宝 / 淘宝内嵌的第三方广告 SDK）
         // 字节跳动穿山甲 SDK（TTRewardVideoActivity + 混淆类名 com.byazt.od.*）
         // 汇川、Noah、趣盟等广告 SDK
+        // 腾讯优量汇 SDK（com.qq.e.ads.PortraitADActivity 等）
         private val AD_ACTIVITY_KEYWORDS = listOf(
             "rewardvideo",       // HCRewardVideoActivity / TTRewardVideoActivity 的类名小写
             "hcvideo",
@@ -53,7 +54,13 @@ class FarmAccessibilityService : AccessibilityService() {
             "bytedance.sdk",     // 字节跳动 SDK
             "openadsdk",         // 穿山甲 openadsdk
             "csj",               // 穿山甲 CSJ
-            "pangolin"           // 穿山甲 Pangolin
+            "pangolin",          // 穿山甲 Pangolin
+            "qq.e.ads",          // 腾讯优量汇 GDT SDK（com.qq.e.ads.PortraitADActivity 等）
+            "portraitad",        // 腾讯优量汇 PortraitADActivity / LandscapeADActivity
+            "landscapead",       // 腾讯优量汇横屏广告 Activity
+            "interstitial",      // 插屏广告 Activity（多 SDK 通用命名）
+            "ksrewardvideo",     // 快手 KsRewardVideoActivity
+            "kwad"               // 快手广告 SDK
         )
 
         // 第三方广告 SDK 包名关键词（适用于所有平台）
@@ -1513,6 +1520,45 @@ class FarmAccessibilityService : AccessibilityService() {
         if (claimBtn != null) {
             debugLog("isAdEndedMultiSignal: YES (claim reward button appeared)")
             return true
+        }
+        // build580 修复（debug_test_20260721_152904.log, build580, UC 平台 line 178-200）：
+        // UC 集肥料点击"去完成"→ 弹腾讯优量汇 PortraitADActivity 广告,广告结束后页面显示
+        // "恭喜获取奖励"+右侧关闭按钮（图像×,无障碍树抓不到 text 节点）。原信号 1/2/3 都不触发：
+        // - 信号1：isTaskCompletePage 在广告 Activity 中返回 false（build579 修复）
+        // - 信号2：仍在广告 Activity（PortraitADActivity）,adActivity=true
+        // - 信号3：claim-text-nodes: NONE（关闭按钮是图像,无"领取奖励"文字）
+        // 导致 watchAd 一直 waiting min duration,最后 processTask unknown page → AI 误判 WAIT → 跳过任务。
+        //
+        // 修复：加信号4——检测到"恭喜获得/获取奖励/奖励已到账/领取成功"等广告结束标志文字时,
+        // 判定广告结束。这些文字说明广告已播完、奖励已发放,只需要点关闭按钮退出即可。
+        // 注意：遍历所有 windows 收集文本（覆盖独立弹窗窗口）,避免漏检。
+        val allTexts = mutableListOf<List<String>>()
+        try {
+            val allWindows = windows
+            for (w in allWindows) {
+                val root = w.root ?: continue
+                allTexts.add(collectAllText(root))
+            }
+        } catch (e: Exception) {
+            val root = rootInActiveWindowSafe()
+            if (root != null) allTexts.add(collectAllText(root))
+        }
+        if (allTexts.isEmpty()) {
+            val root = rootInActiveWindowSafe()
+            if (root != null) allTexts.add(collectAllText(root))
+        }
+        val adEndedKeywords = listOf(
+            "恭喜获取奖励", "恭喜获得奖励", "恭喜获得", "获取奖励",
+            "奖励已到账", "奖励已发放", "领取成功", "已领取奖励",
+            "肥料已到账", "肥料已发放", "获得肥料"
+        )
+        for (texts in allTexts) {
+            for (text in texts) {
+                if (adEndedKeywords.any { text.contains(it) }) {
+                    debugLog("isAdEndedMultiSignal: YES (ad ended text detected: '$text')")
+                    return true
+                }
+            }
         }
         // 弱信号：倒计时消失（上一轮有倒计时，本轮没有，且仍在广告页）
         // 需配合仍在广告页才认定，单独倒计时消失可能是页面刷新
