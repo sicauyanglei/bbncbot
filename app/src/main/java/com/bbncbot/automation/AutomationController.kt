@@ -737,6 +737,32 @@ object AutomationController {
             return
         }
         if (service.isAdPlaying() || service.isAdActivity()) {
+            // build566 修复（debug_test_20260719_153945.log, build555, UC 平台 line 113-119）：
+            // 历史问题：UC 激励视频广告页（HCRewardVideoActivity）右上角显示"点击商品，领取奖励"提示,
+            // 页面里有商品卡片（如"盼盼家庭号薯片虾条 ¥19.69"），点击商品可触发奖励。
+            // 但原逻辑只在 adActivity=true 时 pressBack/等待,不检测"点击商品"提示,
+            // 导致商品没被点击,广告结束后拿不到额外奖励。
+            // 用户反馈："右上角有个'点击商品,领取奖励',页面应该还是在uc浏览器,可以点击商品"。
+            //
+            // 修复：在广告页优先检测 isClickProductAd(),若检测到则调 findAdProductNode() 找到
+            // 可点击商品卡片并点击。这是 UC 激励视频页内的商品点击场景（不跳转淘宝）,
+            // 与 reward-jump 跳转淘宝后点击商品是不同场景,但复用 findAdProductNode 逻辑。
+            // 注：findAdProductNode 已排除陷阱按钮（立即下载/立即购买）和关闭/跳过按钮,
+            //     只点击屏幕中部（y 500~2400）的可点击商品卡片。
+            if (service.isClickProductAd()) {
+                val productNode = service.findAdProductNode()
+                if (productNode != null) {
+                    val rect = android.graphics.Rect()
+                    productNode.getBoundsInScreen(rect)
+                    Log.i(TAG, "navigate: '点击商品,领取奖励' page detected (ad), clicking product at ${rect.toShortString()}")
+                    debugLog("navigate: ad page with '点击商品,领取奖励', clicking product at ${rect.toShortString()}")
+                    service.performClickSafe(productNode)
+                    handler.postDelayed({
+                        if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
+                    }, INTERVAL_CLICK_MS)
+                    return
+                }
+            }
             // build559 修复（debug_test_20260719_153945.log, build558-44cd648）：
             // 历史问题：UC 平台"集肥料"点击后弹激励视频广告(穿山甲/汇川),广告期间 runNavigating
             // 检测到 adActivity=true → pressBack 想关闭广告。但 UC 配置明确说广告需完整观看

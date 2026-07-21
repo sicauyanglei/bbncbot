@@ -32,7 +32,30 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: UC 任务列表 H5 虚拟列表 clickable=false 按钮被丢弃（findGoCompleteButtons 保留 non-clickable 节点）
+### commit (待提交) - fix: UC 激励视频广告页"点击商品,领取奖励"检测点击商品（runNavigating 广告分支加 isClickProductAd 检测）
+**用户需求**: 右上角有个"点击商品,领取奖励",页面应该还是在uc浏览器,可以点击商品；分析日志,uc芭芭农场"签到","点击领取",没有去点击
+
+**日志分析**（debug_test_20260719_153945.log, build555, UC 平台 line 113-119）:
+1. 15:35:49 NAVIGATING 状态进入 UC 激励视频广告页（HCRewardVideoActivity）
+2. claim-text-nodes 显示"点击商品，领取奖励" text bounds=[628,59][1033,111] clickable=false
+3. 页面有淘宝商品信息（"盼盼家庭号薯片虾条 ¥19.69"）— UC 激励视频里的商品广告,不跳转淘宝
+4. 原逻辑只在 adActivity=true 时 pressBack/等待,不检测"点击商品"提示 → 商品没被点击,拿不到额外奖励
+
+**UC 芭芭农场"签到"/"点击领取"问题**：
+- 144835.log line 768-771: UC COLLECTING_DIRECT 阶段 claim-text-nodes 只有 2 个"去支付宝农场领肥料"
+- 完全没有"签到"/"点击领取"文本节点 → 证实是 H5/Canvas 绘制的图像按钮,无障碍树抓不到
+- build565 已加 AI 视觉兜底（runCollectingDirect attempt==0 && buttons.isEmpty() 时调 AI 视觉识别截图）
+- 这份日志是 build555,没有 AI 视觉兜底,装 build566 后应能触发,不需要额外改代码
+
+**修改要点**:
+- AutomationController.runNavigating 广告分支（isAdPlaying || isAdActivity）头部新增"点击商品"检测:
+  1. 检测 isClickProductAd() — 页面文本是否含"点击商品"
+  2. 若检测到,调 findAdProductNode() 找可点击商品卡片（已排除陷阱按钮和关闭按钮,只点击屏幕中部 y 500~2400 的商品）
+  3. 找到则 performClickSafe 点击商品 → 等待 INTERVAL_CLICK_MS → 下一轮 runNavigating
+  4. 找不到商品节点或未检测到"点击商品"提示 → 走原 pressBack/等待逻辑
+- 复用 findAdProductNode（原为 reward-jump 跳转淘宝后点击商品设计）,适配 UC 激励视频页内商品点击场景
+
+### commit 9299edb - fix: 修复流水线编译错误 - buttonText 提前到 clickable 块之前定义
 **用户需求**: 分析日志（支付宝/UC 平台 build555 日志）
 
 **日志分析**（debug_test_20260719_144835.log, build555-41e3bbc, UC 平台 line 1075-1098）:
