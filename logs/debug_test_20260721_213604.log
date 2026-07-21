@@ -1,0 +1,131 @@
+=== cleared on app start (version=2.2, build=build591-605226a, time=21:34:36) ===
+21:34:36.217 killPlatformApps: killed com.ucmobile.lite for UC
+21:34:36.219 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+21:34:36.221 killPlatformApps: killed com.taobao.taobao for TAOBAO
+21:34:41.712 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+21:34:41.714 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+21:35:19.484 === Automation v2 Started === platform=UC
+21:35:19.496 cancelNavigation: all navigation callbacks cancelled
+21:35:19.530 reset platform complete: UC
+21:35:19.532 state: IDLE -> NAVIGATING
+21:35:21.217 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 15]
+21:35:21.247 [navigate-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+21:35:21.260 [navigate-start] claim-text-nodes (count=1):
+21:35:21.261 [navigate-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2636][694,2509] clickable=false
+21:35:21.348 navigate: on farm page, platform=UC
+21:35:21.379 hasFarmContentLoaded: text count=144, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 7.23内完成3天即领, 1天, 1天]
+21:35:21.382 hasFarmContentLoaded: realContent count=131
+21:35:21.384 navigate: hasFarmContentLoaded=true, attempt=0
+21:35:21.386 state: NAVIGATING -> COLLECTING_DIRECT
+21:35:23.669 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 15]
+21:35:23.687 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+21:35:23.705 [collectDirect-start] claim-text-nodes (count=1):
+21:35:23.705 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2636][694,2509] clickable=false
+21:35:23.723 collectDirect: found 0 direct buttons, attempt=0
+21:35:23.744 findCrossPlatformJumpButton: all 2 nodes have invalid bounds (top>=bottom or zero size), e.g. text='去支付宝农场领肥料' bounds=[255,2636][694,2509], skip to avoid misclick on ad
+21:35:23.745 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+21:35:25.969 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 15]
+21:35:25.984 [openTaskList-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+21:35:25.998 [openTaskList-start] claim-text-nodes (count=1):
+21:35:26.000 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2636][694,2509] clickable=false
+21:35:26.017 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:26.019 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:26.019 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:26.020 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:26.021 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:26.021 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+21:35:26.022 openTaskList: [UC闭环] heuristic text search (attempt=0)
+21:35:26.028 findCollectFertilizerButton: found by text='集肥料' bounds=[949,2380][1129,2509]
+21:35:26.029 openTaskList: [UC闭环] clicking entry button by text (attempt=0)
+21:35:26.030 performClickSafe: text='集肥料' desc='' bounds=[949,2380][1129,2509] clickable=false
+21:35:26.031 performClickSafe: ACTION_CLICK failed, trying gesture
+21:35:26.032 dispatchGesture: screen=[[949,2380][1129,2509]] window=[[0,0][0,0]]
+21:35:26.033 dispatchGesture: not in popup, screen bounds valid, click at (1039.0, 2444.5)
+21:35:31.933 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:31.936 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:31.938 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:31.939 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:31.941 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:31.942 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+21:35:33.989 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:33.992 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:33.994 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:33.996 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:33.998 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:33.999 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+21:35:36.052 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:36.056 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:36.058 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:36.061 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:36.063 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:36.065 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+21:35:38.108 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:38.109 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:38.110 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:38.111 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:38.112 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:38.112 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=3, currentIndex=0
+21:35:40.154 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:40.157 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:40.158 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:40.160 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:40.162 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:40.165 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=4, currentIndex=0
+21:35:42.213 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:42.216 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:42.217 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:42.218 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:42.218 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:42.261 findCollectFertilizerButton: found by text='集肥料' bounds=[949,2380][1129,2509]
+21:35:42.264 openTaskList: findCollectFertilizerButton=true, attempt=1
+21:35:42.267 performClickSafe: text='集肥料' desc='' bounds=[949,2380][1129,2509] clickable=false
+21:35:42.270 performClickSafe: ACTION_CLICK failed, trying gesture
+21:35:42.272 dispatchGesture: screen=[[949,2380][1129,2509]] window=[[0,0][0,0]]
+21:35:42.276 dispatchGesture: not in popup, screen bounds valid, click at (1039.0, 2444.5)
+21:35:47.301 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:47.303 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:47.304 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:47.305 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:47.306 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:47.307 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+21:35:49.348 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:49.351 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:49.353 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:49.355 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:49.357 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:49.359 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+21:35:51.404 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:51.408 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:51.410 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:51.410 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:51.411 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:51.413 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+21:35:53.478 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:53.482 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:53.485 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:53.487 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:53.490 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:53.491 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=3, currentIndex=0
+21:35:55.545 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:55.549 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:55.550 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:55.551 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:55.553 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:55.553 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=4, currentIndex=0
+21:35:57.606 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:57.609 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:57.612 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:57.613 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:57.615 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:35:57.644 findCollectFertilizerButton: found by text='集肥料' bounds=[949,2380][1129,2509]
+21:35:57.646 openTaskList: findCollectFertilizerButton=true, attempt=2
+21:35:57.648 performClickSafe: text='集肥料' desc='' bounds=[949,2380][1129,2509] clickable=false
+21:35:57.649 performClickSafe: ACTION_CLICK failed, trying gesture
+21:35:57.649 dispatchGesture: screen=[[949,2380][1129,2509]] window=[[0,0][0,0]]
+21:35:57.650 dispatchGesture: not in popup, screen bounds valid, click at (1039.0, 2444.5)
+21:36:01.217 state: OPENING_TASK_LIST -> STOPPING
+21:36:01.222 cancelNavigation: all navigation callbacks cancelled
+21:36:01.225 state: STOPPING -> IDLE
+21:36:04.686 saveToken: saved (len=93, head='gith', tail='McKr')
+21:36:04.689 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+21:36:04.691 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260721_213604.log, localFile=debug.log (12490 bytes)
