@@ -1191,6 +1191,27 @@ object AutomationController {
         lastDirectClickedBounds = btnBoundsStr
         service.performClickSafe(button)
 
+        // build598 修复（用户反馈"'点击跳转拿奖励'，需要点击，后等待10秒"）：
+        // UC 主页"点击跳转拿奖励"是跳转类按钮,点击后跳转到广告/活动页,
+        // 需停留 10 秒拿奖励再返回主页继续。与普通 direct 按钮不同（不是弹窗领取）。
+        // 识别此文案后走专用流程：点击 → 等待 10 秒 → pressBack 返回 → 继续下一轮。
+        // 用 contains 匹配,兼容"点击跳转拿奖励"含额外文字（如"点击跳转拿奖励 50 肥料"）。
+        if (btnText.contains("点击跳转拿奖励") || btnDesc.contains("点击跳转拿奖励")) {
+            Log.i(TAG, "collectDirect: '点击跳转拿奖励' jump button clicked, waiting 10s before back")
+            debugLog("collectDirect: '点击跳转拿奖励' detected, waiting 10000ms then pressBack to return")
+            handler.postDelayed({
+                if (state != AutomationState.COLLECTING_DIRECT) return@postDelayed
+                // 等待 10 秒后 pressBack 返回主页
+                debugLog("collectDirect: 10s elapsed, pressing back to return to farm home")
+                service.pressBack()
+                // 再等待 2 秒页面恢复,继续 COLLECTING_DIRECT 下一轮
+                handler.postDelayed({
+                    if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
+                }, INTERVAL_PAGE_LOAD_MS)
+            }, 10000L)
+            return
+        }
+
         // 等待弹窗或页面变化（多策略领取：弹窗可能延迟出现，多次尝试找确认按钮）
         tryClaimDirectPopup(service, attempt, maxRetry = 3)
     }

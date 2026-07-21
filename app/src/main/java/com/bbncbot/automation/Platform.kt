@@ -220,7 +220,12 @@ object UcPlatformConfig : PlatformConfig {
         // 加入"立即领取"让 findDirectCollectButtons 识别,FERTILIZING 阶段会检测到
         // direct buttons 非空后切回 COLLECTING_DIRECT 领取。
         // 过滤逻辑已排除"已领取"/"还差"/"明日"等,"立即领取"加入是安全的。
-        "立即领取"
+        "立即领取",
+        // build598 新增（用户反馈"'点击跳转拿奖励'，需要点击，后等待10秒"）：
+        // UC 主页"点击跳转拿奖励"按钮,点击后跳转到广告/活动页,需停留 10 秒拿奖励再返回。
+        // 与普通 direct 按钮不同（不是弹窗领取,是跳转停留）,在 runCollectingDirect 中
+        // 识别此文案后走专用流程：点击 → 等待 10 秒 → pressBack 返回主页 → 继续下一轮。
+        "点击跳转拿奖励"
     )
     override val collectFertilizerCoords = listOf(
         Pair(0.867f, 0.815f),  // 集肥料按钮（OCR 确认，右下角，1200x2664 屏幕）
