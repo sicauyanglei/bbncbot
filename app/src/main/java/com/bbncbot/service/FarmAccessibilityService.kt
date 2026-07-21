@@ -2215,6 +2215,12 @@ class FarmAccessibilityService : AccessibilityService() {
         // 如果过滤掉屏幕外按钮，taskButtons.size 会变小，processTask 会误判
         // "全部任务完成"（currentTaskIndex >= taskButtons.size），跳过剩余任务。
         val result = raw.mapNotNull { node ->
+            // 提前计算 buttonText（clickable 判断块和后续过滤都要用）
+            // build566：原 buttonText 定义在 clickable 块之后,但 clickable 块的 H5 non-clickable
+            // 分支日志需要 buttonText,导致 Unresolved reference 编译错误,故提前到此处。
+            val text = node.text?.toString()?.trim().orEmpty()
+            val desc = node.contentDescription?.toString()?.trim().orEmpty()
+            val buttonText = if (text.isNotEmpty()) text else desc
             // 1. 必须可点击（UC 平台"去完成"本身不可点击，向上找最近的 clickable 父节点）
             var clickTarget = node
             if (!node.isClickable) {
@@ -2249,9 +2255,7 @@ class FarmAccessibilityService : AccessibilityService() {
                 }
             }
             // 2. 文本长度过滤（防止规则条款被误识别）
-            val text = node.text?.toString()?.trim().orEmpty()
-            val desc = node.contentDescription?.toString()?.trim().orEmpty()
-            val buttonText = if (text.isNotEmpty()) text else desc
+            // 注：buttonText 已在 clickable 块之前提前计算（build566）
             if (buttonText.length > 50) {
                 debugLog("findGoCompleteButtons: drop long-text node (len=${buttonText.length}, text='${buttonText.take(30)}...')")
                 return@mapNotNull null
