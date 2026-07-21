@@ -32,6 +32,81 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit 85dc28e - feat: build590 新增 UC 短剧任务"开始观看得肥料"处理（点击播放+等待15秒+退出回主页）
+**用户需求**: "uc '开始观看得费劲'，如果是短剧，需要点击视频播放15秒，然后退出到uc芭芭农场主页"
+（"开始观看得费劲"是"开始观看得肥料"的语音输入误识别）
+
+**设计思路**: 复用小说阅读任务（build584/585）的 BROWSING_TASK 框架,区别是短剧只需点一次"开始观看"
+（不像小说要点"开始阅读"+再点一部小说）。视频自动播放,滑动只是模拟活跃避免挂机判定。
+
+**修改要点（2 文件 9 处）**:
+
+1. **FarmAccessibilityService.isOnFarmPage 排除短剧页**:
+   - 扩展 `isNovelReadPage` 检测为 `isNovelOrShortDramaPage`,同时覆盖"开始观看"/"继续观看"+"得肥料"的短剧任务页
+   - 短剧页排除 hasFarmCore/hasFarmContent（避免误判为农场主页）
+
+2. **FarmAccessibilityService.isBrowseTask 加短剧关键词**:
+   - browseKeywords 加"短剧"/"观看"/"看一部"关键词
+
+3. **FarmAccessibilityService 新增方法**:
+   - `isShortDramaPage()`: 检测短剧任务页（"开始观看"/"继续观看" + "得肥料",排除农场主页）
+   - `findShortDramaPlayButton()`: 找"开始观看"/"继续观看"按钮
+
+4. **AutomationController 新增字段**:
+   - `browsingShortDramaStarted`: 已点"开始观看"（在短剧播放页,可以开始等待/滑动）
+
+5. **AutomationController.start() / runBrowsingTask swipeCount==0 复位**:
+   - `browsingShortDramaStarted = false`
+
+6. **AutomationController.navigate generic popup 分支前检测短剧页**:
+   - 避免短剧页被 isGenericPopup 误判为弹窗反复点关闭按钮（与小说页同处理）
+
+7. **AutomationController.runBrowsingTask 新增短剧任务分支**:
+   - 检测 isShortDramaPage → 点"开始观看" → 设置 browseTaskTargetSwipes=8（15秒）
+   - 等待 5 秒页面加载后开始滑动（模拟活跃,避免挂机判定）
+   - 15 秒后 isTaskCompletePage/isFertilizerGrantedPage 检测到完成 → pressBack 退出回主页
+
+**编译验证**: GitHub Actions run #590 (build590-85dc28e) ✅ success
+
+**关键代码片段 - isShortDramaPage**（line ~2590）:
+```kotlin
+fun isShortDramaPage(): Boolean {
+    val root = rootInActiveWindowSafe() ?: return false
+    val allText = collectAllText(root)
+    val hasWatchBtn = allText.any { it.contains("开始观看") || it.contains("继续观看") }
+    val hasFertilizerHint = allText.any { it.contains("得肥料") || it.contains("肥料") }
+    val isFarmHome = allText.any { it.contains("集肥料") || it.contains("施肥") || it.contains("芭芭农场") }
+    val isShortDrama = hasWatchBtn && hasFertilizerHint && !isFarmHome
+    return isShortDrama
+}
+```
+
+**关键代码片段 - runBrowsingTask 短剧任务分支**（line ~2180）:
+```kotlin
+if (!browsingShortDramaStarted && service.isShortDramaPage()) {
+    val playBtn = service.findShortDramaPlayButton()
+    if (playBtn != null) {
+        browsingShortDramaStarted = true
+        browseTaskTargetSwipes = 8  // 15秒 / 2秒间隔 = 8 次滑动
+        service.performClickSafe(playBtn)
+        handler.postDelayed({
+            if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount)
+        }, INTERVAL_PAGE_LOAD_MS)
+        return
+    }
+    browsingShortDramaStarted = true
+    browseTaskTargetSwipes = 8
+}
+```
+
+**遗留问题**:
+- 短剧播放页的滑动坐标 (600, 1200) ± 250 与小说任务一致,可能误触视频控制区（暂停/进度条）
+- 若用户反馈滑动影响视频播放,可改为屏幕顶部 (600, 400) ± 100 滑动或纯等待不滑动
+- 短剧"开始观看"按钮也可能有 bounds 异常（如 build588 跨平台跳转按钮 bounds top>bottom）
+  若用户反馈短剧页点击无效,可仿照 findCrossPlatformJumpButton 加 bounds 异常过滤
+
+---
+
 ### commit fef7ce2 - fix: build588 跨平台跳转按钮误点广告 + UC deep link 被 Chrome 截获 + switchPlatform 失败未恢复 currentPlatform
 **用户需求**: "分析日志"（debug_test_20260721_184040.log, build587-1582380, UC 平台 18:20-18:24, 200 行）
 
