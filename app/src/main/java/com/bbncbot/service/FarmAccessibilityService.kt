@@ -93,6 +93,14 @@ class FarmAccessibilityService : AccessibilityService() {
         private set
 
     /**
+     * build588: 供 AutomationController 在跨平台切换失败时恢复 currentPlatform 到原平台
+     * （属性 setter 是 private,通过此方法暴露受控的外部写入入口）
+     */
+    fun setCurrentPlatform(platform: Platform) {
+        currentPlatform = platform
+    }
+
+    /**
      * 广告模式标志（App 内部广告检测）
      * - App（UC/支付宝/淘宝）WebView 内部播放广告时，Activity 可能不变
      * - 由 AutomationController 在点击施肥按钮后设置为 true

@@ -4590,7 +4590,7 @@ object AutomationController {
                     // 但 isFarmAppInForeground 判断错误,反复 reopenFarmByDeepLink 始终进不了农场。
                     // 修复：失败后恢复 currentPlatform 到原平台,并重新启动原平台 App。
                     debugLog("switchPlatform: restoring currentPlatform to $switchOriginalPlatform and relaunching")
-                    service.currentPlatform = switchOriginalPlatform
+                    service.setCurrentPlatform(switchOriginalPlatform)
                     service.launchPlatformApp(switchOriginalPlatform)
                     currentTaskIndex++
                     moveTo(AutomationState.PROCESSING_TASK)
@@ -4658,7 +4658,7 @@ object AutomationController {
                     debugLog("switchPlatform: failed to return to original, skipping task")
                     // build588: 恢复 currentPlatform 到原平台（与 LAUNCH_TARGET 失败分支同理）
                     debugLog("switchPlatform: restoring currentPlatform to $switchOriginalPlatform and relaunching")
-                    service.currentPlatform = switchOriginalPlatform
+                    service.setCurrentPlatform(switchOriginalPlatform)
                     service.launchPlatformApp(switchOriginalPlatform)
                     currentTaskIndex++
                     moveTo(AutomationState.PROCESSING_TASK)
