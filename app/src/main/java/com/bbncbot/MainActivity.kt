@@ -351,7 +351,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "未安装 $label（$packageName）", Toast.LENGTH_LONG).show()
             return
         }
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
         try {
             startActivity(intent)
         } catch (e: Exception) {

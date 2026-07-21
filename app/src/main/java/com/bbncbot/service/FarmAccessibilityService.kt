@@ -5910,17 +5910,22 @@ class FarmAccessibilityService : AccessibilityService() {
      * 检测是否在淘宝主页
      * - 淘宝主页特征：底部 tab 栏包含"首页"、"逛逛"、"消息"、"我的淘宝"等文字
      *
-     * build600 修复（用户反馈"淘宝芭芭农场，没有导航到芭芭农场主页"）：
-     * 历史问题：原逻辑要求"至少3个底部 tab 文字"匹配，但淘宝 UI 改版后部分 tab 文字
-     * 可能从"消息"变成"消息盒"或从"逛逛"变成"视频"，导致 tab 文字匹配数 < 3，
-     * isOnTaobaoHomePage 返回 false，stepClickFarmTabByGesture 反复 pressBack 5 次后放弃。
+     * build600 修复：多重兜底检测（path1/path2/path3）
+     * build602 修复（build601 日志暴露根因）：
+     *   build601 日志显示 isOnTaobaoHomePage 在商品详情页 (ttdetailactivity) 误判为"在主页"：
+     *   - 详情页有"视频"/"购物车"等文字, path2 (2 tab + 包名) 命中误判
+     *   - 误判后 findNodeByText("我的淘宝") 找不到节点 (详情页没这个 tab)
+     *   - 比例坐标点击到详情页错误位置,导航彻底失败
      *
-     * 改进策略（多重兜底）：
-     * 1. 优先匹配 4 个 tab 文字，找到 3 个即认定在主页（原逻辑保留）
-     * 2. 找到 2 个 tab 文字且包名是 com.taobao.taobao 也认定在主页（防 UI 改版）
-     * 3. 包名是 com.taobao.taobao 且 activity 是主页相关（mainactivity/fragmenttabactivity/
-     *    taobaomain/welcometaobao）也认定在主页（兜底）
-     * 4. 任何判定路径都打印诊断日志（屏幕尺寸、tab 文字匹配数、activity），便于排查
+     *   根本修复：activity 必须是主页 Activity 才能认定在主页。
+     *   主页 Activity: mainactivity/fragmenttabactivity/taobaomain/welcometaobao
+     *   非主页 Activity: ttdetailactivity (商品详情页)、ultrontradehybridactivity (交易页)、
+     *                    tmsactivity (小程序容器) 等
+     *
+     * 改进策略（严格 activity 优先）：
+     * 1. activity 必须是主页 Activity（必要条件）
+     * 2. 在主页 Activity 前提下, 找到任意 tab 文字即认定在主页（足够宽松应对 UI 改版）
+     * 3. 不满足 activity 条件一律返回 false（让 stepClickFarmTabByGesture pressBack 退出详情页）
      */
     private fun isOnTaobaoHomePage(root: AccessibilityNodeInfo): Boolean {
         val tabTexts = listOf("首页", "逛逛", "消息", "我的淘宝", "视频", "购物车")
@@ -5939,23 +5944,21 @@ class FarmAccessibilityService : AccessibilityService() {
             activity.contains("taobaomain") ||
             activity.contains("welcometaobao")
         val metrics = resources.displayMetrics
-        // 路径1：4 tab 中匹配 3 个（原逻辑）
-        if (found >= 3) {
-            debugLog("isOnTaobaoHomePage: found $found tabs=$matchedTabs (path1 strict), on main page, screenW=${metrics.widthPixels} screenH=${metrics.heightPixels} act=$activity")
+        // build602: activity 必须是主页 Activity（必要条件）
+        // 商品详情页 ttdetailactivity、交易页 ultrontradehybridactivity、小程序 tmsactivity 等
+        // 即使有 tab 文字也不能认定在主页
+        if (!isMainAct) {
+            debugLog("isOnTaobaoHomePage: NOT on main page, activity not main (act=$activity isMainAct=false), found=$found tabs=$matchedTabs pkg=$pkg screenW=${metrics.widthPixels} screenH=${metrics.heightPixels}")
+            return false
+        }
+        // activity 是主页 Activity, 再用 tab 文字确认（找到任意 1 个即可）
+        if (found >= 1) {
+            debugLog("isOnTaobaoHomePage: ON main page (act=$activity isMainAct=true, found=$found tabs=$matchedTabs), screenW=${metrics.widthPixels} screenH=${metrics.heightPixels}")
             return true
         }
-        // 路径2：匹配 2 个 + 包名是淘宝（防 UI 改版）
-        if (found >= 2 && isTaobaoPkg) {
-            debugLog("isOnTaobaoHomePage: found $found tabs=$matchedTabs (path2 relaxed, taobao pkg), on main page, screenW=${metrics.widthPixels} screenH=${metrics.heightPixels} act=$activity")
-            return true
-        }
-        // 路径3：包名是淘宝 + activity 是主页相关（兜底，tab 文字全失效时）
-        if (isTaobaoPkg && isMainAct) {
-            debugLog("isOnTaobaoHomePage: found $found tabs=$matchedTabs (path3 fallback, taobao pkg + main act), on main page, screenW=${metrics.widthPixels} screenH=${metrics.heightPixels} act=$activity")
-            return true
-        }
-        debugLog("isOnTaobaoHomePage: not on main page, found=$found tabs=$matchedTabs pkg=$pkg act=$activity screenW=${metrics.widthPixels} screenH=${metrics.heightPixels}")
-        return false
+        // activity 是主页 Activity 但 tab 文字全没找到（极端 UI 改版），仍认定在主页
+        debugLog("isOnTaobaoHomePage: ON main page by activity fallback (act=$activity, found=0 tabs=[]), screenW=${metrics.widthPixels} screenH=${metrics.heightPixels}")
+        return true
     }
 
     /**
