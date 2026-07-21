@@ -204,7 +204,7 @@ object UcPlatformConfig : PlatformConfig {
     override val collectFertilizerTexts = listOf(
         "集肥料", "领取肥料", "获取肥料", "收集肥料", "开始施肥", "看视频", "看广告领奖"
     )
-    override val goCompleteTexts = listOf("去完成", "立即完成", "去观看", "去领取", "立即观看", "去赚钱", "去签到", "去答题", "去逛逛")
+    override val goCompleteTexts = listOf("去完成", "立即完成", "去观看", "去领取", "立即观看", "去赚钱", "去签到", "去答题", "去逛逛", "签到")
     override val directCollectTexts = listOf("可领取", "挖肥料")
     override val collectFertilizerCoords = listOf(
         Pair(0.867f, 0.815f),  // 集肥料按钮（OCR 确认，右下角，1200x2664 屏幕）

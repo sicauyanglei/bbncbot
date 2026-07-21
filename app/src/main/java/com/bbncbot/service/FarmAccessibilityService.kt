@@ -2302,6 +2302,23 @@ class FarmAccessibilityService : AccessibilityService() {
                 debugLog("findGoCompleteButtons: drop future-time node text='$buttonText' (not claimable today)")
                 return@mapNotNull null
             }
+            // build592 修复（用户反馈"uc极速版芭芭农场，'签到'为什么不点击"）：
+            // 历史问题：UC goCompleteTexts 只含"去签到",不含纯"签到"。UC 极速版芭芭农场
+            // 任务列表里的签到按钮文字就叫"签到"（不是"去签到"）,不会被 findGoCompleteButtons 找到,
+            // 导致签到任务被漏掉。
+            // 修复：UC goCompleteTexts 加纯"签到"。但"签到"会误匹配"签到肥料"（装饰性文字,
+            // clickable=false,findClickableSelfOrParentInternal fallback 返回原节点）、
+            // "已签到"（已完成）、"签到有礼"（标题非按钮）、"每日签到"（标题）等非按钮文字。
+            // 这里加精确过滤：当 buttonText 匹配"签到"关键词时,只接受 buttonText=="签到"
+            // 或 buttonText=="去签到"/"立即签到"等纯按钮文案,排除其他含"签到"的非按钮文字。
+            if (buttonText.contains("签到")) {
+                // 允许的签到按钮文案（纯按钮文字）
+                val allowedSignInTexts = setOf("签到", "去签到", "立即签到", "马上签到", "补签到")
+                if (buttonText !in allowedSignInTexts) {
+                    debugLog("findGoCompleteButtons: drop non-button sign-in node text='$buttonText' (only allow pure '签到'/'去签到' etc.)")
+                    return@mapNotNull null
+                }
+            }
             // 4. bounds 合法性过滤（仅过滤非法矩形，不过滤屏幕外按钮，原因见上方注释）
             val rect = android.graphics.Rect()
             clickTarget.getBoundsInScreen(rect)
