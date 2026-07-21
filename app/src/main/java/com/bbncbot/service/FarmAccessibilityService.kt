@@ -2579,12 +2579,27 @@ class FarmAccessibilityService : AccessibilityService() {
         val seen = HashSet<Int>()
         collectNodesByText(root, jumpKeywords, result, seen)
         if (result.isEmpty()) return null
-        // 返回第一个匹配的节点（findClickableSelfOrParentInternal 已在 collectNodesByText 内调用）
-        val chosen = result.first()
-        val chosenText = chosen.text?.toString().orEmpty()
-        val chosenRect = android.graphics.Rect().also { chosen.getBoundsInScreen(it) }
-        debugLog("findCrossPlatformJumpButton: found text='$chosenText' bounds=${chosenRect.toShortString()} clickable=${chosen.isClickable}")
-        return chosen
+        // build588 修复（debug_test_20260721_184040.log, build587 line 25-33）：
+        // 历史问题：UC H5 页面"去支付宝农场领肥料"节点 bounds=[255,3042][694,2509]
+        // （top=3042 > bottom=2509 异常），performClickSafe 回退到 ancestor bounds 中心
+        // (600.5, 1840.5) 点击，落在中国移动广告上（com.greenpoint.android.mc10086.activity），
+        // 导致 SWITCHING_PLATFORM 失败 + currentPlatform=UNKNOWN，整个流程崩溃。
+        // 修复：跳过 bounds 异常节点（top >= bottom 或 left >= right 或宽高<=0），
+        // 宁可不点击也不要点错位置触发广告跳转。
+        val valid = result.firstOrNull { node ->
+            val r = android.graphics.Rect().also { node.getBoundsInScreen(it) }
+            r.width() > 0 && r.height() > 0 && r.top < r.bottom && r.left < r.right
+        }
+        if (valid == null) {
+            val sample = result.first()
+            val sampleRect = android.graphics.Rect().also { sample.getBoundsInScreen(it) }
+            debugLog("findCrossPlatformJumpButton: all ${result.size} nodes have invalid bounds (top>=bottom or zero size), e.g. text='${sample.text}' bounds=${sampleRect.toShortString()}, skip to avoid misclick on ad")
+            return null
+        }
+        val chosenText = valid.text?.toString().orEmpty()
+        val chosenRect = android.graphics.Rect().also { valid.getBoundsInScreen(it) }
+        debugLog("findCrossPlatformJumpButton: found text='$chosenText' bounds=${chosenRect.toShortString()} clickable=${valid.isClickable}")
+        return valid
     }
 
     /**
@@ -4823,9 +4838,23 @@ class FarmAccessibilityService : AccessibilityService() {
             return try {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    // build588 修复（debug_test_20260721_184040.log, build587 line 89-194）：
+                    // 历史问题：UC deep link "https://broccoli.uc.cn/..." 是 HTTPS URL,
+                    // Intent.ACTION_VIEW 没指定 setPackage,Android 系统默认用 Chrome 打开
+                    // (activeRootPkg='com.android.chrome'),而不是 UC 浏览器(com.ucmobile.lite),
+                    // 导致 navigate 反复 reopenFarmByDeepLink 始终进不了 UC 芭芭农场。
+                    // 修复：强制指定目标平台包名,确保用 UC 浏览器打开 UC deep link。
+                    val targetPkg = targetPlatform.config.packageNames.firstOrNull()
+                    if (targetPkg != null) {
+                        try {
+                            setPackage(targetPkg)
+                        } catch (e: Exception) {
+                            debugLog("reopenFarmByDeepLink: setPackage($targetPkg) failed (${e.message}), fallback to default")
+                        }
+                    }
                 }
                 startActivity(intent)
-                debugLog("reopenFarmByDeepLink: opened $deepLink for $targetPlatform")
+                debugLog("reopenFarmByDeepLink: opened $deepLink for $targetPlatform (pkg=${targetPlatform.config.packageNames.firstOrNull()})")
                 if (targetPlatform != currentPlatform) {
                     currentPlatform = Platform.UNKNOWN
                 }

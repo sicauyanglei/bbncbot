@@ -4583,6 +4583,15 @@ object AutomationController {
                 switchRetryCount++
                 if (switchRetryCount >= MAX_SWITCH_RETRIES) {
                     debugLog("switchPlatform: failed to launch target, skipping task")
+                    // build588 修复（debug_test_20260721_184040.log, build587 line 69-82）：
+                    // 历史问题：switchPlatform 失败后直接 moveTo(PROCESSING_TASK),没有恢复
+                    // service.currentPlatform 到 switchOriginalPlatform,导致后续 navigate
+                    // 时 currentPlatform=UNKNOWN,用 UNKNOWN 平台 deep link（实际是 UC 的）,
+                    // 但 isFarmAppInForeground 判断错误,反复 reopenFarmByDeepLink 始终进不了农场。
+                    // 修复：失败后恢复 currentPlatform 到原平台,并重新启动原平台 App。
+                    debugLog("switchPlatform: restoring currentPlatform to $switchOriginalPlatform and relaunching")
+                    service.currentPlatform = switchOriginalPlatform
+                    service.launchPlatformApp(switchOriginalPlatform)
                     currentTaskIndex++
                     moveTo(AutomationState.PROCESSING_TASK)
                     handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
@@ -4647,6 +4656,10 @@ object AutomationController {
                 switchRetryCount++
                 if (switchRetryCount >= MAX_SWITCH_RETRIES) {
                     debugLog("switchPlatform: failed to return to original, skipping task")
+                    // build588: 恢复 currentPlatform 到原平台（与 LAUNCH_TARGET 失败分支同理）
+                    debugLog("switchPlatform: restoring currentPlatform to $switchOriginalPlatform and relaunching")
+                    service.currentPlatform = switchOriginalPlatform
+                    service.launchPlatformApp(switchOriginalPlatform)
                     currentTaskIndex++
                     moveTo(AutomationState.PROCESSING_TASK)
                     handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
