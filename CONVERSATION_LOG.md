@@ -107,6 +107,14 @@ if (intent?.categories?.contains(Intent.CATEGORY_HOME) == true) {
 
 **待验证**: CI 构建通过后,确认 `logs/` 目录不再出现在 git status 中
 
+**编译验证**: GitHub Actions run #606 (build606-3bfc8bc) ✅ success (2026-07-21T23:04:28Z)
+- Release: https://github.com/sicauyanglei/bbncbot/releases/tag/v_29875927387
+- APK 下载（3 个）:
+  - `bbncbot-3bfc8bc.apk` (4.7MB, 主应用 noOcr,需配合 OCR APK)
+  - `bbncbot-full-3bfc8bc.apk` (44MB, 自带 OCR,推荐单包方案)
+  - `bbncbot-ocr-3bfc8bc.apk` (43.7MB, OCR 模块,装一次后不变)
+- 内嵌 BUILD_LABEL: `build606-3bfc8bc`
+
 ---
 
 ### commit 5784d81 - fix: build595 修复 UC 推送权限弹窗干扰 + 支付宝搜索框误识别 + 跨平台跳转保守化
