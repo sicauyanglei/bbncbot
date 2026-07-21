@@ -1,0 +1,24 @@
+=== cleared on app start (version=2.2, build=build604-7a327a3, time=06:25:53) ===
+06:25:53.770 killPlatformApps: killed com.ucmobile.lite for UC
+06:25:53.772 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+06:25:53.775 killPlatformApps: killed com.taobao.taobao for TAOBAO
+06:26:06.431 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+06:26:06.436 openApp: shortcut unavailable for TAOBAO, fallback to deep link / navigation
+06:26:06.437 killPlatformApps: killed com.taobao.taobao for TAOBAO
+06:26:08.467 navigateToFarm: taobao, using 我的淘宝 path
+06:26:10.626 isOnTaobaoHomePage: found 2 tabs=[视频, 购物车] (path2 relaxed, taobao pkg), on main page, screenW=1200 screenH=2543 act=com.taobao.android.detail.alittdetail.ttdetailactivity
+06:26:10.645 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab by RATIO at (1080.0, 2456.538) [screen=1200 x 2543 ratio=0.9,0.966] (node not found)
+06:26:12.663 navigate stepTab gesture: step 2 - click 芭芭农场 by RATIO at (160.8, 1464.768) [screen=1200 x 2543 ratio=0.134,0.576] (node not found)
+06:26:12.666 navigate stepTab gesture: done, waiting 8s for farm page
+06:26:15.713 isOnFarmPage: activity=com.alibaba.android.ultron.vfw.weex2.highperformance.widget.ultrontradehybridactivity not in farm keywords, not on farm page
+06:26:15.720 navigate stepTab gesture: 3s after click 芭芭农场 - pkg=com.taobao.taobao act=com.alibaba.android.ultron.vfw.weex2.highperformance.widget.ultrontradehybridactivity onFarm=false hasFarmKeyword=false sampleTexts=[]
+06:26:33.774 saveToken: saved (len=93, head='gith', tail='McKr')
+06:26:33.777 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+06:26:33.779 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260722_062633.log, localFile=debug.log (1762 bytes)
+06:26:35.035 uploadFile resp: code=201, url=logs/debug_test_20260722_062633.log, errBody=
+06:26:35.039 uploaded: logs/debug_test_20260722_062633.log (1920 bytes)
+06:26:35.043 upload: success, remotePath=logs/debug_test_20260722_062633.log
+06:26:35.046 upload done: 1 files uploaded (tag=test), errors=[]
+06:26:55.610 saveToken: saved (len=93, head='gith', tail='McKr')
+06:26:55.613 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+06:26:55.614 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260722_062655.log, localFile=debug.log (2402 bytes)
