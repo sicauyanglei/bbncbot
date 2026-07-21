@@ -734,6 +734,21 @@ class FarmAccessibilityService : AccessibilityService() {
                 // 导致 isOnFarmPage 误判为 false，触发 AutomationController 重新导航）
                 text.contains("签到成功") || text.contains("1分钱领水果")
         }
+        // build584 修复（debug_test_20260721_164711.log, build583, UC 平台 line 55/139）：
+        // 历史问题："看一本喜欢的小说"任务页显示"开始阅读"/"继续阅读"+"得肥料",
+        // hasFarmCore 因 "得肥料" 子串匹配返回 true → isOnFarmPage=true → 误判为农场主页,
+        // state 进 COLLECTING_DIRECT/OPENING_TASK_LIST,从不点击小说、不滑动,任务失败。
+        // 修复：检测到小说/阅读任务页特征文字时,排除 hasFarmCore（小说页不是农场主页）。
+        val isNovelReadPage = allText.any { text ->
+            (text.contains("开始阅读") || text.contains("继续阅读")) &&
+            allText.any { it.contains("得肥料") || it.contains("肥料") }
+        }
+        val hasFarmCoreEffective = if (isNovelReadPage) {
+            debugLog("isOnFarmPage: novel read page detected (开始阅读/继续阅读 + 得肥料), exclude hasFarmCore")
+            false
+        } else {
+            hasFarmCore
+        }
         val searchPageKeywords = listOf(
             "下单得肥料", "当前页下单", "搜索有惊喜", "搜一搜浏览",
             "搜索有福利"
@@ -743,7 +758,7 @@ class FarmAccessibilityService : AccessibilityService() {
         // 只有在没有种植页核心元素，且匹配到搜索推荐页特征时才判断为搜索推荐页
         // 注意："搜索后浏览立得奖励"、"浏览宝贝得奖励"是免费浏览任务（需点击历史搜索词进入），
         // 不属于付费搜索推荐页，不应在此误判
-        val isSearchPage = !hasFarmCore && (matchCount >= 2 || (matchCount >= 1 && hasSearchOnlyKeyword))
+        val isSearchPage = !hasFarmCoreEffective && (matchCount >= 2 || (matchCount >= 1 && hasSearchOnlyKeyword))
         if (isSearchPage) {
             debugLog("isOnFarmPage: search recommend page detected (matchCount=$matchCount, hasFarmCore=$hasFarmCore), not farm page")
             farmPageCache = false
@@ -766,8 +781,10 @@ class FarmAccessibilityService : AccessibilityService() {
                 // 签到成功弹窗（与 hasFarmCore 同步添加，保持两者判定一致）
                 text.contains("签到成功") || text.contains("1分钱领水果")
         }
+        // build584: 小说阅读页同样不应判为农场主页（与上方 hasFarmCoreEffective 同步）
+        val hasFarmContentEffective = if (isNovelReadPage) false else hasFarmContent
         // 单独的"芭芭农场"不算，搜索推荐页也会有这个文字
-        if (!hasFarmContent) {
+        if (!hasFarmContentEffective) {
             // H5 WebView 兜底：支付宝/淘宝农场页是 H5 页面，WebView 可能不暴露文本节点，
             // 导致 collectAllText 返回空列表或极少文本，内容关键词检查必然失败。
             // 此时若 Activity 是农场 H5 容器（h5appactivity/h5webviewactivity/webviewactivity），
@@ -2482,16 +2499,62 @@ class FarmAccessibilityService : AccessibilityService() {
         }
         // "下单得奖励"是浏览搜索结果页面的任务，浏览后就能得肥料
         // "发现精选好物"、"搜一搜你心仪得宝贝"、"看严选推荐商品" 需要点击商品并滑动浏览
+        // build584: "看一本喜欢的小说"任务需点击小说+上下滑动阅读得肥料,归类为 browse 任务
         // 通用浏览关键词 + 平台专属浏览关键词（差异化：淘宝浏览任务最多）
         val browseKeywords = listOf(
             "浏览", "逛逛", "滑动", "看一看", "看商品", "下单得", "搜索",
             "精选好物", "心仪", "严选推荐", "发现精选", "搜一搜",
-            "宝贝", "好物", "推荐商品", "发现", "严选"
+            "宝贝", "好物", "推荐商品", "发现", "严选",
+            // 小说阅读任务（UC 平台"看一本喜欢的小说"）
+            "小说", "阅读", "看一本"
         ) + currentPlatformConfig().browseTaskKeywords
         val contextText = collectTaskContextText(button)
         val isBrowse = browseKeywords.any { contextText.contains(it) }
         debugLog("isBrowseTask: buttonText='$buttonText', context='$contextText', isBrowse=$isBrowse")
         return isBrowse
+    }
+
+    /**
+     * build584: 检测当前页面是否是小说阅读任务页
+     *
+     * 日志 debug_test_20260721_164711.log 显示 UC "看一本喜欢的小说"任务页特征：
+     * - 文本极少（text count=2），sample=[开始阅读, 得肥料] 或 [继续阅读, 得肥料]
+     * - "开始阅读"（首次进入）/"继续阅读"（非首次）按钮 + "得肥料"奖励提示
+     * - 与农场主页区别：无"集肥料"/"施肥"/"芭芭农场"等种植页核心元素
+     *
+     * @return true 表示当前是小说阅读任务页（需先点"开始阅读"再滑动）
+     */
+    fun isNovelReadPage(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        val hasReadBtn = allText.any {
+            it.contains("开始阅读") || it.contains("继续阅读")
+        }
+        val hasFertilizerHint = allText.any {
+            it.contains("得肥料") || it.contains("肥料")
+        }
+        // 排除农场主页：农场主页也有"得肥料"文案,但不会有"开始阅读"/"继续阅读"按钮
+        val isFarmHome = allText.any {
+            it.contains("集肥料") || it.contains("施肥") || it.contains("芭芭农场")
+        }
+        val isNovel = hasReadBtn && hasFertilizerHint && !isFarmHome
+        if (isNovel) {
+            debugLog("isNovelReadPage: YES (hasReadBtn=$hasReadBtn, hasFertilizerHint=$hasFertilizerHint, isFarmHome=$isFarmHome)")
+        }
+        return isNovel
+    }
+
+    /**
+     * build584: 查找小说阅读页的"开始阅读"/"继续阅读"按钮
+     *
+     * @return 按钮节点；找不到返回 null
+     */
+    fun findNovelReadButton(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        // findNodeByText 内部用 contains 匹配，优先"开始阅读"再"继续阅读"
+        var btn = findNodeByText(root, "开始阅读")
+        if (btn == null) btn = findNodeByText(root, "继续阅读")
+        return btn
     }
 
     /**

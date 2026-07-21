@@ -133,6 +133,15 @@ object AutomationController {
     private var lastDirectClickedBounds: String = ""
 
     /**
+     * build584 小说阅读任务：是否已点击"开始阅读"/"继续阅读"按钮进入小说内容页
+     * - false：未点击，滑动前检测到小说页需先点按钮
+     * - true：已点击或非小说页，直接滑动
+     * - 进入 BROWSING_TASK 时（swipeCount=0）重置
+     */
+    @Volatile
+    private var browsingNovelStarted: Boolean = false
+
+    /**
      * 标记当前浏览任务是否从"搜索后浏览立得奖励"任务页进入
      * - true：浏览完成后需要返回两次（搜索结果页 → 搜索任务页 → 芭芭农场）
      * - false（默认）：正常退出流程
@@ -491,6 +500,7 @@ object AutomationController {
         browseFromSearchBrowse = false  // 复位搜索浏览任务标记，避免上一轮残留
         lastDirectClickedText = ""  // build581: 复位 direct 防死循环标记
         lastDirectClickedBounds = ""
+        browsingNovelStarted = false  // build584: 复位小说阅读任务标记
         // 重置当前平台的广告完成标记（新一轮运行可重新标记完成）
         resetCurrentPlatformComplete(service)
         moveTo(AutomationState.NAVIGATING)
@@ -1799,6 +1809,8 @@ object AutomationController {
             logPageSnapshot(service, "browseTask-start")
             // 重置红包弹窗关闭计数器（新的浏览任务开始）
             browseRedPacketCloseAttempts = 0
+            // build584: 重置小说阅读任务标记（新一轮浏览任务开始）
+            browsingNovelStarted = false
             // 第一步：点击"去完成"按钮进入浏览页面
             val button = taskButtons.getOrNull(currentTaskIndex)
             if (button == null) {
@@ -2014,6 +2026,28 @@ object AutomationController {
             collectedCount++
             exitBrowsePage(service, reason = "paid_search_recommend")
             return
+        }
+
+        // build584: 小说阅读任务页检测——点击"开始阅读"/"继续阅读"按钮进入小说内容页
+        // 日志 debug_test_20260721_164711.log 显示"看一本喜欢的小说"任务页显示
+        // "开始阅读, 得肥料"（首次）或"继续阅读, 得肥料"（非首次），需先点按钮进入小说内容页,
+        // 然后上下滑动累积阅读时长获得肥料。用 browsingNovelStarted 标志位避免重复点击。
+        if (!browsingNovelStarted && service.isNovelReadPage()) {
+            val readBtn = service.findNovelReadButton()
+            if (readBtn != null) {
+                val btnText = readBtn.text?.toString().orEmpty()
+                debugLog("browseTask: novel read page detected, clicking '$btnText' to enter novel content")
+                Log.i(TAG, "browseTask: clicking '$btnText' on novel read page")
+                browsingNovelStarted = true
+                service.performClickSafe(readBtn)
+                // 等待小说内容页加载后继续滑动
+                handler.postDelayed({
+                    if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            debugLog("browseTask: novel read page detected but no 开始阅读/继续阅读 button found, swiping directly")
+            browsingNovelStarted = true  // 避免重复检测
         }
 
         // 执行滑动：在屏幕中部轻微上下交替滑动（不需要一直向下滑，小幅上下滑动即可模拟浏览）
