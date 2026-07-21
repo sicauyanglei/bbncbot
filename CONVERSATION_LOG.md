@@ -32,6 +32,55 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit e974b10 - fix: build592 修复 UC 极速版芭芭农场"签到"按钮不点击问题
+**用户需求**: "uc极速版芭芭农场，'签到'为什么不点击" + "不是'去签到'，按钮就叫'签到'"
+
+**根因（排查确认）**:
+UC goCompleteTexts 只含"去签到",不含纯"签到"。UC 极速版芭芭农场任务列表里的
+签到按钮文字就叫"签到"（不是"去签到"），不会被 findGoCompleteButtons 找到，
+导致签到任务被漏掉。
+
+**修复（2 文件 2 处）**:
+
+1. **Platform.kt UC goCompleteTexts 加纯"签到"**:
+   ```kotlin
+   override val goCompleteTexts = listOf(
+       "去完成", "立即完成", "去观看", "去领取", "立即观看",
+       "去赚钱", "去签到", "去答题", "去逛逛", "签到"  // ← 新增纯"签到"
+   )
+   ```
+
+2. **FarmAccessibilityService.findGoCompleteButtons 加签到精确过滤**:
+   "签到"会误匹配"签到肥料"（装饰性文字 clickable=false）、"已签到"（已完成）、
+   "签到有礼"（标题非按钮）、"每日签到"（标题）等非按钮文字。
+   当 buttonText 含"签到"时,只接受纯按钮文案：
+   ```kotlin
+   if (buttonText.contains("签到")) {
+       val allowedSignInTexts = setOf("签到", "去签到", "立即签到", "马上签到", "补签到")
+       if (buttonText !in allowedSignInTexts) {
+           debugLog("findGoCompleteButtons: drop non-button sign-in node text='$buttonText'")
+           return@mapNotNull null
+       }
+   }
+   ```
+
+**sortTaskButtonsByPriority** 的 easyClaimKeywords 已含纯"签到"（line 1548），
+纯"签到"按钮会被识别为 priority 0 易完成任务，优先处理。
+
+**排查过程（search agent 深度分析）**:
+- findDirectCollectButtons 只用 directCollectTexts（UC=["可领取","挖肥料"]），
+  "签到肥料"不含这两个关键词，按理不应被匹配
+- build580 日志中"签到肥料"被 findDirectCollectButtons 返回 11 个按钮的现象，
+  最可能是 H5 页面在 49ms 内异步渲染了新子节点（子节点 text="可领取"），
+  collectNodesByText 匹配子节点后 findClickableSelfOrParentInternal 向上找祖先，
+  fallback 返回原节点（clickable=false），祖先 text="签到肥料" 进入列表
+- build581 已加 chosenIdx 防死循环跳过逻辑，不再连续 5 次点击同一无效按钮
+- 这个旧 bug 与当前"签到"按钮不点击问题无关，当前问题是 goCompleteTexts 配置缺失
+
+**编译验证**: GitHub Actions run #592 (build592-e974b10) ✅ success
+
+---
+
 ### commit 0d6cc77 - fix: build591 修复 build590 短剧页检测失效（isShortDramaPage/isNovelReadPage 前置到 runNavigating 开头）
 **用户需求**: "分析日志"（debug_test_20260721_195055.log, build589-fef7ce2 + debug_test_20260721_210949.log, build590-85dc28e）
 
