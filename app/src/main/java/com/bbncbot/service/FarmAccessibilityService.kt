@@ -1792,12 +1792,17 @@ class FarmAccessibilityService : AccessibilityService() {
      * - 倒计时一直显示"10秒"（需用户摇手机/扭动才能触发，无障碍服务无法模拟）
      * - 卡死 56 秒后超时 STOPPING, 浪费时间
      *
+     * build599 v2 修订（用户反馈"这种广告的处理方式为点击按钮'点击打开或者下载第三方应用'，
+     * 然后下载完成，获取肥料"）：
+     * - 不是退出广告,而是点击"点击打开或者下载第三方应用"按钮
+     * - 下载完成后获取肥料
+     *
      * 识别特征：
      * - 文案含"扭一扭"/"摇一摇"/"摇手机"/"摇晃手机"等互动提示
      * - 或含"shake_title"/"rotate_view"/"rotate_view_container"等互动广告组件 ID
      * - 或含"可直接拿奖励"（穿山甲互动广告特有文案）
      *
-     * @return true 表示当前是摇一摇/扭一扭互动广告页（应立即退出）
+     * @return true 表示当前是摇一摇/扭一扭互动广告页（应点击下载按钮等待完成）
      */
     private fun isInteractiveAdPage(): Boolean {
         val root = rootInActiveWindowSafe() ?: return false
@@ -1812,6 +1817,58 @@ class FarmAccessibilityService : AccessibilityService() {
         return allText.any { text ->
             interactiveKeywords.any { kw -> text.contains(kw) }
         }
+    }
+
+    /**
+     * build599 v2: 查找互动广告的"点击打开或者下载第三方应用"按钮
+     *
+     * 用户反馈："这种广告的处理方式为点击按钮'点击打开或者下载第三方应用'，
+     * 然后下载完成，获取肥料"
+     *
+     * 识别文案（精确匹配,避免误识别其他按钮）：
+     * - "点击打开或者下载第三方应用"
+     * - "点击打开或下载第三方应用"
+     * - "点击打开或下载应用"
+     * - "点击下载第三方应用"
+     * - "点击打开第三方应用"
+     *
+     * @return 按钮节点,或 null
+     */
+    fun findInteractiveAdDownloadButton(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        // 互动广告下载按钮文案（精确匹配）
+        val downloadButtonTexts = listOf(
+            "点击打开或者下载第三方应用",
+            "点击打开或下载第三方应用",
+            "点击打开或下载应用",
+            "点击下载第三方应用",
+            "点击打开第三方应用"
+        )
+        for (kw in downloadButtonTexts) {
+            val node = findNodeByText(root, kw)
+            if (node != null) {
+                debugLog("findInteractiveAdDownloadButton: found button by text='$kw'")
+                return node
+            }
+        }
+        // 兜底：contains 匹配（按钮文案可能含额外文字）
+        val root2 = rootInActiveWindowSafe() ?: return null
+        fun walk(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+            val text = node.text?.toString().orEmpty()
+            val desc = node.contentDescription?.toString().orEmpty()
+            for (s in listOf(text, desc)) {
+                if ((s.contains("点击打开") || s.contains("点击下载")) && s.contains("第三方应用")) {
+                    debugLog("findInteractiveAdDownloadButton: found button by contains='$s'")
+                    return node
+                }
+            }
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                walk(child)?.let { return it }
+            }
+            return null
+        }
+        return walk(root2)
     }
 
     /**

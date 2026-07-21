@@ -147,6 +147,18 @@ object AutomationController {
     private var aiVisionDirectClickAttempted: Boolean = false
 
     /**
+     * build599 v2: 互动广告（摇一摇/扭一扭）下载按钮点击标记
+     * - false：本轮广告未点击过"点击打开或者下载第三方应用"按钮
+     * - true：已点击一次,不再重复（避免无限循环点击）
+     * - 进入 WATCHING_AD 阶段时复位（每个新广告重置）
+     *
+     * 用户反馈："这种广告的处理方式为点击按钮'点击打开或者下载第三方应用'，
+     * 然后下载完成，获取肥料"
+     */
+    @Volatile
+    private var interactiveAdDownloadClicked: Boolean = false
+
+    /**
      * build584 小说阅读任务：是否已点击"开始阅读"/"继续阅读"按钮进入小说内容页
      * - false：未点击，滑动前检测到小说页需先点按钮
      * - true：已点击或非小说页，直接滑动
@@ -3649,6 +3661,7 @@ object AutomationController {
             // build529：进入广告时重置 AI 视觉进度识别节流（每个广告独立计数）
             lastAiProgressCheckMs = 0L
             watchingAdPlatform = service.currentPlatform  // 记录农场平台，强杀深链 App 后重新启动此平台
+            interactiveAdDownloadClicked = false  // build599 v2: 重置互动广告下载按钮点击标记
             // 按平台广告策略加载默认时长与检测间隔（UC/支付宝/淘宝差异化）
             val platformCfg = service.currentPlatformConfig()
             adEndCheckIntervalMs = platformCfg.adEndCheckIntervalMs
@@ -3998,30 +4011,65 @@ object AutomationController {
                 }, INTERVAL_PAGE_LOAD_MS)
                 return
             }
-            // build599: 陷阱4.5：摇一摇/扭一扭互动广告（无法模拟摇动，立即退出）
-            // 用户反馈（debug_test_20260722_031850.log line 153-253）：
-            // - 穿山甲 KsRewardVideoActivity 播放"扭一扭或点击跳转详情页或第三方应用"广告
-            // - 倒计时一直显示"10秒"（需用户摇手机/扭动才能触发,无障碍服务无法模拟）
-            // - 卡死 56 秒后超时 STOPPING, 浪费时间
-            // 策略：立即 pressBack 退出广告,跳过任务（无法完成,避免卡死 90s）
-            // 注意：用 currentTaskIndex++（而非 advanceTaskIndex）— 互动广告任务直接跳过,不重玩
+            // build599 v2: 摇一摇/扭一扭互动广告 — 点击"点击打开或者下载第三方应用"按钮等待下载完成
+            // 用户反馈（修订 v1 的 pressBack 退出策略）：
+            // "这种广告的处理方式为点击按钮'点击打开或者下载第三方应用'，然后下载完成，获取肥料"
+            //
+            // 策略：
+            // 1. findInteractiveAdDownloadButton 找"点击打开或者下载第三方应用"按钮
+            // 2. 点击该按钮 → 跳转应用商店/下载页 → 等待下载完成（最多 60s 轮询检测）
+            // 3. 下载完成后回广告页 → 领取肥料 → AD_ENDED → 正常关闭流程
+            // 4. 若找不到下载按钮，pressBack 退出避免卡死
+            //
+            // 防重入：用 interactiveAdDownloadClicked 标记,每轮广告只点一次下载按钮
             PageScene.TRAP_INTERACTIVE -> {
-                Log.w(TAG, "watchAd: interactive ad (shake/rotate) detected (scene=$scene), exiting immediately (cannot simulate)")
-                debugLog("watchAd: interactive ad (摇一摇/扭一扭) detected, cannot simulate shake, pressing back to exit")
-                service.setAdMode(false)
-                service.pressBack()
-                currentTaskIndex++  // 互动广告任务直接跳过,不重玩（避免再次卡死）
-                handler.postDelayed({
-                    if (state == AutomationState.WATCHING_AD) {
-                        if (!service.isOnFarmPage()) service.pressBack()
+                if (!interactiveAdDownloadClicked) {
+                    val downloadBtn = service.findInteractiveAdDownloadButton()
+                    if (downloadBtn != null) {
+                        interactiveAdDownloadClicked = true
+                        val btnText = downloadBtn.text?.toString().orEmpty()
+                        Log.i(TAG, "watchAd: interactive ad detected, clicking download button '$btnText' to start download")
+                        debugLog("watchAd: interactive ad (摇一摇/扭一扭), click download button '$btnText', wait for download complete")
+                        service.performClickSafe(downloadBtn)
+                        // 点击后等待应用商店打开/下载,延长等待时间（最长 120s 给下载留足时间）
+                        adMaxDurationMs = maxOf(adMaxDurationMs, 120000L)
                         handler.postDelayed({
-                            if (state == AutomationState.WATCHING_AD) {
-                                moveTo(AutomationState.OPENING_TASK_LIST)
-                                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
-                            }
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
                         }, INTERVAL_PAGE_LOAD_MS)
+                        return
                     }
-                }, INTERVAL_PAGE_LOAD_MS)
+                    // 找不到下载按钮,等 5s 让页面加载（首次可能按钮还没渲染）
+                    if (elapsedMs < 5000L) {
+                        debugLog("watchAd: interactive ad detected but download button not found (elapsed=${elapsedMs}ms), waiting")
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                        }, adEndCheckIntervalMs)
+                        return
+                    }
+                    // 5s 后仍找不到下载按钮,pressBack 退出避免卡死
+                    Log.w(TAG, "watchAd: interactive ad but no download button found after 5s, pressing back to exit")
+                    debugLog("watchAd: interactive ad no download button, pressBack to exit (avoid stuck)")
+                    service.setAdMode(false)
+                    service.pressBack()
+                    currentTaskIndex++
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) {
+                            if (!service.isOnFarmPage()) service.pressBack()
+                            handler.postDelayed({
+                                if (state == AutomationState.WATCHING_AD) {
+                                    moveTo(AutomationState.OPENING_TASK_LIST)
+                                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                                }
+                            }, INTERVAL_PAGE_LOAD_MS)
+                        }
+                    }, INTERVAL_PAGE_LOAD_MS)
+                    return
+                }
+                // 已点击下载按钮,继续轮询等待下载完成 + 肥料发放
+                debugLog("watchAd: interactive ad download clicked, waiting for download complete (elapsed=${elapsedMs}ms/${adMaxDurationMs}ms)")
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                }, adEndCheckIntervalMs)
                 return
             }
             // 陷阱5：诱导弹窗（页面上有"立即下载"等按钮，可能是广告播放中弹出的诱导遮罩）
