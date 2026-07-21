@@ -1,0 +1,130 @@
+=== cleared on app start (version=2.2, build=build590-85dc28e, time=21:08:04) ===
+21:08:04.889 killPlatformApps: killed com.ucmobile.lite for UC
+21:08:04.891 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+21:08:04.893 killPlatformApps: killed com.taobao.taobao for TAOBAO
+21:08:10.650 FarmAccessibilityService connected, API=36
+21:08:17.595 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+21:08:17.596 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+21:08:22.497 === Automation v2 Started === platform=UC
+21:08:22.511 cancelNavigation: all navigation callbacks cancelled
+21:08:22.523 reset platform complete: UC
+21:08:22.524 state: IDLE -> NAVIGATING
+21:08:23.227 [navigate-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+21:08:23.240 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+21:08:23.285 navigate: on farm page, platform=UC
+21:08:23.298 hasFarmContentLoaded: text count=18, sample=[后退, 智能组件, 菜单, 多窗口, 13, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+21:08:23.302 hasFarmContentLoaded: realContent count=18
+21:08:23.302 navigate: hasFarmContentLoaded=true, attempt=0
+21:08:23.305 state: NAVIGATING -> COLLECTING_DIRECT
+21:08:26.590 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 13]
+21:08:26.607 [collectDirect-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+21:08:26.625 [collectDirect-start] claim-text-nodes (count=1):
+21:08:26.626 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,3042][694,2509] clickable=false
+21:08:26.639 collectDirect: found 0 direct buttons, attempt=0
+21:08:26.657 findCrossPlatformJumpButton: all 2 nodes have invalid bounds (top>=bottom or zero size), e.g. text='去支付宝农场领肥料' bounds=[255,3042][694,2509], skip to avoid misclick on ad
+21:08:26.658 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+21:08:28.888 isTaskCompletePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 13]
+21:08:28.918 [openTaskList-start] snapshot: pkg=com.android.systemui, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+21:08:28.938 [openTaskList-start] claim-text-nodes (count=1):
+21:08:28.939 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[255,3042][694,2509] clickable=false
+21:08:28.969 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:08:28.970 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:08:28.970 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:08:28.971 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:08:28.971 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:08:28.972 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:08:28.972 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor)
+21:08:28.973 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+21:08:28.973 openTaskList: [UC闭环] heuristic text search (attempt=0)
+21:08:28.995 findCollectFertilizerButton: found by text='集肥料' bounds=[949,2380][1129,2509]
+21:08:28.997 openTaskList: [UC闭环] clicking entry button by text (attempt=0)
+21:08:28.998 performClickSafe: text='集肥料' desc='' bounds=[949,2380][1129,2509] clickable=false
+21:08:28.999 performClickSafe: ACTION_CLICK failed, trying gesture
+21:08:29.001 dispatchGesture: screen=[[949,2380][1129,2509]] window=[[0,0][0,0]]
+21:08:29.002 dispatchGesture: not in popup, screen bounds valid, click at (1039.0, 2444.5)
+21:08:34.061 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+21:08:36.089 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+21:08:38.112 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+21:08:40.136 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=3, currentIndex=0
+21:08:42.165 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=4, currentIndex=0
+21:08:44.221 findCollectFertilizerButton: not found by text, root childCount=4
+21:08:44.226 openTaskList: findCollectFertilizerButton=false, attempt=1
+21:08:44.278 isOnFarmPage: novel/short-drama page detected (isNovelReadPage=false, isShortDramaPage=true), exclude hasFarmCore
+21:08:44.281 isOnFarmPage: no farm content, sample=[开始观看, 得肥料]
+21:08:44.283 openTaskList: [坐标兜底] not on farm page (findCollectFertilizerButton=null), re-navigating instead of coordinate fallback
+21:08:44.285 state: OPENING_TASK_LIST -> NAVIGATING
+21:08:46.548 [navigate-start] snapshot: pkg=com.android.systemui, act=android.widget.FrameLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+21:08:46.563 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+21:08:46.811 navigate: calling navigateToFarm, platform=UC
+21:08:48.393 navigate stepTab: 芭芭农场 not found (retry=0), pressing back to go home
+21:08:53.001 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+21:08:53.003 performClickSafe: text='前往手机支付宝-芭芭农场' desc='' bounds=[330,4080][815,2509] clickable=false
+21:08:53.005 performClickSafe: ACTION_CLICK failed, trying gesture
+21:08:53.006 dispatchGesture: screen=[[330,4080][815,2509]] window=[[0,0][0,0]]
+21:08:53.008 dispatchGesture: inPopup=false, trying coordinate fix
+21:08:53.011 estimateWebViewPopupOffset: no anchor found
+21:08:53.012 dispatchGesture: estimated popupOffset=0
+21:08:53.013 dispatchGesture: ancestor bounds valid at depth=2, click at (600.5, 1840.5) ancBounds=[22,1172][1179,2509]
+21:08:53.093 navigate: on farm page, platform=UC
+21:08:53.112 hasFarmContentLoaded: text count=139, sample=[后退, 智能组件, 菜单, 多窗口, 13, 首页, UC芭芭农场, 7.23内完成3天即领, 1天, 2天]
+21:08:53.114 hasFarmContentLoaded: realContent count=126
+21:08:53.116 navigate: hasFarmContentLoaded=true, attempt=1
+21:08:53.117 state: NAVIGATING -> COLLECTING_DIRECT
+21:08:55.190 [collectDirect-start] snapshot: pkg=com.android.systemui, act=android.widget.FrameLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+21:08:55.213 collectDirect: found 0 direct buttons, attempt=0
+21:08:55.216 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+21:08:57.544 isOnFarmPage: activeRootPkg='com.greenpoint.android.mc10086.activity' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+21:08:59.243 isOnFarmPage: activeRootPkg='com.greenpoint.android.mc10086.activity' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+21:08:59.426 [openTaskList-start] snapshot: pkg=com.android.systemui, act=android.widget.FrameLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+21:08:59.483 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+21:08:59.485 openTaskList: [UC闭环] heuristic text search (attempt=0)
+21:08:59.519 findCollectFertilizerButton: root is null!
+21:08:59.524 openTaskList: [UC闭环] not on farm page (no entry button and not on farm), re-navigating instead of coordinate fallback
+21:08:59.534 state: OPENING_TASK_LIST -> NAVIGATING
+21:09:01.654 isOnFarmPage: activeRootPkg='com.greenpoint.android.mc10086.activity' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+21:09:01.789 isNonAdTaskPage: YES, matched non-ad task in [签到有礼, 加载中..., 签到有礼, 返回, 关闭, 分享]
+21:09:01.804 [navigate-start] snapshot: pkg=com.android.systemui, act=android.widget.FrameLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+21:09:01.868 navigate: farm app not in foreground (platform=UC, attempt=0), calling reopenFarmByDeepLink
+21:09:01.870 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+21:09:01.871 reopenFarmByDeepLink: pressing HOME to background UC before kill
+21:09:01.873 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+21:09:01.875 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+21:09:01.895 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+21:09:06.918 navigate: still not in farm app after relaunch, calling navigateToFarm to push navigation
+21:09:06.926 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+21:09:08.240 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+21:09:08.462 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+21:09:08.464 navigate stepTab: text node too large [0,0][1200,2241], skipping
+21:09:08.465 navigate stepTab: 芭芭农场 not found (retry=0), pressing back to go home
+21:09:11.513 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+21:09:11.516 navigate stepTab: text node too large [0,0][1200,2241], skipping
+21:09:13.374 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+21:09:13.606 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+21:09:13.611 navigate stepTab: text node too large [0,0][1200,2241], skipping
+21:09:13.611 navigate stepTab: 芭芭农场 not found (retry=2), pressing back to go home
+21:09:16.652 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+21:09:16.653 navigate stepTab: text node too large [0,0][1200,2241], skipping
+21:09:18.574 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+21:09:18.834 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+21:09:18.836 navigate stepTab: text node too large [0,0][1200,2241], skipping
+21:09:18.837 navigate stepTab: 芭芭农场 not found (retry=4), pressing back to go home
+21:09:21.888 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+21:09:21.890 navigate stepTab: text node too large [0,0][1200,2241], skipping
+21:09:23.813 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+21:09:24.098 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+21:09:24.100 navigate stepTab: text node too large [0,0][1200,2241], skipping
+21:09:26.137 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+21:09:26.139 navigate stepTab: text node too large [0,0][1200,2241], skipping
+21:09:28.177 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+21:09:28.179 navigate stepTab: text node too large [0,0][1200,2241], skipping
+21:09:28.180 navigate stepTab: abort on UC (taobao-only gesture fallback skipped)
+21:09:29.067 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+21:09:29.298 navigate: farm app still not in foreground after relaunch (attempt=1), waiting for next retry
+21:09:29.607 state: NAVIGATING -> STOPPING
+21:09:29.610 cancelNavigation: all navigation callbacks cancelled
+21:09:29.612 state: STOPPING -> IDLE
+21:09:45.430 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+21:09:45.432 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+21:09:49.044 saveToken: saved (len=93, head='gith', tail='McKr')
+21:09:49.047 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+21:09:49.048 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260721_210949.log, localFile=debug.log (12791 bytes)
