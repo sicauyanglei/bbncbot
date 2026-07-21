@@ -1,0 +1,17 @@
+=== cleared on app start (version=2.2, build=build604-7a327a3, time=06:22:13) ===
+06:22:13.830 killPlatformApps: killed com.ucmobile.lite for UC
+06:22:13.832 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+06:22:13.833 killPlatformApps: killed com.taobao.taobao for TAOBAO
+06:22:24.881 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+06:22:24.882 openApp: shortcut unavailable for TAOBAO, fallback to deep link / navigation
+06:22:24.883 killPlatformApps: killed com.taobao.taobao for TAOBAO
+06:22:26.904 navigateToFarm: taobao, using 我的淘宝 path
+06:22:28.902 isOnTaobaoHomePage: found 2 tabs=[视频, 购物车] (path2 relaxed, taobao pkg), on main page, screenW=1200 screenH=2543 act=com.taobao.android.detail.alittdetail.ttdetailactivity
+06:22:28.933 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab by RATIO at (1080.0, 2456.538) [screen=1200 x 2543 ratio=0.9,0.966] (node not found)
+06:22:31.184 navigate stepTab gesture: step 2 - click 芭芭农场 by RATIO at (160.8, 1464.768) [screen=1200 x 2543 ratio=0.134,0.576] (node not found)
+06:22:31.192 navigate stepTab gesture: done, waiting 8s for farm page
+06:22:34.228 isOnFarmPage: activity=com.taobao.android.detail.alittdetail.ttdetailactivity not in farm keywords, not on farm page
+06:22:34.254 navigate stepTab gesture: 3s after click 芭芭农场 - pkg=com.taobao.taobao act=com.taobao.android.detail.alittdetail.ttdetailactivity onFarm=false hasFarmKeyword=false sampleTexts=[直播中，按钮, 直播中, 商品视频, 播放, 开启声音, 1/6 宝贝讲解, 图集,已选中, 图集, 图集, 款式1,可选, 【十重营养】5瓶升级款丨提高代谢, 款式2,可选, 【十重营养】3瓶升级款丨代谢加速, 款式3,可选, 【十重营养】10瓶升级款丨解锁新月要线]
+06:22:53.759 saveToken: saved (len=93, head='gith', tail='McKr')
+06:22:53.964 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+06:22:53.967 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260722_062253.log, localFile=debug.log (2016 bytes)
