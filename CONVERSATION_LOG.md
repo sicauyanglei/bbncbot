@@ -32,6 +32,57 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit 6f39eea - fix: build594 修复 UC "去完成"按钮无 clickable 祖先被全部 drop
+**用户需求**: "分析日志"（延续 build593 测试日志 debug_test_20260721_222311.log 分析）
+**日志**: debug_test_20260721_222311.log (build593-6e03bc2)
+
+**build593 修复验证**:
+- line 22-30: `collectDirect: found 1 direct buttons` → "签到"被找到并点击 ✅
+  - `collectDirect: clicking button[0] text='签到' bounds=[894,933][1123,1031]`
+  - 点击后变 `text='已领取'` → 签到成功 ✅
+- line 23: `findCrossPlatformJumpButton: all 1 nodes have invalid bounds ... skip` ✅ bounds 异常过滤生效
+
+**遗留问题**:
+- line 43-57: "签到肥料"(10 个) 和 "去完成"(5 个) 都 `drop non-clickable (no clickable ancestor within 10 levels)`
+- build593 已把层数从 5 增到 10, 仍不够 — UC H5 WebView 层级非常深
+- 导致 findGoCompleteButtons 返回 0 个按钮 → 反复点"集肥料"重试 → STOPPING
+
+**根因**: UC H5 WebView 无障碍树层级非常深, "去完成"按钮本身不可点击,
+向上 10 层仍找不到 clickable 祖先。继续增层数不是好方案（层级可能 20+,
+且越向上找祖先 bounds 越大,可能误点相邻区域）。
+
+**修复**: [findGoCompleteButtons#L2254](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L2254)
+当向上 10 层找不到 clickable 祖先时, 不直接 drop, 而是检查节点自身 bounds
+是否合法 (width>0 且 height>0 且 top<bottom), 若合法则保留节点自身, 让
+performClickSafe 用 dispatchGesture 坐标点击 (不依赖 clickable 属性,
+与"签到"/"已领取"等主页按钮点击方式一致):
+
+```kotlin
+if (!clickTarget.isClickable) {
+    val selfRect = android.graphics.Rect()
+    node.getBoundsInScreen(selfRect)
+    val boundsValid = selfRect.width() > 0 && selfRect.height() > 0 && selfRect.top < selfRect.bottom
+    if (boundsValid) {
+        debugLog("findGoCompleteButtons: no clickable ancestor for '$buttonText', keep node itself for coordinate click (bounds=${selfRect.toShortString()})")
+        // clickTarget 保持为 node 自身
+    } else {
+        debugLog("findGoCompleteButtons: drop non-clickable node text='$buttonText' (no clickable ancestor within 10 levels and invalid bounds=${selfRect.toShortString()})")
+        return@mapNotNull null
+    }
+}
+```
+
+**安全性**: "签到肥料"等装饰性文字会在签到精确过滤分支 (build592) 被 drop,
+不会被误点。只有 "去完成" 等真正的任务按钮文案会保留到最终列表。
+
+**附加修改**: 把 `buttonText` 提取移到 clickable 祖先检查之前, 以便
+no-clickable-ancestor 日志能引用 buttonText (原代码 buttonText 在 clickable
+检查之后才声明, 会编译失败)。
+
+**编译验证**: GitHub Actions run #594 (build594-6f39eea) ✅ success (2026-07-21T14:29:28Z)
+
+---
+
 ### commit 6e03bc2 - fix: build593 修复 UC "点击领取"和"签到"不点击 + "去完成"按钮 clickable 祖先查找层数不足
 **用户需求**: "uc浏览器到'点击领取'，和'签到'没有点击"
 **日志**: debug_test_20260721_213604.log (build591-605226a)
