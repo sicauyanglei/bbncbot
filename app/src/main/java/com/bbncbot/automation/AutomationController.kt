@@ -905,6 +905,42 @@ object AutomationController {
         // 查找所有直接可领取的肥料按钮
         val buttons = service.findDirectCollectButtons()
         debugLog("collectDirect: found ${buttons.size} direct buttons, attempt=$attempt")
+
+        // build586: 跨平台跳转按钮检测（"去支付宝农场领肥料"等）
+        // 用户需求（debug_test_20260721_173039.log, build585, UC 平台 line 25）：
+        // UC 主页底部"去支付宝农场领肥料"按钮,点击跳转支付宝领跨平台奖励,需像 processTask 的
+        // cross-platform 任务一样处理（跳转→领奖励→返回原平台）。
+        // 防死循环：用 lastDirectClickedText 记录已点击的跳转按钮,避免重复触发跨平台切换。
+        val jumpBtn = service.findCrossPlatformJumpButton()
+        if (jumpBtn != null) {
+            val jumpText = jumpBtn.text?.toString().orEmpty()
+            val jumpBoundsStr = android.graphics.Rect().also { jumpBtn.getBoundsInScreen(it) }.toShortString()
+            // 检测目标平台
+            val jumpTarget = service.detectCrossPlatformJumpTarget(jumpText)
+            if (jumpTarget != null && jumpTarget != service.currentPlatform) {
+                // 防死循环：若与上次点击的跳转按钮相同,跳过（避免跨平台切换失败后重复触发）
+                if (jumpText == lastDirectClickedText && jumpBoundsStr == lastDirectClickedBounds) {
+                    debugLog("collectDirect: cross-platform jump button '$jumpText' same as last clicked, skip (already tried)")
+                } else {
+                    Log.i(TAG, "collectDirect: cross-platform jump button detected '$jumpText', switching to $jumpTarget (like processTask cross-platform)")
+                    debugLog("collectDirect: cross-platform jump '$jumpText' → $jumpTarget, entering SWITCHING_PLATFORM")
+                    // 记录本次点击,防死循环
+                    lastDirectClickedText = jumpText
+                    lastDirectClickedBounds = jumpBoundsStr
+                    // 复用 processTask 的 cross-platform 流程
+                    switchOriginalPlatform = service.currentPlatform
+                    switchTargetPlatform = jumpTarget
+                    switchStage = "LAUNCH_TARGET"
+                    switchRetryCount = 0
+                    // 点击跳转按钮（部分任务点击后自动跳转目标平台）
+                    service.performClickSafe(jumpBtn)
+                    moveTo(AutomationState.SWITCHING_PLATFORM)
+                    handler.postDelayed({ runSwitchingPlatform() }, INTERVAL_PAGE_LOAD_MS)
+                    return
+                }
+            }
+        }
+
         if (buttons.isEmpty()) {
             // 历史说明（build538 → build542 撤销）：
             // 用户反馈"点击领取在领肥料上方"，build538 加了坐标兜底点击 (0.917, 0.657)。

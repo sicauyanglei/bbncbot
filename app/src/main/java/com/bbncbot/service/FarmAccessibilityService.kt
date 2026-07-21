@@ -2558,6 +2558,51 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build586: 查找主页上的跨平台跳转按钮（"去支付宝农场领肥料"/"去淘宝农场领肥料"等）
+     *
+     * 用户需求（debug_test_20260721_173039.log, build585, UC 平台 line 25）：
+     * UC 主页底部有"去支付宝农场领肥料"按钮（clickable=false，bounds=[255,3245][694,2509]），
+     * 点击会跳转到支付宝芭芭农场领取跨平台奖励。需像 processTask 的 cross-platform 任务一样处理
+     * （跳转→领奖励→返回原平台）。
+     *
+     * @return 跨平台跳转按钮节点；找不到返回 null
+     */
+    fun findCrossPlatformJumpButton(): AccessibilityNodeInfo? {
+        val root = getRootInFarmApp() ?: return null
+        // 跨平台跳转按钮文案特征："去XX农场领肥料"/"去XX农场"等
+        val jumpKeywords = listOf(
+            "去支付宝农场", "去淘宝农场", "去UC农场",
+            "支付宝农场领", "淘宝农场领", "UC农场领",
+            "去蚂蚁庄园", "蚂蚁庄园领"
+        )
+        val result = mutableListOf<AccessibilityNodeInfo>()
+        val seen = HashSet<Int>()
+        collectNodesByText(root, jumpKeywords, result, seen)
+        if (result.isEmpty()) return null
+        // 返回第一个匹配的节点（findClickableSelfOrParentInternal 已在 collectNodesByText 内调用）
+        val chosen = result.first()
+        val chosenText = chosen.text?.toString().orEmpty()
+        val chosenRect = android.graphics.Rect().also { chosen.getBoundsInScreen(it) }
+        debugLog("findCrossPlatformJumpButton: found text='$chosenText' bounds=${chosenRect.toShortString()} clickable=${chosen.isClickable}")
+        return chosen
+    }
+
+    /**
+     * build586: 检测跨平台跳转按钮的目标平台
+     *
+     * @param text 按钮文本
+     * @return 目标平台；无法识别返回 null
+     */
+    fun detectCrossPlatformJumpTarget(text: String): Platform? {
+        return when {
+            text.contains("支付宝") || text.contains("蚂蚁庄园") -> Platform.ALIPAY
+            text.contains("淘宝") -> Platform.TAOBAO
+            text.contains("UC") -> Platform.UC
+            else -> null
+        }
+    }
+
+    /**
      * build585: 查找小说列表页的一部小说节点（点击进入小说内容页）
      *
      * 用户需求："需要点击一部小说进入，停留15秒上下滑动"
