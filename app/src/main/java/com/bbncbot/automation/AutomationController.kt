@@ -317,6 +317,12 @@ object AutomationController {
     /** 单个任务最大失败次数，超过则跳过该任务 */
     private const val MAX_TASK_FAILS = 2
 
+    // build610：标记当前任务是答题任务（"去答题"按钮 / 上下文含"答题"/"问答"）
+    // 用于 checkTaskResult 中：答题页是 H5/Canvas 绘制，无障碍树抓不到问题+选项文本，
+    // isQuizPage() 返回 false 时，用 AI 视觉接口截图识别答题页并选出正确答案。
+    @Volatile
+    private var currentTaskIsQuiz: Boolean = false
+
     // ---------- build529：AI 视觉进度识别节流（用户要求"全部实现"） ----------
     // 用于 runGamePlaying / runWatchingAd 中截屏识别环形进度条填充比例
     // 节流：避免每次轮询都调 AI（视觉模型推理慢 + 限流），GAME/AD 期间最多 20s 调一次
@@ -541,6 +547,7 @@ object AutomationController {
         lastDirectClickedBounds = ""
         aiVisionDirectClickAttempted = false  // build596: 复位 AI 视觉识别点击标记
         browsingNovelStarted = false  // build584: 复位小说阅读任务标记
+        currentTaskIsQuiz = false  // build610: 复位答题任务标记
         browsingNovelEnteredContent = false  // build585: 复位小说内容页标记
         browsingShortDramaStarted = false  // build590: 复位短剧观看任务标记
         // 重置当前平台的广告完成标记（新一轮运行可重新标记完成）
@@ -2126,6 +2133,13 @@ object AutomationController {
         // 3. 普通任务（看广告、答题、签到等）：点击按钮
         Log.i(TAG, "processTask: clicking task #${currentTaskIndex + 1}/${taskButtons.size} (attempt ${attempt + 1})")
         currentTaskFailCount = 0 // 新任务开始，重置失败计数
+        // build610: 标记当前任务是否为答题任务。
+        // 答题页是 H5/Canvas 绘制，无障碍树抓不到问题+选项文本，isQuizPage() 返回 false，
+        // checkTaskResult 中需要用 AI 视觉接口截图识别答题页并选出正确答案。
+        currentTaskIsQuiz = buttonText.contains("答题") || taskContextText.contains("答题") || taskContextText.contains("问答")
+        if (currentTaskIsQuiz) {
+            debugLog("processTask: quiz task detected (button='$buttonText', context contains 答题/问答)")
+        }
         // 解析任务剩余次数（如 "1/3" → 还可重玩 2 次），仅首次点击时解析
         if (attempt == 0 && taskReplayRemaining == 0) {
             taskReplayRemaining = parseTaskRemainingCount(buttonText, taskContextText)
@@ -3269,6 +3283,62 @@ object AutomationController {
                     // 点击答案后，等待答题结果（答对领取肥料 / 答错提示）
                     handler.postDelayed({
                         if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt + 1)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                }
+            }.start()
+            return
+        }
+
+        // build610: AI 视觉答题（答题页是 H5/Canvas 绘制，无障碍树抓不到问题+选项文本）
+        // 用户需求："去答题，任务需要选择一个答案，可以借助AI接口来选择答案"
+        // 日志 debug_test_20260722_222228.log 显示：点击"去答题"后答题页内容抓不到，
+        // isQuizPage()=false（找不到 2 个选项 + 问题），scene 不是 QUIZ_PAGE，
+        // 走到 onFarm 分支点"返回首页"退出农场，答题任务失败。
+        // 修复：若 currentTaskIsQuiz=true 且 isQuizPage()=false，截图交给 AI 视觉模型，
+        // 让 AI 识别题目和选项，选出正确答案，返回正确选项坐标，按坐标点击。
+        if (currentTaskIsQuiz && scene != FarmAccessibilityService.PageScene.QUIZ_PAGE) {
+            debugLog("processTask: quiz task but isQuizPage=false (H5/Canvas content not in a11y tree), trying AI vision to answer")
+            val context = service.applicationContext
+            Thread {
+                val bitmap = service.takeScreenshotBitmap()
+                if (bitmap == null) {
+                    Log.w(TAG, "processTask: AI vision quiz failed - takeScreenshotBitmap returned null")
+                    handler.post {
+                        if (state != AutomationState.PROCESSING_TASK) return@post
+                        debugLog("processTask: AI vision quiz screenshot null, skipping task")
+                        currentTaskIsQuiz = false
+                        currentTaskIndex++
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+                    }
+                    return@Thread
+                }
+                val result = AiVisionClient.answerQuizByVision(context, bitmap, "淘宝/支付宝芭芭农场答题页（农场百科问答）")
+                handler.post {
+                    if (state != AutomationState.PROCESSING_TASK) return@post
+                    if (result == null) {
+                        Log.w(TAG, "processTask: AI vision quiz returned null, skipping task")
+                        debugLog("processTask: AI vision quiz failed (no answer found), skipping task")
+                        currentTaskIsQuiz = false
+                        currentTaskIndex++
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+                        return@post
+                    }
+                    // 按坐标比例点击正确答案选项
+                    val screenW = service.resources.displayMetrics.widthPixels
+                    val screenH = service.resources.displayMetrics.heightPixels
+                    val x = result.xRatio * screenW
+                    val y = result.yRatio * screenH
+                    Log.i(TAG, "processTask: AI vision quiz answer at ($x,$y) [ratio=${result.xRatio},${result.yRatio}], reason='${result.reason.take(80)}'")
+                    debugLog("processTask: AI vision quiz clicking answer at ($x,$y), reason='${result.reason.take(60)}'")
+                    service.dispatchGestureClick(x, y)
+                    // 点击答案后，等待答题结果（答对领取肥料 / 答错提示），重新检测
+                    handler.postDelayed({
+                        if (state == AutomationState.PROCESSING_TASK) {
+                            currentTaskIsQuiz = false
+                            checkTaskResult(service, attempt + 1)
+                        }
                     }, INTERVAL_PAGE_LOAD_MS)
                 }
             }.start()

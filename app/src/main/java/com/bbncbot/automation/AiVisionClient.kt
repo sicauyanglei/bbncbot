@@ -751,6 +751,190 @@ object AiVisionClient {
     }
 
     /**
+     * 让 AI 分析截图并回答答题页的题目，返回正确答案选项的坐标
+     *
+     * build610（用户需求"去答题，任务需要选择一个答案，可以借助AI接口来选择答案"）：
+     * - 淘宝/支付宝芭芭农场的"农场百科问答"是 H5/Canvas 绘制，无障碍树抓不到问题+选项文本
+     * - isQuizPage() 依赖无障碍树文本匹配，抓不到时返回 false，无法走 QuizAnswerClient 文本答题流程
+     * - 此函数截图交给 GLM-4.6V-Flash，让 AI 识别题目和选项，选出正确答案，返回正确选项的坐标
+     * - 调用方拿到坐标比例后用 dispatchGesture 点击正确答案
+     *
+     * @param context      任意 Context（用于读取 API Key）
+     * @param bitmap       截图 Bitmap
+     * @param sceneContext 当前场景上下文（如"淘宝芭芭农场答题页"）
+     * @return [ButtonLocationResult]（xRatio/yRatio 为正确答案选项的中心坐标比例）；未找到或失败返回 null
+     */
+    fun answerQuizByVision(
+        context: Context,
+        bitmap: Bitmap,
+        sceneContext: String
+    ): ButtonLocationResult? {
+        val apiKey = QuizAnswerClient.loadApiKey(context)
+        if (apiKey.isEmpty()) {
+            Log.w(TAG, "answerQuizByVision: GLM API Key not configured, skip AI vision")
+            return null
+        }
+        val base64Image = encodeBitmapToBase64(bitmap)
+        if (base64Image.isEmpty()) {
+            Log.w(TAG, "answerQuizByVision: encode bitmap failed")
+            return null
+        }
+        val prompt = buildQuizAnswerPrompt(sceneContext)
+        // 依次尝试视觉模型列表（与 findButtonLocationByVision 相同的 fallback 策略）
+        for (model in VISION_MODELS) {
+            var retry = 0
+            var result: ButtonLocationResult? = null
+            while (retry <= 2) {
+                result = callVisionModelForQuizAnswer(apiKey, model, prompt, base64Image, sceneContext)
+                if (result != null) return result
+                if (lastErrorCode == 429 || lastErrorMessage.contains("1305") || lastErrorMessage.contains("访问量过大")) {
+                    retry++
+                    if (retry <= 2) {
+                        val backoffMs = if (retry == 1) 5000L else 10000L
+                        Log.i(TAG, "answerQuizByVision: $model rate-limited (429), backing off ${backoffMs}ms before retry $retry/2")
+                        try {
+                            Thread.sleep(backoffMs)
+                        } catch (ie: InterruptedException) {
+                            Thread.currentThread().interrupt()
+                            return null
+                        }
+                    }
+                } else {
+                    break
+                }
+            }
+        }
+        Log.w(TAG, "answerQuizByVision: all vision models failed or quiz answer not found")
+        return null
+    }
+
+    /**
+     * 调用视觉模型识别答题页并选出正确答案坐标
+     *
+     * 与 [callVisionModelForButtonLocation] 类似，但用答题专用提示词与 system message
+     */
+    private fun callVisionModelForQuizAnswer(
+        apiKey: String,
+        model: String,
+        prompt: String,
+        base64Image: String,
+        sceneContext: String
+    ): ButtonLocationResult? {
+        var conn: java.net.HttpURLConnection? = null
+        return try {
+            val url = java.net.URL(API_URL)
+            conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 20000
+                readTimeout = 45000
+                setRequestProperty("Authorization", "Bearer $apiKey")
+                setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                setRequestProperty("User-Agent", "bbncbot-app")
+                doOutput = true
+            }
+            val content = JSONArray().apply {
+                put(JSONObject().apply {
+                    put("type", "text")
+                    put("text", prompt)
+                })
+                put(JSONObject().apply {
+                    put("type", "image_url")
+                    put("image_url", JSONObject().apply {
+                        put("url", "data:image/jpeg;base64,$base64Image")
+                    })
+                })
+            }
+            val messages = JSONArray().apply {
+                put(JSONObject().apply {
+                    put("role", "system")
+                    put("content", "你是安卓自动化助手的答题模块。" +
+                        "用户会给你一张手机屏幕截图，这是芭芭农场答题页面。" +
+                        "你需要识别题目和选项，选出正确答案，并返回正确答案选项的中心坐标。" +
+                        "只返回一个 JSON 对象，不要任何额外文字。")
+                })
+                put(JSONObject().apply {
+                    put("role", "user")
+                    put("content", content)
+                })
+            }
+            val jsonBody = JSONObject().apply {
+                put("model", model)
+                put("messages", messages)
+                put("temperature", 0.1)
+                put("max_tokens", 300)
+            }.toString()
+
+            conn.outputStream.use { os ->
+                os.write(jsonBody.toByteArray(Charsets.UTF_8))
+            }
+
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                val err = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                lastErrorCode = code
+                lastErrorMessage = err
+                Log.w(TAG, "callVisionModelForQuizAnswer($model) failed (HTTP $code): ${err.take(200)}")
+                return null
+            }
+            lastErrorCode = 0
+            lastErrorMessage = ""
+
+            val response = conn.inputStream.bufferedReader().use { it.readText() }
+            val contentStr = parseContent(response)
+            if (contentStr.isBlank()) {
+                Log.w(TAG, "callVisionModelForQuizAnswer($model): empty content, response=${response.take(200)}")
+                return null
+            }
+            val result = parseButtonLocationResult(contentStr)
+            if (result == null) {
+                Log.i(TAG, "callVisionModelForQuizAnswer($model): quiz answer not found in screenshot (scene='$sceneContext')")
+                return null
+            }
+            Log.i(TAG, "callVisionModelForQuizAnswer($model) success: scene='$sceneContext', " +
+                "xRatio=${result.xRatio}, yRatio=${result.yRatio}, " +
+                "reason='${result.reason.take(80)}'")
+            result
+        } catch (e: Exception) {
+            Log.e(TAG, "callVisionModelForQuizAnswer($model) exception: ${e.message}")
+            lastErrorCode = -1
+            lastErrorMessage = e.message ?: "exception"
+            null
+        } finally {
+            conn?.disconnect()
+        }
+    }
+
+    /**
+     * 构造答题页识别提示词
+     *
+     * 让 AI 识别题目和选项，选出正确答案，返回正确答案选项的中心坐标（0.0-1.0 归一化）
+     * 复用 [parseButtonLocationResult] 解析 JSON（found/x_ratio/y_ratio/reason 格式一致）
+     */
+    private fun buildQuizAnswerPrompt(sceneContext: String): String {
+        return buildString {
+            append("当前场景上下文：").append(sceneContext).append("\n\n")
+            append("请分析这张手机截图，这是芭芭农场的答题页面（农场百科问答）。\n\n")
+            append("识别要点：\n")
+            append("1. 页面有一道题目（通常是选择题，含问号或疑问句）\n")
+            append("2. 题目下方有 2 个选项（可能是对/错、是/否、A/B 等）\n")
+            append("3. 选项可能是 H5/Canvas 绘制的图像按钮，有彩色背景\n")
+            append("4. 仔细阅读题目，根据常识/百科知识选出正确答案\n\n")
+            append("返回严格的 JSON 格式：\n")
+            append("{\"found\": <true|false>, \"x_ratio\": <0.0-1.0浮点>, \"y_ratio\": <0.0-1.0浮点>, \"reason\": \"<题目+正确答案+选项位置描述>\"}\n\n")
+            append("说明：\n")
+            append("- found：是否识别到答题页并选出正确答案\n")
+            append("- x_ratio：正确答案选项的中心 x 坐标 / 屏幕宽度（0.0=最左，1.0=最右）\n")
+            append("- y_ratio：正确答案选项的中心 y 坐标 / 屏幕高度（0.0=最上，1.0=最下）\n")
+            append("- reason：简要描述题目、正确答案、选项位置（如「题目：XX？正确答案：是。选项位于屏幕中部」）\n\n")
+            append("注意：\n")
+            append("- 必须选出正确答案，不要随机选\n")
+            append("- 若截图不是答题页（没有题目和选项），found 返回 false，x_ratio/y_ratio 填 0\n")
+            append("- 若有多个选项，选出正确答案的那个选项的中心坐标\n\n")
+            append("只返回 JSON，不要 markdown 代码块，不要解释。")
+        }
+    }
+
+    /**
      * 构造按钮坐标识别提示词
      *
      * 约束 AI 返回 JSON，含 found（是否找到）+ x_ratio + y_ratio（按钮中心坐标比例 0.0-1.0）

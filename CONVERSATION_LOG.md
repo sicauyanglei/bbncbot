@@ -32,6 +32,56 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - feat: build610 AI 视觉答题（答题页 H5/Canvas 绘制，无障碍树抓不到内容时截图交 AI 选答案）
+**用户需求**: "分析日志，去答题，任务需要选择一个答案，可以借助AI接口来选择答案"
+
+**输入日志**: `logs/debug_test_20260722_222228.log` (build609-5433d7c, 344 行, 2026-07-22 22:22 上传, TAOBAO 平台)
+
+**build609 修复验证**: "去红包签到得肥料"任务未再死循环滑动（日志中无红包签到任务，本轮未触发）。welcome 闪屏页/AI 视觉超时/点 App 图标进农场均正常。
+
+**日志暴露的新问题（核心）**: "去答题"任务点击后答题页内容抓不到，走 onFarm 分支点"返回首页"退出农场，答题失败
+
+| 行号 | 现象 |
+|------|------|
+| 68/113/283 | task='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题',点击"去答题"按钮 |
+| 122-128 (第一次) | checkTaskResult: onFarm=true, claim-text-nodes 仅 1 个（下单领肥料），无答题问题/选项 → 找到"返回首页"按钮点击退出农场 |
+| 290-298 (第二次) | checkTaskResult: onFarm=true, claim-text-nodes 仅 2 个, isRechargePage=YES 误判 → 找到"返回首页"按钮点击退出农场 |
+
+**根因**: 答题页是 H5/Canvas 绘制，无障碍树抓不到问题+选项文本
+1. `isQuizPage()` 依赖 `findQuizOptions`（找 2 个可点击文字节点）+ `findQuizQuestion`（找含"？"的文本）→ 抓不到返回 false
+2. `identifyCurrentScene` 不返回 QUIZ_PAGE → checkTaskResult 不走 QUIZ_PAGE 的文本答题分支（QuizAnswerClient）
+3. 走到 onFarm 分支 → 找到"返回首页"按钮点击 → 退出农场，答题任务失败
+
+**修复（3 处）**:
+
+**修复1: AiVisionClient 新增 answerQuizByVision** ([AiVisionClient.kt#L767-L809](file:///workspace/app/src/main/java/com/bbncbot/automation/AiVisionClient.kt#L767))
+- 截图交给 GLM-4.6V-Flash，让 AI 识别答题页题目和选项，选出正确答案，返回正确选项坐标
+- 复用 ButtonLocationResult（xRatio/yRatio 归一化坐标）和 parseButtonLocationResult 解析
+- 新增 buildQuizAnswerPrompt：明确"这是答题页，选出正确答案，返回正确选项中心坐标"
+- 新增 callVisionModelForQuizAnswer：与 callVisionModelForButtonLocation 类似，system message 改为"答题模块"
+- 同样的限流 fallback 策略（glm-4.6v-flash → glm-4v-flash，429 退避重试 2 次）
+
+**修复2: AutomationController 新增 currentTaskIsQuiz 标记** ([AutomationController.kt#L320-L324](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L320))
+- 新增 `@Volatile private var currentTaskIsQuiz: Boolean = false`
+- start() 中重置（[line 550](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L550)）
+- processTask 点击按钮前设置（[line 2139](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2139)）：`buttonText.contains("答题") || taskContextText.contains("答题") || taskContextText.contains("问答")`
+
+**修复3: checkTaskResult 新增 AI 视觉答题分支** ([AutomationController.kt#L3292-L3346](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L3292))
+- 插入位置：QUIZ_PAGE 文本答题分支之后、onFarm 分支之前
+- 触发条件：`currentTaskIsQuiz=true && scene != QUIZ_PAGE`（答题任务但无障碍树没抓到答题内容）
+- 流程：后台线程 takeScreenshotBitmap → AiVisionClient.answerQuizByVision → handler.post 按坐标 dispatchGestureClick 正确答案 → checkTaskResult(attempt+1) 检测结果
+- 失败兜底：截图 null 或 AI 返回 null → 跳过任务（currentTaskIndex++ → OPENING_TASK_LIST）
+- 点击后重置 currentTaskIsQuiz=false（避免后续 checkTaskResult 重复触发）
+
+**与现有 QUIZ_PAGE 文本答题分支的关系**:
+- QUIZ_PAGE 分支：无障碍树抓到问题+选项文本 → QuizAnswerClient.askAnswer（纯文本 API）→ 按节点点击
+- AI 视觉答题分支：无障碍树抓不到 → AiVisionClient.answerQuizByVision（视觉 API）→ 按坐标点击
+- 两者互补，覆盖原生答题页 + H5/Canvas 答题页两种场景
+
+**编译验证**: sandbox 网络限制 gradle wrapper 下载超时，无法本地编译。代码逻辑审查通过（takeScreenshotBitmap/dispatchGestureClick 方法签名与现有用法一致），等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build609 淘宝"去红包签到得肥料"任务死循环滑动（签到天数误识别为浏览进度 + 签到任务误判为浏览任务）
 **用户需求**: "拉取最新日志分析" → "修复" + "签到的肥料任务需要"
 
