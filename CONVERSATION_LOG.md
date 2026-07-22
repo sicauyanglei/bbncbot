@@ -54,7 +54,13 @@
 - `isMainAct` 判定增加 `activity.contains("taobao.tao.welcome")`
 - found>=3 tabs 时几乎不可能是其他页面(商品详情页 ttdetailactivity 等不会有完整 5 tab)
 
-**编译验证**: 等 CI 构建验证
+**编译验证**: GitHub Actions run #608 (build608-bdc9eef) ✅ success (2026-07-22T13:04:17Z, 仅 2 分钟)
+- Release: https://github.com/sicauyanglei/bbncbot/releases/tag/v_29922143570
+- APK 下载（3 个）:
+  - `bbncbot-bdc9eef.apk` (4.7MB, 主应用 noOcr)
+  - `bbncbot-full-bdc9eef.apk` (44MB, 自带 OCR,推荐)
+  - `bbncbot-ocr-bdc9eef.apk` (43.7MB, OCR 模块)
+- 内嵌 BUILD_LABEL: `build608-bdc9eef`
 
 ---
 
