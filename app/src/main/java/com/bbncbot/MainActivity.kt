@@ -59,20 +59,24 @@ class MainActivity : AppCompatActivity() {
     private var lastGuidedPermission: String? = null
 
     /**
-     * 是否为"首次 resume"，用于触发"默认从桌面快捷方式进入芭芭农场"
+     * 是否为"首次 resume"，用于触发"点 App 图标即进农场"
      * - true：本次 onResume 应触发默认进入农场（权限就绪时调用 openFarmInUcBrowser）
      * - false：跳过默认行为，仅展示主界面（让用户可配置 Token / 启动悬浮窗等）
      *
      * 置 true 的时机：
-     * - [onCreate]（字段初始化默认值）：进程刚启动，第一次进主界面
-     * - [onNewIntent] 收到 CATEGORY_HOME：用户按 HOME 键回到本应用（默认桌面），
-     *   期望直接进入农场；程序化拉起（悬浮窗 home 按钮、桌面快捷方式）不带
-     *   CATEGORY_HOME，不会触发，从而允许用户回到主界面配置。
+     * - [onCreate]（字段初始化默认值）：进程刚启动，用户从桌面点本 App 图标进入
      *
      * 置 false 的时机：
      * - [onResume] 中"默认进入农场"分支真正执行后清零，避免从农场按返回键回到
      *   MainActivity 时被反复拉起。权限未就绪时不清零，等下次 onResume 权限齐备
      *   再触发，确保用户授完权限后能自动进入农场。
+     *
+     * 设计变更（build607）：
+     * - build606 原设计依赖"本 App 被设为默认桌面"，用户按 HOME 键回本应用时触发
+     * - 实测用户荣耀手机默认桌面是系统桌面，未将本 App 设为默认桌面，功能无法触发
+     * - build607 改为"点 App 图标即进农场"：进程启动即触发，不依赖默认桌面身份
+     *   （openFarmInUcBrowser 内部优先用 FarmShortcutLauncher，失败回退 UC 浏览器
+     *   打开 deep link，两条路径都不强制要求默认桌面）
      */
     private var isFirstResume: Boolean = true
 
@@ -220,13 +224,11 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent)
         // singleTask 模式下复用 Activity，从桌面快捷方式再次进入会走这里
         pendingPlatform = intent?.getStringExtra(EXTRA_PLATFORM)
-        // 仅当用户按 HOME 键回到本应用（默认桌面）时，才视为"首次 resume"触发默认进入农场；
-        // 程序化拉起（悬浮窗 home 按钮 / 桌面快捷方式 intent）不带 CATEGORY_HOME，
-        // 不会触发，从而允许用户回到主界面配置 Token / 启动悬浮窗。
-        if (intent?.categories?.contains(Intent.CATEGORY_HOME) == true) {
-            isFirstResume = true
-            debugLog("onNewIntent: CATEGORY_HOME detected, will default to opening farm on resume")
-        }
+        // build607：去掉 CATEGORY_HOME 检测。
+        // 原设计依赖"本 App 被设为默认桌面"，用户按 HOME 键回本应用时触发默认进农场。
+        // 实测用户荣耀手机用的是系统桌面，本 App 不是默认桌面，CATEGORY_HOME 永远不会
+        // 投递到本 Activity。改为"点 App 图标即进农场"（onCreate 时 isFirstResume=true），
+        // 不依赖默认桌面身份。
     }
 
     override fun onResume() {
@@ -245,31 +247,34 @@ class MainActivity : AppCompatActivity() {
             return
         }
         // 无待执行平台时：
-        // - 权限已就绪 + 自动化未运行 + 首次 resume → 默认从桌面快捷方式进入 UC 芭芭农场
-        //   （本 App 作为默认桌面时，按 HOME 即可一键进入农场，无需手动点击按钮）
-        // - 权限未就绪 → 串行引导缺失权限（悬浮窗 → 无障碍 → 默认桌面），
+        // - 权限已就绪 + 自动化未运行 + 首次 resume → 默认进入 UC 芭芭农场
+        //   （build607：点 App 图标即进农场，不依赖默认桌面身份）
+        // - 权限未就绪 → 串行引导缺失权限（悬浮窗 → 无障碍），
         //   保留 isFirstResume=true，等权限齐备后下一次 onResume 再触发默认进入
         if (isFirstResume && allPermissionsReady() &&
             !com.bbncbot.automation.AutomationController.isRunning
         ) {
             isFirstResume = false
-            debugLog("onResume: first resume & all permissions ready & automation idle, default to opening UC farm via shortcut")
+            debugLog("onResume: first resume & permissions ready & automation idle, default to opening UC farm")
             openFarmInUcBrowser()
             return
         }
-        // 无待执行平台时，串行引导缺失权限（悬浮窗 → 无障碍 → 默认桌面）
+        // 无待执行平台时，串行引导缺失权限（悬浮窗 → 无障碍，默认桌面改为可选不强求）
         guideNextMissingPermission()
     }
 
     /**
-     * 三项关键权限是否全部就绪：悬浮窗 + 无障碍 + 默认桌面
-     * - 默认进入农场流程要求三项齐备，否则仍走 [guideNextMissingPermission] 引导
+     * 关键权限是否全部就绪：悬浮窗 + 无障碍
+     * - 默认进入农场流程要求这两项齐备，否则仍走 [guideNextMissingPermission] 引导
+     * - build607：去掉默认桌面检查。原设计依赖默认桌面身份枚举桌面快捷方式，
+     *   实测用户荣耀手机用的是系统桌面，强制要求默认桌面会导致功能无法使用。
+     *   openFarmInUcBrowser 内部优先用 FarmShortcutLauncher（需默认桌面），
+     *   失败回退 UC 浏览器打开 deep link（不依赖默认桌面），两条路径都能工作。
      */
     private fun allPermissionsReady(): Boolean {
         val overlayOk = PermissionUtils.canDrawOverlays(this)
         val accessibilityOk = PermissionUtils.isAccessibilityEnabled(this, FarmAccessibilityService::class.java)
-        val launcherOk = FarmShortcutLauncher.isDefaultLauncher(this)
-        return overlayOk && accessibilityOk && launcherOk
+        return overlayOk && accessibilityOk
     }
 
     /**
@@ -277,12 +282,14 @@ class MainActivity : AppCompatActivity() {
      * - 同一个缺失项不重复跳（避免从设置页返回未授权时反复弹）
      * - 上一项授权后会自动引导下一项（lastGuidedPermission 会随缺失项变化更新）
      * - 通知权限已在 onCreate 用系统对话框申请，不在此处理
+     * - build607：默认桌面不再作为必需权限引导。原设计依赖默认桌面身份枚举桌面快捷方式，
+     *   实测用户荣耀手机用的是系统桌面，强制引导会让用户每次进 App 都被弹设置页。
+     *   默认桌面改为可选：设了能用桌面快捷方式进入，没设也能用 UC 浏览器 deep link 进入。
      */
     private fun guideNextMissingPermission() {
         val missing = when {
             !PermissionUtils.canDrawOverlays(this) -> "overlay"
             !PermissionUtils.isAccessibilityEnabled(this, FarmAccessibilityService::class.java) -> "accessibility"
-            !FarmShortcutLauncher.isDefaultLauncher(this) -> "launcher"
             else -> null
         }
         if (missing == null) {
@@ -303,10 +310,6 @@ class MainActivity : AppCompatActivity() {
             "accessibility" -> {
                 Toast.makeText(this, "需要开启无障碍服务以自动操作，请开启", Toast.LENGTH_LONG).show()
                 PermissionUtils.openAccessibilitySettings(this)
-            }
-            "launcher" -> {
-                Toast.makeText(this, "请将本应用设为默认桌面，以便直接打开芭芭农场", Toast.LENGTH_LONG).show()
-                FarmShortcutLauncher.requestDefaultLauncher(this)
             }
         }
     }

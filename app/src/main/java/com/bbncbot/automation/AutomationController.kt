@@ -1043,11 +1043,36 @@ object AutomationController {
             val appContext = service.applicationContext
             val sceneContext = "UC芭芭农场主页, 平台=${service.currentPlatform}, " +
                 "pkg=${service.getCurrentWindowPackage()}, act=${service.getCurrentActivityName()}"
+            // build607 修复（debug_test_20260722_075045.log line 59-60）：
+            // AI 视觉是异步子线程,主线程只 postDelayed 等结果。若 AI 视觉调用慢
+            // （2 个 model × 3 次重试 × 45s readTimeout,最坏接近 5 分钟）,主线程
+            // 会一直停在 COLLECTING_DIRECT 状态。日志显示用户 28 秒后手动停止。
+            // 加 15 秒超时保护：超时后 fallback 到 OPENING_TASK_LIST,避免卡死。
+            val aiVisionTimeoutMs = 15_000L
+            val aiVisionCompleted = java.util.concurrent.atomic.AtomicBoolean(false)
+            val aiVisionTimeoutRunnable = Runnable {
+                if (aiVisionCompleted.getAndSet(true)) return@Runnable
+                if (state != AutomationState.COLLECTING_DIRECT) return@Runnable
+                debugLog("collectDirect: AI vision timed out after ${aiVisionTimeoutMs}ms, fallback to task list")
+                Log.w(TAG, "collectDirect: AI vision timed out after ${aiVisionTimeoutMs}ms, fallback to OPENING_TASK_LIST")
+                // 超时后改走任务列表,不再等 AI 视觉结果
+                handler.post {
+                    if (state == AutomationState.COLLECTING_DIRECT) {
+                        state = AutomationState.OPENING_TASK_LIST
+                        runOpeningTaskList(0)
+                    }
+                }
+            }
+            handler.postDelayed(aiVisionTimeoutRunnable, aiVisionTimeoutMs)
             Thread {
                 val bitmap = service.takeScreenshotBitmap()
                 if (bitmap == null) {
                     debugLog("collectDirect: AI vision skipped, screenshot not available")
                     handler.post {
+                        // AI 视觉结束（截图失败）,取消超时
+                        if (!aiVisionCompleted.getAndSet(true)) {
+                            handler.removeCallbacks(aiVisionTimeoutRunnable)
+                        }
                         if (state != AutomationState.COLLECTING_DIRECT) return@post
                         // 截图失败,继续 attempt+1 重试
                         handler.postDelayed({
@@ -1062,6 +1087,10 @@ object AutomationController {
                     )
                     bitmap.recycle()
                     handler.post {
+                        // AI 视觉结束（成功或未找到）,取消超时
+                        if (!aiVisionCompleted.getAndSet(true)) {
+                            handler.removeCallbacks(aiVisionTimeoutRunnable)
+                        }
                         if (state != AutomationState.COLLECTING_DIRECT) return@post
                         if (result == null) {
                             debugLog("collectDirect: AI vision did not find '点击领取' button, continue to cross-platform/task-list")
@@ -1094,6 +1123,10 @@ object AutomationController {
                     debugLog("collectDirect: AI vision exception: ${e.message}")
                     try { bitmap.recycle() } catch (_: Exception) {}
                     handler.post {
+                        // AI 视觉结束（异常）,取消超时
+                        if (!aiVisionCompleted.getAndSet(true)) {
+                            handler.removeCallbacks(aiVisionTimeoutRunnable)
+                        }
                         if (state != AutomationState.COLLECTING_DIRECT) return@post
                         handler.postDelayed({
                             if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)

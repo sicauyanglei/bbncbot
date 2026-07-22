@@ -32,6 +32,46 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build607 点 App 图标即进农场（不依赖默认桌面）+ systemui 误判 + AI 视觉卡死超时
+**用户需求**: "分析日志"
+
+**输入日志**: `logs/debug_test_20260722_075045.log` (build606-3bfc8bc, 66 行, 2026-07-22 07:50 上传)
+
+**日志暴露的 4 个问题**:
+
+| # | 问题 | 行号 | 严重性 |
+|---|------|------|--------|
+| 1 | build606 核心功能依赖默认桌面,用户荣耀手机未设置 → 按 HOME 进农场未触发 | 5 | 致命(新功能失效) |
+| 2 | `pkg=com.android.systemui` 但 Activity 是淘宝 TMSActivity → activeRootPkg 取错窗口 | 18/35/45 | 高(影响平台判断) |
+| 3 | 第一次 Automation Started 后 11ms 就 STOPPING → state 异常翻转 | 28-30 | 中(疑似用户快速点了两次) |
+| 4 | AI 视觉识别卡死 28 秒后用户手动 STOPPING,无超时保护 | 59-60 | 高(直接卡死) |
+
+**修复 1: 点 App 图标即进农场** ([MainActivity.kt](file:///workspace/app/src/main/java/com/bbncbot/MainActivity.kt))
+- 用户选择"不依赖默认桌面,另设计" → 方案: 点 App 图标即进农场
+- `isFirstResume` 字段初始化为 true(onCreate 时即触发),去掉 `onNewIntent` 的 CATEGORY_HOME 检测
+- `allPermissionsReady()` 去掉 `launcherOk` 检查,只保留悬浮窗 + 无障碍
+- `guideNextMissingPermission` 不再强制引导默认桌面(改为可选)
+- `openFarmInUcBrowser` 内部优先用 FarmShortcutLauncher(需默认桌面),失败回退 UC 浏览器 deep link(不依赖默认桌面),两条路径都能工作
+
+**修复 2: systemui 误判** ([FarmAccessibilityService.kt](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L454-L485))
+- `getCurrentWindowPackage()` 在排除列表中增加 `com.android.systemui`
+- 原逻辑: 优先返回非农场包名的窗口,状态栏 systemui 排在 windows 列表前面被误返回
+- 修复后: 跳过 systemui,继续找真正的农场 App 窗口
+
+**修复 3: AI 视觉卡死超时** ([AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1046-L1137))
+- 加 15 秒超时保护: `aiVisionTimeoutRunnable` + `AtomicBoolean aiVisionCompleted`
+- 超时后 fallback 到 `OPENING_TASK_LIST`,不再卡在 COLLECTING_DIRECT
+- AI 视觉子线程的所有返回点(截图失败/成功/未找到/异常)都取消超时
+- 用 `AtomicBoolean.getAndSet` 保证超时 runnable 和 AI 完成回调只有一个能执行后续逻辑
+
+**未处理(问题 3)**: state 异常翻转(11ms STOPPING)
+- 疑似用户快速点了两次"开始施肥"按钮,或 STOPPING 触发逻辑问题
+- 日志样本太少(只有 1 次),暂不处理,等更多日志确认
+
+**编译验证**: sandbox 网络限制 gradle wrapper 下载超时,无法本地编译。代码逻辑审查通过,等 CI 构建验证。
+
+---
+
 ### commit 51e4f57 - feat: 芭芭农场默认从桌面快捷方式进入（按 HOME 一键进农场）
 **用户需求**: "芭芭农场默认从桌面快捷方式进入"
 

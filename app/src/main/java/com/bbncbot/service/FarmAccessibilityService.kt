@@ -462,7 +462,12 @@ class FarmAccessibilityService : AccessibilityService() {
                     pkg !in cfg.packageNames &&
                     cfg.internalPackagePrefixes.none { pkg.startsWith(it) } &&
                     pkg != "com.bbncbot" &&
-                    pkg != "android") {
+                    pkg != "android" &&
+                    // build607 修复（debug_test_20260722_075045.log line 18/35/45）：
+                    // 荣耀手机状态栏窗口（com.android.systemui）排在 windows 列表前面，
+                    // 被当作 activeRootPkg 返回，导致 isFarmAppInForeground 等判断误以为
+                    // 不在农场 App。排除 systemui，让循环继续找真正的农场 App 窗口。
+                    pkg != "com.android.systemui") {
                     return pkg
                 }
             }
