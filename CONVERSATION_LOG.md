@@ -32,6 +32,69 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build609 淘宝"去红包签到得肥料"任务死循环滑动（签到天数误识别为浏览进度 + 签到任务误判为浏览任务）
+**用户需求**: "拉取最新日志分析" → "修复" + "签到的肥料任务需要"
+
+**输入日志**: `logs/debug_test_20260722_213059.log` (build608-bdc9eef, 287 行, 2026-07-22 21:30 上传, TAOBAO 平台)
+
+**build607/608 修复验证全部生效** ✅:
+- build608 淘宝 welcome 闪屏页卡死: line 18 直接 `act=TMSActivity, onFarm=true`,无 welcome 卡死
+- build607 点 App 图标即进农场: line 5 `onResume: first resume & permissions ready, default to opening UC farm`
+- build607 AI 视觉 15s 超时保护: line 41 `AI vision timed out after 15000ms, fallback to task list`,未卡死
+- "去签到"任务完成: line 127 `isTaskCompletePage: YES`,签到成功
+
+**日志暴露的新问题（核心）**: "去红包签到得肥料"任务死循环滑动 9 次/27 秒,用户手动停止
+
+| 行号 | 现象 |
+|------|------|
+| 224-228 | task='去红包签到得肥料(0/1) 浏览10s得 +300 去完成',`isBrowseTask=true`（描述含"浏览"命中 browseKeywords）|
+| 241-242 | 点击"去完成"后进入红包签到页（五棱镜poplayer/再攒67360元宝提现/累计签到奖励(1/7)）,不是浏览页 |
+| 243-245 | `findProgressFraction` 把"累计签到奖励(1/7)"签到连续天数误识别为浏览进度 cur=1/tot=7 → `target swipes = 5` |
+| 248-281 | 滑动 #1-9,"累计签到奖励(1/7)"永远不变（签到天数不会因滑动改变）|
+| 263-278 | swipeCount>5 后 `hasRemainingProgress=true`（1/7,remaining=6>0）→ "keep swiping within wait limit" 持续滑动 |
+| 282 | 用户手动停止（否则会滑到 waitLimit=35 次/~105 秒）|
+
+**根因（2 处误判叠加）**:
+1. **findProgressFraction 误识别**: 正则 `(\d+)/(\d+)` 匹配到"累计签到奖励(1/7)",把签到连续天数（第1天/共7天）当作浏览进度（1秒/7秒）。导致 `browseTaskTargetSwipes=5` + `hasRemainingProgress` 永远为 true
+2. **isBrowseTask 误判**: browseKeywords 含"浏览",任务描述"去红包签到得肥料(0/1) 浏览10s得 +300"命中 → 判为浏览任务。但落地页是红包签到页（内容固定,滑动无意义）
+
+**修复（2 处互补）**:
+
+**修复1: findProgressFraction 排除签到分数** ([FarmAccessibilityService.kt#L1420-L1438](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L1420))
+- plainFraction 匹配后,检查文本是否含"签到",含则跳过（签到天数不是浏览进度）
+- secondsFraction 不受影响（要求"[秒s]"后缀,"1/7"不匹配）
+
+```kotlin
+if (cur in 0..300 && tot in 1..300 && cur <= tot) {
+    // build609 修复：排除签到相关分数。
+    if (text.contains("签到")) {
+        debugLog("findProgressFraction: skip sign-in day fraction '$text' (not browse progress)")
+        continue
+    }
+    debugLog("findProgressFraction: found plain fraction '$text', cur=$cur, tot=$tot")
+    return BrowseProgressInfo(ProgressType.FRACTION, cur, tot, text)
+}
+```
+
+**修复2: isBrowseTask 排除签到任务** ([FarmAccessibilityService.kt#L2766-L2776](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L2766))
+- browseKeywords 匹配后,加排除条件 `!contextText.contains("签到")`
+- 签到任务走普通点击流程（processTask 点击"去完成" → checkTaskResult 兜底处理）,不走 BROWSING_TASK 滑动流程
+- "去签到"等纯签到任务本不含"浏览"不会命中 browseKeywords,此处只防御含"浏览"的签到任务
+
+```kotlin
+val isBrowse = browseKeywords.any { contextText.contains(it) } &&
+    // build609 修复：排除签到类任务。
+    !contextText.contains("签到")
+```
+
+**两处修复互补**:
+- 即使 isBrowseTask 误判（含"浏览"）,findProgressFraction 排除签到分数后浏览流程也能快速退出（无进度提示 → "not a browse task, exiting without swiping"）
+- isBrowseTask 排除签到后,签到任务走普通点击流程,processTask 点击进入签到页,checkTaskResult 兜底处理（红包签到页 onFarm=false,scene≠SIGN_IN,会走 unknown page 调 AI 视觉兜底）
+
+**编译验证**: sandbox 网络限制 gradle wrapper 下载超时,无法本地编译。代码逻辑审查通过,等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build608 淘宝 welcome 闪屏页卡死（isOnTaobaoHomePage 误判）
 **用户需求**: "分析日志"
 

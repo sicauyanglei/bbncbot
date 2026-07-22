@@ -1422,6 +1422,16 @@ class FarmAccessibilityService : AccessibilityService() {
                 val cur = m2.groupValues[1].toIntOrNull() ?: 0
                 val tot = m2.groupValues[2].toIntOrNull() ?: 0
                 if (cur in 0..300 && tot in 1..300 && cur <= tot) {
+                    // build609 修复：排除签到相关分数。
+                    // 日志 debug_test_20260722_213059.log 显示淘宝"去红包签到得肥料"任务落地页是
+                    // 红包签到页，文本"累计签到奖励(1/7)"是签到连续天数（第1天/共7天），
+                    // 被误识别为浏览进度 cur=1/tot=7 → hasRemainingProgress 永远为 true
+                    // → runBrowsingTask 死循环滑动 9 次/27 秒直至用户手动停止。
+                    // 签到天数不会因滑动改变，不是浏览进度，含"签到"关键词的分数一律跳过。
+                    if (text.contains("签到")) {
+                        debugLog("findProgressFraction: skip sign-in day fraction '$text' (not browse progress)")
+                        continue
+                    }
                     debugLog("findProgressFraction: found plain fraction '$text', cur=$cur, tot=$tot")
                     return BrowseProgressInfo(ProgressType.FRACTION, cur, tot, text)
                 }
@@ -2754,7 +2764,15 @@ class FarmAccessibilityService : AccessibilityService() {
             "短剧", "观看", "看一部"
         ) + currentPlatformConfig().browseTaskKeywords
         val contextText = collectTaskContextText(button)
-        val isBrowse = browseKeywords.any { contextText.contains(it) }
+        val isBrowse = browseKeywords.any { contextText.contains(it) } &&
+            // build609 修复：排除签到类任务。
+            // 日志 debug_test_20260722_213059.log 显示淘宝"去红包签到得肥料(0/1) 浏览10s得 +300"
+            // 任务描述含"浏览"被误判为浏览任务，但落地页是红包签到页（内容固定，滑动无意义），
+            // 滑动不会推进任务进度。签到类任务应走普通点击流程（processTask 点击"去完成"
+            // 进入签到页 → checkTaskResult 兜底处理），不走 BROWSING_TASK 滑动流程。
+            // "去签到"等纯签到任务本不含"浏览"不会命中 browseKeywords，此处只防御含"浏览"
+            // 的签到任务（如"红包签到得肥料 浏览10s得"）。
+            !contextText.contains("签到")
         debugLog("isBrowseTask: buttonText='$buttonText', context='$contextText', isBrowse=$isBrowse")
         return isBrowse
     }
