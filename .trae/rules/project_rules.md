@@ -36,7 +36,8 @@
 2. **推送**（git push）：
    - 目标分支：远端 `main` 分支
    - 命令：`git push HEAD:main --force`（trae 工作分支覆盖远端 main 历史）
-   - 认证：使用用户提供的 GitHub PAT（通过 URL 内嵌 token 方式，不写入 git config）
+   - 认证：GitHub PAT 默认保存在本文件「附录：GitHub 认证 Token」章节，每次推送直接读取使用，无需用户再次提供
+   - Token 通过 URL 内嵌方式（不写入 git config，不持久化到 git 凭证存储）
    - 推送后立即在输出中脱敏 token（`sed 's/github_pat_[A-Za-z0-9_]*/***TOKEN***/g'`）
 
 3. **触发 CI**：
@@ -65,3 +66,25 @@
 | `app/src/main/java/com/bbncbot/automation/Platform.kt` | 平台配置（UC/ALIPAY/TAOBAO） |
 | `.github/workflows/build.yml` | CI 构建配置（paths-ignore: *.md） |
 | `logs/` | 测试日志目录（用户上传，用于分析） |
+
+---
+
+## 附录：GitHub 认证 Token
+
+> **安全说明**：GitHub Push Protection 会拦截明文 PAT，token 不能直接写入版本库。
+> Token 保存在本地未追踪文件 `.trae/rules/.github_token`（被 .gitignore 忽略），
+> 每次推送时从该文件读取，通过 URL 内嵌方式使用，不写入 git config。
+
+**仓库**: `https://github.com/sicauyanglei/bbncbot`
+
+**账号**: `sicauyanglei`
+
+**Token 存储位置**: `/workspace/.trae/rules/.github_token`（本地文件，单行，仅含 token，无换行无空格）
+
+**推送命令模板**（每次推送从本地文件读取 token 后复用）:
+```bash
+TOKEN=$(cat /workspace/.trae/rules/.github_token) && \
+git -c credential.helper= push "https://sicauyanglei:${TOKEN}@github.com/sicauyanglei/bbncbot" HEAD:main --force 2>&1 | sed "s/${TOKEN}/***TOKEN***/g"
+```
+
+**Token 失效处理**：若推送返回 401/403（认证失败），提示用户提供新 PAT，更新 `.trae/rules/.github_token` 文件后继续使用。
