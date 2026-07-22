@@ -5944,10 +5944,18 @@ class FarmAccessibilityService : AccessibilityService() {
         val activity = currentActivityName?.lowercase().orEmpty()
         val pkg = currentEventPkg?.lowercase().orEmpty()
         val isTaobaoPkg = pkg.contains("taobao")
+        // build608 修复（debug_test_20260722_205618.log line 10-22）：
+        // 淘宝启动 Activity 是 com.taobao.tao.welcome.welcome（闪屏页），主页 UI 加载后
+        // 通常切换到 mainactivity，但有时会停留在 welcome（闪屏未完全消失但主页 tab 已加载）。
+        // 原判定列表含 welcometaobao 但不含 welcome.welcome，导致 found=5 tabs 全找到却
+        // 判定"不在主页"，导航逻辑按 back 5 次想返回主页，反而退出淘宝。
+        // 修复：把 taobao.tao.welcome 加入 isMainAct 判定。found>=3 tabs 时几乎不可能是
+        // 其他页面（商品详情页 ttdetailactivity 等不会有完整 5 tab），可放心认定在主页。
         val isMainAct = activity.contains("mainactivity") ||
             activity.contains("fragmenttabactivity") ||
             activity.contains("taobaomain") ||
-            activity.contains("welcometaobao")
+            activity.contains("welcometaobao") ||
+            activity.contains("taobao.tao.welcome")
         val metrics = resources.displayMetrics
         // build602: activity 必须是主页 Activity（必要条件）
         // 商品详情页 ttdetailactivity、交易页 ultrontradehybridactivity、小程序 tmsactivity 等

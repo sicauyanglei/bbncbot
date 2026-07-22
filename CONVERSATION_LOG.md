@@ -32,6 +32,32 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build608 淘宝 welcome 闪屏页卡死（isOnTaobaoHomePage 误判）
+**用户需求**: "分析日志"
+
+**输入日志**: `logs/debug_test_20260722_205618.log` (build606-3bfc8bc, 56 行, 2026-07-22 20:56 上传)
+
+**⚠️ 重要**: 日志 line 1 显示 `build=build606-3bfc8bc`,**用户还在用 build606,没装 build607**!build607 Release downloads=0 印证。build607 的 3 个修复(点 App 图标进农场/systemui/AI 视觉超时)都未生效。build608 包含 build607 全部修复,用户直接装 build608 即可。
+
+**日志暴露的问题**: 淘宝 welcome 闪屏页卡死（line 10-22）
+
+| 行号 | 现象 |
+|------|------|
+| 10-22 | `isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.tao.welcome.welcome)` × 6 次,found=5 tabs 全找到 |
+| 22 | `failed to reach main page after 5 retries` |
+| 27-36 | 自动化启动后 `isOnFarmPage: activity=welcome not in farm keywords, not on farm page` × 多次 |
+| 50-52 | 用户手动停止 |
+
+**根因**: [isOnTaobaoHomePage](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L5930) 的 `isMainAct` 判定列表含 `welcometaobao` 但不含 `welcome.welcome`。淘宝启动 Activity 是 `com.taobao.tao.welcome.welcome`(闪屏页),主页 UI 加载后通常切换到 mainactivity,但有时停留在 welcome。found=5 tabs 全找到说明主页已加载,但 activity 判定否决,导航逻辑按 back 5 次想返回主页,反而退出淘宝。
+
+**修复** ([FarmAccessibilityService.kt#L5954-L5958](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt)):
+- `isMainAct` 判定增加 `activity.contains("taobao.tao.welcome")`
+- found>=3 tabs 时几乎不可能是其他页面(商品详情页 ttdetailactivity 等不会有完整 5 tab)
+
+**编译验证**: 等 CI 构建验证
+
+---
+
 ### commit (待提交) - fix: build607 点 App 图标即进农场（不依赖默认桌面）+ systemui 误判 + AI 视觉卡死超时
 **用户需求**: "分析日志"
 
