@@ -14,6 +14,8 @@ debug.keystore
 *.iml
 .vscode/
 .trae/
+# 例外：项目规则文件需要提交到版本库，让远端会话也能加载规则
+!.trae/rules/
 
 # OS
 .DS_Store
