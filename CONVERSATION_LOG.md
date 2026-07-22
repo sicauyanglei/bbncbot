@@ -70,6 +70,14 @@
 
 **编译验证**: sandbox 网络限制 gradle wrapper 下载超时,无法本地编译。代码逻辑审查通过,等 CI 构建验证。
 
+**CI 构建结果**: GitHub Actions run #607 (build607-c75efa4) ✅ success (2026-07-22T00:05:39Z, 仅 2 分 34 秒)
+- Release: https://github.com/sicauyanglei/bbncbot/releases/tag/v_29879050274
+- APK 下载（3 个）:
+  - `bbncbot-c75efa4.apk` (4.7MB, 主应用 noOcr,需配合 OCR APK)
+  - `bbncbot-full-c75efa4.apk` (44MB, 自带 OCR,推荐单包方案)
+  - `bbncbot-ocr-c75efa4.apk` (43.7MB, OCR 模块)
+- 内嵌 BUILD_LABEL: `build607-c75efa4`
+
 ---
 
 ### commit 51e4f57 - feat: 芭芭农场默认从桌面快捷方式进入（按 HOME 一键进农场）
