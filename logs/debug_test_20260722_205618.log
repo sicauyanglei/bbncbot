@@ -1,0 +1,55 @@
+=== cleared on app start (version=2.2, build=build606-3bfc8bc, time=20:55:20) ===
+20:55:20.103 killPlatformApps: killed com.ucmobile.lite for UC
+20:55:20.105 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+20:55:20.108 killPlatformApps: killed com.taobao.taobao for TAOBAO
+20:55:26.324 FarmAccessibilityService connected, API=36
+20:55:34.965 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:55:34.967 openApp: shortcut unavailable for TAOBAO, fallback to deep link / navigation
+20:55:34.968 killPlatformApps: killed com.taobao.taobao for TAOBAO
+20:55:36.996 navigateToFarm: taobao, using 我的淘宝 path
+20:55:38.713 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.tao.welcome.welcome isMainAct=false), found=5 tabs=[首页, 消息, 我的淘宝, 视频, 购物车] pkg=com.taobao.taobao screenW=1200 screenH=2543
+20:55:38.713 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.tao.welcome.welcome retry=0/1200 x 2543), pressing back first
+20:55:42.035 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.tao.welcome.welcome isMainAct=false), found=5 tabs=[首页, 消息, 我的淘宝, 视频, 购物车] pkg=com.taobao.taobao screenW=1200 screenH=2543
+20:55:42.037 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.tao.welcome.welcome retry=1/1200 x 2543), pressing back first
+20:55:44.782 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.tao.welcome.welcome isMainAct=false), found=5 tabs=[首页, 消息, 我的淘宝, 视频, 购物车] pkg=com.taobao.taobao screenW=1200 screenH=2543
+20:55:44.784 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.tao.welcome.welcome retry=2/1200 x 2543), pressing back first
+20:55:47.363 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.tao.welcome.welcome isMainAct=false), found=5 tabs=[首页, 消息, 我的淘宝, 视频, 购物车] pkg=com.taobao.taobao screenW=1200 screenH=2543
+20:55:47.365 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.tao.welcome.welcome retry=3/1200 x 2543), pressing back first
+20:55:50.056 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.tao.welcome.welcome isMainAct=false), found=5 tabs=[首页, 消息, 我的淘宝, 视频, 购物车] pkg=com.taobao.taobao screenW=1200 screenH=2543
+20:55:50.058 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.tao.welcome.welcome retry=4/1200 x 2543), pressing back first
+20:55:52.797 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.tao.welcome.welcome isMainAct=false), found=5 tabs=[首页, 消息, 我的淘宝, 视频, 购物车] pkg=com.taobao.taobao screenW=1200 screenH=2543
+20:55:52.800 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.tao.welcome.welcome retry=5/1200 x 2543), pressing back first
+20:55:54.805 navigate stepTab gesture: failed to reach main page after 5 retries (pkg=com.taobao.taobao act=com.taobao.tao.welcome.welcome)
+20:55:57.533 === Automation v2 Started === platform=TAOBAO
+20:55:57.537 cancelNavigation: all navigation callbacks cancelled
+20:55:57.560 reset platform complete: TAOBAO
+20:55:57.566 state: IDLE -> NAVIGATING
+20:55:57.598 isOnFarmPage: activity=com.taobao.tao.welcome.welcome not in farm keywords, not on farm page
+20:55:57.604 isOnFarmPage: activity=com.taobao.tao.welcome.welcome not in farm keywords, not on farm page
+20:55:57.969 isOnFarmPage: activity=com.taobao.tao.welcome.welcome not in farm keywords, not on farm page
+20:55:57.997 isOnFarmPage: activity=com.taobao.tao.welcome.welcome not in farm keywords, not on farm page
+20:55:58.031 isOnFarmPage: activity=com.taobao.tao.welcome.welcome not in farm keywords, not on farm page
+20:55:58.078 [navigate-start] snapshot: pkg=com.android.systemui, act=com.taobao.tao.welcome.Welcome, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:55:58.102 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:55:58.147 isOnFarmPage: activity=com.taobao.tao.welcome.welcome not in farm keywords, not on farm page
+20:55:58.280 isOnFarmPage: activity=com.taobao.tao.welcome.welcome not in farm keywords, not on farm page
+20:55:58.457 isOnFarmPage: activity=com.taobao.tao.welcome.welcome not in farm keywords, not on farm page
+20:55:58.528 navigate: calling navigateToFarm, platform=TAOBAO
+20:55:58.530 navigateToFarm: taobao, using 我的淘宝 path
+20:56:00.282 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.tao.welcome.welcome isMainAct=false), found=5 tabs=[首页, 消息, 我的淘宝, 视频, 购物车] pkg=com.taobao.taobao screenW=1200 screenH=2543
+20:56:00.285 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.tao.welcome.welcome retry=0/1200 x 2543), pressing back first
+20:56:03.097 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.tao.welcome.welcome isMainAct=false), found=5 tabs=[首页, 消息, 我的淘宝, 视频, 购物车] pkg=com.taobao.taobao screenW=1200 screenH=2543
+20:56:03.100 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.tao.welcome.welcome retry=1/1200 x 2543), pressing back first
+20:56:04.315 isOnFarmPage: activity=com.taobao.tao.welcome.welcome not in farm keywords, not on farm page
+20:56:04.697 isOnFarmPage: activity=com.taobao.tao.welcome.welcome not in farm keywords, not on farm page
+20:56:04.878 isOnFarmPage: activity=com.taobao.tao.welcome.welcome not in farm keywords, not on farm page
+20:56:06.041 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.tao.welcome.welcome isMainAct=false), found=5 tabs=[首页, 消息, 我的淘宝, 视频, 购物车] pkg=com.taobao.taobao screenW=1200 screenH=2543
+20:56:06.044 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.tao.welcome.welcome retry=2/1200 x 2543), pressing back first
+20:56:08.901 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.tao.welcome.welcome isMainAct=false), found=5 tabs=[首页, 消息, 我的淘宝, 视频, 购物车] pkg=com.taobao.taobao screenW=1200 screenH=2543
+20:56:08.904 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.tao.welcome.welcome retry=3/1200 x 2543), pressing back first
+20:56:08.913 state: NAVIGATING -> STOPPING
+20:56:08.916 cancelNavigation: all navigation callbacks cancelled
+20:56:08.918 state: STOPPING -> IDLE
+20:56:18.725 saveToken: saved (len=93, head='gith', tail='McKr')
+20:56:18.728 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+20:56:18.730 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260722_205618.log, localFile=debug.log (6962 bytes)
