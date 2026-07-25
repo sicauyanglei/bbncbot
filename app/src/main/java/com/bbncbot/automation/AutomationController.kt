@@ -172,6 +172,13 @@ object AutomationController {
      * build590 扩展：用户需求"开始观看得肥料"短剧任务,点击视频播放15秒后退出回主页
      * - 流程：短剧任务页(开始观看) → 点"开始观看" → 短剧播放页 → 等待15秒（滑动模拟活跃）→ pressBack 退出
      * - browsingShortDramaStarted: 已点"开始观看"（进入短剧播放页,可以开始等待/滑动）
+     *
+     * build620 扩展：用户需求"UC 浏览商品任务,点击某个商品后停留15秒才可以得到肥料"
+     * - 流程：商品列表页(商品卡片+得肥料) → 点击一个商品 → 商品详情页 → 等待15秒（滑动模拟活跃）→ pressBack 退出
+     * - browsingProductEntered: 已点击商品（进入商品详情页,可以开始等待/滑动）
+     * - 与短剧任务区别：商品任务点击商品卡片进入详情页（短剧点"开始观看"进入播放页）
+     * - 商品详情页有"加入购物车"+"立即购买"按钮,正常会被 isOnAbnormalPage 判为异常页退出,
+     *   browsingProductEntered=true 时豁免（继续停留等待肥料发放）
      */
     @Volatile
     private var browsingNovelStarted: Boolean = false
@@ -179,6 +186,8 @@ object AutomationController {
     private var browsingNovelEnteredContent: Boolean = false
     @Volatile
     private var browsingShortDramaStarted: Boolean = false
+    @Volatile
+    private var browsingProductEntered: Boolean = false  // build620: 浏览商品任务已进入商品详情页
 
     /**
      * 标记当前浏览任务是否从"搜索后浏览立得奖励"任务页进入
@@ -560,6 +569,7 @@ object AutomationController {
         quizVisionFailCount = 0  // build617: 复位 AI 视觉答题失败计数器
         browsingNovelEnteredContent = false  // build585: 复位小说内容页标记
         browsingShortDramaStarted = false  // build590: 复位短剧观看任务标记
+        browsingProductEntered = false  // build620: 复位浏览商品任务标记
         // 重置当前平台的广告完成标记（新一轮运行可重新标记完成）
         resetCurrentPlatformComplete(service)
         moveTo(AutomationState.NAVIGATING)
@@ -2195,6 +2205,8 @@ object AutomationController {
             browsingNovelEnteredContent = false
             // build590: 重置短剧观看任务标记（新一轮浏览任务开始）
             browsingShortDramaStarted = false
+            // build620: 重置浏览商品任务标记（新一轮浏览任务开始）
+            browsingProductEntered = false
             // 第一步：点击"去完成"按钮进入浏览页面
             val button = taskButtons.getOrNull(currentTaskIndex)
             if (button == null) {
@@ -2392,7 +2404,12 @@ object AutomationController {
 
         // 滑动前检测：是否在异常页面（交易页面、商品详情页、收银台等）→ 立即退出
         // 禁止交易获取肥料：所有交易相关页面都视为异常
-        if (service.isOnAbnormalPage()) {
+        // build620 豁免：browsingProductEntered=true 时,商品详情页是我们主动点击进入的,
+        // 需要停留15秒等待肥料发放,不视为异常页退出。
+        if (browsingProductEntered && service.isProductDetailPage()) {
+            debugLog("browseTask: in product detail page (browsingProductEntered=true), exempting from abnormal page check, keep waiting for fertilizer (swipe #$swipeCount/$browseTaskTargetSwipes)")
+            // 不退出,继续走下面的滑动逻辑（滑动模拟活跃,等待 isFertilizerGrantedPage/isTaskCompletePage）
+        } else if (service.isOnAbnormalPage()) {
             debugLog("browseTask: abnormal/trading page detected, exiting immediately")
             currentTaskIndex++
             collectedCount++
@@ -2492,6 +2509,38 @@ object AutomationController {
             debugLog("browseTask: short drama page detected but no 开始观看/继续观看 button found, swiping directly")
             browsingShortDramaStarted = true  // 避免重复检测
             browseTaskTargetSwipes = 8  // build590: 短剧任务默认 8 次滑动（15秒）
+        }
+
+        // build620: 浏览商品任务页检测——点击一个商品进入详情页,停留15秒后退出
+        // 用户需求：UC 浏览商品任务,需要点击某个商品后停留15秒才可以得到肥料
+        // 流程：
+        //   1) 商品列表页(商品卡片 + 得肥料 + 价格¥) → 点击一个商品 → 进入商品详情页
+        //   2) 商品详情页(加入购物车 + 立即购买) → 停留15秒（滑动模拟活跃）→ 等待肥料发放
+        //   3) 15秒后 isTaskCompletePage/isFertilizerGrantedPage 检测到完成 → pressBack 退出回主页
+        // 标志位：
+        //   browsingProductEntered: 已点击商品（在商品详情页,可以开始等待/滑动）
+        // 与短剧任务区别：商品任务点击商品卡片进入详情页（短剧点"开始观看"进入播放页）
+        // 商品详情页有"加入购物车"+"立即购买"按钮,正常会被 isOnAbnormalPage 判为异常页退出,
+        // 上方 build620 豁免逻辑已处理（browsingProductEntered=true 时豁免）
+        if (!browsingProductEntered && service.isBrowseProductListPage()) {
+            val productNode = service.findBrowseProductNode()
+            if (productNode != null) {
+                debugLog("browseTask: browse product list page detected, clicking product to enter detail")
+                Log.i(TAG, "browseTask: clicking product on browse product list page (enter detail, wait 15s)")
+                browsingProductEntered = true
+                // build620: 用户需求"停留15秒" → 15秒 / 2秒间隔 = 8 次滑动（与小说/短剧任务一致）
+                browseTaskTargetSwipes = 8
+                debugLog("browseTask: browse product target swipes = 8 (15s / 2s interval)")
+                service.performClickSafe(productNode)
+                // 等待商品详情页加载后开始滑动（模拟活跃,避免挂机判定）
+                handler.postDelayed({
+                    if (state == AutomationState.BROWSING_TASK) runBrowsingTask(swipeCount)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            debugLog("browseTask: browse product list page detected but no product node found, swiping directly")
+            browsingProductEntered = true  // 避免重复检测
+            browseTaskTargetSwipes = 8  // build620: 商品任务默认 8 次滑动（15秒）
         }
 
         // 执行滑动：在屏幕中部轻微上下交替滑动（不需要一直向下滑，小幅上下滑动即可模拟浏览）

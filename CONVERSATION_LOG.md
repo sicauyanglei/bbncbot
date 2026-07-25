@@ -32,6 +32,54 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - feat: build620 UC 浏览商品任务点击商品停留15秒得肥料
+**用户需求**: "uc浏览商品任务，需要点击某个商品后停留15秒才可以得到肥料"
+
+**背景**: 现有 `runBrowsingTask` 在 swipeCount=0 阶段明确跳过点商品（L2271-2274 注释"不主动点击商品进入详情页"），只在商品列表页滑动。但 UC 浏览商品任务需要点击商品进入详情页停留 15 秒才能获得肥料。商品详情页有"加入购物车"+"立即购买"按钮，正常会被 `isOnAbnormalPage` 判为异常页立即退出，无法停留。
+
+**修改（3 文件 5 处）**:
+
+**修复1: 新增 isBrowseProductListPage / findBrowseProductNode 方法** ([FarmAccessibilityService.kt#L2867-L2951](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L2867))
+- `isBrowseProductListPage()`: 检测商品列表页（特征：有"得肥料"+价格符号¥，无"加入购物车"/"立即购买"，无"开始阅读"/"开始观看"，无农场主页核心元素）
+- `findBrowseProductNode()`: 找含"¥"的可点击商品节点，优先屏幕中部（top 300~2000，bottom 500~2400），无 clickable 祖先时保留节点自身（dispatchGesture 按坐标点击，与 findGoCompleteButtons 一致）
+- 参考模板：`isShortDramaPage` / `findShortDramaPlayButton`（build590）
+
+**修复2: 新增 browsingProductEntered 字段 + 复位点** ([AutomationController.kt#L189-L190](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L189))
+- 新增 `@Volatile private var browsingProductEntered: Boolean = false`
+- 复位点1: `resetState()` ([line 572](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L572))
+- 复位点2: `runBrowsingTask(swipeCount=0)` 入口 ([line 2209](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2209))
+
+**修复3: isOnAbnormalPage 调用加 browsingProductEntered 豁免** ([AutomationController.kt#L2405-L2418](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2405))
+- 修改前: `if (service.isOnAbnormalPage())` → 商品详情页立即退出
+- 修改后: `if (browsingProductEntered && service.isProductDetailPage())` 豁免（继续停留等待肥料），`else if (service.isOnAbnormalPage())` 才退出
+- 理由: 商品详情页是我们主动点击进入的，需要停留 15 秒等待肥料发放，不应视为异常页
+
+**修复4: runBrowsingTask 新增浏览商品任务分支** ([AutomationController.kt#L2514-L2544](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2514))
+- 插入位置: 短剧任务检测之后（L2512）、执行滑动之前（L2546）
+- 流程: 检测 `isBrowseProductListPage()` → `findBrowseProductNode()` 找商品 → `performClickSafe` 点击 → `browsingProductEntered=true` + `browseTaskTargetSwipes=8`（15秒/2秒=8次）→ 等待 `INTERVAL_PAGE_LOAD_MS` 后继续滑动循环
+- 滑动循环中: `isFertilizerGrantedPage` 命中 → RETURNING（reopenFarmByDeepLink 重开农场）；`isTaskCompletePage` 命中 → pressBack 退出；15秒超时 → waitLimit 退出
+- 参考模板: build590 短剧任务分支（L2487-L2512）
+
+**修复5: UC browseTaskKeywords 追加商品关键词** ([Platform.kt#L278](file:///workspace/app/src/main/java/com/bbncbot/automation/Platform.kt#L278))
+- 修改前: `listOf("搜索浏览", "浏览搜索")`
+- 修改后: `listOf("搜索浏览", "浏览搜索", "逛商品", "浏览商品")`
+- 通用 `browseKeywords` 已含"看商品"/"宝贝"/"好物"/"推荐商品"等，此处追加 UC 平台特有文案"逛商品"/"浏览商品"
+
+**预期效果**:
+- UC 浏览商品任务（描述含"逛商品"/"浏览商品"）被 `isBrowseTask` 识别为浏览任务 → 进入 BROWSING_TASK
+- 点击"去完成"进入商品列表页 → `isBrowseProductListPage` 检测到 → `findBrowseProductNode` 找到商品 → 点击进入商品详情页
+- 商品详情页停留 15 秒（8 次 × 2 秒滑动模拟活跃）→ `isFertilizerGrantedPage`/`isTaskCompletePage` 检测到完成 → pressBack 退出回主页
+- 商品详情页不被 `isOnAbnormalPage` 误判退出（browsingProductEntered 豁免）
+
+**遗留问题（下次观察）**:
+- `isBrowseProductListPage` 依赖"¥"/"元"价格符号识别商品列表，若 UC 商品列表页无价格符号（如纯图片商品卡片），需补充识别特征
+- `findBrowseProductNode` 取第一个含"¥"的中部节点，可能点到非商品元素（如"¥0.01运费"等），下次日志验证
+- 15 秒停留后若未检测到肥料发放（`isFertilizerGrantedPage`/`isTaskCompletePage` 都没命中），会走 waitLimit 超时退出（pressBack），任务可能未完成
+
+**编译验证**: sandbox 网络限制 gradle wrapper 下载超时，无法本地编译。代码逻辑审查通过（参考 build590 短剧任务模式，复用 collectNodesByText/findClickableSelfOrParentInternal 既有方法），等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build619 AI 视觉答题奖励按钮检测增加重试（2.5 秒首次+2.5 秒重试，提高渲染慢时检测成功率）
 **用户需求**: "修复所有问题"（build616 修复3 的可靠性增强）
 

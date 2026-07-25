@@ -2865,6 +2865,92 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build620: 检测当前页面是否是浏览商品任务页（商品列表页）
+     *
+     * 用户需求：UC 浏览商品任务，需要点击某个商品后停留 15 秒才可以得到肥料。
+     * 商品列表页特征：
+     * - 有"得肥料"/"肥料"奖励提示（浏览商品任务的奖励标识）
+     * - 有商品价格符号（¥ 或 元），表明是商品列表
+     * - 没有"加入购物车"/"立即购买"（那是商品详情页，由 [isProductDetailPage] 检测）
+     * - 与农场主页区别：无"集肥料"/"施肥"/"芭芭农场"等种植页核心元素
+     * - 与小说/短剧任务页区别：无"开始阅读"/"开始观看"按钮
+     *
+     * @return true 表示当前是商品列表页（需点击一个商品进入详情页停留 15 秒）
+     */
+    fun isBrowseProductListPage(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        val hasFertilizerHint = allText.any {
+            it.contains("得肥料") || it.contains("肥料")
+        }
+        // 排除农场主页：农场主页也有"得肥料"文案,但不会有商品价格列表
+        val isFarmHome = allText.any {
+            it.contains("集肥料") || it.contains("施肥") || it.contains("芭芭农场")
+        }
+        // 排除商品详情页（有"加入购物车"+"立即购买"按钮）
+        val hasAddToCart = allText.any { it.contains("加入购物车") }
+        val hasBuyNow = allText.any { it.contains("立即购买") }
+        val isProductDetail = hasAddToCart && hasBuyNow
+        // 排除小说/短剧任务页（有"开始阅读"/"开始观看"按钮）
+        val isNovelOrDrama = allText.any {
+            it.contains("开始阅读") || it.contains("继续阅读") ||
+            it.contains("开始观看") || it.contains("继续观看")
+        }
+        // 商品列表页特征：有价格符号 ¥ 或 元（商品卡片通常包含价格）
+        val hasProductPrice = allText.any {
+            it.contains("¥") || it.contains("元")
+        }
+        val isProductList = hasFertilizerHint && !isFarmHome && !isProductDetail &&
+            !isNovelOrDrama && hasProductPrice
+        if (isProductList) {
+            debugLog("isBrowseProductListPage: YES (hasFertilizerHint=$hasFertilizerHint, isFarmHome=$isFarmHome, isProductDetail=$isProductDetail, isNovelOrDrama=$isNovelOrDrama, hasProductPrice=$hasProductPrice)")
+        }
+        return isProductList
+    }
+
+    /**
+     * build620: 查找商品列表页上的一个可点击商品节点
+     *
+     * 策略：找含价格符号 ¥ 的节点（商品卡片通常包含价格），取屏幕中部第一个合法节点。
+     * 优先点击屏幕中部的商品（避免点到底部的"加载更多"或顶部的搜索框）。
+     * 无 clickable 祖先时保留节点自身（dispatchGesture 按坐标点击，与 findGoCompleteButtons 一致）。
+     *
+     * @return 商品节点；找不到返回 null
+     */
+    fun findBrowseProductNode(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        // 收集含 "¥" 的节点（商品价格节点）
+        val out = mutableListOf<AccessibilityNodeInfo>()
+        val seen = HashSet<Int>()
+        collectNodesByText(root, listOf("¥"), out, seen)
+        if (out.isEmpty()) {
+            debugLog("findBrowseProductNode: no product node with '¥' found")
+            return null
+        }
+        // 过滤：bounds 合法 + 屏幕中部范围（避免顶部搜索框和底部加载更多）
+        for (node in out) {
+            val rect = android.graphics.Rect()
+            node.getBoundsInScreen(rect)
+            if (rect.width() <= 0 || rect.height() <= 0) continue
+            // 屏幕中部范围：top 300~2000，bottom 500~2400
+            if (rect.top < 300 || rect.bottom > 2400) continue
+            debugLog("findBrowseProductNode: found product node bounds=${rect.toShortString()}")
+            return node
+        }
+        // 兜底：所有节点都不在中部范围，取第一个合法 bounds 的节点
+        for (node in out) {
+            val rect = android.graphics.Rect()
+            node.getBoundsInScreen(rect)
+            if (rect.width() > 0 && rect.height() > 0 && rect.top < rect.bottom) {
+                debugLog("findBrowseProductNode: fallback to first valid node bounds=${rect.toShortString()}")
+                return node
+            }
+        }
+        debugLog("findBrowseProductNode: ${out.size} nodes found but none has valid bounds")
+        return null
+    }
+
+    /**
      * build586: 查找主页上的跨平台跳转按钮（"去支付宝农场领肥料"/"去淘宝农场领肥料"等）
      *
      * 用户需求（debug_test_20260721_173039.log, build585, UC 平台 line 25）：

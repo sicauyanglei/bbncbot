@@ -275,7 +275,7 @@ object UcPlatformConfig : PlatformConfig {
     // ---------- UC 平台差异化任务关键词 ----------
     // UC 广告设计特点：自有广告 + 穿山甲 SDK，游戏任务少，广告任务为主
     override val gameTaskKeywords = listOf<String>()  // UC 无独立小游戏入口
-    override val browseTaskKeywords = listOf("搜索浏览", "浏览搜索")  // UC 多为搜索浏览
+    override val browseTaskKeywords = listOf("搜索浏览", "浏览搜索", "逛商品", "浏览商品")  // UC 多为搜索浏览; build620: 追加"逛商品"/"浏览商品"用于浏览商品任务（点击商品停留15秒得肥料）
     override val paidTaskKeywords = listOf<String>()  // UC 付费陷阱少
     override val miniProgramTrapKeywords = listOf<String>()  // UC 无小程序
 }
