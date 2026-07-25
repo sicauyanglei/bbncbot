@@ -323,6 +323,15 @@ object AutomationController {
     @Volatile
     private var currentTaskIsQuiz: Boolean = false
 
+    // build617：AI 视觉答题连续失败计数器（防止死循环）
+    // 场景：AI 坐标不准（返回固定 0.5/0.917 屏幕底部）→ 点击不到正确选项 →
+    //       未弹出奖励按钮 → findQuizRewardButton 返回 null → 前进下一任务 →
+    //       任务进度仍 0/1 → openTaskList 重置 currentTaskIndex=0 → 又回到答题任务 → 死循环
+    // 修复：累计失败次数，超过阈值后强制跳过答题任务（openTaskList 从 currentTaskIndex=1 开始）
+    @Volatile
+    private var quizVisionFailCount: Int = 0
+    private val QUIZ_VISION_FAIL_THRESHOLD = 3
+
     // ---------- build529：AI 视觉进度识别节流（用户要求"全部实现"） ----------
     // 用于 runGamePlaying / runWatchingAd 中截屏识别环形进度条填充比例
     // 节流：避免每次轮询都调 AI（视觉模型推理慢 + 限流），GAME/AD 期间最多 20s 调一次
@@ -548,6 +557,7 @@ object AutomationController {
         aiVisionDirectClickAttempted = false  // build596: 复位 AI 视觉识别点击标记
         browsingNovelStarted = false  // build584: 复位小说阅读任务标记
         currentTaskIsQuiz = false  // build610: 复位答题任务标记
+        quizVisionFailCount = 0  // build617: 复位 AI 视觉答题失败计数器
         browsingNovelEnteredContent = false  // build585: 复位小说内容页标记
         browsingShortDramaStarted = false  // build590: 复位短剧观看任务标记
         // 重置当前平台的广告完成标记（新一轮运行可重新标记完成）
@@ -1375,9 +1385,18 @@ object AutomationController {
             //
             // 修复：每轮 OPENING_TASK_LIST 开始时（attempt==0），重置 currentTaskIndex=0
             // 并清空 taskButtons，确保 checkTaskListOpened 会重新填充并重置索引。
+            // build617: 若 AI 视觉答题连续失败次数超阈值，从 currentTaskIndex=1 开始，
+            //           跳过 idx=0 的答题任务（避免死循环），并重置计数器给下一轮机会。
             if (currentTaskIndex != 0 || taskButtons.isNotEmpty()) {
-                debugLog("openTaskList: resetting currentTaskIndex to 0 for new round (was $currentTaskIndex, taskButtons.size=${taskButtons.size})")
-                currentTaskIndex = 0
+                val startIndex = if (quizVisionFailCount >= QUIZ_VISION_FAIL_THRESHOLD) {
+                    debugLog("openTaskList: quiz vision failed $quizVisionFailCount times (>= $QUIZ_VISION_FAIL_THRESHOLD), skipping quiz task (start from index 1)")
+                    quizVisionFailCount = 0  // 重置计数器，给下一轮答题任务机会（可能题目已刷新）
+                    1
+                } else {
+                    debugLog("openTaskList: resetting currentTaskIndex to 0 for new round (was $currentTaskIndex, taskButtons.size=${taskButtons.size})")
+                    0
+                }
+                currentTaskIndex = startIndex
                 taskButtons = emptyList()
             }
         }
@@ -3375,9 +3394,15 @@ object AutomationController {
                             Log.i(TAG, "processTask: AI vision quiz reward found (text='$rewardText'), clicking to claim")
                             debugLog("processTask: AI vision quiz reward found (text='$rewardText'), clicking to claim")
                             service.performClickSafe(rewardBtn)
+                            // build617: 答题成功（检测到奖励按钮），重置失败计数器
+                            quizVisionFailCount = 0
                         } else {
                             Log.w(TAG, "processTask: AI vision quiz no reward button detected after answer click")
                             debugLog("processTask: AI vision quiz no reward button detected after answer click")
+                            // build617: 未检测到奖励按钮（AI 坐标不准没点到选项，或答题页未响应）
+                            // 累计失败次数，超过阈值后 openTaskList 会强制跳过答题任务，避免死循环
+                            quizVisionFailCount++
+                            debugLog("processTask: AI vision quiz fail count=$quizVisionFailCount/$QUIZ_VISION_FAIL_THRESHOLD")
                         }
                         // 领取后（或未找到）等待弹窗消失，再前进下一任务（保持 build611 行为）
                         handler.postDelayed({

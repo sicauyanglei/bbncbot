@@ -32,6 +32,44 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build617 AI 视觉答题连续失败计数器（build616 修复3 在坐标不准时仍死循环的兜底）
+**用户需求**: "修复"（针对 build616 修复3 的潜在风险增强）
+
+**背景**: build616 修复3 在"找到奖励按钮"时能解决死循环，但在"未找到奖励按钮"时（AI 坐标仍不准，没点到选项，奖励按钮没弹出），仍会前进下一任务 → 任务进度 0/1 → openTaskList 重置 currentTaskIndex=0 → 又回到答题任务 → 死循环。
+
+**日志证据**（debug_test_20260725_195306.log）:
+- line 137-139: AI 8 次都返回固定 `x_ratio=0.5, y_ratio=0.917`（屏幕底部）
+- line 143: 第 1 次点击后屏幕弹出"领取奖励 500"（答对了，但 build611 跳过领取）
+- line 1010-1019: 第 8 次点击 (600, 2326) 后应用退出到桌面（com.hihonor.android.launcher），用户手动停止
+
+**潜在风险**: build616 修复3 的 findQuizRewardButton 依赖奖励按钮弹出。若 AI 坐标仍不准（修复1 增强提示词无效），点击不到选项，奖励按钮不会弹出，findQuizRewardButton 返回 null，仍前进下一任务，死循环。
+
+**修复（1 处，3 个修改点）**:
+
+**修复1: 新增 quizVisionFailCount 计数器** ([AutomationController.kt#L326-L333](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L326))
+- 新增 `@Volatile private var quizVisionFailCount: Int = 0`
+- 新增 `private val QUIZ_VISION_FAIL_THRESHOLD = 3`（阈值 3 次）
+- start() 中重置（[line 560](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L560)）
+
+**修复2: AI 视觉答题分支累计失败次数** ([AutomationController.kt#L3388-L3396](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L3388))
+- 检测到奖励按钮（答题成功）→ `quizVisionFailCount = 0`（重置）
+- 未检测到奖励按钮（AI 坐标不准）→ `quizVisionFailCount++` 并记录日志 `fail count=$quizVisionFailCount/$QUIZ_VISION_FAIL_THRESHOLD`
+
+**修复3: openTaskList 超阈值跳过答题任务** ([AutomationController.kt#L1388-L1400](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1388))
+- 修改前: 每轮 OPENING_TASK_LIST 重置 `currentTaskIndex = 0`（又回到答题任务）
+- 修改后: 若 `quizVisionFailCount >= QUIZ_VISION_FAIL_THRESHOLD`（3 次），从 `currentTaskIndex = 1` 开始（跳过 idx=0 的答题任务）
+- 跳过后重置 `quizVisionFailCount = 0`（给下一轮答题任务机会，可能题目已刷新或 AI 坐标已修正）
+
+**预期效果**:
+- AI 坐标准确（修复1生效）: 点击正确选项 → 弹出奖励按钮 → 点击领取 → 任务完成 1/1 → 计数器重置 → 不死循环
+- AI 坐标不准（修复1无效）: 连续 3 次未检测到奖励按钮 → 计数器达阈值 → openTaskList 跳过答题任务（从 idx=1 开始）→ 不死循环，最坏情况跳过该任务
+
+**遗留问题（下次观察）**: 若 AI 坐标仍不准，答题任务会被跳过（任务进度仍 0/1，但不再死循环）。需要进一步优化 AI 提示词或换用其他坐标识别方案（如 OCR 识别选项文字位置）。
+
+**编译验证**: sandbox 网络限制 gradle wrapper 下载超时，无法本地编译。代码逻辑审查通过（@Volatile 保证多线程可见性，handler.post 内修改主线程安全），等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build616 AI 视觉答题点击后检测奖励按钮+点击领取（build611 跳过领取导致死循环 8 次）
 **用户需求**: "全部修复"（修复1+2+3 三处问题一起处理）
 
