@@ -32,6 +32,32 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build618 修复 AiVisionClient.kt:970 字符串中未转义的中文双引号导致编译失败
+**用户需求**: "流水线编译出错"
+
+**CI 构建状态**: build617 (run #618) **失败** - Build APKs 步骤报错
+
+**编译错误**:
+```
+e: AiVisionClient.kt:970:40 Unresolved reference: 可以
+e: AiVisionClient.kt:970:40 Unsupported [literal prefixes and suffixes]
+e: AiVisionClient.kt:970:45 Unsupported [literal prefixes and suffixes]
+... (共 14 条错误，均集中在第 970 行)
+```
+
+**根因**: build616 修复1 增强提示词时，在 `append()` 字符串中使用了未转义的中文双引号 `"可以"/"不能"/"是"/"否"/"A"/"B"`，Kotlin 编译器把第一个 `"` 当作字符串结束，后面的中文字符被当作标识符引用，导致 "Unresolved reference: 可以" 和 "Unsupported [literal prefixes and suffixes]"
+
+**修复（1 处）**:
+
+**修复1: 字符串中双引号转义** ([AiVisionClient.kt#L970](file:///workspace/app/src/main/java/com/bbncbot/automation/AiVisionClient.kt#L970))
+- 修改前: `append("- 选项是可点击的彩色区域（含文字如"可以"/"不能"/"是"/"否"/"A"/"B"），坐标应指向该彩色区域中心\n")`
+- 修改后: `append("- 选项是可点击的彩色区域（含文字如\"可以\"/\"不能\"/\"是\"/\"否\"/\"A\"/\"B\"），坐标应指向该彩色区域中心\n")`
+- 用 `\"` 转义双引号，使其成为字符串内容而非结束符
+
+**编译验证**: 等 CI 构建验证（修复后应恢复 build616/build617 的所有逻辑）
+
+---
+
 ### commit (待提交) - fix: build617 AI 视觉答题连续失败计数器（build616 修复3 在坐标不准时仍死循环的兜底）
 **用户需求**: "修复"（针对 build616 修复3 的潜在风险增强）
 
