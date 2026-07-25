@@ -3383,11 +3383,13 @@ object AutomationController {
                     //
                     // 修复：点击答案后等 2.5 秒让奖励按钮渲染，查找并点击"领取奖励"/"领取鼓励奖"
                     // 按钮（不受场景白名单限制），再等 INTERVAL_PAGE_LOAD_MS 让弹窗消失，然后才前进下一任务。
+                    // build619 增强：首次 2.5 秒未检测到奖励按钮时，再等 2.5 秒重试一次（共 2 次检测），
+                    //              提高奖励按钮渲染慢时的检测成功率。
                     // - 答对：弹出"领取奖励 500"，点击领取 → 任务完成 1/1
                     // - 答错：弹出"领取鼓励奖 150"，点击领取 → 也有肥料奖励，任务完成 1/1
                     // - 都没检测到：仍前进下一任务（保持 build611 行为，避免 onFarm 误点返回首页）
-                    handler.postDelayed({
-                        if (state != AutomationState.PROCESSING_TASK) return@postDelayed
+                    val checkRewardAndProceed = Runnable {
+                        if (state != AutomationState.PROCESSING_TASK) return@Runnable
                         val rewardBtn = service.findQuizRewardButton()
                         if (rewardBtn != null) {
                             val rewardText = rewardBtn.text?.toString().orEmpty()
@@ -3396,24 +3398,44 @@ object AutomationController {
                             service.performClickSafe(rewardBtn)
                             // build617: 答题成功（检测到奖励按钮），重置失败计数器
                             quizVisionFailCount = 0
+                            // 领取后等待弹窗消失，再前进下一任务
+                            handler.postDelayed({
+                                if (state == AutomationState.PROCESSING_TASK) {
+                                    currentTaskIsQuiz = false
+                                    currentTaskIndex++
+                                    moveTo(AutomationState.OPENING_TASK_LIST)
+                                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+                                }
+                            }, INTERVAL_PAGE_LOAD_MS)
                         } else {
-                            Log.w(TAG, "processTask: AI vision quiz no reward button detected after answer click")
-                            debugLog("processTask: AI vision quiz no reward button detected after answer click")
-                            // build617: 未检测到奖励按钮（AI 坐标不准没点到选项，或答题页未响应）
-                            // 累计失败次数，超过阈值后 openTaskList 会强制跳过答题任务，避免死循环
-                            quizVisionFailCount++
-                            debugLog("processTask: AI vision quiz fail count=$quizVisionFailCount/$QUIZ_VISION_FAIL_THRESHOLD")
-                        }
-                        // 领取后（或未找到）等待弹窗消失，再前进下一任务（保持 build611 行为）
-                        handler.postDelayed({
-                            if (state == AutomationState.PROCESSING_TASK) {
-                                currentTaskIsQuiz = false
-                                currentTaskIndex++
-                                moveTo(AutomationState.OPENING_TASK_LIST)
-                                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+                            // build619: 首次检测未找到，标记后等 2.5 秒再检测一次
+                            if (!rewardFirstCheckDone) {
+                                rewardFirstCheckDone = true
+                                Log.w(TAG, "processTask: AI vision quiz no reward button yet, retrying in 2.5s")
+                                debugLog("processTask: AI vision quiz no reward button yet, retrying in 2.5s")
+                                handler.postDelayed(checkRewardAndProceed, 2500L)
+                            } else {
+                                // 第二次仍未找到，确认为失败
+                                Log.w(TAG, "processTask: AI vision quiz no reward button detected after 2 checks")
+                                debugLog("processTask: AI vision quiz no reward button detected after 2 checks")
+                                // build617: 未检测到奖励按钮（AI 坐标不准没点到选项，或答题页未响应）
+                                // 累计失败次数，超过阈值后 openTaskList 会强制跳过答题任务，避免死循环
+                                quizVisionFailCount++
+                                debugLog("processTask: AI vision quiz fail count=$quizVisionFailCount/$QUIZ_VISION_FAIL_THRESHOLD")
+                                // 仍前进下一任务（保持 build611 行为，避免 onFarm 误点返回首页）
+                                handler.postDelayed({
+                                    if (state == AutomationState.PROCESSING_TASK) {
+                                        currentTaskIsQuiz = false
+                                        currentTaskIndex++
+                                        moveTo(AutomationState.OPENING_TASK_LIST)
+                                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+                                    }
+                                }, INTERVAL_PAGE_LOAD_MS)
                             }
-                        }, INTERVAL_PAGE_LOAD_MS)
-                    }, 2500L)  // 等待 2.5 秒让奖励按钮渲染
+                        }
+                    }
+                    var rewardFirstCheckDone = false  // 标记是否已做过首次检测
+                    handler.postDelayed(checkRewardAndProceed, 2500L)  // 等待 2.5 秒让奖励按钮渲染
                 }
             }.start()
             return

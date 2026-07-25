@@ -32,6 +32,29 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build619 AI 视觉答题奖励按钮检测增加重试（2.5 秒首次+2.5 秒重试，提高渲染慢时检测成功率）
+**用户需求**: "修复所有问题"（build616 修复3 的可靠性增强）
+
+**背景**: build616 修复3 在 AI 视觉答题点击答案后等 2.5 秒检测奖励按钮。但日志显示奖励按钮可能渲染较慢（H5/Canvas 弹窗动画），2.5 秒可能不够，导致 findQuizRewardButton 返回 null，错误计入失败次数。
+
+**修复（1 处）**:
+
+**修复1: 奖励按钮检测增加重试** ([AutomationController.kt#L3391-L3438](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L3391))
+- 修改前（build616）: 点击答案 → 等 2.5 秒 → 检测奖励按钮 1 次 → 找到则领取，未找到则失败计数+1
+- 修改后（build619）: 点击答案 → 等 2.5 秒 → 首次检测 → 未找到则再等 2.5 秒 → 第二次检测 → 仍未找到才失败计数+1
+- 用 Runnable + rewardFirstCheckDone 标记实现重试（避免嵌套 postDelayed 过深）
+- 总等待时间：5 秒（2.5+2.5），比 build616 的 2.5 秒更宽容，给奖励按钮更多渲染时间
+- 找到奖励按钮立即领取，不再等待第二次
+
+**预期效果**:
+- 奖励按钮渲染快（< 2.5 秒）: 首次检测即领取（与 build616 相同）
+- 奖励按钮渲染慢（2.5-5 秒）: 第二次检测领取（build616 会误判为失败）
+- 奖励按钮未弹出（> 5 秒或坐标不准）: 失败计数+1（build617 失败计数器兜底）
+
+**编译验证**: 等 CI 构建验证（Runnable 引用局部变量 rewardFirstCheckDone，需确认 Kotlin 闭包捕获语义正确）
+
+---
+
 ### commit (待提交) - fix: build618 修复 AiVisionClient.kt:970 字符串中未转义的中文双引号导致编译失败
 **用户需求**: "流水线编译出错"
 
