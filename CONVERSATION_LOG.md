@@ -32,7 +32,37 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - feat: build620 UC 浏览商品任务点击商品停留15秒得肥料
+### commit (待提交) - fix: build621 修复 build619 AI 视觉答题奖励按钮重试 Runnable 编译失败（rewardFirstCheckDone 声明在 Runnable 之后 + val 自引用）
+**用户需求**: "流水线编译出错"
+
+**CI 构建状态**: build620 (run #621) **失败** - compileNoOcrReleaseKotlin / compileFullReleaseKotlin 编译报错
+
+**编译错误**（3 处，均在 [AutomationController.kt#L3461-L3465](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L3461)）:
+```
+e: AutomationController.kt:3461:34 Unresolved reference: rewardFirstCheckDone
+e: AutomationController.kt:3462:33 Unresolved reference: rewardFirstCheckDone
+e: AutomationController.kt:3465:53 Unresolved reference: checkRewardAndProceed
+```
+
+**根因**: build619 引入的奖励按钮重试 Runnable 有两个作用域问题：
+1. `var rewardFirstCheckDone = false` 声明在 `val checkRewardAndProceed = Runnable {...}` **之后**（原 L3486），但 Runnable 内部（原 L3461/L3462）引用它。Kotlin 局部变量作用域从声明处开始，声明在后的变量对前面的 lambda 不可见 → `Unresolved reference: rewardFirstCheckDone`
+2. `val checkRewardAndProceed = Runnable {...}` 在自身初始化表达式的 lambda 内部（原 L3465）引用 `checkRewardAndProceed`（自引用递归调度）。Kotlin 局部 `val` 在初始化表达式内部不可引用自身 → `Unresolved reference: checkRewardAndProceed`
+
+**修复（1 处）**:
+
+**修复1: 调整声明顺序 + 改用 var 延迟赋值** ([AutomationController.kt#L3440-L3493](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L3440))
+- `var rewardFirstCheckDone = false` 移到 Runnable 定义之前（L3445），确保闭包可见
+- `val checkRewardAndProceed = Runnable {...}` 改为 `var checkRewardAndProceed: Runnable? = null` 先声明（L3446），再赋值 `checkRewardAndProceed = Runnable {...}`（L3447），解决 val 自引用问题
+- lambda 内部引用改为 `checkRewardAndProceed!!`（L3472 重试 / L3493 首次调度）
+- 逻辑保持 build619 原意：首次 2.5 秒未检测到奖励按钮 → 标记 rewardFirstCheckDone=true → 再等 2.5 秒重试 → 第二次仍未找到则失败计数+1
+
+**预期效果**: 编译通过，build619 的奖励按钮重试逻辑生效（2.5 秒首次 + 2.5 秒重试 = 共 5 秒检测窗口）
+
+**编译验证**: sandbox 网络限制无法本地编译，等 CI 构建验证。
+
+---
+
+### commit 85a4c7b - feat: build620 UC 浏览商品任务点击商品停留15秒得肥料
 **用户需求**: "uc浏览商品任务，需要点击某个商品后停留15秒才可以得到肥料"
 
 **背景**: 现有 `runBrowsingTask` 在 swipeCount=0 阶段明确跳过点商品（L2271-2274 注释"不主动点击商品进入详情页"），只在商品列表页滑动。但 UC 浏览商品任务需要点击商品进入详情页停留 15 秒才能获得肥料。商品详情页有"加入购物车"+"立即购买"按钮，正常会被 `isOnAbnormalPage` 判为异常页立即退出，无法停留。

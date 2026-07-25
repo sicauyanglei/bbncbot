@@ -3437,7 +3437,14 @@ object AutomationController {
                     // - 答对：弹出"领取奖励 500"，点击领取 → 任务完成 1/1
                     // - 答错：弹出"领取鼓励奖 150"，点击领取 → 也有肥料奖励，任务完成 1/1
                     // - 都没检测到：仍前进下一任务（保持 build611 行为，避免 onFarm 误点返回首页）
-                    val checkRewardAndProceed = Runnable {
+                    //
+                    // build621 修复：原 build619 把 rewardFirstCheckDone 声明在 Runnable 之后，
+                    // 导致 Runnable 内部引用时 Unresolved reference；同时 val checkRewardAndProceed
+                    // 在自身初始化 lambda 内自引用也不允许。改为：rewardFirstCheckDone 提前声明，
+                    // checkRewardAndProceed 用 var + 可空类型延迟赋值解决自引用。
+                    var rewardFirstCheckDone = false  // build619: 标记是否已做过首次检测（移到 Runnable 之前，确保闭包可见）
+                    var checkRewardAndProceed: Runnable? = null  // build621: 用 var 延迟赋值，解决 val 自引用问题
+                    checkRewardAndProceed = Runnable {
                         if (state != AutomationState.PROCESSING_TASK) return@Runnable
                         val rewardBtn = service.findQuizRewardButton()
                         if (rewardBtn != null) {
@@ -3462,7 +3469,7 @@ object AutomationController {
                                 rewardFirstCheckDone = true
                                 Log.w(TAG, "processTask: AI vision quiz no reward button yet, retrying in 2.5s")
                                 debugLog("processTask: AI vision quiz no reward button yet, retrying in 2.5s")
-                                handler.postDelayed(checkRewardAndProceed, 2500L)
+                                handler.postDelayed(checkRewardAndProceed!!, 2500L)
                             } else {
                                 // 第二次仍未找到，确认为失败
                                 Log.w(TAG, "processTask: AI vision quiz no reward button detected after 2 checks")
@@ -3483,8 +3490,7 @@ object AutomationController {
                             }
                         }
                     }
-                    var rewardFirstCheckDone = false  // 标记是否已做过首次检测
-                    handler.postDelayed(checkRewardAndProceed, 2500L)  // 等待 2.5 秒让奖励按钮渲染
+                    handler.postDelayed(checkRewardAndProceed!!, 2500L)  // 等待 2.5 秒让奖励按钮渲染
                 }
             }.start()
             return
