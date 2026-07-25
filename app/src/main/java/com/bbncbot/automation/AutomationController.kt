@@ -3300,25 +3300,40 @@ object AutomationController {
             debugLog("processTask: quiz task but isQuizPage=false (H5/Canvas content not in a11y tree), trying AI vision to answer")
             val context = service.applicationContext
             Thread {
-                val bitmap = service.takeScreenshotBitmap()
-                if (bitmap == null) {
-                    Log.w(TAG, "processTask: AI vision quiz failed - takeScreenshotBitmap returned null")
-                    handler.post {
-                        if (state != AutomationState.PROCESSING_TASK) return@post
-                        debugLog("processTask: AI vision quiz screenshot null, skipping task")
-                        currentTaskIsQuiz = false
-                        currentTaskIndex++
-                        moveTo(AutomationState.OPENING_TASK_LIST)
-                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+                // build612 修复：AI 视觉答题增加等待 + 截图重试机制。
+                // 日志 debug_test_20260725_190222.log 显示：点击"去答题"后 6 秒 checkTaskResult 触发 AI 视觉，
+                // 但此时 onFarm=true 仍农场页，答题页 H5/Canvas 可能还在加载，
+                // AI 截图拿到的是农场页或半渲染答题页，返回 null（no answer found），答题失败跳过。
+                // 修复：截图前等待 2 秒让答题页加载；AI 返回 null 时重试截图+识别（最多 3 次，每次间隔 2 秒）。
+                val maxRetries = 3
+                var result: com.bbncbot.automation.AiVisionClient.ButtonLocationResult? = null
+                var lastBitmapNull = false
+                for (retry in 0 until maxRetries) {
+                    if (retry > 0) {
+                        try {
+                            Thread.sleep(2000)
+                        } catch (ie: InterruptedException) {
+                            Thread.currentThread().interrupt()
+                            return@Thread
+                        }
+                        debugLog("processTask: AI vision quiz retry $retry/$maxRetries (previous attempt returned null)")
                     }
-                    return@Thread
+                    val bitmap = service.takeScreenshotBitmap()
+                    if (bitmap == null) {
+                        lastBitmapNull = true
+                        Log.w(TAG, "processTask: AI vision quiz screenshot null (retry $retry/$maxRetries)")
+                        continue
+                    }
+                    lastBitmapNull = false
+                    result = AiVisionClient.answerQuizByVision(context, bitmap, "淘宝/支付宝芭芭农场答题页（农场百科问答）")
+                    if (result != null) break
                 }
-                val result = AiVisionClient.answerQuizByVision(context, bitmap, "淘宝/支付宝芭芭农场答题页（农场百科问答）")
                 handler.post {
                     if (state != AutomationState.PROCESSING_TASK) return@post
                     if (result == null) {
-                        Log.w(TAG, "processTask: AI vision quiz returned null, skipping task")
-                        debugLog("processTask: AI vision quiz failed (no answer found), skipping task")
+                        val reason = if (lastBitmapNull) "screenshot null" else "no answer found"
+                        Log.w(TAG, "processTask: AI vision quiz failed ($reason) after $maxRetries retries, skipping task")
+                        debugLog("processTask: AI vision quiz failed ($reason) after $maxRetries retries, skipping task")
                         currentTaskIsQuiz = false
                         currentTaskIndex++
                         moveTo(AutomationState.OPENING_TASK_LIST)

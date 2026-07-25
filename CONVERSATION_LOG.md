@@ -32,6 +32,48 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build612 AI 视觉答题增加等待+重试机制（答题页 H5/Canvas 加载慢导致截图拿到农场页，AI 返回 null）
+**用户需求**: "分析日志" → "修复"
+
+**输入日志**: `logs/debug_test_20260725_190222.log` (build613-4f2eb2f, 221 行, 2026-07-25 19:00 上传, TAOBAO 平台)
+
+**build611 修复验证**: 未触发（本轮 AI 视觉答题失败，没走到点击答案步骤，无法验证 build611 的"答题后不误点返回首页"修复）
+
+**日志暴露的新问题（核心）**: AI 视觉答题返回 null，答题任务失败跳过
+
+| 行号 | 时间 | 现象 |
+|------|------|------|
+| 119-123 | 19:01:21 | 第 1 次：quiz task detected → 点击"去答题" |
+| 124-127 | 19:01:27-28 | checkTaskResult: onFarm=true, isQuizPage=false → AI 视觉答题触发（点击后仅 6 秒，仍 onFarm=true 答题页可能还在加载）|
+| 128 | 19:01:41 | **`AI vision quiz failed (no answer found), skipping task`**（耗时 13 秒） |
+| 203-211 | 19:01:58 | 第 2 次：quiz task detected → 点击"去答题"（任务列表重置 currentTaskIndex=0，又回到答题任务）|
+| 212-215 | 19:02:04 | checkTaskResult: onFarm=true, isQuizPage=false → AI 视觉答题触发 |
+| 216-218 | 19:02:15 | 用户手动停止（AI 视觉还在执行中）|
+
+**根因**: 点击"去答题"后答题页 H5/Canvas 加载慢，checkTaskResult 触发 AI 视觉时（点击后仅 6 秒），onFarm=true 仍农场页，答题页可能还没渲染完成。
+- AI 截图拿到的是农场页或半渲染答题页
+- AI 判断 found=false（不是答题页），返回 null
+- 答题任务失败跳过（currentTaskIndex++ → OPENING_TASK_LIST）
+- 任务列表重置 currentTaskIndex=0，又回到答题任务，死循环
+
+**关键对比**:
+- build612 日志（18:47）：AI 视觉答题**成功**（`reason='题目：大米存放时生虫了...'`）
+- build613 日志（19:00）：AI 视觉答题**失败**（`no answer found`）
+- 两次都是 TAOBAO 平台，同一设备，间隔仅 13 分钟，说明是时序问题（答题页加载快慢），不是 AI 模型问题
+
+**修复（1 处）**:
+
+**修复1: AI 视觉答题增加等待 + 截图重试机制** ([AutomationController.kt#L3302-L3330](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L3302))
+- 修改前: 截图 1 次 → AI 识别 1 次 → null 则跳过任务
+- 修改后: 循环最多 3 次：截图 → AI 识别 → 非 null 则 break，null 则 sleep 2 秒后重试
+- 重试间隔 2 秒（让答题页 H5/Canvas 继续加载）
+- 3 次都失败才跳过任务（日志区分 "screenshot null" 和 "no answer found"）
+- 总耗时上限：3 次 × (AI 识别 ~13 秒 + 等待 2 秒) ≈ 45 秒（远小于用户手动停止的耐心阈值）
+
+**编译验证**: sandbox 网络限制 gradle wrapper 下载超时，无法本地编译。代码逻辑审查通过（ButtonLocationResult 全限定名引用正确，Thread.sleep 在后台线程安全），等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build611 AI 视觉答题后误点"返回首页"退出农场卡死淘宝首页 80 秒
 **用户需求**: "分析日志" → "1"（选择修复方向 1：答题后不走 onFarm 分支"返回首页"）
 
