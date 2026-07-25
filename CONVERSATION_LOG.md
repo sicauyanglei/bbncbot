@@ -32,6 +32,30 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build622 跳过"招募英雄"类游戏任务（三国冰河常规招募英雄1次，bot 无法在游戏内完成该动作）
+**用户需求**: "三国冰河常规招募英雄1次，属于游戏任务，不需要完成"
+
+**背景**: 现有跳过名单 `skipTaskTexts`（AutomationController L1966）已包含"玩游戏"/"玩1局"/"完成1局"/"打一局"等无法靠停留完成的纯游戏动作类任务。但"招募英雄"这类任务需要真正在游戏内执行"招募英雄N次"动作才能得肥料，bot 无法通过无障碍自动化完成（与"玩游戏"停留拿肥料不同，无法靠停留 GAME_PLAYING 流程完成）。
+
+**修改（1 处）**:
+
+**修复1: skipTaskTexts 追加"招募英雄"关键词** ([AutomationController.kt#L1966-L1980](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1966))
+- 修改前: skipTaskTexts 含"玩游戏"/"玩1局"/"完成1局"/"打一局"等游戏动作关键词
+- 修改后: 追加"招募英雄"关键词（注释说明：三国冰河常规招募英雄1次，无法靠停留完成）
+- 匹配规则: `buttonText.contains(it) || taskContextText.contains(it)`，"招募英雄"会命中任务上下文文本"三国冰河常规招募英雄1次"，直接跳过该任务（currentTaskIndex++ → 处理下一任务）
+- 覆盖范围: "招募英雄"子串匹配，覆盖"三国冰河常规招募英雄1次"/"招募英雄3次"/"完成招募英雄"等所有变体
+
+**与 isGameTask 的区别**:
+- `isGameTask` 返回 true → 进入 GAME_PLAYING 状态机停留玩一下拿肥料（适用于"打开游戏停留 N 秒得肥料"类任务）
+- `skipTaskTexts` 命中 → 直接跳过任务不点击（适用于"必须在游戏内完成特定动作"类任务，如"招募英雄N次"/"完成1局对战"）
+- "招募英雄"属于后者：必须真正在游戏内点招募按钮完成招募动作，bot 无法执行，应直接跳过
+
+**预期效果**: 任务列表里出现"三国冰河常规招募英雄1次"等任务时，processTask 检测到 taskContextText 含"招募英雄" → 直接 currentTaskIndex++ 跳过 → 处理下一个任务，不点击"去完成"按钮进入游戏页（避免卡死在游戏内无法完成）。
+
+**编译验证**: sandbox 网络限制无法本地编译，等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build621 修复 build619 AI 视觉答题奖励按钮重试 Runnable 编译失败（rewardFirstCheckDone 声明在 Runnable 之后 + val 自引用）
 **用户需求**: "流水线编译出错"
 
