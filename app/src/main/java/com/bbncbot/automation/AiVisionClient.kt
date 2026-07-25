@@ -767,31 +767,40 @@ object AiVisionClient {
     fun answerQuizByVision(
         context: Context,
         bitmap: Bitmap,
-        sceneContext: String
+        sceneContext: String,
+        logger: ((String) -> Unit)? = null
     ): ButtonLocationResult? {
+        // build613: 增加 logger 回调，让 AI 调用失败原因写入 debug.log（不只是 logcat）
+        // 日志 debug_test_20260725_191033.log 显示 AI 视觉答题 3 次重试都失败，但看不到失败原因
+        // （HTTP 错误码/空 content/not found），因为 Log.w/Log.i 只写 logcat 不写 debug.log
+        val log: (String) -> Unit = { msg ->
+            Log.i(TAG, msg)
+            logger?.invoke(msg)
+        }
         val apiKey = QuizAnswerClient.loadApiKey(context)
         if (apiKey.isEmpty()) {
-            Log.w(TAG, "answerQuizByVision: GLM API Key not configured, skip AI vision")
+            log("answerQuizByVision: GLM API Key not configured, skip AI vision")
             return null
         }
         val base64Image = encodeBitmapToBase64(bitmap)
         if (base64Image.isEmpty()) {
-            Log.w(TAG, "answerQuizByVision: encode bitmap failed")
+            log("answerQuizByVision: encode bitmap failed")
             return null
         }
         val prompt = buildQuizAnswerPrompt(sceneContext)
+        log("answerQuizByVision: starting (models=${VISION_MODELS.joinToString()}, apiKeyLen=${apiKey.length}, imgLen=${base64Image.length})")
         // 依次尝试视觉模型列表（与 findButtonLocationByVision 相同的 fallback 策略）
         for (model in VISION_MODELS) {
             var retry = 0
             var result: ButtonLocationResult? = null
             while (retry <= 2) {
-                result = callVisionModelForQuizAnswer(apiKey, model, prompt, base64Image, sceneContext)
+                result = callVisionModelForQuizAnswer(apiKey, model, prompt, base64Image, sceneContext, logger)
                 if (result != null) return result
                 if (lastErrorCode == 429 || lastErrorMessage.contains("1305") || lastErrorMessage.contains("访问量过大")) {
                     retry++
                     if (retry <= 2) {
                         val backoffMs = if (retry == 1) 5000L else 10000L
-                        Log.i(TAG, "answerQuizByVision: $model rate-limited (429), backing off ${backoffMs}ms before retry $retry/2")
+                        log("answerQuizByVision: $model rate-limited (429), backing off ${backoffMs}ms before retry $retry/2")
                         try {
                             Thread.sleep(backoffMs)
                         } catch (ie: InterruptedException) {
@@ -804,7 +813,7 @@ object AiVisionClient {
                 }
             }
         }
-        Log.w(TAG, "answerQuizByVision: all vision models failed or quiz answer not found")
+        log("answerQuizByVision: all vision models failed or quiz answer not found (lastError=$lastErrorCode, lastMsg=${lastErrorMessage.take(100)})")
         return null
     }
 
@@ -818,8 +827,18 @@ object AiVisionClient {
         model: String,
         prompt: String,
         base64Image: String,
-        sceneContext: String
+        sceneContext: String,
+        logger: ((String) -> Unit)? = null
     ): ButtonLocationResult? {
+        // build613: 增加 logger 回调，让 HTTP 错误码/空 content/not found 等写入 debug.log
+        val log: (String) -> Unit = { msg ->
+            Log.i(TAG, msg)
+            logger?.invoke(msg)
+        }
+        val logW: (String) -> Unit = { msg ->
+            Log.w(TAG, msg)
+            logger?.invoke(msg)
+        }
         var conn: java.net.HttpURLConnection? = null
         return try {
             val url = java.net.URL(API_URL)
@@ -867,13 +886,14 @@ object AiVisionClient {
             conn.outputStream.use { os ->
                 os.write(jsonBody.toByteArray(Charsets.UTF_8))
             }
+            log("callVisionModelForQuizAnswer: calling $model (bodyLen=${jsonBody.length})")
 
             val code = conn.responseCode
             if (code !in 200..299) {
                 val err = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
                 lastErrorCode = code
                 lastErrorMessage = err
-                Log.w(TAG, "callVisionModelForQuizAnswer($model) failed (HTTP $code): ${err.take(200)}")
+                logW("callVisionModelForQuizAnswer($model) failed (HTTP $code): ${err.take(200)}")
                 return null
             }
             lastErrorCode = 0
@@ -882,20 +902,22 @@ object AiVisionClient {
             val response = conn.inputStream.bufferedReader().use { it.readText() }
             val contentStr = parseContent(response)
             if (contentStr.isBlank()) {
-                Log.w(TAG, "callVisionModelForQuizAnswer($model): empty content, response=${response.take(200)}")
+                logW("callVisionModelForQuizAnswer($model): empty content, response=${response.take(200)}")
                 return null
             }
+            log("callVisionModelForQuizAnswer($model): got content (len=${contentStr.length}, head='${contentStr.take(100)}')")
             val result = parseButtonLocationResult(contentStr)
             if (result == null) {
-                Log.i(TAG, "callVisionModelForQuizAnswer($model): quiz answer not found in screenshot (scene='$sceneContext')")
+                log("callVisionModelForQuizAnswer($model): quiz answer not found in screenshot (scene='$sceneContext')")
                 return null
             }
-            Log.i(TAG, "callVisionModelForQuizAnswer($model) success: scene='$sceneContext', " +
+            log("callVisionModelForQuizAnswer($model) success: scene='$sceneContext', " +
                 "xRatio=${result.xRatio}, yRatio=${result.yRatio}, " +
                 "reason='${result.reason.take(80)}'")
             result
         } catch (e: Exception) {
             Log.e(TAG, "callVisionModelForQuizAnswer($model) exception: ${e.message}")
+            logger?.invoke("callVisionModelForQuizAnswer($model) exception: ${e.message}")
             lastErrorCode = -1
             lastErrorMessage = e.message ?: "exception"
             null

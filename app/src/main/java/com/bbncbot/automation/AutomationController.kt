@@ -3325,7 +3325,10 @@ object AutomationController {
                         continue
                     }
                     lastBitmapNull = false
-                    result = AiVisionClient.answerQuizByVision(context, bitmap, "淘宝/支付宝芭芭农场答题页（农场百科问答）")
+                    result = AiVisionClient.answerQuizByVision(
+                        context, bitmap, "淘宝/支付宝芭芭农场答题页（农场百科问答）",
+                        logger = { msg -> debugLog("processTask: $msg") }
+                    )
                     if (result != null) break
                 }
                 handler.post {

@@ -32,6 +32,65 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build613 AI 视觉答题增加日志可见性（AiVisionClient 日志通过回调写入 debug.log）
+**用户需求**: "分析日志" → "修复"
+
+**输入日志**: `logs/debug_test_20260725_191033.log` (build614-acfb33f, 135 行, 2026-07-25 19:08 上传, TAOBAO 平台)
+
+**build612 修复验证**: ✅ 重试机制生效
+- line 128 `AI vision quiz retry 1/3` + line 132 `retry 2/3`（3 次循环执行）
+
+**日志暴露的新问题（核心）**: AI 视觉答题连续 3 次都失败，但看不到失败原因
+
+| 行号 | 时间 | 现象 |
+|------|------|------|
+| 119-123 | 19:09:44 | quiz task detected → 点击"去答题" |
+| 124-127 | 19:09:50-51 | checkTaskResult: onFarm=true, isQuizPage=false → AI 视觉答题触发（第 1 次）|
+| 128 | 19:10:09 | retry 1/3（第 1 次失败，约 18 秒）|
+| 129-131 | 19:10:24 | 用户手动停止 |
+| 132 | 19:10:26 | retry 2/3（用户停止后后台线程还在跑，日志滞后）|
+
+**根因**: AiVisionClient 用 `android.util.Log`（写 logcat），不写 debug.log 文件。测试日志里完全看不到 AI 调用的失败原因：
+- HTTP 错误码（401/403/429/500 等）
+- 空 content（API 返回但内容空）
+- not found（截图不是答题页，AI 返回 found=false）
+- 异常（网络超时、JSON 解析失败等）
+
+无法判断是 API 调用失败还是截图问题，无法针对性修复。
+
+**关键对比**:
+- build612 日志（18:47）：AI 视觉答题**成功**
+- build613/614 日志（19:00/19:08）：AI 视觉答题**连续失败**
+- 间隔很短（13 分钟/8 分钟），同一设备，可能是 API 限流或临时故障，但无法确认
+
+**修复（2 处）**:
+
+**修复1: AiVisionClient.answerQuizByVision 增加 logger 回调** ([AiVisionClient.kt#L767-L818](file:///workspace/app/src/main/java/com/bbncbot/automation/AiVisionClient.kt#L767))
+- 新增 `logger: ((String) -> Unit)? = null` 参数
+- 关键日志同时写 logcat + logger 回调：
+  - `starting (models=..., apiKeyLen=..., imgLen=...)`（调用前参数）
+  - `calling $model (bodyLen=...)`（HTTP 请求发送）
+  - `failed (HTTP $code): ${err.take(200)}`（HTTP 错误码+错误信息）
+  - `empty content, response=...`（API 返回空内容）
+  - `got content (len=..., head='...')`（API 返回内容预览）
+  - `quiz answer not found in screenshot`（AI 判断不是答题页）
+  - `success: scene=..., xRatio=..., yRatio=..., reason=...`（成功）
+  - `exception: ${e.message}`（异常）
+  - `all vision models failed (lastError=..., lastMsg=...)`（全部失败汇总）
+
+**修复2: callVisionModelForQuizAnswer 增加 logger 参数** ([AiVisionClient.kt#L825-L927](file:///workspace/app/src/main/java/com/bbncbot/automation/AiVisionClient.kt#L825))
+- 同样增加 `logger` 参数，传递给上述日志输出
+
+**修复3: AutomationController 传递 debugLog 回调** ([AutomationController.kt#L3328-L3331](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L3328))
+- `answerQuizByVision(..., logger = { msg -> debugLog("processTask: $msg") })`
+- 让 AI 调用细节写入 debug.log 文件，下次测试日志可看到失败原因
+
+**目的**: 下次测试日志能看到 AI 调用的具体失败原因，针对性修复（API 限流加退避/截图问题加等待/模型问题换模型）。
+
+**编译验证**: sandbox 网络限制 gradle wrapper 下载超时，无法本地编译。代码逻辑审查通过（lambda 回调线程安全，debugLog 已有后台线程调用先例），等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build612 AI 视觉答题增加等待+重试机制（答题页 H5/Canvas 加载慢导致截图拿到农场页，AI 返回 null）
 **用户需求**: "分析日志" → "修复"
 
