@@ -3333,11 +3333,20 @@ object AutomationController {
                     Log.i(TAG, "processTask: AI vision quiz answer at ($x,$y) [ratio=${result.xRatio},${result.yRatio}], reason='${result.reason.take(80)}'")
                     debugLog("processTask: AI vision quiz clicking answer at ($x,$y), reason='${result.reason.take(60)}'")
                     service.dispatchGestureClick(x, y)
-                    // 点击答案后，等待答题结果（答对领取肥料 / 答错提示），重新检测
+                    // build611 修复：答题后不再走 checkTaskResult(attempt+1)。
+                    // 日志 debug_test_20260725_185110.log 显示：AI 视觉答题点击正确答案后，
+                    // 第二次 checkTaskResult 时 currentTaskIsQuiz 已重置为 false，
+                    // 走到 onFarm 分支 findBackToHomeButton 找到农场页右上角"返回首页"按钮，
+                    // 误点退出农场（act 从 TMSActivity 变 welcome.Welcome），后续在淘宝首页
+                    // 卡死 80 秒找不到农场，最终用户手动停止。
+                    // 修复：AI 已选正确答案并点击，答题任务完成，直接前进到下一任务，
+                    // 继续在农场页处理下一个任务，不触发"返回首页"退出逻辑。
                     handler.postDelayed({
                         if (state == AutomationState.PROCESSING_TASK) {
                             currentTaskIsQuiz = false
-                            checkTaskResult(service, attempt + 1)
+                            currentTaskIndex++
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
                         }
                     }, INTERVAL_PAGE_LOAD_MS)
                 }

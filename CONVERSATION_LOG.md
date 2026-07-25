@@ -32,6 +32,47 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build611 AI 视觉答题后误点"返回首页"退出农场卡死淘宝首页 80 秒
+**用户需求**: "分析日志" → "1"（选择修复方向 1：答题后不走 onFarm 分支"返回首页"）
+
+**输入日志**: `logs/debug_test_20260725_185110.log` (build612-887aa28, 492 行, 2026-07-25 18:47 上传, TAOBAO 平台)
+
+**build609/610 修复验证全部生效** ✅:
+- build609 签到任务不再死循环: line 249 `isBrowse=false`（"去红包签到得肥料"不再误判为浏览任务），line 262-264 找"返回首页"退出，无死循环滑动
+- build610 AI 视觉答题标记: line 355 `quiz task detected (button='去答题', context contains 答题/问答)`
+- build610 AI 视觉答题触发: line 362 `quiz task but isQuizPage=false, trying AI vision to answer`
+- build610 AI 视觉答题成功: line 363 `AI vision quiz clicking answer at (600.0,2034.4), reason='题目：大米存放时生虫了但是没发霉还能吃吗？正确答案：不能。选项位于屏幕中部'`（AI 识别题目+选项+正确答案+点击坐标全部正确）
+
+**日志暴露的新问题（核心）**: 答题后误点"返回首页"退出农场，卡死淘宝首页 ~80 秒，用户手动停止
+
+| 行号 | 时间 | 现象 |
+|------|------|------|
+| 362-363 | 18:49:13-26 | AI 视觉答题点击正确答案 (600.0, 2034.4) |
+| 364-367 | 18:49:32 | checkTaskResult(attempt+1): onFarm=true, claim-text-nodes=1（只有"兔兔挖肥料"），isTaskCompletePage=false |
+| 368-370 | 18:49:33 | **onFarm 分支: `found 返回首页 button, clicking`** → 点击 bounds=[1082,160][1148,226]（农场页右上角"返回首页"按钮 desc='返回首页'）→ **退出农场** |
+| 372-378 | 18:49:40 | `act=com.taobao.tao.welcome.Welcome, onFarm=false` → 到了淘宝首页 |
+| 379-419 | 18:49:41 | openTaskList 在淘宝首页找到"去领取"按钮（鲜食加补券/消费券等优惠券），误当农场任务处理 |
+| 420-486 | 18:49:43-18:51:03 | **卡死 80 秒**: 每 5 秒检测 isOnFarmPage=false，一直找不到农场 |
+| 487-489 | 18:51:03 | 用户手动停止 |
+
+**根因**: build610 AI 视觉答题分支点击答案后 `currentTaskIsQuiz=false` 重置，然后 `checkTaskResult(attempt+1)`。
+第二次 checkTaskResult 时 currentTaskIsQuiz 已是 false，不知道是答题后续，走到 onFarm 分支:
+- onFarm=true, claim-text-nodes=1（只有"兔兔挖肥料"，无答题奖励按钮），isTaskCompletePage=false
+- onFarm 分支 findBackToHomeButton 找到农场页右上角"返回首页"按钮（desc='返回首页'），点击退出农场
+- 但农场页右上角的"返回首页"按钮是**退出农场**的按钮，不是关闭答题页的按钮
+
+**修复（1 处）**:
+
+**修复1: AI 视觉答题点击答案后直接前进下一任务，不走 checkTaskResult** ([AutomationController.kt#L3328-L3351](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L3328))
+- 修改前: 点击答案 → `currentTaskIsQuiz=false` → `checkTaskResult(attempt+1)` → 走 onFarm 分支误点"返回首页"
+- 修改后: 点击答案 → 等待 INTERVAL_PAGE_LOAD_MS → `currentTaskIsQuiz=false` + `currentTaskIndex++` → `moveTo(OPENING_TASK_LIST)` + `runOpeningTaskList(0)`
+- 理由: AI 已选正确答案并点击，答题任务完成，直接前进到下一任务，继续在农场页处理下一个任务，不触发"返回首页"退出逻辑
+- 与 build610 QUIZ_PAGE 文本答题分支的差异: 文本答题分支也走 checkTaskResult(attempt+1)，但文本答题场景下 checkTaskResult 能找到答题奖励按钮；AI 视觉答题场景下无障碍树抓不到内容，checkTaskResult 找不到奖励按钮会误退农场，所以需要直接前进
+
+**编译验证**: sandbox 网络限制 gradle wrapper 下载超时，无法本地编译。代码逻辑审查通过，等 CI 构建验证。
+
+---
+
 ### commit (待提交) - feat: build610 AI 视觉答题（答题页 H5/Canvas 绘制，无障碍树抓不到内容时截图交 AI 选答案）
 **用户需求**: "分析日志，去答题，任务需要选择一个答案，可以借助AI接口来选择答案"
 
