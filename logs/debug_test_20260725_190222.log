@@ -1,0 +1,221 @@
+=== cleared on app start (version=2.2, build=build613-4f2eb2f, time=19:00:10) ===
+19:00:10.379 killPlatformApps: killed com.ucmobile.lite for UC
+19:00:10.380 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+19:00:10.381 killPlatformApps: killed com.taobao.taobao for TAOBAO
+19:00:10.397 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+19:00:10.401 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:00:10.402 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+19:00:32.112 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:00:32.120 openApp: shortcut unavailable for TAOBAO, fallback to deep link / navigation
+19:00:32.122 killPlatformApps: killed com.taobao.taobao for TAOBAO
+19:00:34.155 navigateToFarm: taobao, using 我的淘宝 path
+19:00:36.073 isOnTaobaoHomePage: ON main page (act=com.taobao.tao.tbmainactivity isMainAct=true, found=5 tabs=[首页, 消息, 我的淘宝, 视频, 购物车]), screenW=1200 screenH=2543
+19:00:36.102 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab NODE at (1080.0, 2572.5) bounds=[960,2481][1200,2664] [screen=1200 x 2543]
+19:00:38.238 navigate stepTab gesture: step 2 - click 芭芭农场 NODE at (161.0, 1615.5) bounds=[65,1587][257,1644] [screen=1200 x 2543]
+19:00:38.245 navigate stepTab gesture: done, waiting 8s for farm page
+19:00:41.685 navigate stepTab gesture: 3s after click 芭芭农场 - pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity onFarm=true hasFarmKeyword=true sampleTexts=[芭芭农场, 头像, 头像, 合种/帮种, 合种/帮种, line, 邀请好友, 邀请好友加速, undefined，, 更多，按钮, undefined，, undefined，, 买多返多, 品牌狂欢周, 一起种]
+19:00:41.694 === Automation v2 Started === platform=TAOBAO
+19:00:41.696 cancelNavigation: all navigation callbacks cancelled
+19:00:41.702 reset platform complete: TAOBAO
+19:00:41.703 state: IDLE -> NAVIGATING
+19:00:42.027 [navigate-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:00:42.048 [navigate-start] claim-text-nodes (count=1):
+19:00:42.048 [navigate-start]   text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[0,0][193,193] clickable=true
+19:00:42.097 navigate: on farm page, platform=TAOBAO
+19:00:42.119 hasFarmContentLoaded: text count=42, sample=[芭芭农场, 兔兔挖肥料，50肥料，可领取, 12级, 500，肥料，明日7点可领, 头像, 头像, 合种/帮种, 合种/帮种, line, 邀请好友]
+19:00:42.121 hasFarmContentLoaded: realContent count=39
+19:00:42.123 navigate: hasFarmContentLoaded=true, attempt=0
+19:00:42.124 state: NAVIGATING -> COLLECTING_DIRECT
+19:00:44.690 [collectDirect-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:00:44.722 [collectDirect-start] claim-text-nodes (count=1):
+19:00:44.724 [collectDirect-start]   text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[22,1414][219,1611] clickable=true
+19:00:44.742 collectDirect: found 1 direct buttons, attempt=0
+19:00:44.745 collectDirect: clicking button[0] text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[22,1414][219,1611] (attempt 1)
+19:00:44.748 performClickSafe: text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[22,1414][219,1611] clickable=true
+19:00:44.765 performClickSafe: ACTION_CLICK success at depth=0
+19:00:50.515 collectDirect: claim button not found, retrying (retry left=2)
+19:00:52.789 collectDirect: claim button not found, retrying (retry left=1)
+19:00:55.412 collectDirect: claim button not found after 3 retries, moving to next direct button
+19:00:55.441 collectDirect: found 0 direct buttons, attempt=1
+19:00:55.442 collectDirect: no direct buttons found, trying AI vision to locate '点击领取' button
+19:01:10.471 collectDirect: AI vision timed out after 15000ms, fallback to task list
+19:01:11.612 [openTaskList-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:01:11.630 [openTaskList-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:01:11.642 openTaskList: [TAOBAO闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+19:01:11.643 openTaskList: [TAOBAO闭环] heuristic text search (attempt=0)
+19:01:11.648 findCollectFertilizerButton: found by text='集肥料' bounds=[812,1863][985,2046]
+19:01:11.649 openTaskList: [TAOBAO闭环] clicking entry button by text (attempt=0)
+19:01:11.650 performClickSafe: text='集肥料' desc='' bounds=[812,1863][985,2046] clickable=true
+19:01:11.653 performClickSafe: ACTION_CLICK success at depth=0
+19:01:17.219 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,2868][1139,2666]
+19:01:17.222 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3085][1139,2666]
+19:01:17.226 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3297][1139,2666]
+19:01:17.228 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3514][1139,2666]
+19:01:17.231 findGoCompleteButtons: drop zero-size node text='' bounds=[42,3677][1159,2666]
+19:01:17.234 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3730][1139,2666]
+19:01:17.237 findGoCompleteButtons: drop zero-size node text='去领取' bounds=[910,3943][1139,2666]
+19:01:17.241 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,4159][1139,2666]
+19:01:17.245 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,4372][1139,2666]
+19:01:17.247 checkTaskListOpened: found 9 goComplete buttons, checkAttempt=0, currentIndex=0
+19:01:17.249 taskButton[0]: text='去答题', desc='', bounds=[910,936][1139,1038], clickable=true
+19:01:17.253 taskButton[1]: text='去完成', desc='', bounds=[910,1152][1139,1251], clickable=true
+19:01:17.255 taskButton[2]: text='去完成', desc='', bounds=[910,1368][1139,1467], clickable=true
+19:01:17.258 taskButton[3]: text='去完成', desc='', bounds=[910,1581][1139,1683], clickable=true
+19:01:17.262 taskButton[4]: text='去逛逛', desc='', bounds=[910,1797][1139,1896], clickable=true
+19:01:17.265 taskButton[5]: text='去完成', desc='', bounds=[910,2010][1139,2112], clickable=true
+19:01:17.269 taskButton[6]: text='去完成', desc='', bounds=[910,2227][1139,2325], clickable=true
+19:01:17.270 taskButton[7]: text='去完成', desc='', bounds=[910,2439][1139,2541], clickable=true
+19:01:17.272 taskButton[8]: text='去完成', desc='', bounds=[910,2656][1139,2666], clickable=true
+19:01:17.274 checkTaskListOpened: resetting currentTaskIndex to 0 (was 0, taskButtons was empty=true)
+19:01:17.277 collectTaskContextText: result='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', buttonText='去答题', btnHeight=102, containerHeight=203
+19:01:17.279 collectTaskContextText: result='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', buttonText='去答题', btnHeight=102, containerHeight=203
+19:01:17.284 collectTaskContextText: result='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', buttonText='去答题', btnHeight=102, containerHeight=203
+19:01:17.286 sortTaskButtons: idx=0 task='农场百科问答 每天答题领肥料 +~ 去答题' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去答题')
+19:01:17.287 collectTaskContextText: result='搜一搜你喜欢的商品(0/4) 浏览15秒得 +700 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+19:01:17.289 collectTaskContextText: result='搜一搜你喜欢的商品(0/4) 浏览15秒得 +700 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+19:01:17.290 collectTaskContextText: result='搜一搜你喜欢的商品(0/4) 浏览15秒得 +700 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+19:01:17.291 sortTaskButtons: idx=1 task='搜一搜你喜欢的商品 浏览15秒得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:01:17.292 collectTaskContextText: result='搜一搜你心仪的宝贝(0/5) 浏览得奖励 +600 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+19:01:17.294 collectTaskContextText: result='搜一搜你心仪的宝贝(0/5) 浏览得奖励 +600 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+19:01:17.294 collectTaskContextText: result='搜一搜你心仪的宝贝(0/5) 浏览得奖励 +600 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+19:01:17.295 sortTaskButtons: idx=2 task='搜一搜你心仪的宝贝 浏览得奖励 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:01:17.296 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+19:01:17.297 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+19:01:17.298 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+19:01:17.298 sortTaskButtons: idx=3 task='逛逛支付宝芭芭农场 还可领 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:01:17.300 collectTaskContextText: result='去玩支付宝蚂蚁庄园(0/1) 逛逛得 +300 去逛逛 ', buttonText='去逛逛', btnHeight=99, containerHeight=203
+19:01:17.302 collectTaskContextText: result='去玩支付宝蚂蚁庄园(0/1) 逛逛得 +300 去逛逛 ', buttonText='去逛逛', btnHeight=99, containerHeight=203
+19:01:17.304 collectTaskContextText: result='去玩支付宝蚂蚁庄园(0/1) 逛逛得 +300 去逛逛 ', buttonText='去逛逛', btnHeight=99, containerHeight=203
+19:01:17.306 sortTaskButtons: idx=4 task='去玩支付宝蚂蚁庄园 逛逛得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去逛逛')
+19:01:17.307 collectTaskContextText: result='去淘金币逛买更省钱(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=200
+19:01:17.309 collectTaskContextText: result='去淘金币逛买更省钱(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=200
+19:01:17.310 collectTaskContextText: result='去淘金币逛买更省钱(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=200
+19:01:17.311 sortTaskButtons: idx=5 task='去淘金币逛买更省钱 浏览5s得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:01:17.312 collectTaskContextText: result='去省钱卡领红包(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=98, containerHeight=203
+19:01:17.313 collectTaskContextText: result='去省钱卡领红包(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=98, containerHeight=203
+19:01:17.313 collectTaskContextText: result='去省钱卡领红包(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=98, containerHeight=203
+19:01:17.314 sortTaskButtons: idx=6 task='去省钱卡领红包 浏览5s得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:01:17.316 collectTaskContextText: result='试玩农场火爆新游(0/1) 玩一玩得肥料 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+19:01:17.317 collectTaskContextText: result='试玩农场火爆新游(0/1) 玩一玩得肥料 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+19:01:17.319 collectTaskContextText: result='试玩农场火爆新游(0/1) 玩一玩得肥料 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+19:01:17.320 sortTaskButtons: idx=7 task='试玩农场火爆新游 玩一玩得肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:01:17.322 collectTaskContextText: result='去蚂蚁新村收木兰币(0/1) 完成得 +300 去完成 ', buttonText='去完成', btnHeight=10, containerHeight=63
+19:01:17.323 collectTaskContextText: result='去蚂蚁新村收木兰币(0/1) 完成得 +300 去完成 ', buttonText='去完成', btnHeight=10, containerHeight=63
+19:01:17.325 collectTaskContextText: result='去蚂蚁新村收木兰币(0/1) 完成得 +300 去完成 ', buttonText='去完成', btnHeight=10, containerHeight=63
+19:01:17.326 sortTaskButtons: idx=8 task='去蚂蚁新村收木兰币 得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:01:17.327 state: OPENING_TASK_LIST -> PROCESSING_TASK
+19:01:21.064 isTaskCompletePage: YES, sample=[芭芭农场, 12级, 500，肥料，明日7点可领, 兔兔挖肥料，50肥料，生产中, 好友林]
+19:01:21.088 [processTask-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+19:01:21.125 [processTask-start] claim-text-nodes (count=3):
+19:01:21.127 [processTask-start]   text='每天答题领肥料' desc='' bounds=[271,998][543,1051] clickable=false
+19:01:21.129 [processTask-start]   text='领肥料礼包(0/1)' desc='' bounds=[271,3930][602,2666] clickable=false
+19:01:21.132 [processTask-start]   text='去领取' desc='' bounds=[910,3943][1139,2666] clickable=true
+19:01:21.198 processTask: current task #1/9, text='去答题', bounds=[910,936][1139,1038], attempt=0
+19:01:21.202 collectTaskContextText: result='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', buttonText='去答题', btnHeight=102, containerHeight=203
+19:01:21.205 collectTaskContextText: result='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', buttonText='去答题', btnHeight=102, containerHeight=203
+19:01:21.209 collectTaskContextText: result='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', buttonText='去答题', btnHeight=102, containerHeight=203
+19:01:21.212 collectTaskContextText: result='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', buttonText='去答题', btnHeight=102, containerHeight=203
+19:01:21.215 isBrowseTask: buttonText='去答题', context='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', isBrowse=false
+19:01:21.217 processTask: quiz task detected (button='去答题', context contains 答题/问答)
+19:01:21.221 parseTaskCount: completed=0, total=1, remaining=1
+19:01:21.222 processTask: multi-click task detected, remainingReplays=1
+19:01:21.223 performClickSafe: text='去答题' desc='' bounds=[910,936][1139,1038] clickable=true
+19:01:21.229 performClickSafe: ACTION_CLICK success at depth=0
+19:01:27.646 [checkTaskResult] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:01:27.660 [checkTaskResult] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:01:27.741 findFertilizerClaimButton: on farm page, skip (avoid clicking 集肥料 button)
+19:01:28.672 processTask: quiz task but isQuizPage=false (H5/Canvas content not in a11y tree), trying AI vision to answer
+19:01:41.067 processTask: AI vision quiz failed (no answer found), skipping task
+19:01:41.071 state: PROCESSING_TASK -> OPENING_TASK_LIST
+19:01:47.445 [openTaskList-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:01:47.485 [openTaskList-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:01:47.488 openTaskList: reset taskListOpenedThisRound for new round (attempt=0)
+19:01:47.491 openTaskList: resetting currentTaskIndex to 0 for new round (was 1, taskButtons.size=9)
+19:01:47.516 openTaskList: [TAOBAO闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+19:01:47.519 openTaskList: [TAOBAO闭环] heuristic text search (attempt=0)
+19:01:47.539 findCollectFertilizerButton: found by text='集肥料' bounds=[812,1863][985,2046]
+19:01:47.541 openTaskList: [TAOBAO闭环] clicking entry button by text (attempt=0)
+19:01:47.542 performClickSafe: text='集肥料' desc='' bounds=[812,1863][985,2046] clickable=true
+19:01:47.555 performClickSafe: ACTION_CLICK success at depth=0
+19:01:54.016 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,2868][1139,2666]
+19:01:54.019 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3085][1139,2666]
+19:01:54.021 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3297][1139,2666]
+19:01:54.024 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3514][1139,2666]
+19:01:54.026 findGoCompleteButtons: drop zero-size node text='' bounds=[42,3677][1159,2666]
+19:01:54.028 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3730][1139,2666]
+19:01:54.031 findGoCompleteButtons: drop zero-size node text='去领取' bounds=[910,3943][1139,2666]
+19:01:54.035 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,4159][1139,2666]
+19:01:54.037 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,4372][1139,2666]
+19:01:54.039 checkTaskListOpened: found 9 goComplete buttons, checkAttempt=0, currentIndex=0
+19:01:54.041 taskButton[0]: text='去答题', desc='', bounds=[910,936][1139,1038], clickable=true
+19:01:54.043 taskButton[1]: text='去完成', desc='', bounds=[910,1152][1139,1251], clickable=true
+19:01:54.045 taskButton[2]: text='去完成', desc='', bounds=[910,1368][1139,1467], clickable=true
+19:01:54.048 taskButton[3]: text='去完成', desc='', bounds=[910,1581][1139,1683], clickable=true
+19:01:54.050 taskButton[4]: text='去逛逛', desc='', bounds=[910,1797][1139,1896], clickable=true
+19:01:54.052 taskButton[5]: text='去完成', desc='', bounds=[910,2010][1139,2112], clickable=true
+19:01:54.053 taskButton[6]: text='去完成', desc='', bounds=[910,2227][1139,2325], clickable=true
+19:01:54.055 taskButton[7]: text='去完成', desc='', bounds=[910,2439][1139,2541], clickable=true
+19:01:54.056 taskButton[8]: text='去完成', desc='', bounds=[910,2656][1139,2666], clickable=true
+19:01:54.057 checkTaskListOpened: resetting currentTaskIndex to 0 (was 0, taskButtons was empty=true)
+19:01:54.058 collectTaskContextText: result='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', buttonText='去答题', btnHeight=102, containerHeight=203
+19:01:54.060 collectTaskContextText: result='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', buttonText='去答题', btnHeight=102, containerHeight=203
+19:01:54.062 collectTaskContextText: result='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', buttonText='去答题', btnHeight=102, containerHeight=203
+19:01:54.063 sortTaskButtons: idx=0 task='农场百科问答 每天答题领肥料 +~ 去答题' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去答题')
+19:01:54.065 collectTaskContextText: result='搜一搜你喜欢的商品(0/4) 浏览15秒得 +700 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+19:01:54.067 collectTaskContextText: result='搜一搜你喜欢的商品(0/4) 浏览15秒得 +700 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+19:01:54.069 collectTaskContextText: result='搜一搜你喜欢的商品(0/4) 浏览15秒得 +700 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+19:01:54.070 sortTaskButtons: idx=1 task='搜一搜你喜欢的商品 浏览15秒得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:01:54.071 collectTaskContextText: result='搜一搜你心仪的宝贝(0/5) 浏览得奖励 +600 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+19:01:54.074 collectTaskContextText: result='搜一搜你心仪的宝贝(0/5) 浏览得奖励 +600 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+19:01:54.076 collectTaskContextText: result='搜一搜你心仪的宝贝(0/5) 浏览得奖励 +600 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+19:01:54.079 sortTaskButtons: idx=2 task='搜一搜你心仪的宝贝 浏览得奖励 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:01:54.080 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+19:01:54.082 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+19:01:54.083 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+19:01:54.085 sortTaskButtons: idx=3 task='逛逛支付宝芭芭农场 还可领 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:01:54.086 collectTaskContextText: result='去玩支付宝蚂蚁庄园(0/1) 逛逛得 +300 去逛逛 ', buttonText='去逛逛', btnHeight=99, containerHeight=203
+19:01:54.088 collectTaskContextText: result='去玩支付宝蚂蚁庄园(0/1) 逛逛得 +300 去逛逛 ', buttonText='去逛逛', btnHeight=99, containerHeight=203
+19:01:54.089 collectTaskContextText: result='去玩支付宝蚂蚁庄园(0/1) 逛逛得 +300 去逛逛 ', buttonText='去逛逛', btnHeight=99, containerHeight=203
+19:01:54.090 sortTaskButtons: idx=4 task='去玩支付宝蚂蚁庄园 逛逛得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去逛逛')
+19:01:54.090 collectTaskContextText: result='去淘金币逛买更省钱(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=200
+19:01:54.091 collectTaskContextText: result='去淘金币逛买更省钱(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=200
+19:01:54.092 collectTaskContextText: result='去淘金币逛买更省钱(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=200
+19:01:54.092 sortTaskButtons: idx=5 task='去淘金币逛买更省钱 浏览5s得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:01:54.093 collectTaskContextText: result='去省钱卡领红包(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=98, containerHeight=203
+19:01:54.094 collectTaskContextText: result='去省钱卡领红包(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=98, containerHeight=203
+19:01:54.095 collectTaskContextText: result='去省钱卡领红包(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=98, containerHeight=203
+19:01:54.096 sortTaskButtons: idx=6 task='去省钱卡领红包 浏览5s得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:01:54.097 collectTaskContextText: result='试玩农场火爆新游(0/1) 玩一玩得肥料 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+19:01:54.099 collectTaskContextText: result='试玩农场火爆新游(0/1) 玩一玩得肥料 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+19:01:54.100 collectTaskContextText: result='试玩农场火爆新游(0/1) 玩一玩得肥料 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+19:01:54.101 sortTaskButtons: idx=7 task='试玩农场火爆新游 玩一玩得肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:01:54.101 collectTaskContextText: result='去蚂蚁新村收木兰币(0/1) 完成得 +300 去完成 ', buttonText='去完成', btnHeight=10, containerHeight=63
+19:01:54.102 collectTaskContextText: result='去蚂蚁新村收木兰币(0/1) 完成得 +300 去完成 ', buttonText='去完成', btnHeight=10, containerHeight=63
+19:01:54.103 collectTaskContextText: result='去蚂蚁新村收木兰币(0/1) 完成得 +300 去完成 ', buttonText='去完成', btnHeight=10, containerHeight=63
+19:01:54.103 sortTaskButtons: idx=8 task='去蚂蚁新村收木兰币 得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:01:54.104 state: OPENING_TASK_LIST -> PROCESSING_TASK
+19:01:58.359 isTaskCompletePage: YES, sample=[芭芭农场, 12级, 500，肥料，明日7点可领, 兔兔挖肥料，50肥料，生产中, 好友林]
+19:01:58.382 [processTask-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+19:01:58.398 [processTask-start] claim-text-nodes (count=3):
+19:01:58.399 [processTask-start]   text='每天答题领肥料' desc='' bounds=[271,998][543,1051] clickable=false
+19:01:58.399 [processTask-start]   text='领肥料礼包(0/1)' desc='' bounds=[271,3930][602,2666] clickable=false
+19:01:58.400 [processTask-start]   text='去领取' desc='' bounds=[910,3943][1139,2666] clickable=true
+19:01:58.457 processTask: current task #1/9, text='去答题', bounds=[910,936][1139,1038], attempt=0
+19:01:58.461 collectTaskContextText: result='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', buttonText='去答题', btnHeight=102, containerHeight=203
+19:01:58.463 collectTaskContextText: result='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', buttonText='去答题', btnHeight=102, containerHeight=203
+19:01:58.465 collectTaskContextText: result='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', buttonText='去答题', btnHeight=102, containerHeight=203
+19:01:58.467 collectTaskContextText: result='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', buttonText='去答题', btnHeight=102, containerHeight=203
+19:01:58.467 isBrowseTask: buttonText='去答题', context='农场百科问答(0/1) 每天答题领肥料 +150~500 去答题 ', isBrowse=false
+19:01:58.468 processTask: quiz task detected (button='去答题', context contains 答题/问答)
+19:01:58.469 performClickSafe: text='去答题' desc='' bounds=[910,936][1139,1038] clickable=true
+19:01:58.475 performClickSafe: ACTION_CLICK success at depth=0
+19:02:04.410 [checkTaskResult] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:02:04.430 [checkTaskResult] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:02:04.468 findFertilizerClaimButton: on farm page, skip (avoid clicking 集肥料 button)
+19:02:04.999 processTask: quiz task but isQuizPage=false (H5/Canvas content not in a11y tree), trying AI vision to answer
+19:02:15.414 state: PROCESSING_TASK -> STOPPING
+19:02:15.417 cancelNavigation: all navigation callbacks cancelled
+19:02:15.419 state: STOPPING -> IDLE
+19:02:22.802 saveToken: saved (len=93, head='gith', tail='McKr')
+19:02:22.804 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+19:02:22.806 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260725_190222.log, localFile=debug.log (28477 bytes)
