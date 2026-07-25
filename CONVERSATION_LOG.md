@@ -32,6 +32,45 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build614 glm-4.6v-flash max_tokens 从 300 增到 2048（推理模型 reasoning_content 耗尽 token 导致 content 为空）
+**用户需求**: "分析日志" → "修复"
+
+**输入日志**: `logs/debug_test_20260725_192257.log` (build615-2766047, 241 行, 2026-07-25 19:20 上传, TAOBAO 平台)
+
+**修复验证总结（全部生效）**:
+
+| 修复项 | 日志证据 | 状态 |
+|--------|---------|------|
+| build613 日志可见性 | line 126-137 完整显示 AI 调用细节（models/apiKeyLen/imgLen/bodyLen/HTTP 响应/content 预览/错误原因）| ✅ 完美生效 |
+| build612 重试机制 | line 126-136 glm-4.6v-flash 失败 → fallback glm-4v-flash 成功（重试+模型 fallback 生效）| ✅ 生效 |
+| build611 答题后不误点返回首页 | line 138 `PROCESSING_TASK -> OPENING_TASK_LIST`（直接前进，没走 onFarm 分支误点返回首页）| ✅ 生效 |
+
+**日志暴露的新问题（核心）**: glm-4.6v-flash `max_tokens=300` 太小，reasoning_content 耗尽 token 导致 content 为空
+
+**时间线**（第 1 次答题，19:21:49 ~ 19:22:18）:
+
+| 行号 | 时间 | 现象 |
+|------|------|------|
+| 126-127 | 19:21:56 | `answerQuizByVision: starting` → `calling glm-4.6v-flash (bodyLen=333291)` |
+| 128 | 19:22:10 | **`empty content, response={"choices":[{"finish_reason":"length","index":0,"message":{"content":"","reasoning_content":"用户现在需要分析截图中的题目..."}}]}`** ← `finish_reason: "length"`，max_tokens=300 耗尽 |
+| 129-130 | 19:22:10-13 | fallback `glm-4v-flash` → 3 秒返回成功 |
+| 136-137 | 19:22:13 | `success: xRatio=0.5, yRatio=0.8` → 点击 (600.0, 2034.4) |
+
+**根因（核心）**: glm-4.6v-flash 是推理模型，会先输出 `reasoning_content`（思考过程），再输出 `content`（正式答案）。300 tokens 不够思考完，正式 content 没输出就被截断（`finish_reason: "length"`）。
+
+**修复（1 处）**:
+
+**修复1: max_tokens 从 300 增到 2048** ([AiVisionClient.kt#L883-L889](file:///workspace/app/src/main/java/com/bbncbot/automation/AiVisionClient.kt#L883))
+- 修改前: `put("max_tokens", 300)`（推理模型思考过程耗尽 token，content 为空）
+- 修改后: `put("max_tokens", 2048)`（让推理模型有足够空间完成思考并输出 content）
+- 首选模型 glm-4.6v-flash 将直接返回正确结果，不用 fallback 到 glm-4v-flash（响应更快、坐标更准）
+
+**遗留问题（下次观察）**: glm-4v-flash 返回的坐标 `xRatio=0.5, yRatio=0.8`（点击 (600, 2034)）可能不准——答题后任务进度仍是 (0/1)（line 169），任务列表重置又回到答题任务。修复 max_tokens 后首选 glm-4.6v-flash 成功，坐标应更准（推理模型理解力更强），下次日志验证。
+
+**编译验证**: sandbox 网络限制 gradle wrapper 下载超时，无法本地编译。代码逻辑审查通过（单行数值修改，无依赖问题），等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build613 AI 视觉答题增加日志可见性（AiVisionClient 日志通过回调写入 debug.log）
 **用户需求**: "分析日志" → "修复"
 

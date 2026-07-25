@@ -880,7 +880,13 @@ object AiVisionClient {
                 put("model", model)
                 put("messages", messages)
                 put("temperature", 0.1)
-                put("max_tokens", 300)
+                // build614: max_tokens 从 300 增到 2048。
+                // 日志 debug_test_20260725_192257.log line 128 显示 glm-4.6v-flash 返回:
+                //   finish_reason:"length", content:"", reasoning_content:"用户现在需要分析截图..."
+                // 推理模型(glm-4.6v-flash)先输出 reasoning_content(思考过程)，再输出 content(正式答案)。
+                // 300 tokens 不够思考完，正式 content 没输出就被截断，导致 empty content 失败。
+                // 增到 2048 让推理模型有足够空间完成思考并输出 content。
+                put("max_tokens", 2048)
             }.toString()
 
             conn.outputStream.use { os ->
