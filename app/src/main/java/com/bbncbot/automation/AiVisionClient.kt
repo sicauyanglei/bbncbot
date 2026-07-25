@@ -880,13 +880,14 @@ object AiVisionClient {
                 put("model", model)
                 put("messages", messages)
                 put("temperature", 0.1)
-                // build614: max_tokens 从 300 增到 2048。
-                // 日志 debug_test_20260725_192257.log line 128 显示 glm-4.6v-flash 返回:
-                //   finish_reason:"length", content:"", reasoning_content:"用户现在需要分析截图..."
-                // 推理模型(glm-4.6v-flash)先输出 reasoning_content(思考过程)，再输出 content(正式答案)。
-                // 300 tokens 不够思考完，正式 content 没输出就被截断，导致 empty content 失败。
-                // 增到 2048 让推理模型有足够空间完成思考并输出 content。
-                put("max_tokens", 2048)
+                // build614: max_tokens 从 300 增到 2048（推理模型 reasoning_content 耗尽 token 导致 content 为空）。
+                // build615 修复: glm-4v-flash 不支持 2048，只支持 [1,1024]。
+                // 日志 debug_test_20260725_195306.log line 1001 显示:
+                //   callVisionModelForQuizAnswer(glm-4v-flash) failed (HTTP 400):
+                //   {"error":{"code":"1210","message":"max_tokens参数非法：限制数值范围[1,1024]"}}
+                // 修复: 按模型区分 max_tokens —— 推理模型(glm-4.6v-flash)用 2048，非推理模型(glm-4v-flash)用 1024。
+                val maxTokens = if (model.contains("4.6v") || model.contains("thinking")) 2048 else 1024
+                put("max_tokens", maxTokens)
             }.toString()
 
             conn.outputStream.use { os ->
@@ -958,6 +959,17 @@ object AiVisionClient {
             append("- 必须选出正确答案，不要随机选\n")
             append("- 若截图不是答题页（没有题目和选项），found 返回 false，x_ratio/y_ratio 填 0\n")
             append("- 若有多个选项，选出正确答案的那个选项的中心坐标\n\n")
+            // build615 修复：强调必须返回真实选项坐标，不要返回默认值/估算值
+            // 日志 debug_test_20260725_195306.log 显示 AI 8 次都返回 x_ratio=0.5, y_ratio=0.917（屏幕底部），
+            // 但 reason 说"选项位于屏幕中部偏下"，坐标与描述矛盾，说明 AI 返回的是固定默认值而非真实选项位置。
+            // 点击屏幕底部空白区域，答题从未提交成功，任务进度始终 0/1，死循环 8 次。
+            append("坐标精度要求（非常重要）：\n")
+            append("- x_ratio/y_ratio 必须是截图中正确答案选项按钮的真实中心坐标比例\n")
+            append("- 必须根据截图实际像素位置计算，不要返回 0.5/0.9 之类的默认值或估算值\n")
+            append("- 选项按钮通常位于屏幕中部（y_ratio 约 0.4-0.7），而不是屏幕底部（y_ratio 接近 1.0）\n")
+            append("- 选项是可点击的彩色区域（含文字如"可以"/"不能"/"是"/"否"/"A"/"B"），坐标应指向该彩色区域中心\n")
+            append("- 若选项按钮在屏幕上半部，y_ratio 应小于 0.5；在下半部，y_ratio 应大于 0.5\n")
+            append("- 请仔细观察截图，定位正确答案选项的实际像素位置后再返回坐标\n\n")
             append("只返回 JSON，不要 markdown 代码块，不要解释。")
         }
     }

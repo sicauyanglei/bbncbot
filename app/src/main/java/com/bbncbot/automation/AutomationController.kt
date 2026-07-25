@@ -3351,22 +3351,44 @@ object AutomationController {
                     Log.i(TAG, "processTask: AI vision quiz answer at ($x,$y) [ratio=${result.xRatio},${result.yRatio}], reason='${result.reason.take(80)}'")
                     debugLog("processTask: AI vision quiz clicking answer at ($x,$y), reason='${result.reason.take(60)}'")
                     service.dispatchGestureClick(x, y)
-                    // build611 修复：答题后不再走 checkTaskResult(attempt+1)。
-                    // 日志 debug_test_20260725_185110.log 显示：AI 视觉答题点击正确答案后，
-                    // 第二次 checkTaskResult 时 currentTaskIsQuiz 已重置为 false，
-                    // 走到 onFarm 分支 findBackToHomeButton 找到农场页右上角"返回首页"按钮，
-                    // 误点退出农场（act 从 TMSActivity 变 welcome.Welcome），后续在淘宝首页
-                    // 卡死 80 秒找不到农场，最终用户手动停止。
-                    // 修复：AI 已选正确答案并点击，答题任务完成，直接前进到下一任务，
-                    // 继续在农场页处理下一个任务，不触发"返回首页"退出逻辑。
+                    // build616 修复3：点击答案后检测"领取奖励"/"领取鼓励奖"按钮并点击领取，
+                    // 否则任务进度始终 0/1，任务列表重置 currentTaskIndex=0 又回到答题任务，死循环。
+                    //
+                    // 日志 debug_test_20260725_195306.log 显示：
+                    // - 19:41:32.232 AI 点击答案 (600, 2331)（屏幕底部空白区域，坐标不准）
+                    // - 19:41:37.239 build611 修复直接前进下一任务（PROCESSING_TASK -> OPENING_TASK_LIST）
+                    // - 19:41:43.376 openTaskList 检测到屏幕上已有"领取奖励 500"按钮（答对了！）
+                    //   但 build611 跳过了领取步骤，没点击该按钮
+                    // - 19:41:50.017 任务列表显示"去答题 (0/1)"（进度仍 0/1，未完成）
+                    // - 重新点"去答题" → 死循环 8 次（19:41:32~19:48:00）
+                    //
+                    // 修复：点击答案后等 2.5 秒让奖励按钮渲染，查找并点击"领取奖励"/"领取鼓励奖"
+                    // 按钮（不受场景白名单限制），再等 INTERVAL_PAGE_LOAD_MS 让弹窗消失，然后才前进下一任务。
+                    // - 答对：弹出"领取奖励 500"，点击领取 → 任务完成 1/1
+                    // - 答错：弹出"领取鼓励奖 150"，点击领取 → 也有肥料奖励，任务完成 1/1
+                    // - 都没检测到：仍前进下一任务（保持 build611 行为，避免 onFarm 误点返回首页）
                     handler.postDelayed({
-                        if (state == AutomationState.PROCESSING_TASK) {
-                            currentTaskIsQuiz = false
-                            currentTaskIndex++
-                            moveTo(AutomationState.OPENING_TASK_LIST)
-                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+                        if (state != AutomationState.PROCESSING_TASK) return@postDelayed
+                        val rewardBtn = service.findQuizRewardButton()
+                        if (rewardBtn != null) {
+                            val rewardText = rewardBtn.text?.toString().orEmpty()
+                            Log.i(TAG, "processTask: AI vision quiz reward found (text='$rewardText'), clicking to claim")
+                            debugLog("processTask: AI vision quiz reward found (text='$rewardText'), clicking to claim")
+                            service.performClickSafe(rewardBtn)
+                        } else {
+                            Log.w(TAG, "processTask: AI vision quiz no reward button detected after answer click")
+                            debugLog("processTask: AI vision quiz no reward button detected after answer click")
                         }
-                    }, INTERVAL_PAGE_LOAD_MS)
+                        // 领取后（或未找到）等待弹窗消失，再前进下一任务（保持 build611 行为）
+                        handler.postDelayed({
+                            if (state == AutomationState.PROCESSING_TASK) {
+                                currentTaskIsQuiz = false
+                                currentTaskIndex++
+                                moveTo(AutomationState.OPENING_TASK_LIST)
+                                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+                            }
+                        }, INTERVAL_PAGE_LOAD_MS)
+                    }, 2500L)  // 等待 2.5 秒让奖励按钮渲染
                 }
             }.start()
             return

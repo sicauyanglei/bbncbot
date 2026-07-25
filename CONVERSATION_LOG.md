@@ -32,6 +32,72 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build616 AI 视觉答题点击后检测奖励按钮+点击领取（build611 跳过领取导致死循环 8 次）
+**用户需求**: "全部修复"（修复1+2+3 三处问题一起处理）
+
+**输入日志**: `logs/debug_test_20260725_195306.log` (build615-2766047, ~1000 行, 2026-07-25 19:53 上传, TAOBAO 平台)
+
+**build613/614/615 修复验证**: ✅ 全部生效
+- build613 日志可见性: AI 调用细节完整写入 debug.log（starting/calling/got content/success）
+- build614 max_tokens=2048: glm-4.6v-flash 直接返回正确结果，不再 fallback 到 glm-4v-flash
+- build615 max_tokens 按模型区分: glm-4.6v-flash=2048 不再触发 HTTP 400
+
+**日志暴露的新问题（核心）**: build611 "答题后直接前进下一任务" 跳过了领取奖励步骤，死循环 8 次
+
+**时间线**（第 1 次答题，19:41:14 ~ 19:48:00 共 8 次循环）:
+
+| 行号 | 时间 | 现象 |
+|------|------|------|
+| 126-139 | 19:41:14-32 | 第 1 次：AI 视觉答题点击 (600, 2331)（屏幕底部空白，坐标不准）|
+| 140 | 19:41:37 | **`state: PROCESSING_TASK -> OPENING_TASK_LIST`**（build611 直接前进下一任务，跳过领取）|
+| 143 | 19:41:43 | **`[openTaskList-start] text='领取奖励 500' bounds=[117,2358][1084,2489] clickable=true`**（答对了！奖励按钮已弹出，但未领取）|
+| 172 | 19:41:50 | `collectTaskContextText: result='农场百科问答(0/1)...'`（进度仍 0/1，未完成）|
+| 209-216 | 19:41:53-54 | 第 2 次：`[processTask-start]` 屏幕上仍有"领取奖励 500"按钮，但 bot 不识别，重新点"去答题"|
+| 595 | 19:44:51 | 第 6 次：答错，弹出"领取鼓励奖 150"（鼓励奖也是肥料），仍未领取 |
+| 974 | 19:47:39 | 第 8 次：仍在循环，用户未停止但日志结束 |
+
+**根因（核心）**: build611 的修复"答题后直接前进下一任务"是为了避免误点"返回首页"退出农场，但跳过了关键步骤——**点击答题后弹出的"领取奖励 500"/"领取鼓励奖 150"按钮**。
+- 答题答对/答错都会弹出可点击的奖励按钮（bounds=[117,2358][1084,2489]）
+- 不点击该按钮，任务进度始终 0/1，任务列表重置 currentTaskIndex=0 又回到答题任务
+- AI 截图坐标不准（返回固定 0.5/0.917 屏幕底部）只是次要原因——即使坐标不准，只要奖励按钮弹出，点击它就能完成任务
+
+**修复（3 处，本 build 完成全部）**:
+
+**修复1: 增强提示词强制真实坐标检测** ([AiVisionClient.kt#L962-L972](file:///workspace/app/src/main/java/com/bbncbot/automation/AiVisionClient.kt#L962))
+- 在 buildQuizAnswerPrompt 末尾追加"坐标精度要求（非常重要）"章节
+- 明确要求：
+  - `x_ratio/y_ratio 必须是截图中正确答案选项按钮的真实中心坐标比例`
+  - `必须根据截图实际像素位置计算，不要返回 0.5/0.9 之类的默认值或估算值`
+  - `选项按钮通常位于屏幕中部（y_ratio 约 0.4-0.7），而不是屏幕底部（y_ratio 接近 1.0）`
+  - `若选项按钮在屏幕上半部，y_ratio 应小于 0.5；在下半部，y_ratio 应大于 0.5`
+- 目的：解决 AI 8 次都返回固定 `x_ratio=0.5, y_ratio=0.917`（屏幕底部空白区域）的问题
+
+**修复2: max_tokens 按模型区分** ([AiVisionClient.kt#L883-L890](file:///workspace/app/src/main/java/com/bbncbot/automation/AiVisionClient.kt#L883))
+- 修改前: `put("max_tokens", 2048)`（glm-4v-flash 不支持，HTTP 400 "max_tokens参数非法：限制数值范围[1,1024]"）
+- 修改后: `val maxTokens = if (model.contains("4.6v") || model.contains("thinking")) 2048 else 1024`
+- 推理模型（glm-4.6v-flash）用 2048（足够 reasoning_content + content），非推理模型（glm-4v-flash）用 1024（API 上限）
+
+**修复3: 答题点击后检测并点击奖励按钮** ([AutomationController.kt#L3354-L3391](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L3354) + [FarmAccessibilityService.kt#L4052-L4088](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4052))
+- 新增 `findQuizRewardButton` 方法（FarmAccessibilityService）：
+  - 不受场景白名单限制（与 findClaimRewardButton 的关键区别）
+  - 精确匹配"领取奖励"/"领取鼓励奖"前缀（不匹配"领取"子串，避免诱导按钮）
+  - 必须可点击才返回（避免误识别纯文案节点）
+- 修改 AI 视觉答题分支点击答案后的逻辑（AutomationController）：
+  - 修改前（build611）: 点击答案 → `currentTaskIsQuiz=false` + `currentTaskIndex++` → `moveTo(OPENING_TASK_LIST)`（直接前进，跳过领取）
+  - 修改后（build616）: 点击答案 → 等 2.5 秒让奖励按钮渲染 → `findQuizRewardButton` 检测 → 找到则 `performClickSafe` 领取 → 等 `INTERVAL_PAGE_LOAD_MS`（5 秒）让弹窗消失 → 前进下一任务
+  - 未找到奖励按钮也前进下一任务（保持 build611 行为，避免 onFarm 误点返回首页）
+
+**预期效果**:
+- 答对：弹出"领取奖励 500" → 检测到 → 点击领取 → 任务完成 1/1 → 前进下一任务
+- 答错：弹出"领取鼓励奖 150" → 检测到 → 点击领取 → 任务完成 1/1 → 前进下一任务
+- 都没检测到：仍前进下一任务（不再死循环，最坏情况跳过该任务）
+
+**遗留问题（下次观察）**: AI 仍可能返回固定坐标 (0.5, 0.917)（修复1 增强提示词后下次日志验证）。若坐标仍不准但奖励按钮能弹出，本修复已足够解决死循环。若坐标完全点击不到任何选项（答错也没奖励），需要进一步分析截图问题。
+
+**编译验证**: sandbox 网络限制 gradle wrapper 下载超时，无法本地编译。代码逻辑审查通过（findQuizRewardButton 复用 findNodeByText 既有方法，performClickSafe 在主线程 handler.post 内调用安全），等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build614 glm-4.6v-flash max_tokens 从 300 增到 2048（推理模型 reasoning_content 耗尽 token 导致 content 为空）
 **用户需求**: "分析日志" → "修复"
 

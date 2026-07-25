@@ -4050,6 +4050,44 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 查找答题奖励按钮（"领取奖励 XXX" / "领取鼓励奖 XXX"）
+     *
+     * build616 修复3：AI 视觉答题点击答案后弹出的奖励按钮检测专用方法。
+     *
+     * 日志 debug_test_20260725_195306.log 显示：AI 点击答案后 5 秒内弹出
+     * "领取奖励 500"（答对）或"领取鼓励奖 150"（答错）按钮，但 build611 的修复
+     * "直接前进下一任务"跳过了领取步骤，导致任务进度始终 0/1，任务列表重置
+     * currentTaskIndex=0 又回到答题任务，死循环 8 次（19:41:32~19:48:00）。
+     *
+     * 与 [findClaimRewardButton] 的区别：
+     * - findClaimRewardButton 有场景白名单限制（[isClaimRewardAllowedScene]），
+     *   AI 视觉答题点击答案后 scene 仍是 FARM_MAIN（不在白名单），找不到奖励按钮
+     * - 本方法不受场景白名单限制，专门用于 AI 视觉答题后检测奖励
+     * - 仅精确匹配"领取奖励"/"领取鼓励奖"前缀（避免误点"领取优惠"/"领取福利"等诱导按钮）
+     * - 必须可点击才返回（避免误识别纯文案节点）
+     *
+     * @return 可点击的奖励按钮节点；未找到返回 null
+     */
+    fun findQuizRewardButton(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        // 精确匹配"领取奖励"/"领取鼓励奖"前缀，不匹配"领取"子串（避免诱导按钮）
+        val keywords = listOf("领取鼓励奖", "领取奖励")
+        for (kw in keywords) {
+            val node = findNodeByText(root, kw)
+            if (node != null) {
+                val text = node.text?.toString().orEmpty()
+                val desc = node.contentDescription?.toString().orEmpty()
+                // 必须可点击才返回（避免误识别纯文案节点）
+                if (node.isClickable) {
+                    Log.d(TAG, "findQuizRewardButton: found by text='$kw' (text='$text', desc='$desc')")
+                    return node
+                }
+            }
+        }
+        return null
+    }
+
+    /**
      * 查找"肥料图标 + 领取按钮"组合，绕过场景白名单直接领取
      *
      * 用户需求：如果有带肥图标，并有"领取"的按钮，可以直接点击领取。
