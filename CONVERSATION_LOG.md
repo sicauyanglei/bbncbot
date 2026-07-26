@@ -32,7 +32,71 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build634 修复 TAOBAO→ALIPAY 跨平台跳转后 navigateAlipay 入口识别失败导致死循环
+### commit (待提交) - fix: build636 修复跨平台任务完成后 RETURN_ORIGINAL 阶段无法返回原平台 TAOBAO
+**用户需求**: "修复所有问题"
+
+**输入日志**: `logs/debug_test_20260726_110139.log`（build635，300 行，TAOBAO 平台，10:59:32~11:01:39 约 2 分钟）
+
+**build634/635 验证结果**: ✅ XRiver H5 fallback 完美生效
+- 11:00:15 act=XRiverActivity, sample=[松开刷新, 稍等片刻, 返回, 更多...]（无 hasFarmContent 关键词）
+- 11:00:26 `[switchPlatform-NAVIGATE_TARGET_FARM] snapshot: onFarm=true` ← build634 XRiver H5 fallback 生效
+- 11:00:26 `switchPlatform: target farm page loaded, fertilizing` ← 直接进入施肥阶段
+- 11:00:29 11 个坐标点击施肥完成
+- 跨平台任务"逛逛支付宝芭芭农场"成功完成（不再死循环 4 分钟）
+
+**新问题**: RETURN_ORIGINAL 阶段无法返回原平台 TAOBAO（11:00:34~11:00:51 共 17 秒）
+
+**问题详情**:
+1. 11:00:34 FERTILIZE_TARGET 完成 → RETURN_ORIGINAL
+2. 11:00:34 `switchPlatform: returning to original TAOBAO` → launchPlatformApp(TAOBAO)
+3. 11:00:34.965 `launchPlatformApp: opened TAOBAO via deep link`
+4. 11:00:35.024 `refreshPlatform: detected platform=ALIPAY from pkg=com.eg.android.AlipayGphone` ← **关键！currentPlatform 变为 ALIPAY**
+5. 11:00:37~11:00:51 7 次 retry, `activeRootPkg='com.hihonor.android.launcher'`（一直在桌面）
+6. 11:00:42 `navigateAlipay: active root pkg=com.hihonor.android.launcher is launcher, retry=3, actively relaunching farm app` ← **navigateAlipay 被错误触发！**
+7. 11:00:42 `forceKillApp: killing com.eg.android.AlipayGphone` + relaunch ALIPAY ← **把 ALIPAY kill 又重启, TAOBAO 永远无法启动**
+8. 11:00:51 `failed to return to original, skipping task`
+9. 11:00:53~11:01:29 后续 PROCESSING_TASK 仍在桌面/淘宝首页, 未回到农场
+10. 11:01:32 用户手动停止
+
+**根因（双重）**:
+
+1. **LAUNCH_TARGET 阶段调用 navigateToFarm 启动了 stepNavigateAlipayFarm 链**:
+   - line 5306 `service.navigateToFarm()` 根据 currentPlatform（已变为 ALIPAY）启动 stepNavigateAlipayFarm
+   - stepNavigateAlipayFarm 在 navHandler 队列中持续执行
+   - 即使后续 switchStage 切换到 RETURN_ORIGINAL, stepNavigateAlipayFarm 仍在运行
+   - 在 RETURN_ORIGINAL retry 期间触发 `navigateAlipay: actively relaunching farm app`, 把 ALIPAY kill 后又 relaunch
+
+2. **RETURN_ORIGINAL 阶段 currentPlatform 已变为 ALIPAY**:
+   - LAUNCH_TARGET 的 `service.refreshPlatform()` 把 currentPlatform 改成了 ALIPAY（line 217）
+   - RETURN_ORIGINAL line 5379 检查 `service.currentPlatform == switchOriginalPlatform`（TAOBAO）
+   - currentPlatform=ALIPAY ≠ TAOBAO, 条件为 false, 一直 retry
+   - retry 时未主动 relaunch 原平台, 只等 launcher 自动恢复（Honor 系统下不会自动恢复）
+
+**修复（2 处）**:
+
+#### 修复1: LAUNCH_TARGET 不再调用 navigateToFarm ([AutomationController.kt#L5306-5314](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5306))
+- 原: `service.navigateToFarm()` 启动 stepNavigateAlipayFarm 链
+- 新: 移除 navigateToFarm 调用, 依赖 auto-jump（点击"去完成"已自动跳转到目标平台芭芭农场 H5 页面）
+- NAVIGATE_TARGET_FARM 阶段会用 isOnFarmPage 等待加载完成（build634 XRiver H5 fallback 已能正确识别）
+
+#### 修复2: RETURN_ORIGINAL retry 时主动 relaunch 原平台 ([AutomationController.kt#L5377-5418](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5377))
+- 原: retry 0 时 launchPlatformApp 一次, 之后只等待
+- 新:
+  - retry 0 时先 `cancelNavigation()`（取消残留的 navigateAlipay 队列）+ `setCurrentPlatform(TAOBAO)`（恢复原平台）+ launchPlatformApp
+  - retry > 0 且 % 2 == 0 时主动 relaunch 原平台（Honor 系统下 launchPlatformApp 可能因后台启动限制未成功）
+
+**预期效果**:
+- 跨平台任务完成后 RETURN_ORIGINAL 阶段:
+  - 立即 cancelNavigation 取消残留的 navigateAlipay 队列（不再 kill ALIPAY 又 relaunch）
+  - setCurrentPlatform(TAOBAO) 恢复原平台（refreshPlatform 检测到 TAOBAO 时 currentPlatform==TAOBAO 匹配）
+  - retry 2/4/6 时主动 relaunch TAOBAO（解决 Honor 后台启动限制）
+- 不再卡在 launcher 17 秒, 快速返回原平台继续下一个任务
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 909aa33 - fix: build635 修复 build634 编译错误（val 声明提前避免 else 后语法错误）
 **用户需求**: "分析日志" → 选择方案 C "修复 navigateAlipay 入口识别（top=156 < 508.6 判断逻辑）"
 
 **输入日志**: `logs/debug_test_20260726_102123.log`（build633，593 行，TAOBAO 平台，10:15:28~10:21:23 约 6 分钟）

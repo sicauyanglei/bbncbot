@@ -5303,7 +5303,14 @@ object AutomationController {
                     switchStage = "NAVIGATE_TARGET_FARM"
                     switchRetryCount = 0
                     service.cancelNavigation()
-                    service.navigateToFarm()
+                    // build636 修复（debug_test_20260726_110139.log line 217-265）：
+                    // 历史问题：这里调用 service.navigateToFarm() 会根据 currentPlatform（已变为 ALIPAY）
+                    // 启动 stepNavigateAlipayFarm 的 navHandler 链。即使后续 switchStage 切换到
+                    // RETURN_ORIGINAL，stepNavigateAlipayFarm 仍在 navHandler 队列中持续执行，
+                    // 在 RETURN_ORIGINAL retry 期间触发 navigateAlipay: actively relaunching farm app，
+                    // 把 ALIPAY kill 后又 relaunch，导致 TAOBAO 永远无法启动到前台。
+                    // 修复：跨平台任务依赖 auto-jump（点击"去完成"已自动跳转到目标平台芭芭农场 H5 页面），
+                    // 不再主动调用 navigateToFarm。NAVIGATE_TARGET_FARM 阶段会用 isOnFarmPage 等待加载完成。
                     handler.postDelayed({ runSwitchingPlatform() }, INTERVAL_PAGE_LOAD_MS * 2)
                     return
                 }
@@ -5371,6 +5378,9 @@ object AutomationController {
                 // 启动原平台
                 if (switchRetryCount == 0) {
                     debugLog("switchPlatform: returning to original ${switchOriginalPlatform}")
+                    // build636 修复：取消可能残留的 navigateAlipay 队列（LAUNCH_TARGET 阶段可能触发）
+                    service.cancelNavigation()
+                    service.setCurrentPlatform(switchOriginalPlatform)
                     service.launchPlatformApp(switchOriginalPlatform)
                 }
                 service.refreshPlatform()
@@ -5384,6 +5394,13 @@ object AutomationController {
                     service.navigateToFarm()
                     handler.postDelayed({ runSwitchingPlatform() }, INTERVAL_PAGE_LOAD_MS * 2)
                     return
+                }
+                // build636 修复：retry 期间若仍在 launcher，每隔 2 次主动 relaunch 原平台
+                // （Honor 系统下 launchPlatformApp 可能因后台启动限制未成功）
+                if (switchRetryCount > 0 && switchRetryCount % 2 == 0) {
+                    debugLog("switchPlatform: still not on original after $switchRetryCount retries, actively relaunching ${switchOriginalPlatform}")
+                    service.setCurrentPlatform(switchOriginalPlatform)
+                    service.launchPlatformApp(switchOriginalPlatform)
                 }
                 switchRetryCount++
                 if (switchRetryCount >= MAX_SWITCH_RETRIES) {
