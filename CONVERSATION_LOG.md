@@ -32,7 +32,58 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build657 支付宝搜索结果过滤搜索框区域联想词，选真正搜索结果
+### commit (待提交) - fix: build658 支付宝"攒一笔到余额宝"任务识别为付费任务，避免 isNonAdTaskPage 误判导致 currentTaskIndex 重置死循环
+
+**用户需求**: "分析日志"（从 GitHub 拉取 build657 日志 debug_test_20260726_210643.log）
+
+**日志分析** (build657, 支付宝平台):
+- ✅ build657 支付宝导航修复生效：21:05:09 navigate: on farm page, platform=ALIPAY（搜索结果过滤生效，进入农场页）
+- ✅ 任务列表正常打开：21:05:37 found 7 goComplete buttons
+- ❌ **新问题**: task #1 "攒一笔到余额宝" 未识别为付费任务（paid=false）→ 点击"去完成"跳转余额宝转入页 → isNonAdTaskPage 误判 → currentTaskIndex 重置 → 死循环 4 轮直到 STOPPING
+
+**根因**: [FarmAccessibilityService.kt#isPaidTask#L2765](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L2765)
+- task #1 文案 "攒一笔到余额宝当前进度0，总进度1 完成得500肥料 去完成"
+- paidKeywords 含"投资"/"理财"但不含"余额宝"/"攒一笔"/"转入"
+- isPaidTask 返回 false → processTask 不跳过 → 点击"去完成"跳转余额宝转入页
+- 余额宝转入页含"转入余额宝"/"立即转入"/"扣款"等文案
+- isNonAdTaskPage 误判为非广告任务页（matched non-ad task）
+- processTask: non-ad task page, skipping task #$1
+- OPENING_TASK_LIST: resetting currentTaskIndex to 0（重置索引）
+- 又回到 task #1 → 又跳转 → 又误判 → 又重置 → 死循环
+
+**日志证据** ([debug_test_20260726_210643.log#L126-L148](file:///workspace/logs/debug_test_20260726_210643.log)):
+- 21:05:39.998 processTask: current task #1/7, text='去完成' (攒一笔到余额宝)
+- 21:05:40.006 isBrowseTask: isBrowse=false (未识别为浏览任务)
+- 21:05:40.015 点击"去完成" → 跳转余额宝转入页
+- 21:05:45.507 isNonAdTaskPage: YES, matched non-ad task in [转入余额宝, 1028, 元, ...立即转入...]
+- 21:05:46.562 processTask: non-ad task page, skipping task #$1
+- 21:05:51.569 state: PROCESSING_TASK -> OPENING_TASK_LIST
+- 21:05:54.333 openTaskList: resetting currentTaskIndex to 0 (was 1, taskButtons.size=7)
+- 此循环在 21:05:39 / 21:05:56 / 21:06:13 / 21:06:30 重复 4 次
+- 21:06:34.775 state: PROCESSING_TASK -> STOPPING（防大循环兜底生效）
+
+**修复**: [FarmAccessibilityService.kt#L2770-2776](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L2770)
+- paidKeywords 新增 "余额宝"、"攒一笔"、"转入" 三个关键词
+- task #1 文案 "攒一笔到余额宝..." 命中"攒一笔"和"余额宝" → isPaidTask 返回 true
+- processTask 跳过 task #1 → currentTaskIndex++ → 处理 task #2
+- 不再点击"去完成" → 不跳转余额宝转入页 → 不触发 isNonAdTaskPage 误判 → 不重置索引 → 不死循环
+
+**注意**:
+- "转入"是余额宝转入页的关键动词，作为付费任务关键词安全（浏览任务文案不会含"转入"）
+- "攒一笔"是支付宝余额宝任务的专属营销文案
+- 与 build649（淘宝秒杀下单）/ build633（限时折扣下单）的修复思路一致：识别金融/交易类任务直接跳过
+
+**预期效果**:
+- 支付宝平台 task #1 "攒一笔到余额宝" 直接被识别为付费任务跳过
+- 不再跳转余额宝转入页 → 不再 isNonAdTaskPage 误判 → 不再 currentTaskIndex 重置
+- 继续处理后续任务（逛好物/看精选商品/去庄园喂鸡等）
+- 7 个任务中 task #1（余额宝）和 task #6（金豆夺宝签到）均识别为付费任务跳过，其余 5 个任务正常处理
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit b012ed9 - fix: build657 支付宝搜索结果过滤搜索框区域联想词，选真正搜索结果
 
 **用户需求**: "分析日志"（从 GitHub 拉取 build656 日志 debug_test_20260726_205318.log）
 
