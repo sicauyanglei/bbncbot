@@ -32,7 +32,40 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build652 修复施肥阶段任务列表弹窗关闭按钮识别失败导致无限循环
+### commit (待提交) - fix: build653 修复施肥按钮"可施肥0次"时仍被识别为可点击导致无限循环
+
+**用户需求**: "分析日志"（从 GitHub 拉取 build652 日志 debug_test_20260726_193125.log）
+
+**日志分析**:
+- ✅ build652 弹窗关闭修复生效：`click close button '关闭' to close it`
+- ✅ 任务跳过逻辑全部生效（paid task #1/#2/#5, list task #3/#4/#6/#7/#8）
+- ❌ **新问题**: 施肥阶段无限点击 19 次直到用户手动停止
+
+**根因**: [FarmAccessibilityService.kt#findFertilizeButton#L4702](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4702)
+- 施肥按钮文案为 `'施肥，肥料53，可施肥0次'` 表示已无肥料可施（可施肥次数=0）
+- findFertilizeButton 只过滤了"进度"关键词，没过滤"可施肥0次"
+- 导致该按钮被识别为可点击施肥按钮，fertilize 阶段无限点击
+
+**日志证据** ([debug_test_20260726_193125.log#L279-329](file:///workspace/logs/debug_test_20260726_193125.log)):
+- 19:30:30.769 ~ 19:31:18.771 共 19 次 `performClickSafe: text='施肥，肥料53，可施肥0次'`
+- 每次都 `ACTION_CLICK success`，但肥料数和次数都没变化
+- 19:31:22.100 用户手动停止 `state: FERTILIZING -> STOPPING`
+
+**修复**: [FarmAccessibilityService.kt#L4713-4729](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4713)
+- 新增 `zeroFertilizerPatterns` 列表: `["可施肥0次", "可施肥 0 次", "可施肥0", "可施肥 0"]`
+- walk 函数中: `isZeroFertilizer = zeroFertilizerPatterns.any { s.contains(it) }`
+- 与 `isProgress` 同等处理: `if (!isProgress && !isZeroFertilizer)` 才加入候选
+
+**预期效果**:
+- "施肥，肥料53，可施肥0次" → findFertilizeButton 返回 null
+- fertilize 进入 fallback: 无 hint 节点（日志无"还差X次领肥料"）→ 无 direct 按钮 → 切 WAITING
+- startNextRound 进入下一轮，不再无限循环
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit ec514e3 - fix: build652 修复施肥阶段任务列表弹窗关闭按钮识别失败导致无限循环
 
 **用户需求**: "分析日志"（基于 build651 日志 debug_test_20260726_175653.log 分析）
 

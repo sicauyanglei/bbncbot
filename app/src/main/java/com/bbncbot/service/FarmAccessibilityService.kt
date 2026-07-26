@@ -4710,6 +4710,12 @@ class FarmAccessibilityService : AccessibilityService() {
         // 修复：跳过含"进度"/"总进度"/"当前进度"/"得X肥"/"需N"等进度描述特征的节点。
         //       同时跳过 clickable=false 和 zero-size bounds 的节点。
         val progressKeywords = listOf("进度", "总进度", "当前进度", "得", "肥，需", "需", "合种", "帮帮种")
+        // build653 修复（debug_test_20260726_193125.log, build652-ec514e3）：
+        //   19:30:30.769 performClickSafe: text='施肥，肥料53，可施肥0次' (重复点击 19 次)
+        // 历史问题：施肥按钮文案为"施肥，肥料53，可施肥0次"时表示已无肥料可施（可施肥次数=0），
+        //   但 findFertilizeButton 仍返回该按钮，导致 fertilize 阶段无限点击 19 次直到用户手动停止。
+        // 修复：跳过含"可施肥0次"/"可施肥 0 次"的节点（表示肥料不足，无法继续施肥）。
+        val zeroFertilizerPatterns = listOf("可施肥0次", "可施肥 0 次", "可施肥0", "可施肥 0")
         // 收集所有含"施肥"的候选节点，按优先级选择：clickable=true > bounds 合法 > 长度短
         data class Candidate(val node: AccessibilityNodeInfo, val text: String, val clickable: Boolean, val boundsValid: Boolean, val textLen: Int)
         val candidates = mutableListOf<Candidate>()
@@ -4719,7 +4725,8 @@ class FarmAccessibilityService : AccessibilityService() {
             for (s in listOf(text, desc)) {
                 if (s.contains("施肥")) {
                     val isProgress = progressKeywords.any { s.contains(it) }
-                    if (!isProgress) {
+                    val isZeroFertilizer = zeroFertilizerPatterns.any { s.contains(it) }
+                    if (!isProgress && !isZeroFertilizer) {
                         val rect = android.graphics.Rect()
                         node.getBoundsInScreen(rect)
                         val boundsValid = rect.width() > 0 && rect.height() > 0 && rect.top < rect.bottom
