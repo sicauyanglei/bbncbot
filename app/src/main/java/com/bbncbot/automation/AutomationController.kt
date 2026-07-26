@@ -326,6 +326,16 @@ object AutomationController {
     /** 单个任务最大失败次数，超过则跳过该任务 */
     private const val MAX_TASK_FAILS = 2
 
+    // build640：任务重复处理计数器
+    // 日志 debug_test_20260726_142922.log 显示"发现精选好物(0/5)"任务需要浏览 5 次才能完成，
+    // 每次浏览约 50 秒，用户觉得循环太久手动停止。添加计数器，同一个任务最多处理 2 次，
+    // 超过则跳过该任务（currentTaskIndex++），避免长时间循环。
+    @Volatile
+    private var lastProcessedTaskText: String = ""
+    @Volatile
+    private var sameTaskProcessedCount: Int = 0
+    private const val MAX_SAME_TASK_PROCESS = 2
+
     // build610：标记当前任务是答题任务（"去答题"按钮 / 上下文含"答题"/"问答"）
     // 用于 checkTaskResult 中：答题页是 H5/Canvas 绘制，无障碍树抓不到问题+选项文本，
     // isQuizPage() 返回 false 时，用 AI 视觉接口截图识别答题页并选出正确答案。
@@ -567,6 +577,8 @@ object AutomationController {
         browsingNovelStarted = false  // build584: 复位小说阅读任务标记
         currentTaskIsQuiz = false  // build610: 复位答题任务标记
         quizVisionFailCount = 0  // build617: 复位 AI 视觉答题失败计数器
+        lastProcessedTaskText = ""  // build640: 复位任务重复处理计数器
+        sameTaskProcessedCount = 0
         browsingNovelEnteredContent = false  // build585: 复位小说内容页标记
         browsingShortDramaStarted = false  // build590: 复位短剧观看任务标记
         browsingProductEntered = false  // build620: 复位浏览商品任务标记
@@ -2157,6 +2169,34 @@ object AutomationController {
 
         // 4. 滑动浏览任务：模拟滑动而非点击进入
         if (service.isBrowseTask(button)) {
+            // build640 修复（debug_test_20260726_142922.log）：
+            // 历史问题: "发现精选好物(0/5)" 任务需要浏览 5 次才能完成，每次浏览约 50 秒，
+            // 任务列表会刷新，currentTaskIndex 重置为 0，导致同一个任务被反复处理，
+            // 用户觉得循环太久手动停止。
+            // 修复: 添加任务重复处理计数器，同一个任务（相同文案）最多处理 MAX_SAME_TASK_PROCESS 次，
+            // 超过则跳过该任务（currentTaskIndex++），避免长时间循环。
+            // 注意：用任务标题（不含进度数字）作为唯一标识，避免任务进度推进后误判为新任务。
+            val taskSignature = taskContextText.replace(Regex("\\(\\d+/\\d+\\)"), "").trim().substringBefore(" +")
+            if (taskSignature == lastProcessedTaskText) {
+                sameTaskProcessedCount++
+                debugLog("processTask: same task detected (count=$sameTaskProcessedCount/$MAX_SAME_TASK_PROCESS, signature='$taskSignature')")
+            } else {
+                lastProcessedTaskText = taskSignature
+                sameTaskProcessedCount = 1
+                debugLog("processTask: new task signature='$taskSignature'")
+            }
+            if (sameTaskProcessedCount > MAX_SAME_TASK_PROCESS) {
+                Log.i(TAG, "processTask: task #${currentTaskIndex + 1} processed $sameTaskProcessedCount times, skipping (text='$buttonText')")
+                debugLog("processTask: skip same task #${currentTaskIndex + 1} (processed $sameTaskProcessedCount times), text='$buttonText', context='$taskContextText'")
+                // 重置计数器，避免下一个任务被误判
+                lastProcessedTaskText = ""
+                sameTaskProcessedCount = 0
+                currentTaskIndex++
+                handler.postDelayed({
+                    if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
+                }, 500L)
+                return
+            }
             Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is browse task, swiping (text='$buttonText')")
             debugLog("processTask: browse task #${currentTaskIndex + 1}, text='$buttonText', entering BROWSING_TASK")
             moveTo(AutomationState.BROWSING_TASK)
