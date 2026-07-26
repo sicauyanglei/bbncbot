@@ -32,6 +32,40 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build649 修复淘宝秒杀下单任务未识别为付费任务导致无限循环
+
+**用户需求**: "分析github日志，解决秒杀下单任务不做"
+
+**输入日志**: `logs/debug_test_20260726_165828.log`（build648，511 行，16:56:40~16:58:28 约 2 分钟）
+
+**问题现象**: task #5 "淘宝秒杀下单肥料加码(0/1) 下单最高得4-5万肥料 +50000 去完成" 没有被正确跳过，导致无限循环：
+- 16:57:53 点击"去完成" → 跳转淘宝秒杀页（TMSActivity）
+- 16:58:02 秒杀页 H5 加载/关闭后回到芭芭农场主页
+- isOnFarmPage 返回 false（farmPkgWindowVisible=false，activity fallback only）
+- isNonAdTaskPage 误判返回 YES（芭芭农场主页含"邀请好友"/"合种"等入口关键词）
+- `processTask: non-ad task page, skipping task #$5` → 任务被"误判跳过"
+- 状态切回 OPENING_TASK_LIST → currentTaskIndex 重置为 0 → 又从 task #1 开始 → 无限循环（用户手动停止）
+
+**根因**: `isPaidTask` 没有识别"淘宝秒杀下单肥料加码 下单最高得4-5万肥料"为付费任务
+- 任务文案: `淘宝秒杀下单肥料加码(0/1) 下单最高得4-5万肥料 +50000 去完成`
+- 现有 paidKeywords: "下单领"/"下单赢"/"下单大额"/"下单高额"/"下单得大额" 均不匹配 "下单最高得"
+- 秒杀下单任务需用户实际下单购买才能得肥料，bot 无法自动完成，应直接跳过
+
+**修复**: isPaidTask 新增 3 个付费关键词
+- [FarmAccessibilityService.kt#L2775-2778](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L2775)
+- 新增: "秒杀下单"、"下单肥料加码"、"下单最高得"
+- 三重匹配确保"淘宝秒杀下单肥料加码"任务被识别为付费任务（paid=true）
+- processTask 中 `skip paid task` 直接跳过，不点击"去完成"，避免跳转秒杀页→回到主页→isNonAdTaskPage 误判→currentTaskIndex 重置无限循环
+
+**预期效果**:
+- "淘宝秒杀下单肥料加码(0/1) 下单最高得4-5万肥料 +50000 去完成" → isPaidTask=YES，直接跳过
+- 不再点击"去完成"跳转秒杀页，不再触发 isNonAdTaskPage 误判，不再无限循环
+- 后续任务（去快手app领福利/邀请好友助力/趣头条赚金币等）正常执行
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build648 修复跨 App 跳转卡死和浏览5s任务误跳过
 **用户需求**: "分析日志"
 
