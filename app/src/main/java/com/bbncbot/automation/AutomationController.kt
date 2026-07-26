@@ -5427,6 +5427,24 @@ object AutomationController {
                     handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
                     return
                 }
+                // build637 修复（debug_test_20260726_112042.log line 226-248）：
+                // 历史问题: RETURN_ORIGINAL 检测到 currentPkg==TAOBAO 误判为"原平台已加载", 进入 RESUME_ORIGINAL_FARM
+                //   后 isOnFarmPage 一直返回 false (activeRootPkg='com.hihonor.android.launcher', TAOBAO 未真正启动到前台)。
+                //   navigateToFarm 内部 retry 8 次后放弃, RESUME_ORIGINAL_FARM 只等待不主动 relaunch, 17 秒后超时。
+                // 根因: Honor 系统下 launchPlatformApp 可能因后台启动限制未成功, TAOBAO 进程存在但 Activity 不在前台。
+                // 修复: retry 时每隔 2 次主动 relaunch 原平台 + 重新 navigateToFarm
+                if (switchRetryCount > 0 && switchRetryCount % 2 == 0) {
+                    debugLog("switchPlatform: original farm not loaded after $switchRetryCount retries, actively relaunching ${switchOriginalPlatform} and re-navigating")
+                    service.cancelNavigation()
+                    service.setCurrentPlatform(switchOriginalPlatform)
+                    service.launchPlatformApp(switchOriginalPlatform)
+                    // 等待 app 启动后再 navigateToFarm
+                    handler.postDelayed({
+                        if (state == AutomationState.SWITCHING_PLATFORM) {
+                            service.navigateToFarm()
+                        }
+                    }, INTERVAL_PAGE_LOAD_MS)
+                }
                 switchRetryCount++
                 if (switchRetryCount >= MAX_SWITCH_RETRIES) {
                     debugLog("switchPlatform: original farm not loaded, re-navigating from start")

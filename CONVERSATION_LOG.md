@@ -32,7 +32,52 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build636 修复跨平台任务完成后 RETURN_ORIGINAL 阶段无法返回原平台 TAOBAO
+### commit (待提交) - fix: build637 修复 RESUME_ORIGINAL_FARM 阶段 TAOBAO 未真正启动到前台
+**用户需求**: "继续修复所有问题"
+
+**输入日志**: `logs/debug_test_20260726_112042.log`（build636，303 行，TAOBAO 平台，11:18:28~11:20:42 约 2 分钟）
+
+**build636 验证结果**: ✅ 修复1 完美生效
+- 11:19:14 LAUNCH_TARGET → NAVIGATE_TARGET_FARM（移除 navigateToFarm 调用）
+- 11:19:25 `target farm page loaded, fertilizing` ✅
+- 11:19:27 11 个坐标点击施肥完成
+- 11:19:33 RETURN_ORIGINAL retry=0
+- **11:19:33.579 `switchPlatform: original platform loaded, resuming farm navigation`** ← **仅 0.1 秒就检测到原平台已加载！**（build635 要 17 秒）
+- **没有 navigateAlipay 干扰**（无 `actively relaunching farm app` 日志）✅
+
+**新问题**: RESUME_ORIGINAL_FARM 阶段 TAOBAO 未真正启动到前台（17 秒）
+
+**问题详情**:
+1. 11:19:33.579 `original platform loaded, resuming farm navigation` ← 误判（currentPkg 短暂是 TAOBAO）
+2. 11:19:43~11:19:59 7 次 retry, `pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity`
+3. `activeRootPkg='com.hihonor.android.launcher'`（一直在桌面, TAOBAO 未真正启动到前台）
+4. navigateToFarm 内部 retry 8 次后放弃
+5. 11:19:59 `original farm not loaded, re-navigating from start`
+6. 11:20:36 用户手动停止
+
+**根因**:
+- RETURN_ORIGINAL line 5389 `currentPkg == originalPkg` 误判（currentPkg 可能短暂是 TAOBAO 但实际仍在 launcher）
+- RESUME_ORIGINAL_FARM 只在入口调用一次 navigateToFarm (line 5394), 之后只等待, 未主动 relaunch
+- Honor 系统下 launchPlatformApp 可能因后台启动限制未成功, TAOBAO 进程存在但 Activity 不在前台
+
+**修复**: RESUME_ORIGINAL_FARM retry 时主动 relaunch 原平台 + 重新 navigateToFarm ([AutomationController.kt#L5430-5447](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5430))
+- 原: retry 时只等待, 不主动 relaunch
+- 新: retry > 0 且 % 2 == 0 时:
+  1. `cancelNavigation()` 取消可能残留的导航队列
+  2. `setCurrentPlatform(switchOriginalPlatform)` 恢复原平台
+  3. `launchPlatformApp(switchOriginalPlatform)` 主动 relaunch 原平台
+  4. 延迟 INTERVAL_PAGE_LOAD_MS 后 `navigateToFarm()` 重新导航到芭芭农场
+
+**预期效果**:
+- RESUME_ORIGINAL_FARM retry 2/4/6 时主动 relaunch TAOBAO + 重新 navigateToFarm
+- 解决 Honor 系统后台启动限制导致 TAOBAO 未真正启动到前台的问题
+- 不再卡在 launcher 17 秒, 快速回到原平台芭芭农场继续下一个任务
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 0e4fcc2 - fix: build636 修复跨平台任务完成后 RETURN_ORIGINAL 阶段无法返回原平台 TAOBAO
 **用户需求**: "修复所有问题"
 
 **输入日志**: `logs/debug_test_20260726_110139.log`（build635，300 行，TAOBAO 平台，10:59:32~11:01:39 约 2 分钟）
