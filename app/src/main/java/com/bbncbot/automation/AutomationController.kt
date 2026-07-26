@@ -2004,7 +2004,16 @@ object AutomationController {
             // build651 修复（用户反馈"去逛逛趣头条任务，不需要做"）：
             // "去逛逛趣头条赚金币(0/1) 逛逛得 +300 去完成" 跳转到趣头条 App，
             // bot 无法在趣头条 App 内自动完成"逛逛赚金币"动作，直接跳过不点击。
-            "趣头条"
+            "趣头条",
+            // build656 修复（debug_test_20260726_204010.log, build655-352d37d）：
+            //   20:35:53.523 processTask: browse task #2, text='去完成', entering BROWSING_TASK
+            //   task #2 文案 "去头条极速版逛逛 去头条极速版逛逛 本次可得 肥料 +684 去完成"
+            //   被 isBrowseTask 误识别为浏览任务（含"逛逛"），但实际跳转到头条极速版 App
+            //   (com.ss.android.article.lite)，bot 无法在外部 App 自动完成。
+            //   日志：跳转后 forceKillApp 失败 → 反复重试 6 次 → 最终 STOPPING。
+            // 修复：skipTaskTexts 新增"头条"关键词，在 isBrowseTask 之前命中直接跳过。
+            //   "头条"覆盖"头条极速版"/"今日头条"等所有头条系任务。
+            "头条"
         )
         // build530 修复（debug_test_20260719_045429.log, build530-9ab1929）：
         // 历史问题：【福利】试玩热门新游 访问必得500-3500肥 的"领取"按钮被 skipTaskTexts

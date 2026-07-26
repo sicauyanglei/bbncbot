@@ -32,7 +32,50 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build655 修复施肥 hint 正则不匹配"再施肥X次"及"可施肥0次"未终止导致大循环
+### commit (待提交) - fix: build656 跳过"去头条极速版逛逛"等头条系跳转外部 App 任务
+
+**用户需求**: "修复所有问题"（基于 build655 日志 debug_test_20260726_204010.log）
+
+**日志分析** (UC 平台测试):
+- ✅ build655 防大循环生效：导航失败后自动 STOPPING → IDLE
+- ✅ 任务跳过逻辑生效（task #1 "看视频得巨额肥料" skip）
+- ❌ **新问题**: task #2 "去头条极速版逛逛" 被误识别为 browseTask，跳转外部 App
+
+**根因**: [AutomationController.kt#skipTaskTexts](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2007)
+- task #2 文案 "去头条极速版逛逛 去头条极速版逛逛 本次可得 肥料 +684 去完成"
+- skipTaskTexts 只含"趣头条"，不含"头条极速版"
+- task #2 不命中 skipTaskTexts → 进入 isBrowseTask 判断
+- isBrowseTask 因文案含"逛逛"返回 true → 走 BROWSING_TASK 流程
+- 点击"去完成"跳转到头条极速版 App (com.ss.android.article.lite)
+- 浏览后 forceKillApp 失败 → 反复重试 6 次 → 最终 STOPPING
+
+**日志证据** ([debug_test_20260726_204010.log#L433-453](file:///workspace/logs/debug_test_20260726_204010.log)):
+- 20:35:53.519 collectTaskContextText: result='去头条极速版逛逛 ...'
+- 20:35:53.522 isBrowseTask: buttonText='去完成', context='去头条极速版逛逛...', isBrowse=true
+- 20:35:53.523 processTask: browse task #2, entering BROWSING_TASK
+- 20:36:01.165 activeRootPkg='com.ss.android.article.lite' (跳转到头条极速版)
+- 20:36:01.400 browseTask: cross-app jump detected, skipping task
+- 20:38-20:39 反复重试导航失败 → STOPPING
+
+**修复**: [AutomationController.kt#L2008-2016](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2008)
+- skipTaskTexts 新增 "头条" 关键词
+- "头条"覆盖"头条极速版"/"今日头条"等所有头条系任务
+- skipTaskTexts 在 isBrowseTask 之前判断（line 2028 vs 2201），命中直接跳过
+- 避免被 isBrowseTask 误识别为浏览任务
+
+**注意**:
+- pure claim 按钮（领取/收下等）仍优先于 skipTaskTexts，已完成奖励仍可领取
+- 该修复与 build655 的 fertilize 防护独立，UC 平台未进入 fertilize 阶段，淘宝平台 build655 应已生效
+
+**预期效果**:
+- "去头条极速版逛逛..." → skipTaskTexts 命中"头条"，直接跳过
+- 不再走 BROWSING_TASK → 不再跳转头条极速版 App → 不再卡在导航重试
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 352d37d - fix: build655 修复施肥 hint 正则不匹配"再施肥X次"及"可施肥0次"未终止导致大循环
 
 **用户需求**: "分析日志"（从 GitHub 拉取 build654 日志 debug_test_20260726_202554.log）
 
