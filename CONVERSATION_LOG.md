@@ -32,7 +32,53 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build631 修复点击直播商品进入直播页/登录对话框导致 8 次滑动无效
+### commit (待提交) - fix: build633 修复"买限时折扣好物得奖励"任务被误判为浏览任务
+**用户需求**: "分析日志，'买限时折扣好物得奖励'不完成这类任务"
+
+**输入日志**: `logs/debug_test_20260726_100620.log`（build632，442 行，TAOBAO 平台，10:03:32~10:06:20 约 3 分钟）
+
+**build632 验证结果**: ✅ 完美生效
+- 10:04:49 `isProductDetailPageByAnyMeans: YES by activity` → `entered product detail page after clicking product, starting swipes` — build631 修复生效
+- 10:05:18 `exitBrowsePage: clicking back icon to exit` → `still on browse product list page after first back, pressing back again` → `returned to farm after second back (from product list)` — build630 二次退出继续生效
+
+**问题**: "买限时折扣好物得奖励"任务有两种文案变体，识别不一致
+
+| 文案变体 | isPaidTask | isBrowseTask | 实际处理 | 结果 |
+|---------|-----------|-------------|---------|------|
+| `买限时折扣好物得奖励(0/1) 下单领大额肥料最高 +130000` | ✅ YES（命中"下单领"） | — | 跳过 | ✅ 正确 |
+| `买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000` | ❌ NO（无"下单领"，是"下单大额"） | ✅ YES（命中"好物"+"得奖励"） | 进入 BROWSING_TASK 滑动 | ❌ 错误 |
+
+**错误后果**（10:05:40-10:06:02）:
+- 10:05:40 `isBrowseTask: isBrowse=true` → 进入 BROWSING_TASK
+- 10:05:44 点击"去完成"进入折扣商品列表页
+- 10:05:49 `isBrowseProductListPage: YES` → 点击商品"快看！这台扇真不错！容声出品纯铜电机 ¥63.9"
+- 10:05:54 进入商品详情页 → 开始 8 次滑动
+- 10:06:02 用户手动停止
+
+**根因**:
+- `isPaidTask` 的关键词 `"下单领"` 只匹配含"领"字的文案，无法识别 `"下单大额肥料"` 这种无"领"字变体
+- `isBrowseTask` 的关键词 `"好物"` 命中"折扣好物"，且 `!contextText.contains("签到")` 排除条件未覆盖购物任务
+
+**修复（2 处）**:
+
+#### 修复1: isPaidTask 加"下单大额"等关键词 ([FarmAccessibilityService.kt#L2729-L2731](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L2729))
+- 新增关键词：`"下单大额"`, `"下单高额"`, `"下单得大额"`
+- 覆盖文案：`买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000`
+
+#### 修复2: isBrowseTask 排除"限时折扣"/"折扣好物" ([FarmAccessibilityService.kt#L2808-L2812](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L2808))
+- 在 `!contextText.contains("签到")` 后新增 `&& !contextText.contains("限时折扣") && !contextText.contains("折扣好物")`
+- 兜底防止 isPaidTask 漏判时仍不走浏览流程
+
+**预期效果**:
+- 两种"买限时折扣好物得奖励"变体都被 isPaidTask 识别为付费任务，跳过
+- 即使 isPaidTask 漏判，isBrowseTask 也会因含"限时折扣"/"折扣好物"返回 false，不走 BROWSING_TASK
+- 走普通 processTask 流程（点击"去完成"进入折扣页 → checkTaskResult 兜底 → 不完成此任务）
+
+**编译验证**: sandbox 网络限制无法本地编译，等 CI 构建验证。
+
+---
+
+### commit fa32268 - fix: build632 修复 build631 编译错误（currentActivityName 私有访问改用 getCurrentActivityName()）
 **用户需求**: "分析日志" → "修复"
 
 **输入日志**: `logs/debug_test_20260726_094309.log`（build630，888 行，TAOBAO 平台，09:38:04~09:43:09 约 5 分钟）

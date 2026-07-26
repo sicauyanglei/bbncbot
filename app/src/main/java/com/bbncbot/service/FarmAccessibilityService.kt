@@ -2726,6 +2726,9 @@ class FarmAccessibilityService : AccessibilityService() {
             "投资", "理财", "保证金", "押金",             // 金融类
             "下单购买", "立即购买",                       // 明确购买（注意："下单得"不含"购买"，浏览任务不受影响）
             "任意下单", "下单领", "下单赢",                // 明确要求下单才能得肥料（注意：不含"下单得"，那是浏览任务）
+            // build633: "买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000" 也是付费任务
+            // （需下单购买折扣商品才能得肥料，无法通过浏览完成）
+            "下单大额", "下单高额", "下单得大额",
             "去支付", "立即支付", "确认支付",             // 支付类
             "到店支付", "线下支付",                        // 到店支付类
             "合种"                                        // 合种类（需邀请好友，非广告任务）
@@ -2801,7 +2804,12 @@ class FarmAccessibilityService : AccessibilityService() {
             // 进入签到页 → checkTaskResult 兜底处理），不走 BROWSING_TASK 滑动流程。
             // "去签到"等纯签到任务本不含"浏览"不会命中 browseKeywords，此处只防御含"浏览"
             // 的签到任务（如"红包签到得肥料 浏览10s得"）。
-            !contextText.contains("签到")
+            !contextText.contains("签到") &&
+            // build633 修复：排除"买限时折扣好物得奖励"等购物任务
+            // 日志 debug_test_20260726_100620.log 显示"买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000"
+            // 文案含"好物"+"得奖励"被误判为浏览任务，但实际是付费任务（需下单购买折扣商品才能得肥料）。
+            // 浏览滑动无法推进任务进度，浪费时间。isPaidTask 应优先识别，此处兜底防止漏判。
+            !contextText.contains("限时折扣") && !contextText.contains("折扣好物")
         debugLog("isBrowseTask: buttonText='$buttonText', context='$contextText', isBrowse=$isBrowse")
         return isBrowse
     }
