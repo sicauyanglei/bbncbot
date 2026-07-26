@@ -2623,7 +2623,16 @@ object AutomationController {
             }
             // 检测异常页面（交易页面、商品详情页、收银台等）→ 立即退出
             // 禁止交易获取肥料：所有交易相关页面都视为异常
-            if (service.isOnAbnormalPage()) {
+            // build627 修复：滑动后 isOnAbnormalPage 检测也需加 browsingProductEntered 豁免。
+            // 日志 debug_test_20260726_084442.log 显示：
+            // - swipe #1 之前（swipeCount=1）豁免成功（line 138: in product detail page, exempting）
+            // - swipe #1 之后 scheduleNextBrowseCheck 检测 isOnAbnormalPage=true（ttdetailactivity）
+            // - 但此处无 browsingProductEntered 豁免 → 直接退出，15 秒停留失败
+            // 修复：browsingProductEntered=true 且在商品详情页时，豁免 isOnAbnormalPage，继续滑动等待肥料。
+            if (browsingProductEntered && service.isProductDetailPageByAnyMeans()) {
+                debugLog("browseTask: in product detail page during swipe (browsingProductEntered=true), exempting from abnormal page check, keep waiting for fertilizer (swipe #$swipeCount/$browseTaskTargetSwipes)")
+                // 不退出,继续走下面的滑动逻辑
+            } else if (service.isOnAbnormalPage()) {
                 debugLog("browseTask: abnormal/trading page during swipe, exiting immediately")
                 currentTaskIndex++
                 collectedCount++

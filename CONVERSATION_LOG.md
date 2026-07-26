@@ -32,7 +32,54 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build626 修复商品详情页 activity=ttdetailactivity 触发 isOnAbnormalPage 退出（browsingProductEntered 豁免失效）
+### commit (待提交) - fix: build627 修复 scheduleNextBrowseCheck 滑动后 isOnAbnormalPage 检测无 browsingProductEntered 豁免
+**用户需求**: "分析日志"
+
+**输入日志**: `logs/debug_test_20260726_084442.log`（build626，341 行，TAOBAO 平台，08:40:56~08:44:42 约 4 分钟）
+
+**build626 修复验证结果**:
+- ✅ `isBrowseProductListPage: YES`（line 131）— 商品列表页识别成功
+- ✅ `browse product list page detected on swipeCount=0`（line 132）— 触发商品浏览流程
+- ✅ `findBrowseProductNode: found product node bounds=[26,307][589,1421]`（line 133）— 找到商品
+- ✅ `isProductDetailPageByAnyMeans: YES by activity (ttdetailactivity)`（line 137）— **build626 修复生效！**
+- ✅ `browseTask: in product detail page (browsingProductEntered=true), exempting from abnormal page check, keep waiting for fertilizer (swipe #1/8)`（line 138）— 豁免成功！
+- ✅ 任务进度从 0/4 变为 **1/4**（line 72）— 说明 build625 已成功完成 1 次商品浏览！
+
+**新问题**: 滑动 1 次后立即退出（line 141-144）
+- line 141-142: 执行 swipe #1 滑动（1450.0 -> 950.0）
+- line 143: `isOnAbnormalPage: YES, activity=ttdetailactivity` — 滑动**之后**又检测到异常页
+- line 144: `browseTask: abnormal/trading page during swipe, exiting immediately` — 退出
+
+**根因**: `scheduleNextBrowseCheck`（[AutomationController.kt#L2608](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2608)）滑动后的 `isOnAbnormalPage` 检测（L2626）**没有 `browsingProductEntered` 豁免**！
+
+build626 只修复了 `runBrowsingTask` 开头的豁免（L2443，swipeCount 之前的检测），但 `scheduleNextBrowseCheck` 是滑动**之后**的回调，有独立的 `isOnAbnormalPage` 检测（L2626），未加豁免。
+
+**流程**:
+1. swipeCount=1 进入 `runBrowsingTask` → L2443 豁免成功（line 138）
+2. 执行 swipe #1（line 141-142）
+3. `scheduleNextBrowseCheck` 回调 → L2626 `isOnAbnormalPage=true`（ttdetailactivity）→ **无豁免** → 退出（line 144）
+
+**修复（1 处）**:
+
+#### 修复: scheduleNextBrowseCheck 加 browsingProductEntered 豁免 ([AutomationController.kt#L2624-L2641](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2624))
+- 原：`if (service.isOnAbnormalPage()) { 退出 }`
+- 新：`if (browsingProductEntered && service.isProductDetailPageByAnyMeans()) { 豁免,继续滑动 } else if (service.isOnAbnormalPage()) { 退出 }`
+- 与 `runBrowsingTask` L2443 的豁免逻辑一致
+
+**预期效果**:
+- swipe #1 之后 `scheduleNextBrowseCheck` 检测到 ttdetailactivity → `isProductDetailPageByAnyMeans=true` → 豁免 → 继续 swipe #2~#8
+- 8 次滑动（15 秒）完成后，`isFertilizerGrantedPage`/`isTaskCompletePage` 检测肥料发放
+- 任务进度从 1/4 变为 2/4
+
+**未解决问题（需下次日志验证）**:
+- 15 秒后 `isFertilizerGrantedPage`/`isTaskCompletePage` 是否命中（肥料发放检测）
+- 若未命中会走 waitLimit 超时退出，任务可能未完成
+
+**编译验证**: sandbox 网络限制无法本地编译，等 CI 构建验证。
+
+---
+
+### commit 713b23d - fix: build626 修复商品详情页 activity=ttdetailactivity 触发 isOnAbnormalPage 退出（browsingProductEntered 豁免失效）
 **用户需求**: "分析日志"（日志在 GitHub 上）
 
 **输入日志**: `logs/debug_test_20260726_083256.log`（build625，365 行，TAOBAO 平台，08:29:39~08:32:56 约 3 分钟）
