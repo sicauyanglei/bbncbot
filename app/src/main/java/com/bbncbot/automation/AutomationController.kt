@@ -5426,6 +5426,27 @@ object AutomationController {
             return
         }
         // 没有"还差X次领肥料"提示，也没有 direct 按钮，也没有施肥按钮，认为施肥完成
+        // build655 修复（debug_test_20260726_202554.log, build654-65cb2e7）：
+        //   19:52:24.899 state: FERTILIZING -> WAITING → startNextRound → 又一轮 → 又 WAITING
+        //   大循环 FERTILIZING→WAITING→NAVIGATING→COLLECTING_DIRECT→OPENING_TASK_LIST→
+        //   PROCESSING_TASK→FERTILIZING 重复多次直到用户手动停止。
+        // 根因：build654 让 findFertilizeButton 返回 null（过滤"可施肥0次"），
+        //   但旧正则 findRemainingFertilizerHintNode 也找不到"再施肥 X 次可领"hint
+        //   → 走到此分支 → 切 WAITING → startNextRound → 又一轮（无任务可做）→ 又到此分支 → 大循环。
+        // 修复：检测页面是否有"可施肥0次"按钮（肥料用尽），若是则切 STOPPING 避免大循环。
+        //   build655 已修复 findRemainingFertilizerHintNode 正则，hint 会被找到走 hint 兜底逻辑，
+        //   此处作为最终兜底：若 hint 兜底 3 轮无进展切 WAITING 后，再进入此分支时检查"可施肥0次"。
+        if (service.hasZeroFertilizerButton()) {
+            Log.i(TAG, "fertilize: no fertilizer left (可施肥0次), stop automation to avoid loop")
+            debugLog("fertilize: 可施肥0次 detected, stop automation")
+            moveTo(AutomationState.STOPPING)
+            handler.postDelayed({
+                if (state == AutomationState.STOPPING) {
+                    moveTo(AutomationState.IDLE)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
         Log.i(TAG, "fertilize: no remaining-fertilizer hint and no direct button, done")
         moveTo(AutomationState.WAITING)
         handler.postDelayed({ startNextRound() }, INTERVAL_WAIT_MS)

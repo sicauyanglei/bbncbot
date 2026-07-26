@@ -4796,7 +4796,10 @@ class FarmAccessibilityService : AccessibilityService() {
     fun parseFertilizeRemainingCount(): Int {
         val root = getRootInFarmApp() ?: return 0
         // build597: 正则支持"还差X次"和"再施X次"两种文案
-        val pattern = Regex("""(?:还差|再施)\s*(\d+)\s*次""")
+        // build655 修复（debug_test_20260726_202554.log, build654-65cb2e7）：
+        //   "再施肥 2 次可领" 不匹配旧正则 "(?:还差|再施)\s*(\d+)\s*次"（"再施"后是"肥"不是数字）
+        // 修复：扩展正则支持"再施肥X次"格式，"再施"后可跟可选"肥"+空格+数字+"次"。
+        val pattern = Regex("""(?:还差|再施(?:肥\s*)?)\s*(\d+)\s*次""")
         // 递归遍历所有节点的 text 和 contentDescription
         fun walk(node: AccessibilityNodeInfo): Int {
             val text = node.text?.toString().orEmpty()
@@ -4843,7 +4846,13 @@ class FarmAccessibilityService : AccessibilityService() {
         // build597: 正则支持"还差X次领肥"和"再施X次领礼包"两种文案
         // - "还差X次领肥料"/"还差X次领肥" - 旧版主页提示
         // - "再施X次领礼包"/"再施X次" - 新版主页提示（用户反馈）
-        val pattern = Regex("""(?:还差\s*\d+\s*次.*肥|再施\s*\d+\s*次.*(?:礼包|肥))""")
+        // build655 修复（debug_test_20260726_202554.log, build654-65cb2e7）：
+        //   19:52:24.898 findRemainingFertilizerHintNode: no hint node found
+        //   实际页面文案 "再施肥 2 次可领" / "再施肥66.23%就唾手可得啦" 不匹配旧正则
+        //   （旧正则要求"再施"后跟数字，但"再施肥"是"再施"+"肥"不是数字），
+        //   导致 fertilize 找不到 hint → 切 WAITING → startNextRound → 大循环。
+        // 修复：扩展正则支持"再施肥X次"格式（"再施"+"肥"+空格+数字+"次"）。
+        val pattern = Regex("""(?:还差\s*\d+\s*次.*肥|再施(?:肥\s*)?\d+\s*次.*(?:礼包|肥|可领))""")
         fun walk(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
             val text = node.text?.toString().orEmpty()
             val desc = node.contentDescription?.toString().orEmpty()
@@ -5402,6 +5411,37 @@ class FarmAccessibilityService : AccessibilityService() {
     /** 递归查找包含指定文本的节点（返回可点击的自身或父节点） */
     fun findNodeByText(root: AccessibilityNodeInfo, keyword: String): AccessibilityNodeInfo? {
         return findNodeByTextInternal(root, keyword)
+    }
+
+    /**
+     * 检测主页是否显示"可施肥0次"（build655 修复）
+     *
+     * 用于 fertilize 阶段判断是否肥料用尽：
+     * - 当"施肥，肥料X，可施肥0次"出现时，表示当前肥料已用完，无法继续施肥
+     * - 此时切 STOPPING 而非 startNextRound，避免无限大循环
+     *
+     * @return true 如果页面含"可施肥0次"节点
+     */
+    fun hasZeroFertilizerButton(): Boolean {
+        val root = getRootInFarmApp() ?: return false
+        val zeroFertilizerPatterns = listOf("可施肥0次", "可施肥 0 次", "可施肥0", "可施肥 0")
+        return hasZeroFertilizerButtonInternal(root, zeroFertilizerPatterns)
+    }
+
+    private fun hasZeroFertilizerButtonInternal(
+        node: AccessibilityNodeInfo,
+        patterns: List<String>
+    ): Boolean {
+        val text = node.text?.toString().orEmpty()
+        val desc = node.contentDescription?.toString().orEmpty()
+        for (s in listOf(text, desc)) {
+            if (patterns.any { s.contains(it) }) return true
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            if (hasZeroFertilizerButtonInternal(child, patterns)) return true
+        }
+        return false
     }
 
     /**

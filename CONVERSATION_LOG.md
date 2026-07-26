@@ -32,7 +32,64 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build654 修复 hint 提示"再施肥 X 次可领"被误识别为施肥按钮导致无限循环
+### commit (待提交) - fix: build655 修复施肥 hint 正则不匹配"再施肥X次"及"可施肥0次"未终止导致大循环
+
+**用户需求**: "分析日志"（从 GitHub 拉取 build654 日志 debug_test_20260726_202554.log）
+
+**日志分析**:
+- ✅ build652 弹窗关闭修复持续生效
+- ✅ build653 "可施肥0次"过滤生效
+- ✅ build654 hint 过滤生效（不再点击"再施肥 2 次可领"hint 节点）
+- ✅ 任务跳过逻辑全部生效
+- ❌ **新问题**: FERTILIZING→WAITING→NAVIGATING→...→FERTILIZING 大循环 5 轮直到用户手动停止
+
+**根因1**: [FarmAccessibilityService.kt#findRemainingFertilizerHintNode#L4841](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4841)
+- 旧正则 `(?:还差\s*\d+\s*次.*肥|再施\s*\d+\s*次.*(?:礼包|肥))` 要求"再施"后跟数字
+- 但实际页面文案是"再施肥 2 次可领"（"再施"+"肥"不是数字）
+- 正则不匹配 → findRemainingFertilizerHintNode 返回 null
+- fertilize 走到 fallback "无 hint 无 direct 无 button" 分支
+- 切 WAITING → startNextRound → 又一轮（无任务可做）→ 又到此分支 → 大循环
+
+**根因2**: [AutomationController.kt#L5428-5431](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5428) fallback 分支
+- 切 WAITING 后调 startNextRound，没有终止条件
+- 即使"可施肥0次"（肥料用尽）也会无限循环
+
+**日志证据** ([debug_test_20260726_202554.log#L295-298](file:///workspace/logs/debug_test_20260726_202554.log)):
+- 19:52:24.795 fertilize: findFertilizeButton=false, clickCount=1
+- 19:52:24.898 findRemainingFertilizerHintNode: no hint node found
+- 19:52:24.899 state: FERTILIZING -> WAITING
+- 19:52:29.903 state: WAITING -> NAVIGATING （startNextRound 触发新一轮）
+- 此循环在 19:52-19:54 重复 3 次，20:22-20:25 又重复 3 次直到用户手动停止
+
+**修复**:
+1. **修复 findRemainingFertilizerHintNode 正则** [FarmAccessibilityService.kt#L4852](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4852)
+   - 旧: `(?:还差\s*\d+\s*次.*肥|再施\s*\d+\s*次.*(?:礼包|肥))`
+   - 新: `(?:还差\s*\d+\s*次.*肥|再施(?:肥\s*)?\d+\s*次.*(?:礼包|肥|可领))`
+   - 支持"再施肥X次"格式（"再施"+"肥"+空格+数字+"次"+...）
+   - 支持"可领"作为终止词（"再施肥 2 次可领"）
+
+2. **修复 parseFertilizeRemainingCount 正则** [FarmAccessibilityService.kt#L4802](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4802)
+   - 旧: `(?:还差|再施)\s*(\d+)\s*次`
+   - 新: `(?:还差|再施(?:肥\s*)?)\s*(\d+)\s*次`
+   - 支持"再施肥 2 次"格式
+
+3. **新增 hasZeroFertilizerButton 检测** [FarmAccessibilityService.kt#L5425](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L5425)
+   - 检测页面是否有"可施肥0次"按钮（肥料用尽）
+
+4. **修改 fertilize fallback** [AutomationController.kt#L5439-5449](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5439)
+   - 在切 WAITING 前检测 hasZeroFertilizerButton
+   - 若"可施肥0次"则切 STOPPING → IDLE，避免大循环
+
+**预期效果**:
+- 正常场景（有肥料"可施肥Y次"Y>0）: hint 兜底点击真按钮 → remainCount 递减 → 施肥完成
+- 肥料用尽（"可施肥0次"）: hint 兜底 3 轮无进展 → 切 WAITING → 再进 fertilize → 检测到"可施肥0次" → 切 STOPPING → IDLE
+- 不再大循环
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 65cb2e7 - fix: build654 修复 hint 提示"再施肥 X 次可领"被误识别为施肥按钮导致无限循环
 
 **用户需求**: "分析日志"（从 GitHub 拉取 build653 日志 debug_test_20260726_194313.log）
 
