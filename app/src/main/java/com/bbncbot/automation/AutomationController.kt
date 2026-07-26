@@ -2411,6 +2411,23 @@ object AutomationController {
         // 滑动次数达标后，在 waitLimit 内继续滑动等待"任务完成"出现
         // 原因：滑动后页面文案可能短暂消失导致进度提示检测失败，但任务实际还在进行
         // 只有超过 waitLimit 或检测到任务完成（上方 isTaskCompletePage）才退出
+        //
+        // build628 修复：browsingProductEntered=true 时（点击商品进入详情页停留 15 秒），
+        // 商品详情页不会显示"任务完成"/"肥料发放"文案（页面是商品详情，不是任务页），
+        // 上方 isFertilizerGrantedPage/isTaskCompletePage 永远不会命中。
+        // 若走 waitLimit 会无限滑动 30 次（60 秒）直到超时，浪费时间且可能触发风控。
+        // 修复：browsingProductEntered=true 时，swipeCount > browseTaskTargetSwipes 直接 pressBack 退出。
+        // 退出后 runOpeningTaskList 会检测任务进度（如 2/4 → 3/4），若任务确实完成则继续下一个。
+        if (browsingProductEntered && swipeCount > browseTaskTargetSwipes) {
+            debugLog("browseTask: browsing product detail page reached target swipes ($swipeCount/$browseTaskTargetSwipes), pressing back to exit")
+            currentTaskIndex++
+            collectedCount++
+            browsingProductEntered = false  // 复位
+            browseFromSearchBrowse = false
+            browseFromDirectPopup = false
+            exitBrowsePage(service, reason = "browsing_product_target_reached")
+            return
+        }
         if (swipeCount > browseTaskTargetSwipes) {
             val countdownSeconds = service.findBrowseRewardCountdownHint()
             val hasProgressHint = service.hasBrowseRewardProgressHint()

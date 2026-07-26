@@ -32,7 +32,63 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build627 修复 scheduleNextBrowseCheck 滑动后 isOnAbnormalPage 检测无 browsingProductEntered 豁免
+### commit (待提交) - fix: build628 修复 browsingProductEntered 15秒后未退出导致无限滑动
+**用户需求**: "分析日志"
+
+**输入日志**: `logs/debug_test_20260726_085823.log`（build627，726 行，TAOBAO 平台，08:52:58~08:57:39 约 5 分钟，用户手动停止）
+
+**build627 修复验证结果**:
+- ✅ swipe #1 之前豁免成功（line 139: `exempting from abnormal page check, keep waiting for fertilizer (swipe #1/8)`）
+- ✅ 滑动后 `scheduleNextBrowseCheck` 豁免成功（line 145 起: `in product detail page during swipe (browsingProductEntered=true), exempting`）
+- ✅ **任务进度从 0/4 变为 2/4**（line 73: `发现精选好物(2/4) 浏览15秒得 +700`）— build625/626/627 累计完成 2 次商品浏览！
+
+**新问题**: 15 秒（8 次滑动）后未退出，无限滑动直到用户手动停止
+- line 198: `swipe #8/8` 完成（08:54:33.623）
+- line 202: `keep swiping within wait limit (countdown=0s, progress=false, remainingProgress=false, swipe #9/38)` — 走 waitLimit 分支
+- line 204: `swipe #9/8`（08:54:36.928）
+- line 303: `swipe #20/8`（08:55:18.192）
+- ... 持续滑动到 swipe #100/8，最终 08:57:39 用户手动停止
+
+**根因**: `runBrowsingTask`（[AutomationController.kt#L2414](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2414)）的退出逻辑：
+1. line 2389 `isFertilizerGrantedPage()` — 商品详情页不显示"肥料发放"文案 → false
+2. line 2402 `isTaskCompletePage()` — 商品详情页不显示"任务完成"文案 → false
+3. line 2414 `if (swipeCount > browseTaskTargetSwipes)` — swipeCount=9 > 8 → 进入 waitLimit 分支
+4. line 2420 `waitLimit = browseTaskTargetSwipes + MAX_BROWSE_WAIT_SWIPES = 8 + 30 = 38` — 继续滑动 30 次（60 秒）
+5. 60 秒后退出，但商品详情页 isFertilizerGrantedPage/isTaskCompletePage 永远不命中 → 实际一直滑到 waitLimit=38
+
+**问题本质**: `browsingProductEntered=true`（点击商品进入详情页停留 15 秒）的场景下，商品详情页不会显示任务相关文案，上方的肥料发放/任务完成检测永远不会命中，导致走 waitLimit 无限滑动。
+
+**修复（1 处）**:
+
+#### 修复: browsingProductEntered 15秒后直接退出 ([AutomationController.kt#L2414-L2430](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2414))
+- 在 `if (swipeCount > browseTaskTargetSwipes)` waitLimit 分支**之前**，新增 `browsingProductEntered` 优先退出分支：
+  ```kotlin
+  if (browsingProductEntered && swipeCount > browseTaskTargetSwipes) {
+      debugLog("browseTask: browsing product detail page reached target swipes, pressing back to exit")
+      currentTaskIndex++
+      collectedCount++
+      browsingProductEntered = false  // 复位
+      exitBrowsePage(service, reason = "browsing_product_target_reached")
+      return
+  }
+  ```
+- `browsingProductEntered=true` 时，swipeCount > 8 直接 pressBack 退出，不走 waitLimit
+- 退出后 `runOpeningTaskList` 检测任务进度（如 2/4 → 3/4），若任务确实完成则继续下一个
+
+**预期效果**:
+- swipe #8 完成后（15 秒），swipe #9 进入 `browsingProductEntered && swipeCount > browseTaskTargetSwipes` 分支
+- 直接 pressBack 退出商品详情页 → 返回任务列表 → 检测任务进度 2/4 → 3/4
+- 不再无限滑动 30 次（60 秒）
+
+**未解决问题（需下次日志验证）**:
+- pressBack 退出商品详情页后，是否能正确返回任务列表（淘宝 WebView 返回键可能不可靠）
+- 任务进度是否从 2/4 变为 3/4（若任务实际未完成，需检查是否需要点击其他商品继续浏览）
+
+**编译验证**: sandbox 网络限制无法本地编译，等 CI 构建验证。
+
+---
+
+### commit 65a183c - fix: build627 修复 scheduleNextBrowseCheck 滑动后 isOnAbnormalPage 检测无 browsingProductEntered 豁免
 **用户需求**: "分析日志"
 
 **输入日志**: `logs/debug_test_20260726_084442.log`（build626，341 行，TAOBAO 平台，08:40:56~08:44:42 约 4 分钟）
