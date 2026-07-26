@@ -1320,9 +1320,15 @@ class FarmAccessibilityService : AccessibilityService() {
                         // 修复：排除任务列表的奖励描述文案——"浏览N秒得X肥料"/"浏览N秒得X肥"是
                         // 任务列表里的任务描述（"浏览15秒得1000肥料"），不是浏览页面的进度提示。
                         // 浏览页面的提示通常是"每浏览N秒得一次奖励"/"滑动浏览N秒"等。
-                        val isTaskDescription = text.contains("得") && (
-                            text.contains("肥料") || text.contains("肥") || text.contains("奖励")
-                        )
+                        //
+                        // build659 修复（debug_test_20260726_212518.log, build658-8937d00）：
+                        //   21:24:57.671 findSwipeForFertilizerHint: skip task description '滑动浏览15秒得肥料'
+                        //   21:24:57.741 browseTask: not a browse task, exiting without swiping
+                        //   → OPENING_TASK_LIST → resetting currentTaskIndex to 0 → 死循环 9 轮直到 STOPPING
+                        // 根因：支付宝浏览页提示文案"滑动浏览15秒得肥料"含"得"+"肥料"，被误判为任务描述跳过。
+                        // 修复：只跳过带具体奖励数字的任务描述（如"浏览15秒得1000肥料"），
+                        // 不跳过纯文字的页面提示（如"滑动浏览15秒得肥料"无具体数字）。
+                        val isTaskDescription = Regex("得\\s*\\d+\\s*(?:肥料|肥|奖励)").containsMatchIn(text)
                         if (isTaskDescription) {
                             debugLog("findSwipeForFertilizerHint: skip task description '$text'")
                             continue

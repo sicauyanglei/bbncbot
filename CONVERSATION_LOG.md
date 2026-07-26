@@ -32,7 +32,58 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build658 支付宝"攒一笔到余额宝"任务识别为付费任务，避免 isNonAdTaskPage 误判导致 currentTaskIndex 重置死循环
+### commit (待提交) - fix: build659 支付宝浏览页"滑动浏览15秒得肥料"被误判为任务描述跳过，导致浏览任务死循环
+
+**用户需求**: "分析日志"（从 GitHub 拉取 build658 日志 debug_test_20260726_212518.log）
+
+**日志分析** (build658, 支付宝平台):
+- ✅ build658 修复生效：task #1 "攒一笔到余额宝" 被识别为付费任务跳过（21:18:25.045 processTask: skip paid task #$1）
+- ❌ **新问题**: task #2 "逛好物最高得3000肥" 浏览任务死循环 9 轮直到 STOPPING
+  - 点击"去完成"进入浏览页（isBrowseProductListPage=YES，hasFertilizerHint=true）
+  - findSwipeForFertilizerHint 把"滑动浏览15秒得肥料"误判为任务描述跳过 → 返回 0
+  - browseTask 4 个指标（countdown/progress/duration/progressInfo）全 false
+  - "not a browse task, exiting without swiping" → 退出浏览
+  - OPENING_TASK_LIST: resetting currentTaskIndex to 0（重置索引）
+  - 又从 task #1 开始 → task #1 跳过 → task #2 又进浏览页 → 又退出 → 死循环
+
+**根因**: [FarmAccessibilityService.kt#findSwipeForFertilizerHint#L1323](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L1323)
+- build531 修复时把 `isTaskDescription` 判断设为：`text.contains("得") && (text.contains("肥料") || text.contains("肥") || text.contains("奖励"))`
+- 目的是跳过任务列表里的"浏览15秒得1000肥料"（含具体奖励数字）
+- 但支付宝浏览页提示文案"滑动浏览15秒得肥料"也含"得"+"肥料"（无具体数字）→ 被误判为任务描述跳过
+- findSwipeForFertilizerHint 返回 0 → browseTask 误判"not a browse task" → 立即退出 → 重置索引 → 死循环
+
+**日志证据** ([debug_test_20260726_212518.log#L1938-1947](file:///workspace/logs/debug_test_20260726_212518.log)):
+- 21:24:57.602 browseTask: page type=browse_duration, texts=[..., 滑动浏览15秒得肥料, ...]
+- 21:24:57.647 isBrowseProductListPage: YES (hasFertilizerHint=true)
+- 21:24:57.671 findSwipeForFertilizerHint: skip task description '滑动浏览15秒得肥料'  ← 误跳过
+- 21:24:57.741 browseTask: no swipe hint and no browse reward indicator (countdown=false, progress=false, duration=false, progressInfo=false), not a browse task, exiting without swiping
+- 21:24:57.749 exitBrowsePage: clicking back icon to exit
+- 21:25:00.790 state: BROWSING_TASK -> STOPPING（防大循环兜底生效）
+- 此循环在 21:18:35 / 21:18:54 / 21:19:13 / 21:19:32 / 21:19:51 / 21:20:16 / 21:20:35 / 21:20:53 / 21:21:12 / ... 重复 9+ 次
+
+**修复**: [FarmAccessibilityService.kt#L1331](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L1331)
+- 旧: `val isTaskDescription = text.contains("得") && (text.contains("肥料") || text.contains("肥") || text.contains("奖励"))`
+- 新: `val isTaskDescription = Regex("得\\s*\\d+\\s*(?:肥料|肥|奖励)").containsMatchIn(text)`
+- 要求"得"后面紧跟数字才视为任务描述：
+  - "浏览15秒得1000肥料" → 匹配"得1000肥料" → 视为任务描述跳过 ✅
+  - "滑动浏览15秒得肥料" → 不匹配（无具体数字）→ 视为页面提示，返回 15 秒 ✅
+  - "每浏览15秒得一次奖励" → 不匹配（"一次"非纯数字）→ 视为页面提示，返回 15 秒 ✅
+
+**注意**:
+- 历史日志中只出现过"滑动浏览15秒得肥料"被误 skip 的案例，没有"得+数字+肥"任务描述被实际 skip 的案例
+- 收紧条件不会回归 build531 修复（build531 针对的"浏览15秒得1000肥料"仍会被正确识别为任务描述）
+- 修复后浏览页会正确返回 15 秒，browseTask 进入滑动流程，不再"not a browse task"立即退出
+
+**预期效果**:
+- 支付宝浏览页"滑动浏览15秒得肥料" → findSwipeForFertilizerHint 返回 15 → browseTask 滑动 9 次（15s/2s + 2 余量）
+- 滑动完成后正常退出浏览 → 任务进度推进 → 不再死循环
+- task #2 完成后继续处理 task #3（看精选商品得肥料）/ task #4（去庄园喂鸡）等
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 8937d00 - fix: build658 支付宝"攒一笔到余额宝"任务识别为付费任务，避免 isNonAdTaskPage 误判导致 currentTaskIndex 重置死循环
 
 **用户需求**: "分析日志"（从 GitHub 拉取 build657 日志 debug_test_20260726_210643.log）
 
