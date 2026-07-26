@@ -4716,6 +4716,14 @@ class FarmAccessibilityService : AccessibilityService() {
         //   但 findFertilizeButton 仍返回该按钮，导致 fertilize 阶段无限点击 19 次直到用户手动停止。
         // 修复：跳过含"可施肥0次"/"可施肥 0 次"的节点（表示肥料不足，无法继续施肥）。
         val zeroFertilizerPatterns = listOf("可施肥0次", "可施肥 0 次", "可施肥0", "可施肥 0")
+        // build654 修复（debug_test_20260726_194313.log, build653-88cfd77）：
+        //   19:42:27.182 performClickSafe: text='再施肥 2 次可领 icon icon' (与 hint 弹窗交替点击 16 次)
+        // 历史问题：build653 过滤"可施肥0次"后，findFertilizeButton 转而匹配 hint 提示节点
+        //   "再施肥 2 次可领 icon icon" / "close icon 再施肥 2 次 领 200 肥料"（含"施肥"二字），
+        //   导致无限点击 hint 提示而非真施肥按钮。
+        // 修复：跳过含"再施肥"的节点（真施肥按钮文案为"施肥，肥料X，可施肥Y次"，不含"再施肥"）。
+        //   hint 由 findRemainingFertilizerHintNode 识别并走下方坐标兜底，不应被当作按钮直接点击。
+        val hintKeywords = listOf("再施肥", "可领")
         // 收集所有含"施肥"的候选节点，按优先级选择：clickable=true > bounds 合法 > 长度短
         data class Candidate(val node: AccessibilityNodeInfo, val text: String, val clickable: Boolean, val boundsValid: Boolean, val textLen: Int)
         val candidates = mutableListOf<Candidate>()
@@ -4726,7 +4734,8 @@ class FarmAccessibilityService : AccessibilityService() {
                 if (s.contains("施肥")) {
                     val isProgress = progressKeywords.any { s.contains(it) }
                     val isZeroFertilizer = zeroFertilizerPatterns.any { s.contains(it) }
-                    if (!isProgress && !isZeroFertilizer) {
+                    val isHint = hintKeywords.any { s.contains(it) }
+                    if (!isProgress && !isZeroFertilizer && !isHint) {
                         val rect = android.graphics.Rect()
                         node.getBoundsInScreen(rect)
                         val boundsValid = rect.width() > 0 && rect.height() > 0 && rect.top < rect.bottom

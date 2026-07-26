@@ -32,7 +32,49 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build653 修复施肥按钮"可施肥0次"时仍被识别为可点击导致无限循环
+### commit (待提交) - fix: build654 修复 hint 提示"再施肥 X 次可领"被误识别为施肥按钮导致无限循环
+
+**用户需求**: "分析日志"（从 GitHub 拉取 build653 日志 debug_test_20260726_194313.log）
+
+**日志分析**:
+- ✅ build652 弹窗关闭修复持续生效
+- ✅ build653 "可施肥0次"过滤生效（不再点击"施肥，肥料53，可施肥0次"）
+- ✅ 任务跳过逻辑全部生效
+- ❌ **新问题**: findFertilizeButton 转而匹配 hint 提示节点，无限点击 16 次直到用户手动停止
+
+**根因**: [FarmAccessibilityService.kt#findFertilizeButton](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4702)
+- build653 过滤"可施肥0次"后，真施肥按钮被排除
+- findFertilizeButton 转而匹配 hint 提示节点"再施肥 2 次可领 icon icon"（含"施肥"二字）
+- hint 节点被当作施肥按钮直接点击，触发 hint 弹窗展开/收起，交替点击两个 hint 节点
+- 无限循环 16 次直到用户手动停止
+
+**日志证据** ([debug_test_20260726_194313.log#L257-282](file:///workspace/logs/debug_test_20260726_194313.log)):
+- clickCount=1: 点击"再施肥 2 次可领 icon icon" bounds=[393,1418][808,1513]
+- clickCount=2: 点击"close icon 再施肥 2 次 领 200 肥料" bounds=[356,1300][844,1513]
+- clickCount=3: 又点击"再施肥 2 次可领 icon icon"
+- ... 交替点击 16 次 ...
+- 19:43:10.219 用户手动停止 FERTILIZING -> STOPPING
+
+**修复**: [FarmAccessibilityService.kt#L4719-4738](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4719)
+- 新增 `hintKeywords = listOf("再施肥", "可领")`
+- walk 函数中: `isHint = hintKeywords.any { s.contains(it) }`
+- 与 isProgress/isZeroFertilizer 同等处理: `if (!isProgress && !isZeroFertilizer && !isHint)` 才加入候选
+- 真施肥按钮文案为"施肥，肥料X，可施肥Y次"，不含"再施肥"也不含"可领"
+
+**预期效果**:
+- "再施肥 2 次可领 icon icon" → 被过滤（含"再施肥"+"可领"）
+- "close icon 再施肥 2 次 领 200 肥料" → 被过滤（含"再施肥"）
+- "施肥，肥料53，可施肥0次" → 被过滤（build653 已做，含"可施肥0次"）
+- findFertilizeButton 返回 null → fertilize 进入 fallback
+- findRemainingFertilizerHintNode 识别"再施肥 2 次"hint → 点击 hint 下方坐标（真施肥按钮位置）
+- 真施肥按钮"可施肥0次"点击无反应 → hint remainCount 不变 → noProgressStreak 递增
+- 3 轮后切 WAITING，不再无限循环
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 88cfd77 - fix: build653 修复施肥按钮"可施肥0次"时仍被识别为可点击导致无限循环
 
 **用户需求**: "分析日志"（从 GitHub 拉取 build652 日志 debug_test_20260726_193125.log）
 
