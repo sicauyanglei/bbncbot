@@ -32,7 +32,63 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build643 修复 "看严选推荐商品" 视频任务立即退出（0秒等待）
+### commit (待提交) - fix: build644 修复跨平台任务返回后 collectTaskContextText 找不到容器导致跨平台识别失败
+**用户需求**: "分析日志"
+
+**输入日志**: `logs/debug_test_20260726_160016.log`（build643，961 行，15:55:48~16:00:10 约 4 分钟）
+
+**build643 验证结果**: ✅ 全部修复生效
+1. ✅ build642 COLLECTING_DIRECT 修复生效: 15:56:07 找到"兔兔挖肥料，50肥料，可领取"并点击
+2. ✅ build642 isTaskCompletePage 修复生效: 多次返回 NO "has direct collect button"（农场主页不再误判）
+3. ✅ build643 浏览任务修复生效: "发现精选好物(4/5)" 任务完成 8 次滑动（15:56:57~15:57:24，约 22 秒）
+4. ✅ 跨平台任务"逛逛支付宝芭芭农场"成功完成（15:57:49~15:58:34）
+
+**新发现问题**: task #4 "去玩支付宝蚂蚁庄园" 跨平台任务识别失败，误入"专供会场"页面循环
+- 15:58:36 processTask: current task #4/8, text='去逛逛'
+- 15:58:36 collectTaskContextText: result='去逛逛 '（containerHeight=-1，只获取到按钮文案）
+- 15:58:36 isBrowseTask: button text is '去逛逛', treat as click task (not browse)
+- 15:58:43 isRechargePage: YES（误入"专供会场"页面，sample=[专供会场, 农场好货特供, hot, 万人疯抢中]）
+- 15:58:43~16:00:10 在"专供会场"页面循环（COLLECTING_DIRECT → OPENING_TASK_LIST → NAVIGATING），无法恢复
+- 用户手动停止（16:00:10 state: STOPPING -> IDLE）
+
+**根因分析**:
+1. **collectTaskContextText 找不到容器（containerHeight=-1）**:
+   - 跨平台任务返回后（15:58:34 从 ALIPAY 回到 TAOBAO），任务列表 DOM 结构变化
+   - task #4 按钮 bounds=[910,1797][1139,1896]，但父节点不再满足容器条件
+     （高度 100~600px, 宽度 > 500px, childCount >= 2）
+   - 策略1（向上找首个含多个子节点的祖先）和策略2（向上找更高祖先）都失败
+   - 最终用 button 自己作为容器，只收集到"去逛逛"
+
+2. **detectCrossPlatformTarget 检测失败**:
+   - `buttonText + " " + taskContextText` = '去逛逛 去逛逛 '，不含"支付宝"关键词
+   - detectCrossPlatformTarget 返回 null，没识别为跨平台任务
+   - 被当作普通点击任务处理，点击"去逛逛"后误入淘宝"专供会场"页面
+
+3. **"专供会场"页面循环无法恢复**:
+   - "专供会场"页面有"下单领肥料"等文案，isRechargePage=YES
+   - findClaimRewardButton 跳过（scene not allowed）
+   - COLLECTING_DIRECT 找不到 direct 按钮（页面是会场，不是任务列表）
+   - OPENING_TASK_LIST 找不到 goComplete 按钮（WebView not ready）
+   - 循环持续到用户手动停止
+
+**修复**: collectTaskContextText 增加兜底策略3：当容器找不到时，按按钮 y 坐标范围收集文本
+- [FarmAccessibilityService.kt#L3238-3301](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L3238)
+- 新增 `collectTextByYOverlap` 方法：遍历 root，收集与按钮 y 坐标重叠（上下放宽 150px）的文本节点
+- 任务行高度约 200px，包含任务标题（如"去玩支付宝蚂蚁庄园(0/1) 逛逛得 +300"）和按钮（"去逛逛"）
+- 通过 y 坐标重叠可以找到同行的任务标题，即使 DOM 结构变化也能工作
+- 只有当兜底结果比原结果更丰富时才使用（避免空结果覆盖）
+
+**预期效果**:
+- task #4 "去玩支付宝蚂蚁庄园" 的 collectTaskContextText 会返回完整任务上下文
+- detectCrossPlatformTarget 检测到"支付宝"关键词，识别为跨平台任务
+- 切换到 ALIPAY 完成任务，不再误入"专供会场"页面
+- 跨平台任务返回后不再循环卡死
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit ebcfae1 - fix: build643 修复 "看严选推荐商品" 视频任务立即退出（0秒等待）
 **用户需求**: "分析日志 淘宝芭芭农场，看严选推荐商品，去完成，打开的看视频任务，需要看够15秒后才能得肥料"
 
 **输入日志**: `logs/debug_test_20260726_153127.log`（build641，1100+ 行，15:25:22~15:30:05 约 5 分钟）

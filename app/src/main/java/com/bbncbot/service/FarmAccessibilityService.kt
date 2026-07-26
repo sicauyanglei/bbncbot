@@ -3238,9 +3238,66 @@ class FarmAccessibilityService : AccessibilityService() {
         // 最终兜底：如果都没找到，用 button 自己作为容器（收集子树文本）
         val effectiveContainer = container ?: button
         collectTextRecursive(effectiveContainer, sb, maxDepth = 4)
-        val result = sb.toString()
+        var result = sb.toString()
+        // build644 修复（debug_test_20260726_160016.log）：
+        // 历史问题: 跨平台任务返回后，任务列表 DOM 结构可能变化，按钮父节点不再满足容器条件
+        // （containerHeight=-1），collectTaskContextText 只返回按钮文案（如"去逛逛"），
+        // 导致 detectCrossPlatformTarget 检测不到"支付宝"等跨平台关键词，
+        // 跨平台任务被当作普通点击任务处理，误入淘宝"专供会场"页面循环无法恢复。
+        // 日志证据:
+        //   15:58:36 collectTaskContextText: result='去逛逛 ', btnHeight=99, containerHeight=-1
+        //   ← 应该是"去玩支付宝蚂蚁庄园(0/1) 逛逛得 +300 去逛逛"，但只获取到按钮文案
+        //   15:58:36 isBrowseTask: button text is '去逛逛', treat as click task (not browse)
+        //   15:58:43 isRechargePage: YES（误入"专供会场"页面，循环无法恢复）
+        // 修复: 当容器找不到（container==null）且结果只含按钮文案时，
+        // 用按钮 y 坐标范围在 root 中找所有 y 坐标重叠的文本节点（任务行内的任务标题等）。
+        if (container == null) {
+            val fallbackSb = StringBuilder()
+            val btnTop = btnRect.top
+            val btnBottom = btnRect.bottom
+            val root = getRootInFarmApp()
+            if (root != null) {
+                collectTextByYOverlap(root, fallbackSb, btnTop, btnBottom, maxDepth = 8)
+            }
+            val fallbackResult = fallbackSb.toString().trim()
+            // 只有当兜底结果比原结果更丰富时才使用（避免空结果覆盖）
+            if (fallbackResult.length > result.length) {
+                result = fallbackResult
+            }
+        }
         debugLog("collectTaskContextText: result='$result', buttonText='${button.text}', btnHeight=$btnHeight, containerHeight=${container?.let { android.graphics.Rect().apply { it.getBoundsInScreen(this) }.height() } ?: -1}")
         return result
+    }
+
+    /**
+     * build644: 按按钮 y 坐标范围收集文本节点（兜底策略）
+     *
+     * 当 collectTaskContextText 找不到任务行容器时，用此方法收集按钮 y 坐标范围内的所有文本。
+     * 任务行通常高度 ~200px，包含任务标题（如"去玩支付宝蚂蚁庄园(0/1) 逛逛得 +300"）和按钮（"去逛逛"）。
+     * 通过 y 坐标重叠可以找到同行的任务标题，即使 DOM 结构变化也能工作。
+     */
+    private fun collectTextByYOverlap(
+        node: AccessibilityNodeInfo,
+        sb: StringBuilder,
+        btnTop: Int,
+        btnBottom: Int,
+        maxDepth: Int
+    ) {
+        if (maxDepth <= 0) return
+        val nodeRect = android.graphics.Rect()
+        node.getBoundsInScreen(nodeRect)
+        // y 坐标重叠判断：节点 y 范围与按钮 y 范围有交集
+        // 任务行高度约 200px，放宽到按钮上下 150px 范围（覆盖任务标题在按钮上方的情况）
+        val expandedTop = btnTop - 150
+        val expandedBottom = btnBottom + 50
+        if (nodeRect.bottom > expandedTop && nodeRect.top < expandedBottom) {
+            node.text?.toString()?.let { if (it.isNotBlank()) sb.append(it).append(" ") }
+            node.contentDescription?.toString()?.let { if (it.isNotBlank()) sb.append(it).append(" ") }
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            collectTextByYOverlap(child, sb, btnTop, btnBottom, maxDepth - 1)
+        }
     }
 
     /** 递归收集节点及其子节点的文本 */
