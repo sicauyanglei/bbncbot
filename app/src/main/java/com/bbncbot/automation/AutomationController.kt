@@ -2259,9 +2259,24 @@ object AutomationController {
                                 browseTaskTargetSwipes = 8  // build620: 15秒 / 2秒 = 8 次滑动
                                 debugLog("browseTask: browse product target swipes = 8 (15s / 2s interval)")
                                 service.performClickSafe(productNode)
-                                // 等待商品详情页加载后开始滑动（模拟活跃,避免挂机判定）
+                                // build631 修复：点击商品后检测落地页是否是商品详情页
+                                // 问题（日志 debug_test_20260726_094309.log 09:41:46）：
+                                //   点击的商品可能是直播商品，进入的是直播页（含"直播中"/"宝贝讲解"）而非商品详情页，
+                                //   或弹出阿里登录对话框（auprogressdialog），导致 8 次滑动无效，退出后落地页是直播页。
+                                // 修复：INTERVAL_PAGE_LOAD_MS 后检测 isProductDetailPageByAnyMeans，
+                                //   若不是商品详情页，pressBack 退出，跳过此任务（不增加 collectedCount）。
                                 handler.postDelayed({
-                                    if (state == AutomationState.BROWSING_TASK) runBrowsingTask(1)
+                                    if (state != AutomationState.BROWSING_TASK) return@postDelayed
+                                    if (service.isProductDetailPageByAnyMeans()) {
+                                        debugLog("browseTask: entered product detail page after clicking product, starting swipes")
+                                        runBrowsingTask(1)
+                                    } else {
+                                        // 未进入商品详情页（可能是直播商品/登录对话框/其他页面），pressBack 退出跳过任务
+                                        debugLog("browseTask: not on product detail page after clicking product (activity=${service.currentActivityName}), skipping task")
+                                        browsingProductEntered = false  // 复位，避免误触发 build630 商品列表页二次退出
+                                        currentTaskIndex++  // 跳过此任务，避免重复尝试同一直播商品
+                                        exitBrowsePage(service, reason = "not_product_detail_after_click")
+                                    }
                                 }, INTERVAL_PAGE_LOAD_MS)
                                 return@postDelayed
                             }

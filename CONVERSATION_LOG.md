@@ -32,7 +32,55 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build630 修复商品详情页退出后停留在商品列表页导致导航循环
+### commit (待提交) - fix: build631 修复点击直播商品进入直播页/登录对话框导致 8 次滑动无效
+**用户需求**: "分析日志" → "修复"
+
+**输入日志**: `logs/debug_test_20260726_094309.log`（build630，888 行，TAOBAO 平台，09:38:04~09:43:09 约 5 分钟）
+
+**build630 验证结果**: ✅ 完美生效
+- 5 分钟内完成 3 次浏览任务（任务进度 1/5 → 4/5）
+- 3 次 `exitBrowsePage: still on browse product list page after first back, pressing back again` → `returned to farm after second back (from product list)`
+- 不再陷入 2 分钟导航循环
+
+**新问题**: 第 4 次浏览任务点击的商品是直播商品
+- 09:41:46 点击商品"仁和多种维生素b族复合片..."（bounds=[26,307][589,1234]）
+- 09:41:51 `activity=com.ali.user.mobile.ui.widget.auprogressdialog` — 阿里登录对话框弹出
+- 09:41:51-09:42:07 swipe #1~#8 期间 activity 一直是 `auprogressdialog`（对话框挡住页面）
+- 09:42:09 `browsing product detail page reached target swipes (9/8), pressing back to exit`
+- 09:42:14 落地页是**直播页**（`直播中, 商品视频, 开启声音, 1/6 宝贝讲解`）— 不是商品列表页
+- 09:42:14 `not on farm page after exit, re-navigating`（build630 二次退出未触发，因为 `isBrowseProductListPage=false`）
+- 09:42:22 重新导航回到农场主页
+- 09:42:50 `AUProgressDialog` 又出现，09:43:04 用户手动停止
+
+**根因**:
+- `findBrowseProductNode` 通过 "¥" 找商品节点，但直播商品也包含 "¥"
+- 商品列表页文本不含"直播"字样，无法预先识别直播商品
+- 点击商品后直接开始 8 次滑动，未检测落地页是否是商品详情页
+- 直播页/登录对话框挡住页面，8 次滑动无效，浪费时间
+
+**修复（1 处）**:
+
+#### 修复: 点击商品后检测落地页是否是商品详情页 ([AutomationController.kt#L2261-L2281](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2261))
+- 原：点击商品后 `INTERVAL_PAGE_LOAD_MS`（5秒）后直接 `runBrowsingTask(1)` 开始滑动
+- 新：5 秒后先检测 `isProductDetailPageByAnyMeans()`：
+  - 若是商品详情页 → 正常 `runBrowsingTask(1)` 开始滑动
+  - 若不是 → `browsingProductEntered=false`（复位，避免误触发 build630 二次退出）+ `currentTaskIndex++`（跳过此任务）+ `exitBrowsePage` 退出
+- 不增加 `collectedCount`（任务未真正完成）
+
+**预期效果**:
+- 点击直播商品 → 5 秒后检测到非商品详情页 → pressBack 退出 → build630 二次退出（若回到商品列表页）或 re-navigate（若回到直播页）→ 跳过此任务继续下一个
+- 不再浪费 15 秒（8 次滑动）在直播页/登录对话框上
+- 登录对话框（auprogressdialog）的 activity 不是 detail activity，`isProductDetailPageByAnyMeans` 返回 false，触发退出
+
+**未解决问题（需下次日志验证）**:
+- 跳过直播商品后，下一个任务是否正常执行
+- 登录对话框持续出现时是否需要额外处理（如等待或取消）
+
+**编译验证**: sandbox 网络限制无法本地编译，等 CI 构建验证。
+
+---
+
+### commit d31845d - fix: build630 修复商品详情页退出后停留在商品列表页导致导航循环
 **用户需求**: "分析日志" → "修复"
 
 **输入日志**: `logs/debug_test_20260726_092123.log`（build627，1489 行，TAOBAO 平台，08:52:58~09:21:13 约 28 分钟，包含 Run1+Run2 两段运行）
