@@ -5443,17 +5443,28 @@ object AutomationController {
                     handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
                     return
                 }
-                // build638 修复（debug_test_20260726_125646.log line 488-534）：
-                // 历史问题: build637 在 RESUME_ORIGINAL_FARM retry 时主动 relaunch 原平台，但
-                //   launchPlatformApp → reopenFarmByDeepLink → forceKillApp，每次 relaunch 都先 kill TAOBAO。
-                //   当前前台是 ALIPAY（不是 TAOBAO），kill TAOBAO 没意义，反复 kill 让 TAOBAO 更难启动到前台
-                //   （Honor 后台启动限制）。日志显示 retry 2/4/6 都触发 kill，但 pkg 一直是 launcher。
-                // 修复: relaunch 时传 killCurrentFirst=false，直接 startActivity 启动原平台，不 kill。
-                if (switchRetryCount > 0 && switchRetryCount % 2 == 0) {
+                // build639 修复（debug_test_20260726_140951.log line 246-352）：
+                // 历史问题: build638 只在 retry=2,4,6 时才主动 relaunch + navigateToFarm，但
+                //   runSwitchingPlatform 间隔 2 秒，navigateToFarm 在 5 秒后（INTERVAL_PAGE_LOAD_MS）才执行，
+                //   下一次 retry=4 触发 cancelNavigation 会取消之前 postDelayed 的 navigateToFarm，
+                //   导致 navigateToFarm 永远不会执行，30 秒后超时。
+                // 根因: TAOBAO 启动后停在淘宝主页（act=TBMainActivity），不在农场页，
+                //   需要主动 navigateToFarm 才能进入农场页。
+                // 修复:
+                //   1. retry=0 时立即调用 navigateToFarm（不等 retry=2）
+                //   2. retry=2,4,6 时不再 relaunch（避免 cancelNavigation 取消正在执行的 navigateToFarm）
+                //   3. 增加间隔到 6 秒，让 navigateToFarm 有时间完成（navigateToFarm 内部多次 stepClickFarmTabByGesture）
+                //   4. 只有 retry=4 时才 relaunch（如果 navigateToFarm 完全失败）
+                if (switchRetryCount == 0) {
+                    debugLog("switchPlatform: original farm not loaded, calling navigateToFarm immediately")
+                    service.navigateToFarm()
+                }
+                // retry=4 时，如果还没到农场页，主动 relaunch + navigateToFarm
+                // 注意：不再在 retry=2 触发 relaunch，避免 cancelNavigation 取消正在执行的 navigateToFarm
+                if (switchRetryCount == 4) {
                     debugLog("switchPlatform: original farm not loaded after $switchRetryCount retries, actively relaunching ${switchOriginalPlatform} and re-navigating")
                     service.cancelNavigation()
                     service.setCurrentPlatform(switchOriginalPlatform)
-                    // build638: killCurrentFirst=false，避免反复 kill 原平台导致无法启动到前台
                     service.launchPlatformApp(switchOriginalPlatform, killCurrentFirst = false)
                     // 等待 app 启动后再 navigateToFarm
                     handler.postDelayed({
@@ -5469,7 +5480,8 @@ object AutomationController {
                     handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
                     return
                 }
-                handler.postDelayed({ runSwitchingPlatform() }, 2000L)
+                // build639: 增加间隔到 6 秒，让 navigateToFarm 有时间完成
+                handler.postDelayed({ runSwitchingPlatform() }, 6000L)
             }
 
             else -> {

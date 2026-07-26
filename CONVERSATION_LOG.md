@@ -32,7 +32,65 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build638 修复 RESUME_ORIGINAL_FARM 反复 kill TAOBAO 导致无法启动到前台
+### commit (待提交) - fix: build639 修复 RESUME_ORIGINAL_FARM 超时 + 搜索任务误判 + 登录对话框
+**用户需求**: "全部解决"
+
+**输入日志**: `logs/debug_test_20260726_140951.log`（build638，3993 行，13:42:55~14:09:37 约 27 分钟）
+
+**build638 验证结果**: ✅ 跨平台切换修复完全生效
+- 13:44:02~13:44:35 RESUME_ORIGINAL_FARM 阶段：`skip kill (killCurrentFirst=false)` 4 次 ✅
+- 13:44:05 `original platform loaded (activeRootPkg=com.taobao.taobao)` 正确识别 ✅
+- 2 次完整的 TAOBAO→ALIPAY→TAOBAO 跨平台任务都成功完成 ✅
+
+**发现 3 个新问题**:
+
+**问题 1**: RESUME_ORIGINAL_FARM 阶段 30 秒超时（13:44:05~13:44:35）
+- 13:44:05 RETURN_ORIGINAL 正确识别原平台已加载（activeRootPkg=com.taobao.taobao）
+- 13:44:16~13:44:35 RESUME_ORIGINAL_FARM retry 0~7，`isOnFarmPage` 一直 false
+- 根因：TAOBAO 启动后停在淘宝主页（act=TBMainActivity），不在农场页，需要主动 navigateToFarm
+- build638 只在 retry=2,4,6 时才主动 relaunch + navigateToFarm，但：
+  - runSwitchingPlatform 间隔 2 秒，navigateToFarm 在 5 秒后才执行
+  - 下一次 retry=4 触发 cancelNavigation 会取消之前 postDelayed 的 navigateToFarm
+  - 导致 navigateToFarm 永远不会执行，30 秒后超时
+
+**问题 2**: 任务列表无限循环（13:59:25~14:09:37，10 分钟）
+- task #1 "买限时折扣好物得奖励" → isPaidTask=YES → skip
+- task #2 "搜一搜你心仪的宝贝(1/5)" → isBrowseTask=true（命中"搜索"/"搜一搜"/"心仪"/"宝贝"关键词）
+- 进入 BROWSING_TASK → 点击"去完成"进入搜索页 → 搜索页没有 swipe hint → 退出
+- exitBrowsePage → OPENING_TASK_LIST → 重置 currentTaskIndex=0 → 又从 task #1 开始 → 循环
+
+**问题 3**: 跨平台任务触发登录对话框（14:09:31）
+- TAOBAO 出现登录对话框（com.ali.user.mobile.ui.widget.aliuserdialog）→ 登录页
+- stepClickFarmTabByGesture pressBack 无法关闭登录对话框，重试 5 次后失败
+- 用户手动停止
+
+**修复 1**: RESUME_ORIGINAL_FARM 立即调用 navigateToFarm
+- retry=0 时立即调用 `service.navigateToFarm()`（不等 retry=2）
+- retry=4 时才主动 relaunch（如果 navigateToFarm 完全失败）
+- 不再在 retry=2 触发 relaunch（避免 cancelNavigation 取消正在执行的 navigateToFarm）
+- 增加间隔到 6 秒，让 navigateToFarm 有时间完成（内部多次 stepClickFarmTabByGesture）
+
+**修复 2**: isBrowseTask 排除搜索任务
+- 从 browseKeywords 移除"搜索"、"搜一搜"、"心仪"、"宝贝"关键词
+- 添加排除条件：`!contextText.contains("搜一搜") && !contextText.contains("搜索你心仪")`
+- 搜索任务会被当作普通点击任务处理，点击"去完成"进入搜索页
+- checkTaskResult 检测到不在农场页/异常页面，跳过任务（currentTaskIndex++）
+
+**修复 3**: stepClickFarmTabByGesture 处理登录对话框
+- 检测到登录对话框/登录页时（activity 含"aliuserdialog"或"userloginactivity"）
+- 主动 kill + relaunch TAOBAO App，绕过登录状态
+- 等待 App 启动后重新导航
+
+**预期效果**:
+- RESUME_ORIGINAL_FARM 阶段 6 秒内回到农场页（不再 30 秒超时）
+- 搜索任务不再误判为浏览任务，避免无限循环
+- 登录对话框自动 kill + relaunch，不再卡死
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 4ebbf06 - fix: build638 修复 RESUME_ORIGINAL_FARM 反复 kill TAOBAO 导致无法启动到前台
 **用户需求**: "分析日志"
 
 **输入日志**: `logs/debug_test_20260726_125646.log`（build637，565 行，TAOBAO→ALIPAY 跨平台，12:42:34~12:47:54 约 5 分钟）

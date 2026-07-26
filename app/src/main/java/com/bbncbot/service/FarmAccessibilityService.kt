@@ -2799,14 +2799,14 @@ class FarmAccessibilityService : AccessibilityService() {
             return false
         }
         // "下单得奖励"是浏览搜索结果页面的任务，浏览后就能得肥料
-        // "发现精选好物"、"搜一搜你心仪得宝贝"、"看严选推荐商品" 需要点击商品并滑动浏览
+        // "发现精选好物"、"看严选推荐商品" 需要点击商品并滑动浏览
         // build584: "看一本喜欢的小说"任务需点击小说+上下滑动阅读得肥料,归类为 browse 任务
         // build590: "开始观看得肥料"短剧任务需点击播放视频+等待15秒,归类为 browse 任务
         // 通用浏览关键词 + 平台专属浏览关键词（差异化：淘宝浏览任务最多）
         val browseKeywords = listOf(
-            "浏览", "逛逛", "滑动", "看一看", "看商品", "下单得", "搜索",
-            "精选好物", "心仪", "严选推荐", "发现精选", "搜一搜",
-            "宝贝", "好物", "推荐商品", "发现", "严选",
+            "浏览", "逛逛", "滑动", "看一看", "看商品", "下单得",
+            "精选好物", "严选推荐", "发现精选",
+            "好物", "推荐商品", "发现", "严选",
             // 小说阅读任务（UC 平台"看一本喜欢的小说"）
             "小说", "阅读", "看一本",
             // 短剧观看任务（UC 平台"开始观看得肥料"）
@@ -2826,7 +2826,14 @@ class FarmAccessibilityService : AccessibilityService() {
             // 日志 debug_test_20260726_100620.log 显示"买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000"
             // 文案含"好物"+"得奖励"被误判为浏览任务，但实际是付费任务（需下单购买折扣商品才能得肥料）。
             // 浏览滑动无法推进任务进度，浪费时间。isPaidTask 应优先识别，此处兜底防止漏判。
-            !contextText.contains("限时折扣") && !contextText.contains("折扣好物")
+            !contextText.contains("限时折扣") && !contextText.contains("折扣好物") &&
+            // build639 修复：排除"搜一搜你心仪的宝贝"等搜索任务
+            // 日志 debug_test_20260726_140951.log 显示"搜一搜你心仪的宝贝(1/5) 浏览得奖励 +600"
+            // 被误判为浏览任务（命中"搜索"/"搜一搜"/"心仪"/"宝贝"关键词），但实际是搜索任务
+            // （需要主动搜索商品才能完成）。进入 BROWSING_TASK 后搜索页没有 swipe hint，
+            // browseTask 退出 → OPENING_TASK_LIST 重置 currentTaskIndex=0 → 无限循环。
+            // 修复：移除"搜索"/"搜一搜"/"心仪"/"宝贝"关键词，并添加排除条件。
+            !contextText.contains("搜一搜") && !contextText.contains("搜索你心仪")
         debugLog("isBrowseTask: buttonText='$buttonText', context='$contextText', isBrowse=$isBrowse")
         return isBrowse
     }
@@ -6059,6 +6066,51 @@ class FarmAccessibilityService : AccessibilityService() {
             // 不在淘宝主页（可能在商品详情页、支付宝收银台等），
             // 先按返回退出异常页面，再重新导航
             debugLog("navigate stepTab gesture: not on taobao main page (pkg=$pkg act=$activity retry=$retry/$screenW x $screenH), pressing back first")
+            // build639 修复（debug_test_20260726_140951.log line 3980-3984）：
+            // 历史问题: 淘宝 token 过期或网络异常时弹出登录对话框（com.ali.user.mobile.ui.widget.aliuserdialog）
+            // 或登录页（com.ali.user.mobile.login.ui.userloginactivity），pressBack 无法关闭，
+            // 重试 5 次后放弃，导航失败。
+            // 修复: 检测到登录对话框/登录页时，主动 kill + relaunch 淘宝 App，绕过登录状态。
+            val isLoginDialog = activity.contains("aliuserdialog") || activity.contains("userloginactivity")
+            if (isLoginDialog) {
+                debugLog("navigate stepTab gesture: login dialog/page detected (act=$activity), killing + relaunching TAOBAO")
+                for (p in Platform.TAOBAO.config.packageNames) {
+                    forceKillApp(p, pressBackFirst = false)
+                }
+                navHandler.postDelayed({
+                    val ctrlState2 = AutomationController.currentState
+                    if (ctrlState2 != com.bbncbot.automation.AutomationState.IDLE &&
+                        ctrlState2 != com.bbncbot.automation.AutomationState.NAVIGATING &&
+                        ctrlState2 != com.bbncbot.automation.AutomationState.SWITCHING_PLATFORM &&
+                        ctrlState2 != com.bbncbot.automation.AutomationState.STOPPING) {
+                        clearNavigatingFlag()
+                        return@postDelayed
+                    }
+                    // 重新启动淘宝 App
+                    val pkg = Platform.TAOBAO.config.packageNames.firstOrNull()
+                    if (pkg != null) {
+                        val intent = packageManager.getLaunchIntentForPackage(pkg)
+                        if (intent != null) {
+                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                            startActivity(intent)
+                            debugLog("navigate stepTab gesture: relaunched TAOBAO after killing login dialog")
+                        }
+                    }
+                    // 等待 App 启动后重新导航
+                    navHandler.postDelayed({
+                        val ctrlState3 = AutomationController.currentState
+                        if (ctrlState3 != com.bbncbot.automation.AutomationState.IDLE &&
+                            ctrlState3 != com.bbncbot.automation.AutomationState.NAVIGATING &&
+                            ctrlState3 != com.bbncbot.automation.AutomationState.SWITCHING_PLATFORM &&
+                            ctrlState3 != com.bbncbot.automation.AutomationState.STOPPING) {
+                            clearNavigatingFlag()
+                            return@postDelayed
+                        }
+                        stepClickFarmTabByGesture(platform, 0)
+                    }, 3000L)
+                }, 1000L)
+                return
+            }
             pressBack()
             navHandler.postDelayed({
                 val ctrlState2 = AutomationController.currentState
