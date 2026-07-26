@@ -2436,7 +2436,11 @@ object AutomationController {
         // 禁止交易获取肥料：所有交易相关页面都视为异常
         // build620 豁免：browsingProductEntered=true 时,商品详情页是我们主动点击进入的,
         // 需要停留15秒等待肥料发放,不视为异常页退出。
-        if (browsingProductEntered && service.isProductDetailPage()) {
+        // build626 修复：原豁免用 isProductDetailPage()(内容检测"加入购物车"+"立即购买"),
+        // 但淘宝商品详情页 activity=ttdetailactivity 触发 isOnAbnormalPage(true) 时,
+        // 页面内容可能没有"加入购物车"/"立即购买"文案(H5/WebView 不暴露),导致豁免失效。
+        // 改用 isProductDetailPageByAnyMeans()(activity 名 + 内容双重检测)。
+        if (browsingProductEntered && service.isProductDetailPageByAnyMeans()) {
             debugLog("browseTask: in product detail page (browsingProductEntered=true), exempting from abnormal page check, keep waiting for fertilizer (swipe #$swipeCount/$browseTaskTargetSwipes)")
             // 不退出,继续走下面的滑动逻辑（滑动模拟活跃,等待 isFertilizerGrantedPage/isTaskCompletePage）
         } else if (service.isOnAbnormalPage()) {

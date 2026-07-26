@@ -613,6 +613,35 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build626: 检测当前是否在商品详情页（activity 名 + 内容双重检测）
+     *
+     * 日志 debug_test_20260726_083256.log 显示点击商品后进入淘宝商品详情页
+     * (activity=com.taobao.android.detail.alittdetail.ttdetailactivity)，但页面没有
+     * "加入购物车"/"立即购买"文案（可能在 H5/WebView 内或不暴露给无障碍树），
+     * 导致 isProductDetailPage() 返回 false，build620 的 browsingProductEntered 豁免失效。
+     *
+     * 本方法补充 activity 名检测，用于 browsingProductEntered 豁免判断。
+     *
+     * @return true 表示当前在商品详情页（activity 名匹配 或 内容匹配）
+     */
+    fun isProductDetailPageByAnyMeans(): Boolean {
+        // 1. activity 名检测（淘宝 ttdetailactivity / 天猫 detail 等）
+        val activity = currentActivityName?.lowercase().orEmpty()
+        val detailActivityKeywords = listOf(
+            "ttdetailactivity",      // 淘宝商品详情页
+            "detailactivity",        // 通用商品详情页
+            "goodsdetail",           // 商品详情
+            "productdetail"          // 产品详情
+        )
+        if (activity.isNotEmpty() && detailActivityKeywords.any { activity.contains(it) }) {
+            debugLog("isProductDetailPageByAnyMeans: YES by activity ($activity)")
+            return true
+        }
+        // 2. 内容检测（兜底）
+        return isProductDetailPage()
+    }
+
+    /**
      * 检测当前页面是否是小程序/游戏页面（不受 adModeFlag 干扰）
      *
      * 用于 WATCHING_AD 状态下的兜底检测：

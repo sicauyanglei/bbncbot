@@ -32,7 +32,52 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build625 修复商品浏览任务 isBrowseProductListPage 检测未触发 + isFarmHome 误判"芭芭农场-interact"
+### commit (待提交) - fix: build626 修复商品详情页 activity=ttdetailactivity 触发 isOnAbnormalPage 退出（browsingProductEntered 豁免失效）
+**用户需求**: "分析日志"（日志在 GitHub 上）
+
+**输入日志**: `logs/debug_test_20260726_083256.log`（build625，365 行，TAOBAO 平台，08:29:39~08:32:56 约 3 分钟）
+
+**build625 修复验证结果**:
+- ✅ `isBrowseProductListPage: YES (hasFertilizerHint=true, isFarmHome=false, isProductDetail=false, isNovelOrDrama=false, hasProductPrice=true)`（line 160）— build625 修复1+2 都生效
+- ✅ `browseTask: browse product list page detected on swipeCount=0, clicking product to enter detail`（line 161）— build625 修复1 触发商品浏览流程
+- ✅ `findBrowseProductNode: found product node bounds=[26,307][589,1234]`（line 162）— 找到商品节点
+- ✅ `browseTask: browse product target swipes = 8 (15s / 2s interval)`（line 163）— 设置 15 秒滑动
+- ✅ 点击商品 `performClickSafe(text='妇炎洁甲硝唑氯己定洗剂...')`（line 164-165）— 成功点击商品
+
+**新问题**: 点击商品进入详情页后立即退出（line 166-167）
+- `isOnAbnormalPage: YES, activity=com.taobao.android.detail.alittdetail.ttdetailactivity`（line 166）
+- `browseTask: abnormal/trading page detected, exiting immediately`（line 167）— 立即退出
+
+**根因**: build620 的 `browsingProductEntered` 豁免条件 `browsingProductEntered && service.isProductDetailPage()`（[AutomationController.kt#L2439](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2439)）依赖 `isProductDetailPage()` 返回 true，但：
+1. `isOnAbnormalPage` 通过 **activity 名** `ttdetailactivity` 直接判为异常页（[FarmAccessibilityService.kt#L3690](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L3690)），不需要内容检测
+2. `isProductDetailPage()` 通过"加入购物车"+"立即购买"内容检测，但淘宝商品详情页（ttdetailactivity）的按钮可能在 H5/WebView 内，**不暴露给无障碍树** → `isProductDetailPage()` 返回 false
+3. 豁免条件 `browsingProductEntered && isProductDetailPage()` 整体为 false → 走 `else if (isOnAbnormalPage())` 分支退出
+
+**修复方案（2 处）**:
+
+#### 修复1: 新增 isProductDetailPageByAnyMeans 方法 ([FarmAccessibilityService.kt#L615-L642](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L615))
+- activity 名检测：`ttdetailactivity`/`detailactivity`/`goodsdetail`/`productdetail`
+- 内容检测兜底：`isProductDetailPage()`（"加入购物车"+"立即购买"）
+- 两者任一匹配即返回 true
+
+#### 修复2: 豁免条件改用 isProductDetailPageByAnyMeans ([AutomationController.kt#L2439-L2443](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2439))
+- 原：`if (browsingProductEntered && service.isProductDetailPage())`
+- 新：`if (browsingProductEntered && service.isProductDetailPageByAnyMeans())`
+- `browsingProductEntered=true` 时，只要 activity 是 ttdetailactivity 就豁免，继续停留 15 秒
+
+**预期效果**:
+- 点击商品进入 ttdetailactivity → `isProductDetailPageByAnyMeans` 返回 true（activity 名匹配）→ 豁免 isOnAbnormalPage → 继续 8 次滑动（15 秒）→ 等待肥料发放
+- 不再点击商品后立即退出
+
+**未解决问题（需下次日志验证）**:
+- 滑动 8 次（15 秒）后 `isFertilizerGrantedPage`/`isTaskCompletePage` 是否命中（肥料发放检测）
+- 若 15 秒后未检测到肥料发放，会走 waitLimit 超时退出，任务可能未完成
+
+**编译验证**: sandbox 网络限制无法本地编译，等 CI 构建验证。
+
+---
+
+### commit 932571c - fix: build625 修复商品浏览任务 isBrowseProductListPage 检测未触发 + isFarmHome 误判"芭芭农场-interact"
 **用户需求**: "分析日志"
 
 **输入日志**: `logs/debug_test_20260726_081800.log`（build624，4437 行，TAOBAO 平台，07:17:49~08:18:00 约 1 小时）
