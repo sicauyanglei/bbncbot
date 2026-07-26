@@ -2272,6 +2272,48 @@ object AutomationController {
                     val onFarm = service.isOnFarmPage()
                     val allText = service.collectAllTextSnapshot(maxCount = 15)
                     debugLog("browseTask: after clicking 'go browse', page type=$pageType, onFarm=$onFarm, texts=$allText")
+                    // build648 修复（debug_test_20260726_164258.log）：
+                    // 历史问题: "去闲鱼币领现金红包 逛逛得" 任务点击"去完成"后跳转到闲鱼 App
+                    // （com.taobao.idlefish），page type=unknown(no_root)，bot 走到 else 分支
+                    // （无浏览奖励指标），调用 exitBrowsePage → pressBack，但闲鱼 App 的 pressBack
+                    // 只是在闲鱼内部返回，无法回到淘宝，导致 bot 卡在闲鱼 App 循环 pressBack。
+                    // 日志证据:
+                    //   16:41:52.929 browseTask: clicking 'go browse' button
+                    //   16:41:57.943 browseTask: after clicking 'go browse', page type=unknown(no_root), onFarm=false, texts=[]
+                    //   16:41:57.986 browseTask: not a browse task, exiting without swiping
+                    //   16:42:03.445 exitBrowsePage: not on farm page after exit, re-navigating
+                    //   16:42:06.063 [navigate-start] snapshot: pkg=com.taobao.idlefish ← 跳转到闲鱼
+                    //   16:42:06~16:42:50 在闲鱼 App 循环 pressBack 无法返回淘宝（用户手动停止）
+                    // 修复: 点击"去完成"后若当前包名不是农场平台包名（跨 App 跳转），
+                    // 直接 pressBack 退出跨 App，跳过此任务，避免卡死。
+                    val currentPkg = service.getCurrentWindowPackage()
+                    val farmPkg = service.currentPlatformConfig().packageNames
+                    val isCrossAppJump = currentPkg != null && farmPkg.isNotEmpty() &&
+                        !farmPkg.any { currentPkg == it || currentPkg.startsWith(it) }
+                    if (isCrossAppJump) {
+                        debugLog("browseTask: cross-app jump detected after clicking '去完成' (currentPkg=$currentPkg, farmPkg=$farmPkg), skipping task and pressing back")
+                        Log.i(TAG, "browseTask: cross-app jump to $currentPkg, skipping task")
+                        currentTaskIndex++
+                        collectedCount++
+                        // 先 pressBack 退出跨 App，再导航回农场
+                        service.pressBack()
+                        handler.postDelayed({
+                            if (state != AutomationState.BROWSING_TASK) return@postDelayed
+                            service.pressBack()  // 再按一次确保退出跨 App
+                            handler.postDelayed({
+                                if (state != AutomationState.BROWSING_TASK) return@postDelayed
+                                // 强制 kill 跨 App 并重新启动农场平台
+                                debugLog("browseTask: re-launching farm platform after cross-app jump")
+                                service.launchPlatformApp(service.currentPlatform)
+                                handler.postDelayed({
+                                    if (state != AutomationState.BROWSING_TASK) return@postDelayed
+                                    moveTo(AutomationState.NAVIGATING)
+                                    handler.postDelayed({ runNavigating(0) }, INTERVAL_PAGE_LOAD_MS)
+                                }, INTERVAL_PAGE_LOAD_MS)
+                            }, INTERVAL_PAGE_LOAD_MS)
+                        }, INTERVAL_CLICK_MS)
+                        return@postDelayed
+                    }
                     // build625 修复：先检测商品列表页，若是则走商品浏览流程（点商品+停留15秒）。
                     // 日志 debug_test_20260726_081800.log 显示 idx=0 "发现精选好物(0/4) 浏览15秒得 +700"
                     // 任务点击"去完成"后落地页是商品列表页（含"滑动浏览得肥料"+商品价格列表），
@@ -2304,11 +2346,36 @@ object AutomationController {
                                         debugLog("browseTask: entered product detail page after clicking product, starting swipes")
                                         runBrowsingTask(1)
                                     } else {
-                                        // 未进入商品详情页（可能是直播商品/登录对话框/其他页面），pressBack 退出跳过任务
-                                        debugLog("browseTask: not on product detail page after clicking product (activity=${service.getCurrentActivityName()}), skipping task")
-                                        browsingProductEntered = false  // 复位，避免误触发 build630 商品列表页二次退出
-                                        currentTaskIndex++  // 跳过此任务，避免重复尝试同一直播商品
-                                        exitBrowsePage(service, reason = "not_product_detail_after_click")
+                                        // build648 修复（debug_test_20260726_164258.log）：
+                                        // 历史问题: "去省钱卡领红包 浏览5s得" 任务落地页是百亿补贴活动页
+                                        // （含"滑动浏览得肥料"+商品价格列表），被 isBrowseProductListPage 误判为商品列表页，
+                                        // 点击商品后进入活动详情页（activity=TMSActivity，不是商品详情页），
+                                        // bot 立即跳过任务，但实际"浏览5s得"任务只需在活动页停留 5 秒。
+                                        // 日志证据:
+                                        //   16:41:25.036 browseTask: browse product list page detected, clicking product
+                                        //   16:41:31.716 browseTask: not on product detail page (activity=TMSActivity), skipping task
+                                        //   ← 6 秒后跳过任务，但"浏览5s得"只需 5 秒停留
+                                        // 修复: 未进入商品详情页时，不立即跳过，而是等待 5 秒（短时浏览任务可能只需停留），
+                                        // 然后退出并尝试领取肥料。只有明确是直播页/登录对话框才跳过。
+                                        val allTextAfterClick = service.collectAllTextSnapshot(maxCount = 20)
+                                        val isLivePage = allTextAfterClick.any {
+                                            it.contains("直播中") || it.contains("宝贝讲解") || it.contains("直播间")
+                                        }
+                                        val isLoginDialog = service.getCurrentActivityName()?.lowercase()?.contains("auprogressdialog") == true ||
+                                            allTextAfterClick.any { it.contains("登录") && it.contains("淘宝") }
+                                        if (isLivePage || isLoginDialog) {
+                                            debugLog("browseTask: not on product detail page (live=$isLivePage, login=$isLoginDialog), skipping task")
+                                            browsingProductEntered = false
+                                            currentTaskIndex++
+                                            exitBrowsePage(service, reason = "not_product_detail_after_click")
+                                        } else {
+                                            // 活动详情页/其他页面：等待 5 秒后退出（短时浏览任务）
+                                            debugLog("browseTask: not on product detail page but not live/login (activity=${service.getCurrentActivityName()}), waiting 5s for short browse task")
+                                            Log.i(TAG, "browseTask: activity page detected, waiting 5s for short browse task")
+                                            browsingProductEntered = true
+                                            browseTaskTargetSwipes = 3  // 5s / 2s ≈ 3 次轮询
+                                            runBrowsingTask(1)
+                                        }
                                     }
                                 }, INTERVAL_PAGE_LOAD_MS)
                                 return@postDelayed

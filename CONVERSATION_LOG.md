@@ -32,7 +32,60 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - feat: build647 闯关类游戏任务跳过（bot 无法自动完成）
+### commit (待提交) - fix: build648 修复跨 App 跳转卡死和浏览5s任务误跳过
+**用户需求**: "分析日志"
+
+**输入日志**: `logs/debug_test_20260726_164258.log`（build647，511 行，16:39:39~16:42:58 约 3 分钟）
+
+**build647 验证结果**: ✅ 闯关类游戏跳过生效
+- task #3 "玩1局斗地主 打完一局领 +400" → 被 skipTaskTexts 跳过（含"玩1局"/"斗地主"）
+- task #4 "玩游戏领免费包邮鲜花 完成1次得肥料" → 被 skipTaskTexts 跳过（含"玩游戏"/"完成1次"）
+- 注：build647 的 isGameLevelTask 没机会执行，因为 skipTaskTexts 已包含"玩1局"/"斗地主"等关键词
+
+**新发现问题 1**: task #5 "去闲鱼币领现金红包 逛逛得" 跳转到闲鱼 App，bot 卡死
+- 16:41:52.929 browseTask: clicking 'go browse' button
+- 16:41:57.943 page type=unknown(no_root), onFarm=false, texts=[]
+- 16:41:57.986 not a browse task, exiting without swiping
+- 16:42:03.445 exitBrowsePage: not on farm page after exit, re-navigating
+- 16:42:06.063 [navigate-start] pkg=com.taobao.idlefish ← 跳转到闲鱼
+- 16:42:06~16:42:50 在闲鱼 App 循环 pressBack 无法返回淘宝（用户手动停止）
+
+**根因 1**: 点击"去完成"后跳转到闲鱼 App，bot 走到 else 分支（无浏览奖励指标），
+调用 exitBrowsePage → pressBack，但闲鱼 App 的 pressBack 只是在闲鱼内部返回，
+无法回到淘宝，导致 bot 卡在闲鱼 App 循环 pressBack。
+
+**新发现问题 2**: task #4 "去省钱卡领红包 浏览5s得" 落地页是百亿补贴活动页
+- 16:41:25.036 browseTask: browse product list page detected, clicking product
+- 16:41:31.716 browseTask: not on product detail page (activity=TMSActivity), skipping task
+- ← 6 秒后跳过任务，但"浏览5s得"只需 5 秒停留
+
+**根因 2**: 落地页是百亿补贴活动页（含"滑动浏览得肥料"+商品价格列表），
+被 isBrowseProductListPage 误判为商品列表页，点击商品后进入活动详情页
+（activity=TMSActivity，不是商品详情页），bot 立即跳过任务，
+但实际"浏览5s得"任务只需在活动页停留 5 秒。
+
+**修复 1**: browseTask 点击"去完成"后检测跨 App 跳转
+- [AutomationController.kt#L2275-2316](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2275)
+- 点击"去完成"后获取当前窗口包名（getCurrentWindowPackage）
+- 若包名不是农场平台包名（跨 App 跳转），pressBack 两次 + launchPlatformApp 重新启动农场
+- 跳过此任务（currentTaskIndex++），避免卡死
+
+**修复 2**: browseTask 点击商品后未进入商品详情页时不立即跳过
+- [AutomationController.kt#L2348-2379](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2348)
+- 检测落地页是否是直播页（"直播中"/"宝贝讲解"/"直播间"）或登录对话框
+- 若是直播页/登录对话框：跳过任务（原逻辑）
+- 若是活动详情页/其他页面：等待 5 秒（browseTaskTargetSwipes=3，5s/2s≈3 次轮询）
+- 短时浏览任务（"浏览5s得"）只需停留即可获得肥料
+
+**预期效果**:
+- "去闲鱼币领现金红包 逛逛得" → 检测到跨 App 跳转，pressBack + 重新启动淘宝，不卡死
+- "去省钱卡领红包 浏览5s得" → 活动页等待 5 秒后退出领肥料，不跳过任务
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit cb0e24b - feat: build647 闯关类游戏任务跳过（bot 无法自动完成）
 **用户需求**: "游戏闯关类的游戏不完成"
 
 **问题**: 闯关类游戏（如"玩消消乐得肥料 进入任意消3下得 +400"）需要用户实际操作游戏（消除/出牌/对战）才能完成，bot 只能停留无法操作，任务不会完成，肥料得不到，浪费时间。
