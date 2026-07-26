@@ -6200,13 +6200,28 @@ class FarmAccessibilityService : AccessibilityService() {
                                 val seen = HashSet<Int>()
                                 collectNodesByText(resultRoot, listOf("芭芭农场"), allResults, seen)
                                 if (allResults.isNotEmpty()) {
+                                    // build657 修复（debug_test_20260726_205318.log, build656-92a1ed0）：
+                                    //   20:50:50 clicking search result '芭芭农场' at [0,278][1200,431] (candidates=10)
+                                    //   20:50:54 search result click did not navigate
+                                    //   反复重试 3 次都选 bounds=[0,278][1200,431]，点击无效 → STOPPING
+                                    // 历史问题：allResults.first() 可能是搜索框区域的联想词（top < screenHeight*0.20），
+                                    //   不是真正的搜索结果。策略1 已用搜索框区域过滤，策略2 选搜索结果时未过滤，
+                                    //   导致选了搜索框联想词点击无效。
+                                    // 修复：过滤搜索框区域（top < screenHeight*0.20）的节点，只选真正的搜索结果。
+                                    val searchAreaThreshold = resources.displayMetrics.heightPixels * 0.20f
+                                    val filteredResults = allResults.filter { node ->
+                                        val r = android.graphics.Rect()
+                                        node.getBoundsInScreen(r)
+                                        r.top >= searchAreaThreshold
+                                    }
+                                    val candidateList = filteredResults.ifEmpty { allResults }
                                     // 优先选带"小程序"标识的节点（支付宝芭芭农场是小程序）
-                                    val mpNode = allResults.firstOrNull { node ->
+                                    val mpNode = candidateList.firstOrNull { node ->
                                         val parent = node.parent
                                         parent != null && collectAllText(parent).any {
                                             it.contains("小程序") || it.contains("生活号") || it.contains("官方")
                                         }
-                                    } ?: allResults.first()
+                                    } ?: candidateList.first()
                                     val rRect = android.graphics.Rect()
                                     mpNode.getBoundsInScreen(rRect)
                                     val rValid = rRect.width() > 0 && rRect.height() > 0 &&

@@ -32,7 +32,45 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build656 跳过"去头条极速版逛逛"等头条系跳转外部 App 任务
+### commit (待提交) - fix: build657 支付宝搜索结果过滤搜索框区域联想词，选真正搜索结果
+
+**用户需求**: "分析日志"（从 GitHub 拉取 build656 日志 debug_test_20260726_205318.log）
+
+**日志分析** (build656, 支付宝平台):
+- ❌ **新问题**: 支付宝导航失败，NAVIGATING → STOPPING → IDLE
+- 搜索"芭芭农场"后点击搜索结果，3 次重试都失败
+
+**根因**: [FarmAccessibilityService.kt#stepNavigateAlipayFarm#L6199-6209](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L6199)
+- `collectNodesByText` 收集 10 个"芭芭农场"文本节点（candidates=10）
+- `allResults.first()` 选了 bounds=[0,278][1200,431]，top=278 在搜索框区域（< screenHeight*0.20=508.6）
+- 这个节点是搜索框区域的联想词，不是真正的搜索结果
+- 点击联想词不跳转 → dispatchGesture 点坐标也无效 → pressBack 重试 → 反复 3 次失败 → STOPPING
+- 策略1（找首页入口）已用搜索框区域过滤（line 6121 `top < screenHeight*0.20`），但策略2（选搜索结果）未过滤
+
+**日志证据** ([debug_test_20260726_205318.log#L16-22](file:///workspace/logs/debug_test_20260726_205318.log)):
+- 20:50:50.956 clicking search result '芭芭农场' at [0,278][1200,431] (candidates=10)
+- 20:50:54.044 search result click did not navigate
+- 20:50:58.070 dispatchGesture also failed, pressBack and retry
+- 20:51:14.523 dispatchGesture also failed, pressBack and retry
+- 20:51:44.067 state: NAVIGATING -> STOPPING
+
+**修复**: [FarmAccessibilityService.kt#L6203-6217](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L6203)
+- 新增搜索框区域过滤：`val searchAreaThreshold = resources.displayMetrics.heightPixels * 0.20f`
+- `filteredResults = allResults.filter { node.getBoundsInScreen(r); r.top >= searchAreaThreshold }`
+- `candidateList = filteredResults.ifEmpty { allResults }`（过滤后为空则回退原列表）
+- `mpNode` 从 `candidateList` 中选，优先带"小程序"/"生活号"/"官方"标识的节点
+- 过滤后选的搜索结果 top >= 508.6（屏幕顶部 20% 以下），是真正的搜索结果
+
+**预期效果**:
+- 过滤掉搜索框联想词（top=278 < 508.6）
+- 选真正的搜索结果（top >= 508.6），点击后跳转到芭芭农场小程序
+- 不再反复点击无效的联想词 → 导航成功
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 92a1ed0 - fix: build656 跳过"去头条极速版逛逛"等头条系跳转外部 App 任务
 
 **用户需求**: "修复所有问题"（基于 build655 日志 debug_test_20260726_204010.log）
 
