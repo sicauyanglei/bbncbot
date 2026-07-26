@@ -32,7 +32,36 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build628 修复 browsingProductEntered 15秒后未退出导致无限滑动
+### commit (待提交) - fix: build629 UC 滑动浏览任务不点商品直接滑动（仅 TAOBAO 点商品停留15秒）
+**用户需求**: "uc滑动浏览任务，不需要点击商品进入下一个页面"
+
+**问题**: build620 实现的浏览商品任务逻辑（点击商品进入详情页停留 15 秒）对 UC 和 TAOBAO 两个平台都生效。但用户反馈 UC 平台的滑动浏览任务**不需要点击商品**，直接在列表页滑动即可获得肥料。点击商品反而会进入商品详情页，浪费时间且可能触发风控。
+
+**平台差异**:
+- **TAOBAO**: 任务要求"浏览商品"，需点击商品进入详情页停留 15 秒（build620/626/627/628 实现）
+- **UC**: 滑动浏览任务，直接在列表页滑动即可，不需要点击商品
+
+**修复（2 处）**:
+
+#### 修复1: swipeCount=0 分支加平台判断 ([AutomationController.kt#L2248-L2275](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2248))
+- 原：`if (service.isBrowseProductListPage())` → 点商品（UC/TAOBAO 都点）
+- 新：`if (service.isBrowseProductListPage()) { if (TAOBAO) { 点商品 } else { UC 直接滑动 } }`
+- UC 平台：检测到商品列表页后只打日志，不点商品，不设 `browsingProductEntered`，走普通滑动流程（靠 isFertilizerGrantedPage/isTaskCompletePage 退出）
+
+#### 修复2: swipeCount>0 分支加平台判断 ([AutomationController.kt#L2585-L2606](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2585))
+- 原：`if (!browsingProductEntered && service.isBrowseProductListPage())` → 点商品
+- 新：`if (!browsingProductEntered && service.currentPlatform == Platform.TAOBAO && service.isBrowseProductListPage())` → 仅 TAOBAO 点商品
+- UC 平台：滑动过程中即使检测到商品列表页也不点商品，继续滑动
+
+**预期效果**:
+- UC 平台：检测到商品列表页 → 直接滑动浏览 → isFertilizerGrantedPage/isTaskCompletePage 命中后退出
+- TAOBAO 平台：保持原逻辑（点商品进入详情页停留 15 秒）
+
+**编译验证**: sandbox 网络限制无法本地编译，等 CI 构建验证。
+
+---
+
+### commit 1b7490f - fix: build628 修复 browsingProductEntered 15秒后未退出导致无限滑动
 **用户需求**: "分析日志"
 
 **输入日志**: `logs/debug_test_20260726_085823.log`（build627，726 行，TAOBAO 平台，08:52:58~08:57:39 约 5 分钟，用户手动停止）

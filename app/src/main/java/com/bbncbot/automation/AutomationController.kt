@@ -2246,23 +2246,32 @@ object AutomationController {
                     // 导致 build620 的 isBrowseProductListPage 检测（在 swipeCount>0 分支）根本没机会执行。
                     // 修复：在 swipeCount=0 分支优先检测 isBrowseProductListPage，若是则直接点商品进入详情页停留。
                     if (service.isBrowseProductListPage()) {
-                        debugLog("browseTask: browse product list page detected on swipeCount=0, clicking product to enter detail (will wait 15s)")
-                        Log.i(TAG, "browseTask: browse product list page detected, clicking product to enter detail")
-                        val productNode = service.findBrowseProductNode()
-                        if (productNode != null) {
+                        // build629: 区分平台
+                        // - TAOBAO: 点击商品进入详情页停留 15 秒（任务要求"浏览商品"）
+                        // - UC: 滑动浏览任务不需要点击商品，直接在列表页滑动即可（用户明确反馈）
+                        //         不设 browsingProductEntered，走普通滑动流程，靠 isFertilizerGrantedPage/isTaskCompletePage 退出
+                        if (service.currentPlatform == Platform.TAOBAO) {
+                            debugLog("browseTask: browse product list page detected on swipeCount=0 (TAOBAO), clicking product to enter detail (will wait 15s)")
+                            Log.i(TAG, "browseTask: browse product list page detected, clicking product to enter detail")
+                            val productNode = service.findBrowseProductNode()
+                            if (productNode != null) {
+                                browsingProductEntered = true
+                                browseTaskTargetSwipes = 8  // build620: 15秒 / 2秒 = 8 次滑动
+                                debugLog("browseTask: browse product target swipes = 8 (15s / 2s interval)")
+                                service.performClickSafe(productNode)
+                                // 等待商品详情页加载后开始滑动（模拟活跃,避免挂机判定）
+                                handler.postDelayed({
+                                    if (state == AutomationState.BROWSING_TASK) runBrowsingTask(1)
+                                }, INTERVAL_PAGE_LOAD_MS)
+                                return@postDelayed
+                            }
+                            debugLog("browseTask: browse product list page but no product node found, swiping in list directly")
                             browsingProductEntered = true
-                            browseTaskTargetSwipes = 8  // build620: 15秒 / 2秒 = 8 次滑动
-                            debugLog("browseTask: browse product target swipes = 8 (15s / 2s interval)")
-                            service.performClickSafe(productNode)
-                            // 等待商品详情页加载后开始滑动（模拟活跃,避免挂机判定）
-                            handler.postDelayed({
-                                if (state == AutomationState.BROWSING_TASK) runBrowsingTask(1)
-                            }, INTERVAL_PAGE_LOAD_MS)
-                            return@postDelayed
+                            browseTaskTargetSwipes = 8
+                        } else {
+                            // build629: UC 平台不点商品，直接在列表页滑动
+                            debugLog("browseTask: browse product list page detected on swipeCount=0 (${service.currentPlatform}), swiping in list directly (no product click)")
                         }
-                        debugLog("browseTask: browse product list page but no product node found, swiping in list directly")
-                        browsingProductEntered = true
-                        browseTaskTargetSwipes = 8
                     }
                     // 检测页面是否有"滑动获取肥料"提示，解析需要滑动的时间
                     val hintSeconds = service.findSwipeForFertilizerHint()
@@ -2573,10 +2582,12 @@ object AutomationController {
         // 与短剧任务区别：商品任务点击商品卡片进入详情页（短剧点"开始观看"进入播放页）
         // 商品详情页有"加入购物车"+"立即购买"按钮,正常会被 isOnAbnormalPage 判为异常页退出,
         // 上方 build620 豁免逻辑已处理（browsingProductEntered=true 时豁免）
-        if (!browsingProductEntered && service.isBrowseProductListPage()) {
+        // build629: 仅 TAOBAO 平台点击商品进入详情页停留 15 秒
+        // UC 平台滑动浏览任务不需要点击商品（用户明确反馈），直接在列表页滑动
+        if (!browsingProductEntered && service.currentPlatform == Platform.TAOBAO && service.isBrowseProductListPage()) {
             val productNode = service.findBrowseProductNode()
             if (productNode != null) {
-                debugLog("browseTask: browse product list page detected, clicking product to enter detail")
+                debugLog("browseTask: browse product list page detected (TAOBAO), clicking product to enter detail")
                 Log.i(TAG, "browseTask: clicking product on browse product list page (enter detail, wait 15s)")
                 browsingProductEntered = true
                 // build620: 用户需求"停留15秒" → 15秒 / 2秒间隔 = 8 次滑动（与小说/短剧任务一致）
