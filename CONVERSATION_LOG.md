@@ -32,42 +32,60 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build640 修复浏览任务重复处理循环（发现精选好物 0/5 任务）
-**用户需求**: "分析日志"
+### commit (待提交) - fix: build641 修复 TAOBAO "1500，肥料，点击领取" 按钮始终未领取
+**用户需求**: "长时间循环是对的。每次都要根据任务具体的时间来完成，任务的操作要对，点击开始任务了，如何是视频播放任务，需要播放15秒后结束，不是马上退出得不到肥料"
 
 **输入日志**: `logs/debug_test_20260726_142922.log`（build639，1878 行，14:20:10~14:29:15 约 9 分钟）
 
-**build639 验证结果**: ✅ 3 个修复全部生效
-- ✅ RESUME_ORIGINAL_FARM 超时未出现（没有跨平台任务触发该阶段）
-- ✅ 搜索任务误判未出现（"搜一搜你心仪的宝贝" 任务被正确识别为非浏览任务）
-- ✅ 登录对话框未出现
+**用户澄清**: 撤回 build640 的任务重复处理计数器，长时间循环是正确行为，bot 应根据任务要求完成（如视频播放 15 秒），不应跳过任务。
 
-**发现新问题**: 浏览任务重复处理循环（14:23:25~14:29:15，约 6 分钟）
-- 14:23:25 task #1 "看看#日式推拉门(0/1) 浏览15秒得 +1500" → 浏览完成
-- 14:24:21 task #1 "发现精选好物(0/5) 浏览得奖励 +800" → 浏览完成
-- 14:25:17 task #1 "发现精选好物(0/5) 浏览得奖励 +600" → 奖励从 800 减少到 600
-- 14:26:39 task #1 "发现精选好物(2/5) +800" → 进度推进到 2/5
-- 14:27:53、14:28:49 继续处理 "发现精选好物"
-- 14:29:15 用户手动停止
+**build640 撤回**:
+- 移除 `lastProcessedTaskText`、`sameTaskProcessedCount`、`MAX_SAME_TASK_PROCESS` 字段
+- 移除 processTask 中 isBrowseTask 分支的重复检测逻辑
+- 移除 reset() 中的计数器重置
+
+**核心问题发现**: "1500，肥料，点击领取" 按钮始终未领取
+- 日志显示 TAOBAO 农场主页始终有 "1500，肥料，点击领取" 按钮（bounds=[966,1441][1179,1676] clickable=true）
+- 从 14:21:22 到 14:29:15（约 8 分钟）该按钮始终存在，从未被点击
+- 1500 肥料奖励始终未领取
 
 **根因分析**:
-- "发现精选好物(0/5)" 任务需要浏览 5 次才能完成
-- 每次浏览约 50 秒，总共需要 250 秒（约 4 分钟）
-- 任务列表会刷新，currentTaskIndex 重置为 0，导致同一个任务被反复处理
-- 任务进度确实在推进（0/5 → 2/5），但循环太久用户手动停止
+1. **TAOBAO directCollectTexts 缺失 "点击领取"**:
+   - TAOBAO `directCollectTexts = listOf("可领取", "挖肥料")`，不含 "点击领取"
+   - ALIPAY 和 UC 都已包含 "点击领取"，TAOBAO 缺失
+   - COLLECTING_DIRECT 阶段 `findDirectCollectButtons` 找不到该按钮，直接跳到 OPENING_TASK_LIST
 
-**修复**: 添加任务重复处理计数器
-- 新增 `lastProcessedTaskText` 和 `sameTaskProcessedCount` 字段
-- 在 processTask 的 isBrowseTask 分支中，记录任务签名（去掉进度数字）
-- 同一个任务最多处理 `MAX_SAME_TASK_PROCESS = 2` 次
-- 超过则跳过该任务（currentTaskIndex++），避免长时间循环
-- 在 reset() 中重置计数器
+2. **isTaskCompletePage 误判**:
+   - processTask 第 3110 行先检测 `isTaskCompletePage() == true` 就直接退出
+   - 退出时只点 "关闭"/"返回" 按钮，不点 "点击领取" 按钮
+   - 1500 肥料奖励始终未领取
+
+**修复 1**: TAOBAO directCollectTexts 添加 "点击领取" 和 "立即领取"
+- 与 ALIPAY 保持一致
+- 过滤逻辑已排除 "已领取"/"还差"/"明日"/"施肥"/"生产中" 等锁定状态，加入是安全的
+
+**修复 2**: isTaskCompletePage 添加匹配关键词调试日志
+- 打印 `matched=${matchedKeywords.take(3)}`，方便定位是哪个关键词触发了 YES
+- 用于诊断 isTaskCompletePage 误判的根因
+
+**修复 3**: processTask 在 isTaskCompletePage 退出前先点击 "点击领取" 按钮
+- 退出前调用 `findDirectCollectButtons()` 查找 "点击领取"/"立即领取" 按钮
+- 找到则先点击领取，等待 INTERVAL_CLICK_MS 后再点关闭/返回按钮退出
+- 确保奖励领取按钮被点击，避免 1500 肥料奖励丢失
 
 **预期效果**:
-- "发现精选好物(0/5)" 任务最多浏览 2 次（约 100 秒），然后跳过
-- 避免长时间循环，让 bot 处理更多不同的任务
+- TAOBAO 农场主页的 "1500，肥料，点击领取" 按钮会被 COLLECTING_DIRECT 阶段找到并点击
+- 即使 isTaskCompletePage 误判，processTask 也会先点击 "点击领取" 按钮再退出
+- 1500 肥料奖励不再丢失
 
 **编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit fcdf75e - fix: build640 修复浏览任务重复处理循环（发现精选好物 0/5 任务）【已撤回】
+**用户需求**: "分析日志"
+
+**撤回原因**: 用户澄清"长时间循环是对的"，bot 应根据任务要求完成，不应跳过任务。
 
 ---
 

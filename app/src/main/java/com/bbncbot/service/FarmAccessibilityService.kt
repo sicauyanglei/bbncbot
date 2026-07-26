@@ -4331,11 +4331,16 @@ class FarmAccessibilityService : AccessibilityService() {
         // 收紧完成关键词：移除"恭喜获得"、"获得肥料"等过宽关键词
         // 原因：浏览任务进行中页面常显示"已获得肥料 xxx"（已领取的部分奖励），
         // 会被误判为任务完成而提前退出。只有明确的完成标志才算完成。
+        val matchedKeywords = mutableListOf<String>()
         val isComplete = allText.any { text ->
-            text.contains("任务完成") || text.contains("已完成") ||
+            val matched = text.contains("任务完成") || text.contains("已完成") ||
                 text.contains("全部完成") || text.contains("已完成浏览") ||
                 text.contains("已领取全部奖励") || text.contains("全部奖励已领取") ||
                 text.contains("奖励已领取")
+            if (matched) {
+                matchedKeywords.add(text.take(50))
+            }
+            matched
         }
         if (!isComplete) return false
         // 上下文校验：若页面同时是广告主落地页（含多个诱导按钮且无农场核心），
@@ -4346,7 +4351,7 @@ class FarmAccessibilityService : AccessibilityService() {
             debugLog("isTaskCompletePage: NO (text matched but isAdLandingPage=true, suspected ad bait)")
             return false
         }
-        debugLog("isTaskCompletePage: YES, sample=${allText.take(5)}")
+        debugLog("isTaskCompletePage: YES, matched=${matchedKeywords.take(3)}, sample=${allText.take(5)}")
         return true
     }
 

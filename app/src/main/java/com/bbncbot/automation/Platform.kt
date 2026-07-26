@@ -422,7 +422,14 @@ object TaobaoPlatformConfig : PlatformConfig {
         "集肥料", "领取肥料", "获取肥料", "收集肥料", "打开任务列表", "任务列表"
     )
     override val goCompleteTexts = listOf("去完成", "去逛逛", "去观看", "立即完成", "去领取", "去赚", "去签到", "去答题")
-    override val directCollectTexts = listOf("可领取", "挖肥料")
+    // build641 修复（debug_test_20260726_142922.log）：
+    // 历史问题: TAOBAO directCollectTexts 只含 ["可领取","挖肥料"]，不含"点击领取"。
+    // 日志显示 TAOBAO 农场主页有"1500，肥料，点击领取"按钮（clickable=true），
+    // 但 findDirectCollectButtons 找不到它，COLLECTING_DIRECT 直接跳到 OPENING_TASK_LIST，
+    // 1500 肥料奖励始终未领取。ALIPAY 和 UC 都已包含"点击领取"，TAOBAO 缺失。
+    // 修复: 添加"点击领取"和"立即领取"，与 ALIPAY 保持一致。
+    // 过滤逻辑已排除"已领取"/"还差"/"明日"/"施肥"/"生产中"等锁定状态，加入是安全的。
+    override val directCollectTexts = listOf("可领取", "挖肥料", "点击领取", "立即领取")
     override val collectFertilizerCoords = listOf(
         Pair(0.227f, 0.107f),  // 打开任务列表按钮（OCR 确认，1200x2664 屏幕）
         Pair(0.25f, 0.11f),    // 打开任务列表备用
