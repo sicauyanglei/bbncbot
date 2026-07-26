@@ -2883,9 +2883,14 @@ class FarmAccessibilityService : AccessibilityService() {
         val hasFertilizerHint = allText.any {
             it.contains("得肥料") || it.contains("肥料")
         }
-        // 排除农场主页：农场主页也有"得肥料"文案,但不会有商品价格列表
+        // 排除农场主页：农场主页有"集肥料"/"施肥"/"换种"/"好友林"/"合种"等核心元素。
+        // build625 修复：原判断包含"芭芭农场"，但商品列表页也有"芭芭农场-interact"字样（H5 容器名），
+        // 导致 isFarmHome 误判为 true，商品列表页被排除，build620/622 的商品浏览逻辑无法触发。
+        // 修复：移除"芭芭农场"判断（太宽泛），改用更精确的农场主页核心元素。
         val isFarmHome = allText.any {
-            it.contains("集肥料") || it.contains("施肥") || it.contains("芭芭农场")
+            it.contains("集肥料") || it.contains("施肥") ||
+            it.contains("换种") || it.contains("好友林") ||
+            it.contains("合种") || it.contains("帮种")
         }
         // 排除商品详情页（有"加入购物车"+"立即购买"按钮）
         val hasAddToCart = allText.any { it.contains("加入购物车") }

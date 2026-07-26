@@ -32,6 +32,64 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build625 修复商品浏览任务 isBrowseProductListPage 检测未触发 + isFarmHome 误判"芭芭农场-interact"
+**用户需求**: "分析日志"
+
+**输入日志**: `logs/debug_test_20260726_081800.log`（build624，4437 行，TAOBAO 平台，07:17:49~08:18:00 约 1 小时）
+
+**核心问题**: bot 卡在 idx=0 "发现精选好物(0/4) 浏览15秒得 +700" 任务死循环约 1 小时（07:18:54~08:17），每 25 秒一轮，共约 140 轮。
+
+**任务列表全貌**（line 62-86）:
+- idx=0: 发现精选好物(0/4) 浏览15秒得 +700 ← **商品浏览任务（build620 目标）**
+- idx=1: 搜一搜你心仪的宝贝(0/5) 浏览得奖励 +600 ← 也是商品浏览任务
+- idx=2: 逛逛支付宝芭芭农场(0/1) 还可领 +1900
+- idx=3: 去玩支付宝蚂蚁庄园(0/1) 逛逛得 +300
+- idx=7: 领肥料礼包(0/1) 去领取
+
+**2 个根因**:
+
+#### 根因1：build620 的 isBrowseProductListPage 检测在 swipeCount=0 分支被"not a browse task"提前 return，根本没机会执行
+- **现象**: line 130 显示点击"去完成"后落地页是商品列表页（"浏览得奖励/滑动浏览得肥料"+商品价格列表 ¥30.18/¥16.91 等），但 line 131 显示 `browseTask: no swipe hint and no browse reward indicator ... not a browse task, exiting without swiping` 直接退出
+- **根因**: `runBrowsingTask` 的 swipeCount=0 分支顺序：
+  1. 点击"去完成"按钮
+  2. 等待页面加载
+  3. 检测 `findSwipeForFertilizerHint`（"滑动浏览N秒"）→ 页面是"滑动浏览得肥料"无N秒 → 返回 0
+  4. 检测 `findBrowseRewardCountdownHint`/`hasBrowseRewardProgressHint`/`findBrowseDurationRewardHint` → 都需要N秒数字 → 全 false
+  5. 4 个指标全 false → `exitBrowsePage` 退出
+  6. **build620 的 `isBrowseProductListPage` 检测在 swipeCount>0 分支（L2530），根本到不了**
+- **后果**: 商品浏览任务被误判为"not a browse task"退出，任务进度始终 0/4，下一轮 currentTaskIndex 重置回 0 又重试 → 死循环
+
+#### 根因2：isBrowseProductListPage 的 isFarmHome 误判"芭芭农场-interact"为农场主页
+- **现象**: 即使 isBrowseProductListPage 被调用，也会因 isFarmHome=true 返回 false
+- **根因**: `isFarmHome` 判断包含 `it.contains("芭芭农场")`，但商品列表页 H5 容器名是"芭芭农场-interact"（line 130），也包含"芭芭农场" → 误判为农场主页 → isProductList=false
+- **后果**: 商品列表页被排除，isBrowseProductListPage 返回 false
+
+**修复方案（2 处）**:
+
+#### 修复1：runBrowsingTask swipeCount=0 分支优先检测 isBrowseProductListPage ([AutomationController.kt#L2242-L2266](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2242))
+- 在点击"去完成"后等待页面加载，**先**检测 `service.isBrowseProductListPage()`
+- 若是商品列表页 → `findBrowseProductNode` 找商品 → 点击商品 → `browseTaskTargetSwipes=8`（15秒/2秒）→ 进入滑动循环
+- 若无商品节点 → 仍设 `browseTaskTargetSwipes=8` 在列表页直接滑动
+- 然后才走原来的滑动提示检测（findSwipeForFertilizerHint 等）
+- 确保 build620 的商品浏览逻辑在 swipeCount=0 就能触发，不被"not a browse task"提前退出
+
+#### 修复2：isBrowseProductListPage 的 isFarmHome 移除"芭芭农场"判断 ([FarmAccessibilityService.kt#L2886-L2894](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L2886))
+- 移除 `it.contains("芭芭农场")`（太宽泛，H5 容器名"芭芭农场-interact"会误判）
+- 改用更精确的农场主页核心元素：`集肥料`/`施肥`/`换种`/`好友林`/`合种`/`帮种`
+- 商品列表页没有这些核心元素，能正确识别为非农场主页
+
+**预期效果**:
+- idx=0 "发现精选好物"任务：点击"去完成" → 商品列表页被识别 → 点商品 → 停留15秒（8次滑动）→ 任务完成 1/4 → 下一轮继续 idx=1
+- 不再死循环 1 小时卡在 idx=0
+
+**未解决问题（需下次日志验证）**:
+- `findBrowseProductNode` 的屏幕中部范围 `rect.top < 300 || rect.bottom > 2400` 可能过滤掉所有商品节点，需日志验证是否走兜底逻辑
+- build622 的 3 个修复（AI 坐标校验/搜索任务识别/onFarm 兜底）本日志无答题任务触发，未验证
+
+**编译验证**: sandbox 网络限制无法本地编译，等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build622 跳过"招募英雄"类游戏任务（三国冰河常规招募英雄1次，bot 无法在游戏内完成该动作）
 **用户需求**: "三国冰河常规招募英雄1次，属于游戏任务，不需要完成"
 

@@ -2239,6 +2239,31 @@ object AutomationController {
                     val onFarm = service.isOnFarmPage()
                     val allText = service.collectAllTextSnapshot(maxCount = 15)
                     debugLog("browseTask: after clicking 'go browse', page type=$pageType, onFarm=$onFarm, texts=$allText")
+                    // build625 修复：先检测商品列表页，若是则走商品浏览流程（点商品+停留15秒）。
+                    // 日志 debug_test_20260726_081800.log 显示 idx=0 "发现精选好物(0/4) 浏览15秒得 +700"
+                    // 任务点击"去完成"后落地页是商品列表页（含"滑动浏览得肥料"+商品价格列表），
+                    // 但 findSwipeForFertilizerHint 因无"N秒"返回 0，4 个指标全 false → "not a browse task" 退出，
+                    // 导致 build620 的 isBrowseProductListPage 检测（在 swipeCount>0 分支）根本没机会执行。
+                    // 修复：在 swipeCount=0 分支优先检测 isBrowseProductListPage，若是则直接点商品进入详情页停留。
+                    if (service.isBrowseProductListPage()) {
+                        debugLog("browseTask: browse product list page detected on swipeCount=0, clicking product to enter detail (will wait 15s)")
+                        Log.i(TAG, "browseTask: browse product list page detected, clicking product to enter detail")
+                        val productNode = service.findBrowseProductNode()
+                        if (productNode != null) {
+                            browsingProductEntered = true
+                            browseTaskTargetSwipes = 8  // build620: 15秒 / 2秒 = 8 次滑动
+                            debugLog("browseTask: browse product target swipes = 8 (15s / 2s interval)")
+                            service.performClickSafe(productNode)
+                            // 等待商品详情页加载后开始滑动（模拟活跃,避免挂机判定）
+                            handler.postDelayed({
+                                if (state == AutomationState.BROWSING_TASK) runBrowsingTask(1)
+                            }, INTERVAL_PAGE_LOAD_MS)
+                            return@postDelayed
+                        }
+                        debugLog("browseTask: browse product list page but no product node found, swiping in list directly")
+                        browsingProductEntered = true
+                        browseTaskTargetSwipes = 8
+                    }
                     // 检测页面是否有"滑动获取肥料"提示，解析需要滑动的时间
                     val hintSeconds = service.findSwipeForFertilizerHint()
                     // build529（用户要求"全部实现"）：同时识别"已浏览15s"/"15/30秒"/"进度50%"等进度信息
