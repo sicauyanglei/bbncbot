@@ -32,7 +32,31 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build650 邀请好友助力任务直接跳过
+### commit (待提交) - fix: build651 去逛逛趣头条任务直接跳过
+
+**用户需求**: "去逛逛趣头条任务，不需要做"
+
+**问题**: "去逛逛趣头条赚金币(0/1) 逛逛得 +300 去完成" 任务未被跳过
+- 任务跳转到趣头条 App，bot 无法在趣头条 App 内自动完成"逛逛赚金币"动作
+- 原本会点击"去完成"跳转趣头条 App，最终任务失败浪费时间
+
+**修复**: skipTaskTexts 新增 1 个关键词
+- [AutomationController.kt#L2004-2007](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2004)
+- 新增: "趣头条"
+- 匹配"去逛逛趣头条赚金币"等所有趣头条类任务
+- processTask 中 `skip list task` 直接跳过，不点击"去完成"
+
+**注意**: 该任务按钮是"去完成"（非 pureClaim 按钮），所以会被 skipTaskTexts 跳过；pure claim 按钮（"领取"/"收下"等）仍优先于 skipTaskTexts，已完成的奖励仍可领取。
+
+**预期效果**:
+- "去逛逛趣头条赚金币(0/1) 逛逛得 +300 去完成" → skipTaskTexts 命中"趣头条"，直接跳过
+- 不再点击"去完成"跳转趣头条 App 浪费时间
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 9e46eb5 - fix: build650 邀请好友助力任务直接跳过
 
 **用户需求**: "邀请好友助力任务，不做"
 
