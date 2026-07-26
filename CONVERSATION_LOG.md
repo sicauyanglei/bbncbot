@@ -32,7 +32,62 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build659 支付宝浏览页"滑动浏览15秒得肥料"被误判为任务描述跳过，导致浏览任务死循环
+### commit (待提交) - fix: build660 ALIPAY 浏览任务获得肥料后改走 pressBack 退回，避免 reopenFarmByDeepLink kill 支付宝后无法重启到前台
+
+**用户需求**: "分析日志"（从 GitHub 拉取 build659 日志 debug_test_20260726_213808.log）
+
+**日志分析** (build659, 支付宝平台):
+- ✅ build658 修复生效：task #1 "攒一笔到余额宝" 被识别为付费任务跳过
+- ✅ build659 修复生效：task #2 "逛好物最高得3000肥" 浏览任务正常滑动
+  - 21:36:24.074 findSwipeForFertilizerHint: found hint '滑动浏览15秒得肥料', seconds=15
+  - 21:36:24.128 browseTask: target swipes = 9 (hint=15 seconds)
+  - 21:36:53.721 isFertilizerGrantedPage: YES (已获得肥料)
+  - 21:36:53.723 browseTask: fertilizer granted detected during swipe, exiting via RETURNING ✅ 获得肥料
+- ❌ **新问题**: RETURNING 阶段 kill 支付宝后无法重启到前台，NAVIGATING 反复搜索失败直到 STOPPING
+
+**根因**: [AutomationController.kt#runBrowsingTask#L2569](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2569) + [FarmAccessibilityService.kt#reopenFarmByDeepLink#L5689](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L5689)
+- isFertilizerGrantedPage 命中后无条件走 RETURNING → reopenFarmByDeepLink
+- ALIPAY 无 farmDeepLink（=null），也无桌面快捷方式（FarmShortcutLauncher.startFarmShortcut 返回 false）
+- reopenFarmByDeepLink 走 2b 分支：HOME + kill ALIPAY + relaunch 主 Activity
+- Honor 后台启动限制导致支付宝 relaunch 后没到前台（activeRootPkg='com.hihonor.android.launcher'）
+- NAVIGATING 反复搜索"芭芭农场"，搜索结果点击不跳转 → 3 次失败 → STOPPING
+- 但浏览页和农场页都是支付宝内 WebView（XRiverActivity），pressBack 就能退回农场主页，根本不需要 kill
+
+**日志证据** ([debug_test_20260726_213808.log#L170-266](file:///workspace/logs/debug_test_20260726_213808.log)):
+- 21:36:53.724 state: BROWSING_TASK -> RETURNING
+- 21:36:56.358 reopenFarmByDeepLink: no deep link for ALIPAY, killed + relaunch app, will navigate
+- 21:36:56.380 reopenFarmByDeepLink: relaunched ALIPAY (com.eg.android.AlipayGphone)
+- 21:37:01.416 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app (支付宝没到前台)
+- 21:37:02.499 navigate: farm app not in foreground (platform=ALIPAY, attempt=0), calling reopenFarmByDeepLink
+- 21:37:21.469 navigateAlipay: 芭芭农场 entry is search node, skip and fallback to search
+- 21:37:27.781 clicking search result '芭芭农场' (candidates=10) → click did not navigate
+- 21:37:44.090 clicking search result → dispatchGesture also failed, pressBack and retry
+- 21:38:03.480 state: NAVIGATING -> STOPPING
+
+**修复**: [AutomationController.kt#L2580-2595](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2580)
+- isFertilizerGrantedPage 命中后，根据平台是否有 deep link 选择退回方式：
+  - 有 deep link（UC/TAOBAO）：走 RETURNING → reopenFarmByDeepLink（原逻辑不变）
+  - 无 deep link（ALIPAY）：走 exitBrowsePage（pressBack 退回农场主页）
+- exitBrowsePage 会点击返回图标或 pressBack，等 INTERVAL_PAGE_LOAD_MS 后检查是否回到农场页
+- 已回到农场页 → OPENING_TASK_LIST 继续处理下一个任务
+- 未回到农场页 → NAVIGATING 重新导航（兜底）
+
+**注意**:
+- ALIPAY 浏览页和农场页都是 XRiverActivity 内的 WebView，pressBack 可靠
+- UC/TAOBAO 有 deep link，kill+relaunch 后能直达农场页，保持原 RETURNING 逻辑
+- exitBrowsePage 已有完善的退回逻辑（findBackIcon/pressBack/二次返回/商品列表页处理等）
+
+**预期效果**:
+- ALIPAY 浏览任务获得肥料后，pressBack 退回农场主页 → OPENING_TASK_LIST → 处理 task #3
+- 不再 kill 支付宝导致无法重启到前台
+- 不再 NAVIGATING 反复搜索失败
+- UC/TAOBAO 平台行为不变（仍走 RETURNING）
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 0b6d616 - fix: build659 支付宝浏览页"滑动浏览15秒得肥料"被误判为任务描述跳过，导致浏览任务死循环
 
 **用户需求**: "分析日志"（从 GitHub 拉取 build658 日志 debug_test_20260726_212518.log）
 

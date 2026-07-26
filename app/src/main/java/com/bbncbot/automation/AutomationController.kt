@@ -2566,14 +2566,31 @@ object AutomationController {
         // 但纯粹的"已获得肥料"（无数字后缀）是任务完成信号，这里单独检测
         // 直接走 RETURNING：reopenFarmByDeepLink 会 kill 目标 App + 用桌面快捷方式重开农场页，
         // 不依赖返回键（WebView 里返回键不可靠）
+        //
+        // build660 修复（debug_test_20260726_213808.log, build659-0b6d616）：
+        //   21:36:53.723 browseTask: fertilizer granted detected during swipe, exiting via RETURNING
+        //   21:36:56.358 reopenFarmByDeepLink: no deep link for ALIPAY, killed + relaunch app
+        //   21:37:01.416 activeRootPkg='com.hihonor.android.launcher' (支付宝被 kill 后没启动到前台)
+        //   21:37:02.499 navigate: farm app not in foreground → 反复搜索"芭芭农场"失败 → STOPPING
+        // 根因：ALIPAY 无 farmDeepLink（=null），也无桌面快捷方式，reopenFarmByDeepLink 走 kill+relaunch
+        // 主 Activity 分支。Honor 后台启动限制导致支付宝 relaunch 后没到前台（停在桌面 launcher）。
+        // 但浏览页和农场页都是支付宝内 WebView（XRiverActivity），pressBack 就能退回农场主页。
+        // 修复：对无 deep link 的平台（ALIPAY）走 exitBrowsePage（pressBack 退回），
+        // 不走 RETURNING 的 kill+relaunch。有 deep link 的平台（UC/TAOBAO）仍走 RETURNING。
         if (service.isFertilizerGrantedPage()) {
-            debugLog("browseTask: fertilizer granted page detected, exiting via RETURNING (swipes=$swipeCount/$browseTaskTargetSwipes)")
             currentTaskIndex++
             collectedCount++
             browseFromSearchBrowse = false
             browseFromDirectPopup = false
-            moveTo(AutomationState.RETURNING)
-            handler.postDelayed({ runReturning(0) }, INTERVAL_CLICK_MS)
+            val hasDeepLink = !service.currentPlatformConfig().farmDeepLink.isNullOrEmpty()
+            if (hasDeepLink) {
+                debugLog("browseTask: fertilizer granted page detected, exiting via RETURNING (swipes=$swipeCount/$browseTaskTargetSwipes)")
+                moveTo(AutomationState.RETURNING)
+                handler.postDelayed({ runReturning(0) }, INTERVAL_CLICK_MS)
+            } else {
+                debugLog("browseTask: fertilizer granted page detected, but no deep link for $currentPlatform, exiting via pressBack (swipes=$swipeCount/$browseTaskTargetSwipes)")
+                exitBrowsePage(service, reason = "fertilizer_granted_no_deep_link")
+            }
             return
         }
 
