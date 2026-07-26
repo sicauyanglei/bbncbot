@@ -32,7 +32,58 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build642 修复 COLLECTING_DIRECT 页面未加载完就放弃 + isTaskCompletePage 农场主页误判
+### commit (待提交) - fix: build643 修复 "看严选推荐商品" 视频任务立即退出（0秒等待）
+**用户需求**: "分析日志 淘宝芭芭农场，看严选推荐商品，去完成，打开的看视频任务，需要看够15秒后才能得肥料"
+
+**输入日志**: `logs/debug_test_20260726_153127.log`（build641，1100+ 行，15:25:22~15:30:05 约 5 分钟）
+
+**问题**: "看严选推荐商品(0/5) 浏览得奖励 +600" 任务点击"去完成"后，立即退出（0 秒等待），肥料未获得
+- 15:26:57 isBrowseTask=true（context 含"浏览"）→ 进入 BROWSING_TASK
+- 15:27:01 点击"去完成" → 落地页是商品详情页（activity=newdetailactivity，含视频播放器）
+- 15:27:07 page type=browse_duration, texts=[..., 滑动浏览得肥料, 视频，按钮。双击可暂停或播放视频。, ...]
+- 15:27:07 "no swipe hint and no browse reward indicator → not a browse task, exiting without swiping"
+- ← 0 秒等待，肥料未获得，任务进度仍是 0/5
+
+**根因分析**:
+1. **isBrowseProductListPage 返回 false**:
+   - 落地页是商品详情页（含视频），不是商品列表页
+   - isBrowseProductListPage 检查 hasProductPrice（"¥"或"元"），但视频详情页无价格符号 → false
+   - 跳过了 TAOBAO 点击商品+停留 15 秒的分支
+
+2. **findSwipeForFertilizerHint 返回 0**:
+   - 页面有"滑动浏览得肥料"文案，但无具体秒数（如"滑动浏览15秒"）
+   - findSwipeForFertilizerHint 解析不到秒数 → 返回 0
+
+3. **4 个浏览奖励指标全 false**:
+   - hasCountdown=false, hasProgress=false, hasDuration=false, hasProgressInfo=false
+   - "not a browse task" → 立即退出（0 秒等待）
+
+4. **未检测视频/商品详情页**:
+   - browseTask 在 swipeCount=0 分支只检测 isBrowseProductListPage
+   - 未检测 isProductDetailPageByAnyMeans（商品详情页）或视频页
+   - 商品详情页（含视频）需要停留 15 秒看视频才能得肥料，但被当作"非浏览任务"立即退出
+
+**修复**: browseTask 在 swipeCount=0 分支，isBrowseProductListPage 返回 false 后，增加视频/商品详情页检测
+- [AutomationController.kt#L2310-2347](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2310)
+- 检测 1: `isProductDetailPageByAnyMeans()` = true（activity 含"detailactivity"）
+  - 视为看视频任务，设 browsingProductEntered=true, browseTaskTargetSwipes=8（15秒/2秒）
+  - 等待 15 秒后通过 browsing_product_target_reached 退出
+- 检测 2: 兜底检测视频页（含"视频，按钮"或"双击可暂停或播放视频"文案）
+  - 防止 activity 名不含 detail 关键字的视频页漏检
+- 复用现有 browsingProductEntered 机制：
+  - 滑动期间 isOnAbnormalPage 检查被豁免（line 2732-2734）
+  - 8 次滑动后（~16 秒）通过 browsing_product_target_reached 退出（line 2502-2511）
+
+**预期效果**:
+- "看严选推荐商品" 任务点击"去完成"后，识别落地页为商品详情页/视频页
+- 等待 15 秒（8 次滑动轮询）后退出，获得肥料
+- 任务进度从 0/5 推进到 1/5、2/5... 直到 5/5 完成
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit eeb57f1 - fix: build642 修复 COLLECTING_DIRECT 页面未加载完就放弃 + isTaskCompletePage 农场主页误判
 **用户需求**: "分析日志"
 
 **输入日志**: `logs/debug_test_20260726_153127.log`（build641，1100+ 行，15:25:22~15:30:05 约 5 分钟）

@@ -2307,6 +2307,44 @@ object AutomationController {
                             debugLog("browseTask: browse product list page detected on swipeCount=0 (${service.currentPlatform}), swiping in list directly (no product click)")
                         }
                     }
+                    // build643 修复（debug_test_20260726_153127.log）：
+                    // 历史问题: "看严选推荐商品(0/5) 浏览得奖励 +600" 任务点击"去完成"后，
+                    // 落地页是商品详情页（activity=newdetailactivity，含视频播放器），
+                    // 不是商品列表页（isBrowseProductListPage=false，因为无"加入购物车"+"立即购买"且无"¥"价格）。
+                    // 之后 findSwipeForFertilizerHint 返回 0（"滑动浏览得肥料"无具体秒数），
+                    // 4 个指标全 false → "not a browse task" → 立即退出（0 秒等待）。
+                    // 用户需求: "看严选推荐商品，去完成，打开的看视频任务，需要看够15秒后才能得肥料"
+                    // 修复: 点击"去完成"后若落地页是商品详情页（isProductDetailPageByAnyMeans），
+                    // 或视频页（含"视频，按钮"文案），视为看视频任务，等待 15 秒后退出领肥料。
+                    // 日志证据:
+                    //   15:27:07 page type=browse_duration, texts=[..., 滑动浏览得肥料, 视频，按钮。双击可暂停或播放视频。, ...]
+                    //   15:27:07 no swipe hint and no browse reward indicator → exiting without swiping
+                    //   ← 0 秒等待，肥料未获得
+                    if (service.isProductDetailPageByAnyMeans()) {
+                        debugLog("browseTask: landed on product detail page after clicking '去完成' (likely video task), waiting 15s before exit")
+                        Log.i(TAG, "browseTask: product detail page detected (video task), waiting 15s")
+                        browsingProductEntered = true
+                        browseTaskTargetSwipes = 8  // 15s / 2s = 8 次滑动轮询
+                        handler.postDelayed({
+                            if (state == AutomationState.BROWSING_TASK) runBrowsingTask(1)
+                        }, INTERVAL_PAGE_LOAD_MS)
+                        return@postDelayed
+                    }
+                    // 兜底: 检测视频页（含"视频，按钮"文案，可能 activity 名不含 detail 关键字）
+                    val allTextForVideoCheck = service.collectAllTextSnapshot(maxCount = 30)
+                    val isVideoPage = allTextForVideoCheck.any {
+                        it.contains("视频，按钮") || it.contains("双击可暂停或播放视频")
+                    }
+                    if (isVideoPage) {
+                        debugLog("browseTask: landed on video page after clicking '去完成' (video play task), waiting 15s before exit")
+                        Log.i(TAG, "browseTask: video page detected (video play task), waiting 15s")
+                        browsingProductEntered = true
+                        browseTaskTargetSwipes = 8  // 15s / 2s = 8 次滑动轮询
+                        handler.postDelayed({
+                            if (state == AutomationState.BROWSING_TASK) runBrowsingTask(1)
+                        }, INTERVAL_PAGE_LOAD_MS)
+                        return@postDelayed
+                    }
                     // 检测页面是否有"滑动获取肥料"提示，解析需要滑动的时间
                     val hintSeconds = service.findSwipeForFertilizerHint()
                     // build529（用户要求"全部实现"）：同时识别"已浏览15s"/"15/30秒"/"进度50%"等进度信息
