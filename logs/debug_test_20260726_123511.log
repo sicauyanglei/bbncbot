@@ -1,0 +1,538 @@
+=== cleared on app start (version=2.2, build=build636-0e4fcc2, time=11:18:28) ===
+11:18:28.706 killPlatformApps: killed com.ucmobile.lite for UC
+11:18:28.708 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+11:18:28.710 killPlatformApps: killed com.taobao.taobao for TAOBAO
+11:18:28.743 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+11:18:28.747 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+11:18:28.747 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+11:18:38.317 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+11:18:38.322 openApp: shortcut unavailable for TAOBAO, fallback to deep link / navigation
+11:18:38.324 killPlatformApps: killed com.taobao.taobao for TAOBAO
+11:18:40.358 navigateToFarm: taobao, using 我的淘宝 path
+11:18:40.387 === Automation v2 Started === platform=TAOBAO
+11:18:40.389 cancelNavigation: all navigation callbacks cancelled
+11:18:40.395 reset platform complete: TAOBAO
+11:18:40.397 state: IDLE -> NAVIGATING
+11:18:41.139 isOnFarmPage: no farm content, sample=[, 下拉刷新, , 下拉刷新, 百亿补贴, 百亿补贴, 淘宝秒杀, 淘宝秒杀]
+11:18:41.294 isNonAdTaskPage: YES, matched non-ad task in [, 下拉刷新, , 下拉刷新, 百亿补贴, 百亿补贴, 淘宝秒杀, 淘宝秒杀]
+11:18:41.351 [navigate-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.tao.TBMainActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+11:18:41.359 [navigate-start] claim-text-nodes (count=6):
+11:18:41.360 [navigate-start]   text='' desc='试用领取' bounds=[740,576][935,781] clickable=false
+11:18:41.360 [navigate-start]   text='' desc='试用领取' bounds=[740,576][935,781] clickable=true
+11:18:41.361 [navigate-start]   text='' desc='试用领取' bounds=[753,725][921,781] clickable=false
+11:18:41.361 [navigate-start]   text='' desc='立即领取' bounds=[976,867][1144,924] clickable=false
+11:18:41.362 [navigate-start]   text='' desc='鲜食加补券待领取' bounds=[415,2421][751,2478] clickable=false
+11:18:41.363 [navigate-start]   text='' desc='立即领取' bounds=[917,2421][1085,2478] clickable=false
+11:18:41.388 isRechargePage: YES, sample=[, 下拉刷新, , 下拉刷新, 百亿补贴]
+11:18:41.426 navigate: calling navigateToFarm, platform=TAOBAO
+11:18:41.427 navigateToFarm: taobao, using 我的淘宝 path
+11:18:43.256 isOnTaobaoHomePage: ON main page (act=com.taobao.tao.tbmainactivity isMainAct=true, found=5 tabs=[首页, 消息, 我的淘宝, 视频, 购物车]), screenW=1200 screenH=2543
+11:18:43.264 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab NODE at (1080.0, 2572.5) bounds=[960,2481][1200,2664] [screen=1200 x 2543]
+11:18:45.394 navigate stepTab gesture: step 2 - click 芭芭农场 NODE at (161.0, 1615.5) bounds=[65,1587][257,1644] [screen=1200 x 2543]
+11:18:45.402 navigate stepTab gesture: done, waiting 8s for farm page
+11:18:46.708 navigate: on farm page, platform=TAOBAO
+11:18:46.731 hasFarmContentLoaded: text count=28, sample=[芭芭农场, 头像, 头像, 合种/帮种, 合种/帮种, line, 邀请好友, 邀请好友加速, undefined，, 更多，按钮]
+11:18:46.733 hasFarmContentLoaded: realContent count=25
+11:18:46.734 navigate: hasFarmContentLoaded=true, attempt=1
+11:18:46.736 state: NAVIGATING -> COLLECTING_DIRECT
+11:18:48.669 navigate stepTab gesture: 3s after click 芭芭农场 - pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity onFarm=true hasFarmKeyword=true sampleTexts=[芭芭农场, 头像, 头像, 合种/帮种, 合种/帮种, line, 邀请好友, 邀请好友加速, undefined，, 更多，按钮, undefined，, undefined，, 买多返多, 品牌狂欢周, 一起种]
+11:18:49.264 [collectDirect-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+11:18:49.271 [collectDirect-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+11:18:49.278 collectDirect: found 0 direct buttons, attempt=0
+11:18:49.288 collectDirect: dump all text/desc nodes (count=30) for '点击领取' diagnosis:
+11:18:49.289 collectDirect:   text='芭芭农场' desc='' bounds=[0,0][1205,2666] clickable=false
+11:18:49.290 collectDirect:   text='头像' desc='' bounds=[291,284][373,366] clickable=false
+11:18:49.290 collectDirect:   text='头像' desc='' bounds=[291,284][373,366] clickable=false
+11:18:49.293 collectDirect:   text='合种/帮种' desc='' bounds=[383,262][635,393] clickable=false
+11:18:49.295 collectDirect:   text='合种/帮种' desc='' bounds=[435,304][582,347] clickable=false
+11:18:49.296 collectDirect:   text='line' desc='' bounds=[383,320][635,330] clickable=false
+11:18:49.298 collectDirect:   text='邀请好友' desc='' bounds=[648,284][727,366] clickable=true
+11:18:49.301 collectDirect:   text='邀请好友加速' desc='' bounds=[743,262][877,393] clickable=false
+11:18:49.304 collectDirect:   text='undefined，' desc='' bounds=[1061,262][1169,406] clickable=true
+11:18:49.305 collectDirect:   text='更多，按钮' desc='' bounds=[1061,432][1169,540] clickable=true
+11:18:49.308 collectDirect:   text='undefined，' desc='' bounds=[1061,605][1169,753] clickable=true
+11:18:49.310 collectDirect:   text='undefined，' desc='' bounds=[1061,779][1169,923] clickable=true
+11:18:49.312 collectDirect:   text='买多返多' desc='' bounds=[29,262][199,393] clickable=true
+11:18:49.314 collectDirect:   text='品牌狂欢周' desc='' bounds=[29,432][199,566] clickable=true
+11:18:49.325 collectDirect:   text='一起种' desc='' bounds=[22,1863][196,2046] clickable=true
+11:18:49.326 collectDirect:   text='领红包' desc='' bounds=[216,1863][389,2046] clickable=true
+11:18:49.326 collectDirect:   text='每次施肥5次，未选择' desc='' bounds=[415,1752][786,1850] clickable=true
+11:18:49.327 collectDirect:   text='施肥，肥料11705，可施肥19次' desc='' bounds=[415,1847][786,2043] clickable=true
+11:18:49.328 collectDirect:   text='light' desc='' bounds=[157,1784][419,2109] clickable=false
+11:18:49.328 collectDirect:   text='集肥料' desc='' bounds=[812,1863][985,2046] clickable=true
+11:18:49.329 collectDirect:   text='超惠买' desc='' bounds=[1005,1863][1179,2046] clickable=true
+11:18:49.330 collectDirect:   text='容声电风扇家用台式桌面台扇办公室宿舍学生卧室大风力摇头坐地扇，农场专享价¥，69元，false下单得肥料0' desc='' bounds=[22,2115][589,2666] clickable=true
+11:18:49.336 collectDirect:   text='仁和益生菌大人女性儿童孕妇成人肠胃肠道官方旗舰店非调理冻干粉，农场专享价¥，56元，false下单得肥料0' desc='' bounds=[612,2115][1179,2666] clickable=true
+11:18:49.337 collectDirect:   text='加载中' desc='' bounds=[563,3196][638,2666] clickable=false
+11:18:49.338 collectDirect:   text='' desc='返回' bounds=[39,147][131,239] clickable=true
+11:18:49.338 collectDirect:   text='눎' desc='' bounds=[52,160][118,226] clickable=false
+11:18:49.341 collectDirect:   text='' desc='更多_细12 按钮' bounds=[938,121][1069,265] clickable=true
+11:18:49.342 collectDirect:   text='ꁭ' desc='' bounds=[971,161][1036,226] clickable=false
+11:18:49.342 collectDirect:   text='12' desc='' bounds=[990,125][1068,183] clickable=false
+11:18:49.343 collectDirect:   text='똏' desc='返回首页' bounds=[1082,160][1148,226] clickable=true
+11:18:49.343 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+11:18:51.631 [openTaskList-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+11:18:51.637 [openTaskList-start] claim-text-nodes (count=2):
+11:18:51.638 [openTaskList-start]   text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[22,1414][219,1611] clickable=true
+11:18:51.639 [openTaskList-start]   text='下单领肥料仅限大于0.5元订单' desc='' bounds=[163,137][799,245] clickable=false
+11:18:51.649 openTaskList: [TAOBAO闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+11:18:51.649 openTaskList: [TAOBAO闭环] heuristic text search (attempt=0)
+11:18:51.656 findCollectFertilizerButton: found by text='集肥料' bounds=[812,1863][985,2046]
+11:18:51.657 openTaskList: [TAOBAO闭环] clicking entry button by text (attempt=0)
+11:18:51.657 performClickSafe: text='集肥料' desc='' bounds=[812,1863][985,2046] clickable=true
+11:18:51.661 performClickSafe: ACTION_CLICK success at depth=0
+11:18:58.263 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,2868][1139,2666]
+11:18:58.267 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3085][1139,2666]
+11:18:58.270 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3297][1139,2666]
+11:18:58.276 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3514][1139,2666]
+11:18:58.281 findGoCompleteButtons: drop zero-size node text='' bounds=[42,3677][1159,2666]
+11:18:58.284 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3730][1139,2666]
+11:18:58.287 findGoCompleteButtons: drop zero-size node text='去领取' bounds=[910,3943][1139,2666]
+11:18:58.290 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,4159][1139,2666]
+11:18:58.294 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,4372][1139,2666]
+11:18:58.297 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,4588][1139,2666]
+11:18:58.299 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,4801][1139,2666]
+11:18:58.301 checkTaskListOpened: found 8 goComplete buttons, checkAttempt=0, currentIndex=0
+11:18:58.303 taskButton[0]: text='去完成', desc='', bounds=[910,1152][1139,1251], clickable=true
+11:18:58.305 taskButton[1]: text='去完成', desc='', bounds=[910,1368][1139,1467], clickable=true
+11:18:58.307 taskButton[2]: text='去完成', desc='', bounds=[910,1581][1139,1683], clickable=true
+11:18:58.310 taskButton[3]: text='去完成', desc='', bounds=[910,1797][1139,1896], clickable=true
+11:18:58.312 taskButton[4]: text='去完成', desc='', bounds=[910,2010][1139,2112], clickable=true
+11:18:58.314 taskButton[5]: text='去完成', desc='', bounds=[910,2227][1139,2325], clickable=true
+11:18:58.316 taskButton[6]: text='去完成', desc='', bounds=[910,2439][1139,2541], clickable=true
+11:18:58.316 taskButton[7]: text='去逛逛', desc='', bounds=[910,2656][1139,2666], clickable=true
+11:18:58.317 checkTaskListOpened: resetting currentTaskIndex to 0 (was 0, taskButtons was empty=true)
+11:18:58.319 collectTaskContextText: result='买限时折扣好物得奖励(0/1) 下单领大额肥料最高 +130000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+11:18:58.320 collectTaskContextText: result='买限时折扣好物得奖励(0/1) 下单领大额肥料最高 +130000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+11:18:58.321 collectTaskContextText: result='买限时折扣好物得奖励(0/1) 下单领大额肥料最高 +130000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+11:18:58.322 isPaidTask: YES, context='买限时折扣好物得奖励(0/1) 下单领大额肥料最高 +130000 去完成 '
+11:18:58.324 sortTaskButtons: idx=0 task='买限时折扣好物得奖励 下单领大额肥料最高 +' priority=1 (easyClaim=false, paid=true, paidHint=true, pureClaim=false, button='去完成')
+11:18:58.326 collectTaskContextText: result='买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+11:18:58.329 collectTaskContextText: result='买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+11:18:58.330 collectTaskContextText: result='买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+11:18:58.331 isPaidTask: YES, context='买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000 去完成 '
+11:18:58.332 sortTaskButtons: idx=1 task='买限时折扣好物得奖励 下单大额肥料 最高 +' priority=1 (easyClaim=false, paid=true, paidHint=false, pureClaim=false, button='去完成')
+11:18:58.333 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+11:18:58.337 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+11:18:58.338 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+11:18:58.339 sortTaskButtons: idx=2 task='逛逛支付宝芭芭农场 还可领 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+11:18:58.341 collectTaskContextText: result='看精彩视频去提现(0/1) 去看看 +300 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+11:18:58.343 collectTaskContextText: result='看精彩视频去提现(0/1) 去看看 +300 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+11:18:58.345 collectTaskContextText: result='看精彩视频去提现(0/1) 去看看 +300 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+11:18:58.346 sortTaskButtons: idx=3 task='看精彩视频去提现 看 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+11:18:58.347 collectTaskContextText: result='去淘金币逛买更省钱(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=200
+11:18:58.348 collectTaskContextText: result='去淘金币逛买更省钱(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=200
+11:18:58.350 collectTaskContextText: result='去淘金币逛买更省钱(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=200
+11:18:58.350 sortTaskButtons: idx=4 task='去淘金币逛买更省钱 浏览5s得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+11:18:58.351 collectTaskContextText: result='去省钱卡领红包(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=98, containerHeight=203
+11:18:58.354 collectTaskContextText: result='去省钱卡领红包(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=98, containerHeight=203
+11:18:58.355 collectTaskContextText: result='去省钱卡领红包(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=98, containerHeight=203
+11:18:58.355 sortTaskButtons: idx=5 task='去省钱卡领红包 浏览5s得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+11:18:58.356 collectTaskContextText: result='试玩农场火爆新游(0/1) 玩一玩得肥料 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+11:18:58.358 collectTaskContextText: result='试玩农场火爆新游(0/1) 玩一玩得肥料 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+11:18:58.359 collectTaskContextText: result='试玩农场火爆新游(0/1) 玩一玩得肥料 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+11:18:58.361 sortTaskButtons: idx=6 task='试玩农场火爆新游 玩一玩得肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+11:18:58.362 collectTaskContextText: result='逛一逛支付宝蚂蚁森林(0/1) 逛逛得 +300 去逛逛 ', buttonText='去逛逛', btnHeight=10, containerHeight=63
+11:18:58.363 collectTaskContextText: result='逛一逛支付宝蚂蚁森林(0/1) 逛逛得 +300 去逛逛 ', buttonText='去逛逛', btnHeight=10, containerHeight=63
+11:18:58.364 collectTaskContextText: result='逛一逛支付宝蚂蚁森林(0/1) 逛逛得 +300 去逛逛 ', buttonText='去逛逛', btnHeight=10, containerHeight=63
+11:18:58.365 sortTaskButtons: idx=7 task='逛一逛支付宝蚂蚁森林 逛逛得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去逛逛')
+11:18:58.366 state: OPENING_TASK_LIST -> PROCESSING_TASK
+11:19:02.526 isTaskCompletePage: YES, sample=[芭芭农场, 12级, 500，肥料，明日7点可领, 兔兔挖肥料，50肥料，可领取, 好友林]
+11:19:02.551 [processTask-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+11:19:02.569 [processTask-start] claim-text-nodes (count=5):
+11:19:02.571 [processTask-start]   text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[22,1414][219,1611] clickable=true
+11:19:02.572 [processTask-start]   text='下单领肥料仅限大于0.5元订单' desc='' bounds=[163,29][799,140] clickable=false
+11:19:02.573 [processTask-start]   text='每天答题领肥料' desc='' bounds=[271,998][543,1051] clickable=false
+11:19:02.574 [processTask-start]   text='领肥料礼包(0/1)' desc='' bounds=[271,3930][602,2666] clickable=false
+11:19:02.574 [processTask-start]   text='去领取' desc='' bounds=[910,3943][1139,2666] clickable=true
+11:19:02.631 processTask: current task #1/8, text='去完成', bounds=[910,1152][1139,1251], attempt=0
+11:19:02.633 collectTaskContextText: result='买限时折扣好物得奖励(0/1) 下单领大额肥料最高 +130000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+11:19:02.634 isPaidTask: YES, context='买限时折扣好物得奖励(0/1) 下单领大额肥料最高 +130000 去完成 '
+11:19:02.635 processTask: skip paid task #$1, text='去完成'
+11:19:05.268 isTaskCompletePage: YES, sample=[芭芭农场, 12级, 500，肥料，明日7点可领, 兔兔挖肥料，50肥料，可领取, 好友林]
+11:19:05.293 [processTask-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+11:19:05.318 [processTask-start] claim-text-nodes (count=5):
+11:19:05.319 [processTask-start]   text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[22,1414][219,1611] clickable=true
+11:19:05.322 [processTask-start]   text='下单领肥料仅限大于0.5元订单' desc='' bounds=[163,137][799,245] clickable=false
+11:19:05.323 [processTask-start]   text='每天答题领肥料' desc='' bounds=[271,998][543,1051] clickable=false
+11:19:05.324 [processTask-start]   text='领肥料礼包(0/1)' desc='' bounds=[271,3930][602,2666] clickable=false
+11:19:05.325 [processTask-start]   text='去领取' desc='' bounds=[910,3943][1139,2666] clickable=true
+11:19:05.388 processTask: current task #2/8, text='去完成', bounds=[910,1368][1139,1467], attempt=0
+11:19:05.391 collectTaskContextText: result='买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+11:19:05.392 isPaidTask: YES, context='买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000 去完成 '
+11:19:05.394 processTask: skip paid task #$2, text='去完成'
+11:19:08.160 isTaskCompletePage: YES, sample=[芭芭农场, 12级, 500，肥料，明日7点可领, 兔兔挖肥料，50肥料，可领取, 好友林]
+11:19:08.194 [processTask-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+11:19:08.228 [processTask-start] claim-text-nodes (count=5):
+11:19:08.231 [processTask-start]   text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[22,1414][219,1611] clickable=true
+11:19:08.234 [processTask-start]   text='下单领肥料仅限大于0.5元订单' desc='' bounds=[163,144][799,252] clickable=false
+11:19:08.236 [processTask-start]   text='每天答题领肥料' desc='' bounds=[271,998][543,1051] clickable=false
+11:19:08.237 [processTask-start]   text='领肥料礼包(0/1)' desc='' bounds=[271,3930][602,2666] clickable=false
+11:19:08.238 [processTask-start]   text='去领取' desc='' bounds=[910,3943][1139,2666] clickable=true
+11:19:08.296 processTask: current task #3/8, text='去完成', bounds=[910,1581][1139,1683], attempt=0
+11:19:08.299 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+11:19:08.300 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+11:19:08.303 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+11:19:08.305 processTask: cross-platform task #3, text='去完成', from=TAOBAO, to=ALIPAY
+11:19:08.307 performClickSafe: text='去完成' desc='' bounds=[910,1581][1139,1683] clickable=true
+11:19:08.329 performClickSafe: ACTION_CLICK success at depth=0
+11:19:08.331 state: PROCESSING_TASK -> SWITCHING_PLATFORM
+11:19:13.441 isOnFarmPage: no farm content, sample=[松开刷新, 稍等片刻, 返回, , 更多, , 更多, 关闭]
+11:19:14.023 [switchPlatform-LAUNCH_TARGET] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+11:19:14.034 [switchPlatform-LAUNCH_TARGET] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+11:19:14.035 switchPlatform: stage=LAUNCH_TARGET, retry=0, target=ALIPAY, original=TAOBAO
+11:19:14.055 switchPlatform: target ALIPAY already loaded (auto-jump), navigating to farm
+11:19:14.056 cancelNavigation: all navigation callbacks cancelled
+11:19:25.029 [switchPlatform-NAVIGATE_TARGET_FARM] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+11:19:25.045 [switchPlatform-NAVIGATE_TARGET_FARM] claim-text-nodes (count=1):
+11:19:25.046 [switchPlatform-NAVIGATE_TARGET_FARM]   text='还差5次领肥料' desc='' bounds=[442,1539][759,1617] clickable=true
+11:19:25.048 switchPlatform: stage=NAVIGATE_TARGET_FARM, retry=0, target=ALIPAY, original=TAOBAO
+11:19:25.104 switchPlatform: target farm page loaded, fertilizing
+11:19:27.569 [switchPlatform-FERTILIZE_TARGET] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+11:19:27.585 [switchPlatform-FERTILIZE_TARGET] claim-text-nodes (count=1):
+11:19:27.585 [switchPlatform-FERTILIZE_TARGET]   text='还差5次领肥料' desc='' bounds=[442,1539][759,1617] clickable=true
+11:19:27.586 switchPlatform: stage=FERTILIZE_TARGET, retry=0, target=ALIPAY, original=TAOBAO
+11:19:27.587 switchPlatform: fertilizing on ALIPAY, 11 coord candidates
+11:19:27.588 switchPlatform-fertilize: click at (1065.6, 1960.6531), ratio=(0.888, 0.771), screen=1200x2543
+11:19:27.590 switchPlatform-fertilize: click at (1089.6, 2001.341), ratio=(0.908, 0.787), screen=1200x2543
+11:19:27.592 switchPlatform-fertilize: click at (800.4, 953.625), ratio=(0.667, 0.375), screen=1200x2543
+11:19:27.600 switchPlatform-fertilize: click at (600.0, 1413.908), ratio=(0.5, 0.556), screen=1200x2543
+11:19:27.603 switchPlatform-fertilize: click at (360.0, 1566.488), ratio=(0.3, 0.616), screen=1200x2543
+11:19:27.605 switchPlatform-fertilize: click at (120.0, 1337.618), ratio=(0.1, 0.526), screen=1200x2543
+11:19:27.606 switchPlatform-fertilize: click at (500.4, 2476.8818), ratio=(0.417, 0.974), screen=1200x2543
+11:19:27.607 switchPlatform-fertilize: click at (601.2, 1935.2229), ratio=(0.501, 0.761), screen=1200x2543
+11:19:27.609 switchPlatform-fertilize: click at (1100.4, 1670.751), ratio=(0.917, 0.657), screen=1200x2543
+11:19:27.613 switchPlatform-fertilize: click at (600.0, 467.912), ratio=(0.5, 0.184), screen=1200x2543
+11:19:27.614 switchPlatform-fertilize: click at (600.0, 2288.7), ratio=(0.5, 0.9), screen=1200x2543
+11:19:33.455 [switchPlatform-RETURN_ORIGINAL] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+11:19:33.471 [switchPlatform-RETURN_ORIGINAL] claim-text-nodes (count=1):
+11:19:33.473 [switchPlatform-RETURN_ORIGINAL]   text='还差5次领肥料' desc='' bounds=[442,1539][759,1617] clickable=true
+11:19:33.474 switchPlatform: stage=RETURN_ORIGINAL, retry=0, target=ALIPAY, original=TAOBAO
+11:19:33.476 switchPlatform: returning to original TAOBAO
+11:19:33.478 cancelNavigation: all navigation callbacks cancelled
+11:19:33.485 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+11:19:33.487 reopenFarmByDeepLink: pressing HOME to background TAOBAO before kill
+11:19:33.489 forceKillApp: killing com.taobao.taobao (pressBackFirst=false)
+11:19:33.490 forceKillApp: killBackgroundProcesses(com.taobao.taobao) called, cleared currentActivityName/currentEventPkg
+11:19:33.491 reopenFarmByDeepLink: no deep link for TAOBAO, killed + relaunch app, will navigate
+11:19:33.537 reopenFarmByDeepLink: relaunched TAOBAO (com.taobao.taobao)
+11:19:33.551 launchPlatformApp: opened TAOBAO via deep link
+11:19:33.579 switchPlatform: original platform loaded, resuming farm navigation
+11:19:33.580 cancelNavigation: all navigation callbacks cancelled
+11:19:33.580 navigateToFarm: taobao, using 我的淘宝 path
+11:19:35.888 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+11:19:35.889 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=0/1200 x 2543), pressing back first
+11:19:43.611 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+11:19:43.744 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+11:19:43.762 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=0, target=ALIPAY, original=TAOBAO
+11:19:45.799 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+11:19:45.931 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+11:19:45.940 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=1, target=ALIPAY, original=TAOBAO
+11:19:47.978 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+11:19:48.126 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+11:19:48.134 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=2, target=ALIPAY, original=TAOBAO
+11:19:50.167 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+11:19:50.305 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+11:19:50.313 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=3, target=ALIPAY, original=TAOBAO
+11:19:52.354 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+11:19:52.491 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+11:19:52.500 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=4, target=ALIPAY, original=TAOBAO
+11:19:54.532 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+11:19:54.706 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+11:19:54.722 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=5, target=ALIPAY, original=TAOBAO
+11:19:56.760 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+11:19:56.909 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+11:19:56.917 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=6, target=ALIPAY, original=TAOBAO
+11:19:58.948 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+11:19:59.088 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+11:19:59.096 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=7, target=ALIPAY, original=TAOBAO
+11:19:59.104 switchPlatform: original farm not loaded, re-navigating from start
+11:19:59.107 state: SWITCHING_PLATFORM -> NAVIGATING
+11:20:01.134 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+11:20:01.292 [navigate-start] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+11:20:01.607 isFarmAppInForeground: windows miss farm pkg, but activity=com.taobao.themis.container.app.tmsactivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+11:20:01.618 navigate: calling navigateToFarm, platform=TAOBAO
+11:20:01.620 navigateToFarm: taobao, using 我的淘宝 path
+11:20:03.151 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+11:20:03.152 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=0/1200 x 2543), pressing back first
+11:20:05.187 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+11:20:05.188 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=1/1200 x 2543), pressing back first
+11:20:06.647 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+11:20:07.224 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+11:20:07.225 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=2/1200 x 2543), pressing back first
+11:20:09.265 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+11:20:09.267 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=3/1200 x 2543), pressing back first
+11:20:11.297 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+11:20:11.298 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=4/1200 x 2543), pressing back first
+11:20:11.905 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+11:20:13.333 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+11:20:13.335 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=5/1200 x 2543), pressing back first
+11:20:15.337 navigate stepTab gesture: failed to reach main page after 5 retries (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity)
+11:20:17.188 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+11:20:17.413 isFarmAppInForeground: windows miss farm pkg, but activity=com.taobao.themis.container.app.tmsactivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+11:20:17.421 navigate: calling navigateToFarm, platform=TAOBAO
+11:20:17.423 navigateToFarm: taobao, using 我的淘宝 path
+11:20:18.956 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+11:20:18.959 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=0/1200 x 2543), pressing back first
+11:20:20.988 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+11:20:20.990 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=1/1200 x 2543), pressing back first
+11:20:22.463 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+11:20:23.017 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+11:20:23.018 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=2/1200 x 2543), pressing back first
+11:20:25.051 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+11:20:25.053 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=3/1200 x 2543), pressing back first
+11:20:27.083 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+11:20:27.084 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=4/1200 x 2543), pressing back first
+11:20:27.676 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+11:20:29.116 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+11:20:29.117 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=5/1200 x 2543), pressing back first
+11:20:31.122 navigate stepTab gesture: failed to reach main page after 5 retries (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity)
+11:20:32.891 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+11:20:33.142 isFarmAppInForeground: windows miss farm pkg, but activity=com.taobao.themis.container.app.tmsactivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+11:20:33.150 navigate: calling navigateToFarm, platform=TAOBAO
+11:20:33.152 navigateToFarm: taobao, using 我的淘宝 path
+11:20:34.681 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+11:20:34.682 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=0/1200 x 2543), pressing back first
+11:20:36.716 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+11:20:36.718 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=1/1200 x 2543), pressing back first
+11:20:36.720 state: NAVIGATING -> STOPPING
+11:20:36.721 cancelNavigation: all navigation callbacks cancelled
+11:20:36.721 state: STOPPING -> IDLE
+11:20:42.151 saveToken: saved (len=93, head='gith', tail='McKr')
+11:20:42.154 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+11:20:42.156 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260726_112042.log, localFile=debug.log (39742 bytes)
+11:20:43.697 uploadFile resp: code=201, url=logs/debug_test_20260726_112042.log, errBody=
+11:20:43.699 uploaded: logs/debug_test_20260726_112042.log (39901 bytes)
+11:20:43.702 upload: success, remotePath=logs/debug_test_20260726_112042.log
+11:20:43.703 upload done: 1 files uploaded (tag=test), errors=[]
+12:33:06.549 === Automation v2 Started === platform=TAOBAO
+12:33:06.571 cancelNavigation: all navigation callbacks cancelled
+12:33:06.572 reset platform complete: TAOBAO
+12:33:06.579 state: IDLE -> NAVIGATING
+12:33:06.680 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+12:33:07.572 [navigate-start] snapshot: pkg=com.hihonor.android.launcher, act=com.bbncbot.MainActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+12:33:07.751 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+12:33:07.924 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+12:33:07.925 navigate: farm app not in foreground (platform=TAOBAO, attempt=0), calling reopenFarmByDeepLink
+12:33:07.930 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+12:33:07.930 reopenFarmByDeepLink: pressing HOME to background TAOBAO before kill
+12:33:07.932 forceKillApp: killing com.taobao.taobao (pressBackFirst=false)
+12:33:07.933 forceKillApp: killBackgroundProcesses(com.taobao.taobao) called, cleared currentActivityName/currentEventPkg
+12:33:07.934 reopenFarmByDeepLink: no deep link for TAOBAO, killed + relaunch app, will navigate
+12:33:07.958 reopenFarmByDeepLink: relaunched TAOBAO (com.taobao.taobao)
+12:33:12.976 navigate: still not in farm app after relaunch, calling navigateToFarm to push navigation
+12:33:12.991 navigateToFarm: taobao, using 我的淘宝 path
+12:33:13.092 isOnFarmPage: activeRootPkg='com.hihonor.hiboard' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+12:33:14.522 isOnTaobaoHomePage: NOT on main page, activity not main (act= isMainAct=false), found=0 tabs=[] pkg= screenW=1200 screenH=2543
+12:33:14.523 navigate stepTab gesture: not on taobao main page (pkg= act= retry=0/1200 x 2543), pressing back first
+12:33:17.114 isOnTaobaoHomePage: NOT on main page, activity not main (act= isMainAct=false), found=0 tabs=[] pkg= screenW=1200 screenH=2543
+12:33:17.114 navigate stepTab gesture: not on taobao main page (pkg= act= retry=1/1200 x 2543), pressing back first
+12:33:18.248 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+12:33:18.259 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+12:33:18.274 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+12:33:18.545 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+12:33:18.546 openApp: shortcut unavailable for TAOBAO, fallback to deep link / navigation
+12:33:18.547 killPlatformApps: killed com.taobao.taobao for TAOBAO
+12:33:19.121 isOnTaobaoHomePage: ON main page by activity fallback (act=com.bbncbot.mainactivity, found=0 tabs=[]), screenW=1200 screenH=2543
+12:33:19.127 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab by RATIO at (1080.0, 2456.538) [screen=1200 x 2543 ratio=0.9,0.966] (node not found)
+12:33:20.576 navigateToFarm: taobao, using 我的淘宝 path
+12:33:22.350 isOnTaobaoHomePage: ON main page (act=com.taobao.tao.tbmainactivity isMainAct=true, found=5 tabs=[首页, 消息, 我的淘宝, 视频, 购物车]), screenW=1200 screenH=2543
+12:33:22.360 navigate stepTab gesture: on taobao main page, step 1 - click 我的淘宝 tab NODE at (1080.0, 2572.5) bounds=[960,2481][1200,2664] [screen=1200 x 2543]
+12:33:23.805 isOnFarmPage: no farm content, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝, 二维码, 会员标签, 关注店铺]
+12:33:23.816 isRechargePage: YES, sample=[, 下拉刷新, 头像, tbNick_ubedu, 땝]
+12:33:24.475 navigate stepTab gesture: step 2 - click 芭芭农场 NODE at (161.0, 1615.5) bounds=[65,1587][257,1644] [screen=1200 x 2543]
+12:33:24.477 navigate stepTab gesture: done, waiting 8s for farm page
+12:33:27.824 navigate stepTab gesture: 3s after click 芭芭农场 - pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity onFarm=true hasFarmKeyword=true sampleTexts=[芭芭农场, 头像, 头像, 合种/帮种, 合种/帮种, line, 邀请好友, 邀请好友加速, undefined，, 更多，按钮, undefined，, undefined，, 买多返多, 品牌狂欢周, 一起种]
+12:33:29.035 navigate: on farm page, platform=TAOBAO
+12:33:29.046 hasFarmContentLoaded: text count=39, sample=[芭芭农场, 兔兔挖肥料，50肥料，可领取, 12级, 500，肥料，明日7点可领, 头像, 头像, 合种/帮种, 合种/帮种, line, 邀请好友]
+12:33:29.046 hasFarmContentLoaded: realContent count=36
+12:33:29.047 navigate: hasFarmContentLoaded=true, attempt=1
+12:33:29.048 state: NAVIGATING -> COLLECTING_DIRECT
+12:33:31.623 [collectDirect-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+12:33:31.637 [collectDirect-start] claim-text-nodes (count=2):
+12:33:31.638 [collectDirect-start]   text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[22,1414][219,1611] clickable=true
+12:33:31.638 [collectDirect-start]   text='下单领肥料仅限大于0.5元订单' desc='' bounds=[163,137][799,245] clickable=false
+12:33:31.657 collectDirect: found 1 direct buttons, attempt=0
+12:33:31.659 collectDirect: clicking button[0] text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[22,1414][219,1611] (attempt 1)
+12:33:31.661 performClickSafe: text='兔兔挖肥料，50肥料，可领取' desc='' bounds=[22,1414][219,1611] clickable=true
+12:33:31.669 performClickSafe: ACTION_CLICK success at depth=0
+12:33:37.240 collectDirect: claim button not found, retrying (retry left=2)
+12:33:39.897 collectDirect: claim button not found, retrying (retry left=1)
+12:33:42.433 collectDirect: claim button not found after 3 retries, moving to next direct button
+12:33:42.458 collectDirect: found 0 direct buttons, attempt=1
+12:33:42.461 collectDirect: no direct buttons found, trying AI vision to locate '点击领取' button
+12:33:57.501 collectDirect: AI vision timed out after 15000ms, fallback to task list
+12:33:58.654 [openTaskList-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+12:33:58.673 [openTaskList-start] claim-text-nodes (count=1):
+12:33:58.675 [openTaskList-start]   text='下单领肥料仅限大于0.5元订单' desc='' bounds=[163,137][799,245] clickable=false
+12:33:58.677 openTaskList: reset taskListOpenedThisRound for new round (attempt=0)
+12:33:58.710 openTaskList: [TAOBAO闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+12:33:58.713 openTaskList: [TAOBAO闭环] heuristic text search (attempt=0)
+12:33:58.738 findCollectFertilizerButton: found by text='集肥料' bounds=[812,1863][985,2046]
+12:33:58.740 openTaskList: [TAOBAO闭环] clicking entry button by text (attempt=0)
+12:33:58.742 performClickSafe: text='集肥料' desc='' bounds=[812,1863][985,2046] clickable=true
+12:33:58.752 performClickSafe: ACTION_CLICK success at depth=0
+12:34:05.431 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,2868][1139,2666]
+12:34:05.437 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3085][1139,2666]
+12:34:05.440 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3297][1139,2666]
+12:34:05.443 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3514][1139,2666]
+12:34:05.447 findGoCompleteButtons: drop zero-size node text='' bounds=[42,3677][1159,2666]
+12:34:05.451 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,3730][1139,2666]
+12:34:05.454 findGoCompleteButtons: drop zero-size node text='去领取' bounds=[910,3943][1139,2666]
+12:34:05.457 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,4159][1139,2666]
+12:34:05.459 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,4372][1139,2666]
+12:34:05.461 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[910,4588][1139,2666]
+12:34:05.463 checkTaskListOpened: found 8 goComplete buttons, checkAttempt=0, currentIndex=0
+12:34:05.467 taskButton[0]: text='去完成', desc='', bounds=[910,1152][1139,1251], clickable=true
+12:34:05.469 taskButton[1]: text='去完成', desc='', bounds=[910,1368][1139,1467], clickable=true
+12:34:05.470 taskButton[2]: text='去完成', desc='', bounds=[910,1581][1139,1683], clickable=true
+12:34:05.472 taskButton[3]: text='去完成', desc='', bounds=[910,1797][1139,1896], clickable=true
+12:34:05.474 taskButton[4]: text='去完成', desc='', bounds=[910,2010][1139,2112], clickable=true
+12:34:05.476 taskButton[5]: text='去完成', desc='', bounds=[910,2227][1139,2325], clickable=true
+12:34:05.478 taskButton[6]: text='去完成', desc='', bounds=[910,2439][1139,2541], clickable=true
+12:34:05.480 taskButton[7]: text='去逛逛', desc='', bounds=[910,2656][1139,2666], clickable=true
+12:34:05.482 checkTaskListOpened: resetting currentTaskIndex to 0 (was 0, taskButtons was empty=true)
+12:34:05.484 collectTaskContextText: result='买限时折扣好物得奖励(0/1) 下单领大额肥料最高 +130000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+12:34:05.486 collectTaskContextText: result='买限时折扣好物得奖励(0/1) 下单领大额肥料最高 +130000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+12:34:05.487 collectTaskContextText: result='买限时折扣好物得奖励(0/1) 下单领大额肥料最高 +130000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+12:34:05.488 isPaidTask: YES, context='买限时折扣好物得奖励(0/1) 下单领大额肥料最高 +130000 去完成 '
+12:34:05.489 sortTaskButtons: idx=0 task='买限时折扣好物得奖励 下单领大额肥料最高 +' priority=1 (easyClaim=false, paid=true, paidHint=true, pureClaim=false, button='去完成')
+12:34:05.490 collectTaskContextText: result='买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+12:34:05.492 collectTaskContextText: result='买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+12:34:05.493 collectTaskContextText: result='买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+12:34:05.493 isPaidTask: YES, context='买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000 去完成 '
+12:34:05.495 sortTaskButtons: idx=1 task='买限时折扣好物得奖励 下单大额肥料 最高 +' priority=1 (easyClaim=false, paid=true, paidHint=false, pureClaim=false, button='去完成')
+12:34:05.496 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+12:34:05.498 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+12:34:05.500 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+12:34:05.501 sortTaskButtons: idx=2 task='逛逛支付宝芭芭农场 还可领 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+12:34:05.502 collectTaskContextText: result='看精彩视频去提现(0/1) 去看看 +300 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+12:34:05.504 collectTaskContextText: result='看精彩视频去提现(0/1) 去看看 +300 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+12:34:05.505 collectTaskContextText: result='看精彩视频去提现(0/1) 去看看 +300 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+12:34:05.506 sortTaskButtons: idx=3 task='看精彩视频去提现 看 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+12:34:05.507 collectTaskContextText: result='去淘金币逛买更省钱(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=200
+12:34:05.509 collectTaskContextText: result='去淘金币逛买更省钱(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=200
+12:34:05.510 collectTaskContextText: result='去淘金币逛买更省钱(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=200
+12:34:05.512 sortTaskButtons: idx=4 task='去淘金币逛买更省钱 浏览5s得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+12:34:05.516 collectTaskContextText: result='去省钱卡领红包(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=98, containerHeight=203
+12:34:05.518 collectTaskContextText: result='去省钱卡领红包(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=98, containerHeight=203
+12:34:05.519 collectTaskContextText: result='去省钱卡领红包(0/1) 浏览5s得 +300 去完成 ', buttonText='去完成', btnHeight=98, containerHeight=203
+12:34:05.520 sortTaskButtons: idx=5 task='去省钱卡领红包 浏览5s得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+12:34:05.521 collectTaskContextText: result='试玩农场火爆新游(0/1) 玩一玩得肥料 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+12:34:05.522 collectTaskContextText: result='试玩农场火爆新游(0/1) 玩一玩得肥料 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+12:34:05.523 collectTaskContextText: result='试玩农场火爆新游(0/1) 玩一玩得肥料 +300 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+12:34:05.524 sortTaskButtons: idx=6 task='试玩农场火爆新游 玩一玩得肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+12:34:05.525 collectTaskContextText: result='逛一逛支付宝蚂蚁森林(0/1) 逛逛得 +300 去逛逛 ', buttonText='去逛逛', btnHeight=10, containerHeight=63
+12:34:05.526 collectTaskContextText: result='逛一逛支付宝蚂蚁森林(0/1) 逛逛得 +300 去逛逛 ', buttonText='去逛逛', btnHeight=10, containerHeight=63
+12:34:05.526 collectTaskContextText: result='逛一逛支付宝蚂蚁森林(0/1) 逛逛得 +300 去逛逛 ', buttonText='去逛逛', btnHeight=10, containerHeight=63
+12:34:05.527 sortTaskButtons: idx=7 task='逛一逛支付宝蚂蚁森林 逛逛得 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去逛逛')
+12:34:05.529 state: OPENING_TASK_LIST -> PROCESSING_TASK
+12:34:09.729 isTaskCompletePage: YES, sample=[芭芭农场, 12级, 500，肥料，明日7点可领, 兔兔挖肥料，50肥料，生产中, 好友林]
+12:34:09.754 [processTask-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+12:34:09.785 [processTask-start] claim-text-nodes (count=4):
+12:34:09.786 [processTask-start]   text='下单领肥料仅限大于0.5元订单' desc='' bounds=[163,137][799,245] clickable=false
+12:34:09.786 [processTask-start]   text='每天答题领肥料' desc='' bounds=[271,998][543,1051] clickable=false
+12:34:09.786 [processTask-start]   text='领肥料礼包(0/1)' desc='' bounds=[271,3930][602,2666] clickable=false
+12:34:09.787 [processTask-start]   text='去领取' desc='' bounds=[910,3943][1139,2666] clickable=true
+12:34:09.851 processTask: current task #1/8, text='去完成', bounds=[910,1152][1139,1251], attempt=0
+12:34:09.854 collectTaskContextText: result='买限时折扣好物得奖励(0/1) 下单领大额肥料最高 +130000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+12:34:09.857 isPaidTask: YES, context='买限时折扣好物得奖励(0/1) 下单领大额肥料最高 +130000 去完成 '
+12:34:09.859 processTask: skip paid task #$1, text='去完成'
+12:34:12.374 isTaskCompletePage: YES, sample=[芭芭农场, 12级, 500，肥料，明日7点可领, 兔兔挖肥料，50肥料，生产中, 好友林]
+12:34:12.399 [processTask-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+12:34:12.418 [processTask-start] claim-text-nodes (count=4):
+12:34:12.420 [processTask-start]   text='下单领肥料仅限大于0.5元订单' desc='' bounds=[163,137][799,245] clickable=false
+12:34:12.420 [processTask-start]   text='每天答题领肥料' desc='' bounds=[271,998][543,1051] clickable=false
+12:34:12.421 [processTask-start]   text='领肥料礼包(0/1)' desc='' bounds=[271,3930][602,2666] clickable=false
+12:34:12.421 [processTask-start]   text='去领取' desc='' bounds=[910,3943][1139,2666] clickable=true
+12:34:12.476 processTask: current task #2/8, text='去完成', bounds=[910,1368][1139,1467], attempt=0
+12:34:12.478 collectTaskContextText: result='买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000 去完成 ', buttonText='去完成', btnHeight=99, containerHeight=203
+12:34:12.480 isPaidTask: YES, context='买限时折扣好物得奖励(0/3) 下单大额肥料 最高 +300000 去完成 '
+12:34:12.481 processTask: skip paid task #$2, text='去完成'
+12:34:15.147 isTaskCompletePage: YES, sample=[芭芭农场, 12级, 500，肥料，明日7点可领, 兔兔挖肥料，50肥料，生产中, 好友林]
+12:34:15.177 [processTask-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+12:34:15.212 [processTask-start] claim-text-nodes (count=4):
+12:34:15.215 [processTask-start]   text='下单领肥料仅限大于0.5元订单' desc='' bounds=[163,32][799,144] clickable=false
+12:34:15.218 [processTask-start]   text='每天答题领肥料' desc='' bounds=[271,998][543,1051] clickable=false
+12:34:15.222 [processTask-start]   text='领肥料礼包(0/1)' desc='' bounds=[271,3930][602,2666] clickable=false
+12:34:15.224 [processTask-start]   text='去领取' desc='' bounds=[910,3943][1139,2666] clickable=true
+12:34:15.313 processTask: current task #3/8, text='去完成', bounds=[910,1581][1139,1683], attempt=0
+12:34:15.319 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+12:34:15.323 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+12:34:15.327 collectTaskContextText: result='逛逛支付宝芭芭农场(0/1) 还可领 +1900 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=203
+12:34:15.329 processTask: cross-platform task #3, text='去完成', from=TAOBAO, to=ALIPAY
+12:34:15.331 performClickSafe: text='去完成' desc='' bounds=[910,1581][1139,1683] clickable=true
+12:34:15.351 performClickSafe: ACTION_CLICK success at depth=0
+12:34:15.355 state: PROCESSING_TASK -> SWITCHING_PLATFORM
+12:34:20.560 isOnFarmPage: XRiver H5 fallback triggered (activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity, has Farm title), assuming farm H5 page (content not loaded yet)
+12:34:20.849 [switchPlatform-LAUNCH_TARGET] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+12:34:20.926 [switchPlatform-LAUNCH_TARGET] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+12:34:20.927 switchPlatform: stage=LAUNCH_TARGET, retry=0, target=ALIPAY, original=TAOBAO
+12:34:20.947 switchPlatform: target ALIPAY already loaded (auto-jump), navigating to farm
+12:34:20.948 cancelNavigation: all navigation callbacks cancelled
+12:34:31.714 [switchPlatform-NAVIGATE_TARGET_FARM] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+12:34:31.746 [switchPlatform-NAVIGATE_TARGET_FARM] claim-text-nodes (count=1):
+12:34:31.747 [switchPlatform-NAVIGATE_TARGET_FARM]   text='还差5次领肥料' desc='' bounds=[442,1539][759,1617] clickable=true
+12:34:31.748 switchPlatform: stage=NAVIGATE_TARGET_FARM, retry=0, target=ALIPAY, original=TAOBAO
+12:34:31.808 switchPlatform: target farm page loaded, fertilizing
+12:34:34.271 [switchPlatform-FERTILIZE_TARGET] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+12:34:34.288 [switchPlatform-FERTILIZE_TARGET] claim-text-nodes (count=1):
+12:34:34.290 [switchPlatform-FERTILIZE_TARGET]   text='还差5次领肥料' desc='' bounds=[442,1539][759,1617] clickable=true
+12:34:34.291 switchPlatform: stage=FERTILIZE_TARGET, retry=0, target=ALIPAY, original=TAOBAO
+12:34:34.292 switchPlatform: fertilizing on ALIPAY, 11 coord candidates
+12:34:34.300 switchPlatform-fertilize: click at (1065.6, 1960.6531), ratio=(0.888, 0.771), screen=1200x2543
+12:34:34.303 switchPlatform-fertilize: click at (1089.6, 2001.341), ratio=(0.908, 0.787), screen=1200x2543
+12:34:34.305 switchPlatform-fertilize: click at (800.4, 953.625), ratio=(0.667, 0.375), screen=1200x2543
+12:34:34.306 switchPlatform-fertilize: click at (600.0, 1413.908), ratio=(0.5, 0.556), screen=1200x2543
+12:34:34.308 switchPlatform-fertilize: click at (360.0, 1566.488), ratio=(0.3, 0.616), screen=1200x2543
+12:34:34.310 switchPlatform-fertilize: click at (120.0, 1337.618), ratio=(0.1, 0.526), screen=1200x2543
+12:34:34.316 switchPlatform-fertilize: click at (500.4, 2476.8818), ratio=(0.417, 0.974), screen=1200x2543
+12:34:34.318 switchPlatform-fertilize: click at (601.2, 1935.2229), ratio=(0.501, 0.761), screen=1200x2543
+12:34:34.320 switchPlatform-fertilize: click at (1100.4, 1670.751), ratio=(0.917, 0.657), screen=1200x2543
+12:34:34.321 switchPlatform-fertilize: click at (600.0, 467.912), ratio=(0.5, 0.184), screen=1200x2543
+12:34:34.324 switchPlatform-fertilize: click at (600.0, 2288.7), ratio=(0.5, 0.9), screen=1200x2543
+12:34:40.073 [switchPlatform-RETURN_ORIGINAL] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+12:34:40.106 [switchPlatform-RETURN_ORIGINAL] claim-text-nodes (count=1):
+12:34:40.109 [switchPlatform-RETURN_ORIGINAL]   text='还差5次领肥料' desc='' bounds=[442,1539][759,1617] clickable=true
+12:34:40.111 switchPlatform: stage=RETURN_ORIGINAL, retry=0, target=ALIPAY, original=TAOBAO
+12:34:40.114 switchPlatform: returning to original TAOBAO
+12:34:40.118 cancelNavigation: all navigation callbacks cancelled
+12:34:40.125 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+12:34:40.126 reopenFarmByDeepLink: pressing HOME to background TAOBAO before kill
+12:34:40.131 forceKillApp: killing com.taobao.taobao (pressBackFirst=false)
+12:34:40.134 forceKillApp: killBackgroundProcesses(com.taobao.taobao) called, cleared currentActivityName/currentEventPkg
+12:34:40.135 reopenFarmByDeepLink: no deep link for TAOBAO, killed + relaunch app, will navigate
+12:34:40.152 reopenFarmByDeepLink: relaunched TAOBAO (com.taobao.taobao)
+12:34:40.153 launchPlatformApp: opened TAOBAO via deep link
+12:34:40.186 switchPlatform: original platform loaded, resuming farm navigation
+12:34:40.205 cancelNavigation: all navigation callbacks cancelled
+12:34:40.207 navigateToFarm: taobao, using 我的淘宝 path
+12:34:42.458 isOnTaobaoHomePage: NOT on main page, activity not main (act=com.taobao.themis.container.app.tmsactivity isMainAct=false), found=0 tabs=[] pkg=com.taobao.taobao screenW=1200 screenH=2543
+12:34:42.460 navigate stepTab gesture: not on taobao main page (pkg=com.taobao.taobao act=com.taobao.themis.container.app.tmsactivity retry=0/1200 x 2543), pressing back first
+12:34:50.235 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+12:34:50.326 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+12:34:50.335 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=0, target=ALIPAY, original=TAOBAO
+12:34:52.353 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+12:34:52.424 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+12:34:52.433 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=1, target=ALIPAY, original=TAOBAO
+12:34:54.454 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+12:34:54.535 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+12:34:54.543 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=2, target=ALIPAY, original=TAOBAO
+12:34:56.571 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+12:34:56.655 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+12:34:56.663 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=3, target=ALIPAY, original=TAOBAO
+12:34:58.689 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+12:34:58.775 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+12:34:58.784 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=4, target=ALIPAY, original=TAOBAO
+12:35:00.815 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+12:35:00.977 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+12:35:00.986 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=5, target=ALIPAY, original=TAOBAO
+12:35:03.017 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+12:35:03.215 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.hihonor.android.launcher, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+12:35:03.234 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=6, target=ALIPAY, original=TAOBAO
+12:35:04.945 state: SWITCHING_PLATFORM -> STOPPING
+12:35:04.947 cancelNavigation: all navigation callbacks cancelled
+12:35:04.948 state: STOPPING -> IDLE
+12:35:11.670 saveToken: saved (len=93, head='gith', tail='McKr')
+12:35:11.676 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+12:35:11.678 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260726_123511.log, localFile=debug.log (69603 bytes)
