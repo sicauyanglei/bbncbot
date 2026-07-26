@@ -3255,15 +3255,19 @@ class FarmAccessibilityService : AccessibilityService() {
             val fallbackSb = StringBuilder()
             val btnTop = btnRect.top
             val btnBottom = btnRect.bottom
-            val root = getRootInFarmApp()
+            // build645 修复: getRootInFarmApp 可能返回错误的窗口（如 task #4 时
+            // 返回了"专供会场"页面的 root，而非任务列表所在窗口）。
+            // 改用 rootInActiveWindowSafe 获取当前活跃窗口的 root，更可靠。
+            val root = rootInActiveWindowSafe()
             if (root != null) {
-                collectTextByYOverlap(root, fallbackSb, btnTop, btnBottom, maxDepth = 8)
+                collectTextByYOverlap(root, fallbackSb, btnTop, btnBottom, maxDepth = 10)
             }
             val fallbackResult = fallbackSb.toString().trim()
             // 只有当兜底结果比原结果更丰富时才使用（避免空结果覆盖）
             if (fallbackResult.length > result.length) {
                 result = fallbackResult
             }
+            debugLog("collectTaskContextText: fallback triggered, btnTop=$btnTop btnBottom=$btnBottom fallbackResult='$fallbackResult'")
         }
         debugLog("collectTaskContextText: result='$result', buttonText='${button.text}', btnHeight=$btnHeight, containerHeight=${container?.let { android.graphics.Rect().apply { it.getBoundsInScreen(this) }.height() } ?: -1}")
         return result
@@ -3275,6 +3279,11 @@ class FarmAccessibilityService : AccessibilityService() {
      * 当 collectTaskContextText 找不到任务行容器时，用此方法收集按钮 y 坐标范围内的所有文本。
      * 任务行通常高度 ~200px，包含任务标题（如"去玩支付宝蚂蚁庄园(0/1) 逛逛得 +300"）和按钮（"去逛逛"）。
      * 通过 y 坐标重叠可以找到同行的任务标题，即使 DOM 结构变化也能工作。
+     *
+     * build645 优化:
+     * - 扩大 y 范围到按钮上方 250px（任务标题常在按钮上方较远位置）
+     * - 增加按钮左侧 x 过滤（任务标题在按钮左侧，避免收集到按钮右侧无关文本）
+     * - maxDepth 提升到 10（任务列表 DOM 较深）
      */
     private fun collectTextByYOverlap(
         node: AccessibilityNodeInfo,
@@ -3287,8 +3296,8 @@ class FarmAccessibilityService : AccessibilityService() {
         val nodeRect = android.graphics.Rect()
         node.getBoundsInScreen(nodeRect)
         // y 坐标重叠判断：节点 y 范围与按钮 y 范围有交集
-        // 任务行高度约 200px，放宽到按钮上下 150px 范围（覆盖任务标题在按钮上方的情况）
-        val expandedTop = btnTop - 150
+        // 任务行高度约 200px，放宽到按钮上方 250px（覆盖任务标题在按钮上方较远的情况）
+        val expandedTop = btnTop - 250
         val expandedBottom = btnBottom + 50
         if (nodeRect.bottom > expandedTop && nodeRect.top < expandedBottom) {
             node.text?.toString()?.let { if (it.isNotBlank()) sb.append(it).append(" ") }

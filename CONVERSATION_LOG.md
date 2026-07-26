@@ -32,7 +32,52 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build644 修复跨平台任务返回后 collectTaskContextText 找不到容器导致跨平台识别失败
+### commit (待提交) - fix: build645 修复 collectTaskContextText 兜底策略 root 来源错误
+**用户需求**: "分析日志"
+
+**输入日志**: `logs/debug_test_20260726_161521.log`（build644，约 1500 行，16:08:25~16:15）
+
+**build644 验证结果**: 部分修复生效
+1. ✅ task #3 "去玩支付宝蚂蚁庄园" 跨平台识别成功（containerHeight=203，detectCrossPlatformTarget 检测到"支付宝"）
+2. ✅ 切换到 ALIPAY 并完成任务（16:09:45~16:12:28）
+3. ❌ task #4 "去完成" 跨平台任务兜底策略失效（containerHeight=-1，result='去完成 '）
+4. ❌ 误入"专供会场"页面循环无法恢复（16:12:37~16:15）
+
+**新发现问题**: task #4 的 collectTaskContextText 兜底策略未触发/无效
+- 16:12:31 processTask: current task #4/8, text='去完成', bounds=[910,1797][1139,1896]
+- 16:12:31 collectTaskContextText: result='去完成 ', containerHeight=-1
+- ← 兜底策略应该触发（container==null），但 result 仍是空按钮文案
+- 16:12:31 isBrowseTask: buttonText='去完成', context='去完成 ', isBrowse=false
+- 16:12:37 isRechargePage: YES（误入"专供会场"页面循环）
+
+**根因分析**:
+- build644 兜底策略用 `getRootInFarmApp()` 获取 root
+- 但 `getRootInFarmApp()` 会过滤"当前平台主包名或内部包前缀"的窗口
+- task #4 时可能返回了错误的窗口（如"专供会场"页面的 root，而非任务列表所在窗口）
+- 或 `getRootInFarmApp()` 返回的 root 不包含任务标题节点
+- 导致 `collectTextByYOverlap` 遍历的 root 不对，找不到任务标题
+
+**修复**: collectTaskContextText 兜底策略改用 `rootInActiveWindowSafe`
+- [FarmAccessibilityService.kt#L3254-3271](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L3254)
+- 原: `val root = getRootInFarmApp()`（可能返回错误窗口）
+- 新: `val root = rootInActiveWindowSafe()`（获取当前活跃窗口的 root，更可靠）
+- 增加诊断日志：`fallback triggered, btnTop=X btnBottom=Y fallbackResult='...'`
+
+**优化**: collectTextByYOverlap 扩大搜索范围
+- [FarmAccessibilityService.kt#L3288-3310](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L3288)
+- y 范围从按钮上方 150px 扩大到 250px（任务标题常在按钮上方较远位置）
+- maxDepth 从 8 提升到 10（任务列表 DOM 较深）
+
+**预期效果**:
+- task #4 的兜底策略能正确获取任务标题（如"去淘金币逛买更省钱(0/1) 浏览5s得 +300"）
+- detectCrossPlatformTarget/detectBrowseTask 等识别逻辑能正确工作
+- 不再误入"专供会场"页面循环
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit e461f14 - fix: build644 修复跨平台任务返回后 collectTaskContextText 找不到容器导致跨平台识别失败
 **用户需求**: "分析日志"
 
 **输入日志**: `logs/debug_test_20260726_160016.log`（build643，961 行，15:55:48~16:00:10 约 4 分钟）
