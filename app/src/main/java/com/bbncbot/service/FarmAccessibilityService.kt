@@ -2810,6 +2810,36 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build647: 判断是否是"闯关类"游戏任务（需要实际操作游戏才能完成，bot 无法自动完成）
+     *
+     * 用户需求："游戏闯关类的游戏不完成"
+     * - 闯关类游戏（消消乐/斗地主/对战/通关等）需要用户实际操作游戏（消除/出牌/对战），
+     *   bot 只能停留无法操作，任务不会完成，肥料得不到，浪费时间。
+     * - 试玩类游戏（"试玩"/"新游"）只需打开停留即可，bot 可以完成（停留 10 分钟）。
+     *
+     * 此方法识别闯关类游戏任务，调用方应跳过这类任务。
+     *
+     * @return true 表示是闯关类游戏任务（需跳过），false 表示可停留完成的普通/试玩游戏
+     */
+    fun isGameLevelTask(button: AccessibilityNodeInfo): Boolean {
+        val contextText = collectTaskContextText(button)
+        // 闯关类关键词：明确需要操作游戏才能完成
+        val levelKeywords = listOf(
+            "消消乐", "斗地主", "闯关", "通关", "对战",
+            "完成1局", "完成一局", "局对战", "打一局",
+            "浪漫餐厅", "农场分色瓶",
+            "砸蛋", "砸金蛋", "得分",
+            // "进入任意消3下"等明确要求操作的文案
+            "消3下", "消3次", "消除"
+        )
+        val isLevel = levelKeywords.any { contextText.contains(it) }
+        if (isLevel) {
+            debugLog("isGameLevelTask: YES (level game, cannot auto-complete), context='$contextText'")
+        }
+        return isLevel
+    }
+
+    /**
      * 判断"去完成"按钮对应的任务是否是"滑动浏览"类型
      * - 滑动浏览关键词：浏览、逛逛、滑动、看一看
      * - 这类任务不需要点击进入页面，而是模拟上下滑动

@@ -32,7 +32,35 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build646 修复 isGameCompletePage 误判系统悬浮窗为游戏完成页
+### commit (待提交) - feat: build647 闯关类游戏任务跳过（bot 无法自动完成）
+**用户需求**: "游戏闯关类的游戏不完成"
+
+**问题**: 闯关类游戏（如"玩消消乐得肥料 进入任意消3下得 +400"）需要用户实际操作游戏（消除/出牌/对战）才能完成，bot 只能停留无法操作，任务不会完成，肥料得不到，浪费时间。
+- 日志证据（debug_test_20260726_162937.log）:
+  - 16:26:51 "玩消消乐得肥料(0/1) 进入任意消3下得 +400" 进入 GAME_PLAYING
+  - 16:27:01 isGameCompletePage 误判（build646 已修复悬浮窗误判）
+  - 即使修复误判，bot 等待 30 秒后退出，"消3下"要求未完成，肥料得不到
+
+**修复**:
+1. 新增 [FarmAccessibilityService.isGameLevelTask()](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L2824)
+   - 识别闯关类游戏关键词：消消乐/斗地主/闯关/通关/对战/完成1局/完成一局/局对战/打一局/浪漫餐厅/农场分色瓶/砸蛋/砸金蛋/得分/消3下/消3次/消除
+   - 这类游戏需要实际操作，bot 无法自动完成
+
+2. [AutomationController.processTask()](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2125)
+   - isGameTask 返回 true 后，检查是否是试玩类（"试玩"/"新游"）
+   - 非试玩的闯关类游戏任务直接跳过（类似 isPaidTask 跳过逻辑）
+   - 试玩类游戏保留（停留 10 分钟完成）
+
+**预期效果**:
+- "玩消消乐得肥料 进入任意消3下得 +400" → 跳过（闯关类，无法自动完成）
+- "试玩热门新游 访问必得500肥料" → 保留（试玩类，停留 10 分钟）
+- 不再浪费时间在无法完成的闯关游戏上
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 7a66856 - fix: build646 修复 isGameCompletePage 误判系统悬浮窗为游戏完成页
 **用户需求**: "分析日志"
 
 **输入日志**: `logs/debug_test_20260726_162937.log`（build645，187 行，16:25:52~16:29:37 约 4 分钟）

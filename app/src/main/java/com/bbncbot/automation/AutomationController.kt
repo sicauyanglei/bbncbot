@@ -2117,6 +2117,20 @@ object AutomationController {
             // - 含"试玩"/"新游" → 10 分钟
             // - 其他普通游戏 → 30 秒（GAME_STAY_TARGET_MS）
             val isTrialPlayTask = fullTaskText.contains("试玩") || fullTaskText.contains("新游")
+            // build647 修复（用户需求："游戏闯关类的游戏不完成"）：
+            // 闯关类游戏（消消乐/斗地主/对战/通关等）需要实际操作游戏才能完成，
+            // bot 只能停留无法操作，任务不会完成，肥料得不到，浪费时间。
+            // 试玩类游戏（"试玩"/"新游"）只需打开停留即可，bot 可以完成。
+            // 因此：非试玩的闯关类游戏任务直接跳过，不进入 GAME_PLAYING。
+            if (!isTrialPlayTask && service.isGameLevelTask(button)) {
+                Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is level game (cannot auto-complete), skipping (text='$buttonText')")
+                debugLog("processTask: skip level game task #${currentTaskIndex + 1}, text='$buttonText'")
+                currentTaskIndex++
+                handler.postDelayed({
+                    if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
+                }, 500L)
+                return
+            }
             gamePlayingStayTargetMs = if (isTrialPlayTask) 10 * 60 * 1000L else GAME_STAY_TARGET_MS
             Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is game task, entering GAME_PLAYING (text='$buttonText', stayTarget=${gamePlayingStayTargetMs}ms, trialPlay=$isTrialPlayTask)")
             debugLog("processTask: game task #${currentTaskIndex + 1}, text='$buttonText', trialPlay=$isTrialPlayTask, stayTargetMs=$gamePlayingStayTargetMs")
