@@ -32,7 +32,46 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build629 UC 滑动浏览任务不点商品直接滑动（仅 TAOBAO 点商品停留15秒）
+### commit (待提交) - fix: build630 修复商品详情页退出后停留在商品列表页导致导航循环
+**用户需求**: "分析日志" → "修复"
+
+**输入日志**: `logs/debug_test_20260726_092123.log`（build627，1489 行，TAOBAO 平台，08:52:58~09:21:13 约 28 分钟，包含 Run1+Run2 两段运行）
+
+**问题**: build627/628 的 browsingProductEntered 退出逻辑（`exitBrowsePage`）只 pressBack 一次，但淘宝浏览任务页面层级是 `任务列表 → 商品列表页 → 商品详情页`，第一次 pressBack 只从商品详情页回到**商品列表页**，未回到任务列表。
+
+**循环现象**（09:17:47-09:19:43 约 2 分钟）:
+1. 09:17:42 `wait limit exceeded (swipes=39/38)` → `exitBrowsePage: clicking back icon to exit`
+2. 09:17:47 落地页是商品列表页（含"芭芭农场-interact"+"浏览得奖励"+商品价格列表）
+3. 09:17:55 `hasFarmContentLoaded=true`（text count=14）— **误判商品列表页为农场主页**
+4. 09:17:57 `collectDirect: found 0 direct buttons` — 商品列表页无领取按钮
+5. COLLECTING_DIRECT → OPENING_TASK_LIST → "WebView not ready" → NAVIGATING → 循环
+6. 09:18:14 锁屏（com.hihonor.aod）— 系统介入
+7. 09:19:36 解锁
+8. 09:19:43 回到真正农场主页（text count=140，含"芭芭农场, 12级"）— 终于恢复
+
+**根因**:
+- `exitBrowsePage` 退出后只检测 `isOnFarmPage()`，未检测是否仍在商品列表页
+- 商品列表页含"芭芭农场-interact"（H5 容器名）等关键词，被 `hasFarmContentLoaded` 误判为农场主页
+- 误判后 COLLECTING_DIRECT 找不到领取按钮，陷入循环
+
+**修复（1 处）**:
+
+#### 修复: exitBrowsePage 加商品列表页二次退出 ([AutomationController.kt#L2771-L2796](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2771))
+- 原：第一次 pressBack 后只检测 `isOnFarmPage()`，是则 OPENING_TASK_LIST，否则 NAVIGATING
+- 新：第一次 pressBack 后先检测 `isBrowseProductListPage()`，若是则**再 pressBack 一次**（找 backIcon 或 pressBack），等待后再检测 `isOnFarmPage() && !isBrowseProductListPage()`
+- 流程：商品详情页 → (pressBack) → 商品列表页 → (检测到 isBrowseProductListPage=true) → (pressBack) → 任务列表/农场主页
+- 与 `fromSearchBrowse` 二次退出逻辑并列，互斥（return@postDelayed）
+
+**预期效果**:
+- 商品详情页退出后：商品详情 → 商品列表 → (检测) → 任务列表 → OPENING_TASK_LIST
+- 不再陷入导航循环（2 分钟 → ~10 秒）
+- UC 平台不点商品，不会触发此分支（isBrowseProductListPage=false 时直接走原逻辑）
+
+**编译验证**: sandbox 网络限制无法本地编译，等 CI 构建验证。
+
+---
+
+### commit a79813a - fix: build629 UC 滑动浏览任务不点商品直接滑动（仅 TAOBAO 点商品停留15秒）
 **用户需求**: "uc滑动浏览任务，不需要点击商品进入下一个页面"
 
 **问题**: build620 实现的浏览商品任务逻辑（点击商品进入详情页停留 15 秒）对 UC 和 TAOBAO 两个平台都生效。但用户反馈 UC 平台的滑动浏览任务**不需要点击商品**，直接在列表页滑动即可获得肥料。点击商品反而会进入商品详情页，浪费时间且可能触发风控。

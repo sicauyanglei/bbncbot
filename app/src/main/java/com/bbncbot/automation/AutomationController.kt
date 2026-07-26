@@ -2768,6 +2768,32 @@ object AutomationController {
                 }, INTERVAL_PAGE_LOAD_MS)
                 return@postDelayed
             }
+            // build630 修复：browsingProductEntered 商品详情页退出后，第一次 pressBack 只是回到商品列表页
+            // （层级：任务列表 → 商品列表页 → 商品详情页）。商品列表页含"芭芭农场-interact"+"浏览得奖励"等
+            // 关键词，会被 hasFarmContentLoaded 误判为农场主页，导致 COLLECTING_DIRECT 找不到领取按钮
+            // 陷入循环（日志 debug_test_20260726_092123.log 09:17:47-09:19:43 约 2 分钟）。
+            // 修复：第一次返回后若仍在商品列表页（isBrowseProductListPage=true），再 pressBack 一次回到任务列表。
+            if (service.isBrowseProductListPage()) {
+                debugLog("exitBrowsePage: still on browse product list page after first back, pressing back again to return to task list")
+                val backIcon2 = service.findBackIcon()
+                if (backIcon2 != null) {
+                    service.performClickSafe(backIcon2)
+                } else {
+                    service.pressBack()
+                }
+                handler.postDelayed({
+                    if (service.isOnFarmPage() && !service.isBrowseProductListPage()) {
+                        debugLog("exitBrowsePage: returned to farm after second back (from product list)")
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    } else {
+                        debugLog("exitBrowsePage: still not on farm after second back (from product list), re-navigating")
+                        moveTo(AutomationState.NAVIGATING)
+                        handler.postDelayed({ runNavigating(0) }, INTERVAL_CLICK_MS)
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
+                return@postDelayed
+            }
             if (service.isOnFarmPage()) {
                 // 已回到农场页，重新打开任务列表
                 moveTo(AutomationState.OPENING_TASK_LIST)
