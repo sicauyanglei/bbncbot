@@ -5388,6 +5388,57 @@ class FarmAccessibilityService : AccessibilityService() {
         return findNodeByTextInternal(root, keyword)
     }
 
+    /**
+     * 查找任务列表弹窗的"关闭"按钮（build652 修复）
+     *
+     * 历史问题（debug_test_20260726_175653.log, build651-30c9f6a）：
+     *   17:51:10.556 fertilize: task list popup detected but no close button, pressBack to close it
+     *   17:51:15.839 fertilize: not on farm page, re-navigate
+     *   （FERTILIZING → NAVIGATING → ... → FERTILIZING 无限循环 6 次直到用户手动停止）
+     *
+     * 根因：任务列表弹窗展开后找不到"关闭做任务集肥料弹窗"按钮（此按钮在某些版本不存在），
+     *   退而求其次用 pressBack，但 pressBack 既关弹窗又退出主页，导致离开芭芭农场 → 重新导航
+     *   → 又到 fertilize → 又 pressBack → 无限循环。
+     *
+     * 修复：找不到"关闭做任务集肥料弹窗"时，找文字精确等于"关闭"的按钮（任务列表弹窗关闭按钮），
+     *   并验证位置在屏幕右上角（避免误点主页广告"关闭"按钮）。
+     *
+     * 日志证据：任务列表弹窗展开时 dumpClickableNodes 含
+     *   text='关闭' desc='' bounds=[1084,546][1185,645] (centerX=1134, centerY=595)
+     *   屏幕宽 1200, 高 2543 → centerX > 960 (0.8*1200), centerY < 1017 (0.4*2543)
+     */
+    fun findTaskListCloseButton(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        val metrics = resources.displayMetrics
+        val screenWidth = metrics.widthPixels
+        val screenHeight = metrics.heightPixels
+        val minX = screenWidth * 0.8f
+        val maxY = screenHeight * 0.4f
+        return findTaskListCloseButtonInternal(root, minX, maxY)
+    }
+
+    private fun findTaskListCloseButtonInternal(
+        node: AccessibilityNodeInfo,
+        minX: Float,
+        maxY: Float
+    ): AccessibilityNodeInfo? {
+        val text = node.text?.toString()?.trim().orEmpty()
+        if (text == "关闭" && node.isClickable) {
+            val rect = android.graphics.Rect()
+            node.getBoundsInScreen(rect)
+            val centerX = (rect.left + rect.right) / 2f
+            val centerY = (rect.top + rect.bottom) / 2f
+            if (centerX > minX && centerY < maxY) {
+                return node
+            }
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val matched = findTaskListCloseButtonInternal(child, minX, maxY)
+            if (matched != null) return matched
+        }
+        return null
+    }
+
     /** 精确匹配 content-description 的节点（避免子串误匹配） */
     /** 查找第一个可编辑的 EditText 节点（用于搜索输入） */
     private fun findFirstEditText(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {

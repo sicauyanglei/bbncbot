@@ -5276,10 +5276,17 @@ object AutomationController {
                 // 修复：优先点击任务列表弹窗的专用"关闭做任务集肥料弹窗"按钮（不退主页），
                 //   找不到再用 pressBack 兜底。
                 // 日志证据：dumpClickableNodes 含 '关闭做任务集肥料弹窗' bounds=[1051,854][1152,953]
-                val closeButton = if (root != null) service.findNodeByText(root, "关闭做任务集肥料弹窗") else null
+                val closeButton = if (root != null) {
+                    // build652 修复：优先找专用"关闭做任务集肥料弹窗"按钮，
+                    // 找不到则找文字精确为"关闭"且位置在屏幕右上角的按钮（任务列表弹窗关闭按钮），
+                    // 避免误点主页广告"关闭"按钮。
+                    service.findNodeByText(root, "关闭做任务集肥料弹窗")
+                        ?: service.findTaskListCloseButton(root)
+                } else null
                 if (closeButton != null) {
-                    debugLog("fertilize: task list popup detected, click '关闭做任务集肥料弹窗' button to close it")
-                    Log.i(TAG, "fertilize: task list popup detected, click '关闭做任务集肥料弹窗' button to close it")
+                    val closeBtnText = closeButton.text?.toString().orEmpty()
+                    debugLog("fertilize: task list popup detected, click close button '$closeBtnText' to close it")
+                    Log.i(TAG, "fertilize: task list popup detected, click close button '$closeBtnText' to close it")
                     service.performClickSafe(closeButton)
                 } else {
                     debugLog("fertilize: task list popup detected but no close button, pressBack to close it")

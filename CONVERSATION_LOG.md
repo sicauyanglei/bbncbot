@@ -32,7 +32,50 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build651 去逛逛趣头条任务直接跳过
+### commit (待提交) - fix: build652 修复施肥阶段任务列表弹窗关闭按钮识别失败导致无限循环
+
+**用户需求**: "分析日志"（基于 build651 日志 debug_test_20260726_175653.log 分析）
+
+**日志分析**:
+- 任务跳过逻辑全部生效 ✅
+  - task #1/#2/#5: `skip paid task` (秒杀下单) - build649 生效
+  - task #6: `skip list task` (邀请好友助力) - build650 生效
+  - task #7/#8: `skip list task` (趣头条) - build651 生效
+- **新问题**: 施肥阶段无限循环 6 次直到用户手动停止 ❌
+
+**根因**: [AutomationController.kt#L5279-5288](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5279)
+- 任务列表弹窗展开后，fertilize 阶段第一步检测 `isTaskListOpen=true`
+- 找专用关闭按钮 `findNodeByText("关闭做任务集肥料弹窗")` 失败（此按钮在某些版本不存在）
+- 退而求其次用 `pressBack()`，但 pressBack 既关弹窗又退出主页
+- 17:51:15.839 `fertilize: not on farm page, re-navigate` → 离开农场
+- 重新导航 → 又到 processTask（全 skip）→ 又到 fertilize → 又 pressBack → 无限循环
+
+**日志证据** ([debug_test_20260726_175653.log#L217-L273](file:///workspace/logs/debug_test_20260726_175653.log)):
+- 任务列表弹窗展开：8 个"去完成"按钮 + "已完成"按钮
+- **没有**"关闭做任务集肥料弹窗"按钮
+- **有**"关闭"按钮 bounds=[1084,546][1185,645]（任务列表弹窗右上角关闭按钮，centerX=1134, centerY=595）
+- 屏幕宽 1200, 高 2543
+
+**修复**:
+1. 新增 [FarmAccessibilityService.kt#findTaskListCloseButton](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L5410)
+   - 精确匹配 text == "关闭"（不是 contains，避免误匹配"关闭做任务集肥料弹窗"等长文本）
+   - clickable=true
+   - 位置约束: centerX > screenWidth*0.8 且 centerY < screenHeight*0.4（屏幕右上角，避免误点主页广告"关闭"按钮）
+2. 修改 [AutomationController.kt#L5279-5285](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5279) fertilize 关闭弹窗逻辑：
+   - 优先找"关闭做任务集肥料弹窗"（原逻辑保留）
+   - 找不到则调 `findTaskListCloseButton`（新增）
+   - 还找不到才 pressBack 兜底
+
+**预期效果**:
+- 任务列表弹窗展开时，能找到"关闭"按钮点击关闭弹窗（不退主页）
+- 不再 pressBack 退出主页 → 不再无限循环
+- 施肥阶段能正常进入 findFertilizeButton 流程
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 30c9f6a - fix: build651 去逛逛趣头条任务直接跳过
 
 **用户需求**: "去逛逛趣头条任务，不需要做"
 
