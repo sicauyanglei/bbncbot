@@ -32,7 +32,59 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build660 ALIPAY 浏览任务获得肥料后改走 pressBack 退回，避免 reopenFarmByDeepLink kill 支付宝后无法重启到前台
+### commit (待提交) - fix: build662 UC 平台 isPaidTask clickable 检查过严 + 互动广告 pressBack 过早
+
+**用户需求**: "分析日志"（从 GitHub 拉取 build661 日志 debug_test_20260727_072301.log）
+
+**日志分析** (build661, UC 平台):
+- ✅ build660/661 编译成功，UC 平台导航、collectDirect、跨平台切换、看广告流程基本正常
+- ❌ **问题1**: UC 平台所有任务"去完成"按钮 clickable=false，isPaidTask 全部返回 false
+  - 07:21:28.949 isPaidTask: skip, button not clickable（task #1 "看视频得巨额肥料"）
+  - 07:21:30.147 isPaidTask: skip, button not clickable（task #2 "去头条极速版逛逛"）
+  - 07:21:31.362 isPaidTask: skip, button not clickable（task #3 "去头条看热点"）
+  - 07:21:32.576 isPaidTask: skip, button not clickable（task #4 "去支付宝农场领肥料"）
+  - 07:22:14.199 isPaidTask: skip, button not clickable（task #5）
+  - → build658 的付费任务识别（余额宝/攒一笔等）在 UC 平台完全失效
+  - → 如果 UC 出现付费任务（如"攒一笔到余额宝"），会被点击执行 → 跳转 → isNonAdTaskPage 误判 → 死循环
+- ❌ **问题2**: 互动广告无下载按钮时 5s 就 pressBack，但广告倒计时 10s 没结束，pressBack 无效
+  - 07:22:21.859 findAdDurationHint: found countdown '10秒', seconds=10
+  - 07:22:27.326 watchAd: interactive ad no download button, pressBack to exit（5s 时 pressBack）
+  - 07:22:39.584 openTaskList: resetting currentTaskIndex to 0（状态已切但实际卡在广告 Activity）
+  - 07:22:42.124 navigate: UC ad (act=KsRewardVideoActivity), waiting instead of pressBack
+  - 07:22:56.746 state: NAVIGATING -> STOPPING（反复等待 3 次失败）
+
+**根因1**: [FarmAccessibilityService.kt#isPaidTask#L2761](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L2761)
+- 原防御性检查 `if (!button.isClickable) return false` 过严
+- UC 平台任务列表"去完成"按钮在 WebView 内 clickable=false（需 dispatchGesture 点击）
+- 支付宝平台 clickable=true，所以 build658 在支付宝能正常识别付费任务，UC 失效
+
+**修复1**: [FarmAccessibilityService.kt#L2755-2779](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L2755)
+- 去掉 `if (!button.isClickable) return false` 检查
+- 仅保留文本特征检查（条款编号开头 `^[0-9]+[、.）)]` 或长度>50 字）
+- 规则条款文本节点仍会被文本特征检查过滤，不会回归原防御目的
+- UC 平台 clickable=false 的真实任务按钮现在能正常走付费关键词检查
+
+**根因2**: [AutomationController.kt#runWatchingAd#L4629](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4629)
+- 互动广告无下载按钮时 5s 就 `service.pressBack()` + `currentTaskIndex++` + 切 OPENING_TASK_LIST
+- 但 UC 激励视频广告倒计时可能还没结束（如 10s），pressBack 对激励视频无效（build580 已确认）
+- 状态切了但 Activity 没退出 → navigate 阶段 "UC ad, waiting instead of pressBack" 反复等待 → STOPPING
+
+**修复2**: [AutomationController.kt#L4629-4646](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4629)
+- 互动广告无下载按钮时不主动 pressBack，继续轮询等待广告自然结束
+- 倒计时结束后 `isAdEndedMultiSignal` 检测"恭喜获取奖励"等信号 → CLOSING_AD 主动关闭
+- 或 `adMaxDurationMs`（hint+buffer）超时后兜底退出
+- 两种方式都比 5s 盲目 pressBack 更可靠
+
+**预期效果**:
+- UC 平台付费任务（余额宝/攒一笔/充值等）能被正确识别跳过，不再因 clickable=false 失效
+- 互动广告无下载按钮时不再 5s 盲目 pressBack，等广告自然结束后由 CLOSING_AD 流程关闭
+- 不再出现"状态切了但卡在广告 Activity"导致 NAVIGATING 反复等待 STOPPING
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 2951330 - fix: build661 修复 build660 编译错误（currentPlatform 应为 service.currentPlatform）
 
 **用户需求**: "分析日志"（从 GitHub 拉取 build659 日志 debug_test_20260726_213808.log）
 

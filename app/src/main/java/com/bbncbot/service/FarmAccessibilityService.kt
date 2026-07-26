@@ -2756,12 +2756,22 @@ class FarmAccessibilityService : AccessibilityService() {
         // 历史问题：当 taskButton 扫描器把规则条款文本节点（如"3、用户未通过活动指定的入口去完成任务的，无法获得红包权益；"）
         // 误识别为任务按钮时，isPaidTask 会因文本里含"红包"/"充值"等关键词误判为付费任务，
         // 进而触发"全部任务完成"误判（实际 1 个真任务都没做）。这里加双重防御：
-        // 1. 节点必须可点击（规则条款节点 clickable=false）
-        // 2. 节点文本不能是条款编号开头（"1、"/"2、"/"3、"...）或异常长（>50 字，任务按钮文案一般 <30 字）
-        if (!button.isClickable) {
-            debugLog("isPaidTask: skip, button not clickable")
-            return false
-        }
+        // 1. 节点文本不能是条款编号开头（"1、"/"2、"/"3、"...）或异常长（>50 字，任务按钮文案一般 <30 字）
+        // 2. 节点文本必须是"去完成"/"去逛逛"等任务按钮文案（规则条款文本节点文本很长或为条款内容）
+        //
+        // build662 修复（debug_test_20260727_072301.log, build661-2951330）：
+        //   07:21:28.949 isPaidTask: skip, button not clickable（UC task #1 "看视频得巨额肥料"）
+        //   07:21:30.147 isPaidTask: skip, button not clickable（UC task #2 "去头条极速版逛逛"）
+        //   07:21:31.362 isPaidTask: skip, button not clickable（UC task #3 "去头条看热点"）
+        //   07:21:32.576 isPaidTask: skip, button not clickable（UC task #4 "去支付宝农场领肥料"）
+        //   07:22:14.199 isPaidTask: skip, button not clickable（UC task #5）
+        //   → UC 平台所有"去完成"按钮 clickable=false（WebView 内节点），isPaidTask 全部返回 false
+        //   → build658 的付费任务识别（余额宝/攒一笔等）在 UC 平台完全失效
+        //   → 如果 UC 出现付费任务（如"攒一笔到余额宝"），会被点击执行 → 跳转 → isNonAdTaskPage 误判 → 死循环
+        // 根因：原防御性检查"clickable=false 直接返回 false"过严，UC WebView 内的真实任务按钮也被过滤。
+        // 修复：去掉 clickable 检查，仅保留文本特征检查（条款编号开头/异常长文本）。
+        // 支付宝平台按钮 clickable=true（仍能正常识别），UC 平台按钮 clickable=false（现在也能正常识别）。
+        // 规则条款文本节点（如"3、用户未通过..."）会被下面的"条款编号开头"或"长度>50"检查过滤。
         val buttonText = button.text?.toString()?.trim().orEmpty()
         if (buttonText.length > 50 || Regex("^[0-9]+[、.）)]").containsMatchIn(buttonText)) {
             debugLog("isPaidTask: skip, button text looks like rule/term clause (len=${buttonText.length}, text='$buttonText')")

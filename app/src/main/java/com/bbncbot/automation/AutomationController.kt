@@ -4626,23 +4626,23 @@ object AutomationController {
                         }, adEndCheckIntervalMs)
                         return
                     }
-                    // 5s 后仍找不到下载按钮,pressBack 退出避免卡死
-                    Log.w(TAG, "watchAd: interactive ad but no download button found after 5s, pressing back to exit")
-                    debugLog("watchAd: interactive ad no download button, pressBack to exit (avoid stuck)")
-                    service.setAdMode(false)
-                    service.pressBack()
-                    currentTaskIndex++
+                    // build662 修复（debug_test_20260727_072301.log, build661-2951330）：
+                    //   07:22:21.859 findAdDurationHint: found countdown '10秒', seconds=10
+                    //   07:22:22.035 watchAd: scene=TRAP_INTERACTIVE, elapsed=0ms
+                    //   07:22:27.326 watchAd: interactive ad no download button, pressBack to exit (5s 时 pressBack)
+                    //   → 但广告倒计时 10s 还没结束，pressBack 退出失败
+                    //   → 状态切到 OPENING_TASK_LIST 但实际仍卡在 KsRewardVideoActivity
+                    //   → NAVIGATING 阶段 "UC ad, waiting instead of pressBack" 反复等待 → STOPPING
+                    // 根因：互动广告无下载按钮时 5s 就 pressBack，但广告倒计时可能还没结束（如 10s），
+                    //   UC 激励视频 pressBack 无效（build580 已确认），导致卡在广告 Activity。
+                    // 修复：无下载按钮时不主动 pressBack，继续轮询等待广告自然结束。
+                    //   - 倒计时结束后 isAdEndedMultiSignal 检测"恭喜获取奖励"等信号 → CLOSING_AD 主动关闭
+                    //   - 或 adMaxDurationMs（hint+buffer）超时后兜底退出
+                    //   两种方式都比 5s 盲目 pressBack 更可靠。
+                    debugLog("watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=${elapsedMs}ms/${adMaxDurationMs}ms)")
                     handler.postDelayed({
-                        if (state == AutomationState.WATCHING_AD) {
-                            if (!service.isOnFarmPage()) service.pressBack()
-                            handler.postDelayed({
-                                if (state == AutomationState.WATCHING_AD) {
-                                    moveTo(AutomationState.OPENING_TASK_LIST)
-                                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
-                                }
-                            }, INTERVAL_PAGE_LOAD_MS)
-                        }
-                    }, INTERVAL_PAGE_LOAD_MS)
+                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                    }, adEndCheckIntervalMs)
                     return
                 }
                 // 已点击下载按钮,继续轮询等待下载完成 + 肥料发放
