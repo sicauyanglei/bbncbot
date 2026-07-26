@@ -4351,6 +4351,25 @@ class FarmAccessibilityService : AccessibilityService() {
             debugLog("isTaskCompletePage: NO (text matched but isAdLandingPage=true, suspected ad bait)")
             return false
         }
+        // build642 修复（debug_test_20260726_153127.log）：
+        // 历史问题: TAOBAO 农场主页任务列表中的已完成任务显示"已完成"状态标签，
+        // isTaskCompletePage 误判为任务完成页（matched=[已完成]），导致诊断日志混乱，
+        // 且 checkTaskResult 若在农场主页被调用会误退出。
+        // 日志证据:
+        //   isTaskCompletePage: YES, matched=[已完成],
+        //     sample=[芭芭农场, 13级, 1500，肥料，点击领取, 兔兔挖肥料，50肥料，可领取, 好友林]
+        //   ← sample 全是农场主页元素，"已完成"来自任务列表中已完成任务的状态标签
+        // 修复: 若页面同时存在直接领取按钮（"点击领取"/"立即领取"/"可领取"/"挖肥料"），
+        // 说明是农场主页（有 direct collect 按钮）而非任务完成页，返回 false。
+        // 任务完成页只有"关闭"/"返回"/"确认"按钮，不会有 direct collect 按钮。
+        val hasDirectCollectButton = allText.any { text ->
+            text.contains("点击领取") || text.contains("立即领取") ||
+                text.contains("可领取") || text.contains("挖肥料")
+        }
+        if (hasDirectCollectButton) {
+            debugLog("isTaskCompletePage: NO (text matched but has direct collect button, suspected farm home page)")
+            return false
+        }
         debugLog("isTaskCompletePage: YES, matched=${matchedKeywords.take(3)}, sample=${allText.take(5)}")
         return true
     }

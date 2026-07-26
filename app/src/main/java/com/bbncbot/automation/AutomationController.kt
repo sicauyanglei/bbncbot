@@ -1211,6 +1211,25 @@ object AutomationController {
         }
 
         if (buttons.isEmpty()) {
+            // build642 修复（debug_test_20260726_153127.log）：
+            // 历史问题: COLLECTING_DIRECT 在 attempt=0 时若页面未完全加载，
+            // findDirectCollectButtons 返回 0，立即跳到 OPENING_TASK_LIST。
+            // 但 TAOBAO 农场页加载较慢，"1500，肥料，点击领取" 按钮在进入农场页 4 秒后才出现，
+            // COLLECTING_DIRECT 在 2 秒时就检查并放弃了，导致 1500 肥料奖励始终未领取。
+            // 日志证据:
+            //   15:25:43 state: NAVIGATING -> COLLECTING_DIRECT
+            //   15:25:45 collectDirect: found 0 direct buttons, attempt=0  ← 页面未加载完
+            //   15:25:47 [openTaskList-start] text='1500，肥料，点击领取'  ← 2 秒后按钮才出现
+            // 修复: attempt=0 时若 buttons 为空，等待 INTERVAL_PAGE_LOAD_MS (3s) 后重试 (attempt=1)，
+            // 给页面充分加载时间。attempt>=1 仍为空才走 AI 视觉/跨平台跳转/OPENING_TASK_LIST。
+            if (attempt == 0) {
+                debugLog("collectDirect: no direct buttons found at attempt=0, waiting ${INTERVAL_PAGE_LOAD_MS}ms for page to fully load before retry")
+                Log.i(TAG, "collectDirect: no direct buttons at attempt=0, waiting for page load then retry")
+                handler.postDelayed({
+                    if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
             // 历史说明（build538 → build542 撤销）：
             // 用户反馈"点击领取在领肥料上方"，build538 加了坐标兜底点击 (0.917, 0.657)。
             // 但日志（debug_test_20260719_113316.log, build541-801abe4）显示：

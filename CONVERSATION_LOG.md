@@ -32,7 +32,60 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build641 修复 TAOBAO "1500，肥料，点击领取" 按钮始终未领取
+### commit (待提交) - fix: build642 修复 COLLECTING_DIRECT 页面未加载完就放弃 + isTaskCompletePage 农场主页误判
+**用户需求**: "分析日志"
+
+**输入日志**: `logs/debug_test_20260726_153127.log`（build641，1100+ 行，15:25:22~15:30:05 约 5 分钟）
+
+**build641 验证结果**: ❌ "1500，肥料，点击领取" 按钮仍未被点击
+- 15:25:43 state: NAVIGATING -> COLLECTING_DIRECT
+- 15:25:45 collectDirect: found 0 direct buttons, attempt=0  ← 页面未加载完
+- 15:25:47 [openTaskList-start] text='1500，肥料，点击领取'  ← 2 秒后按钮才出现
+- 15:25:47~15:30:05 "1500，肥料，点击领取" 按钮在农场主页始终存在（clickable=true），从未被点击
+- build641 在 checkTaskResult 加的 "click direct claim button before exit" 逻辑从未被触发
+- 原因: checkTaskResult 只在任务执行后调用，PROCESSING_TASK 不检查 isTaskCompletePage
+
+**根因分析**:
+
+**根因 1**: COLLECTING_DIRECT 在 attempt=0 时若 buttons 为空，立即跳到 OPENING_TASK_LIST
+- TAOBAO 农场页加载较慢，"1500，肥料，点击领取" 按钮在进入农场页 4 秒后才出现
+- COLLECTING_DIRECT 在 2 秒时就检查并放弃了（attempt=0 → buttons 空 → 立即 OPENING_TASK_LIST）
+- 之后流程进入 OPENING_TASK_LIST → PROCESSING_TASK → BROWSING_TASK 循环，再也没回 COLLECTING_DIRECT
+- 1500 肥料奖励始终未领取
+
+**根因 2**: isTaskCompletePage 误判农场主页为任务完成页
+- 农场主页任务列表中的已完成任务显示"已完成"状态标签
+- isTaskCompletePage 匹配 "已完成" 关键词，返回 YES
+- 日志: `isTaskCompletePage: YES, matched=[已完成], sample=[芭芭农场, 13级, 1500，肥料，点击领取, ...]`
+- sample 全是农场主页元素，"已完成" 来自任务列表中已完成任务的状态标签
+- 虽然这只是诊断日志的误报（processTask 不检查 isTaskCompletePage），但会干扰后续 checkTaskResult 判断
+
+**修复 1**: COLLECTING_DIRECT 在 attempt=0 时若 buttons 为空，等待 3 秒后重试
+- [AutomationController.kt#L1213-1232](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1213)
+- 原: attempt=0 时 buttons 空 → 立即跳到 OPENING_TASK_LIST
+- 新: attempt=0 时 buttons 空 → 等待 INTERVAL_PAGE_LOAD_MS (3s) 后重试 attempt=1
+- attempt>=1 仍为空才走 AI 视觉/跨平台跳转/OPENING_TASK_LIST（保持原逻辑）
+- 给页面充分加载时间，"1500，肥料，点击领取" 按钮在 3 秒后会被找到并点击
+
+**修复 2**: isTaskCompletePage 排除农场主页（含直接领取按钮）
+- [FarmAccessibilityService.kt#L4354-4372](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4354)
+- 原: 匹配 "已完成" 关键词 → 检查 isAdLandingPage → 返回 YES
+- 新: 匹配 "已完成" 关键词 → 检查 isAdLandingPage → 检查是否有直接领取按钮 → 若有则返回 NO
+- 直接领取按钮: "点击领取"/"立即领取"/"可领取"/"挖肥料"
+- 任务完成页只有"关闭"/"返回"/"确认"按钮，不会有 direct collect 按钮
+- 农场主页有 direct collect 按钮，可据此区分
+
+**预期效果**:
+- COLLECTING_DIRECT 在页面未加载完时不再立即放弃，等待 3 秒后重试
+- "1500，肥料，点击领取" 按钮会被 COLLECTING_DIRECT 阶段找到并点击
+- 1500 肥料奖励不再丢失
+- isTaskCompletePage 不再误判农场主页为任务完成页
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 6607614 - fix: build641 修复 TAOBAO "1500，肥料，点击领取" 按钮始终未领取
 **用户需求**: "长时间循环是对的。每次都要根据任务具体的时间来完成，任务的操作要对，点击开始任务了，如何是视频播放任务，需要播放15秒后结束，不是马上退出得不到肥料"
 
 **输入日志**: `logs/debug_test_20260726_142922.log`（build639，1878 行，14:20:10~14:29:15 约 9 分钟）
