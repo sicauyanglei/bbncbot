@@ -5817,6 +5817,9 @@ class FarmAccessibilityService : AccessibilityService() {
             // findNodeByText 会把搜索框本身作为最近可点击父节点返回，导致误点搜索框
             val isSearchNode = entryDesc.contains("搜索") || entryText.contains("搜索")
             val screenHeight = resources.displayMetrics.heightPixels
+            // build634: 提前计算当前 Activity 是否为 H5 容器，供搜索栏区域过滤使用
+            val currentAct = currentActivityName?.lowercase().orEmpty()
+            val isH5ContainerAct = currentAct.contains("xriver") || currentAct.contains("h5") || currentAct.contains("webview")
             // build595 修复（debug_test_20260722_023550.log, build594 line 93-95）：
             // 历史问题：UC→ALIPAY 跨平台跳转后, navigateAlipay 找到"芭芭农场"入口
             // (bounds=[214,147][1035,254], clickable=true, desc='搜索框'), 但被误点。
@@ -5840,8 +5843,6 @@ class FarmAccessibilityService : AccessibilityService() {
             // top=156 < 508.6), 被搜索栏区域过滤跳过, 导致 navigateAlipay fallback to search 失败。
             // 修复：当 act 是 H5 容器（XRiverActivity 等）时, 不应用搜索栏区域过滤。
             // H5 页面顶部标题是正常的, 不应被当作搜索框占位文字跳过。
-            val currentAct = currentActivityName?.lowercase().orEmpty()
-            val isH5ContainerAct = currentAct.contains("xriver") || currentAct.contains("h5") || currentAct.contains("webview")
             if (screenHeight > 0 && rect.top < screenHeight * 0.20f && !isH5ContainerAct) {
                 debugLog("navigateAlipay: 芭芭农场 entry at ${rect.toShortString()} is in search bar area (top=${rect.top} < ${screenHeight * 0.20f}), skip and fallback to search")
                 // 直接走策略2（搜索框搜索）
