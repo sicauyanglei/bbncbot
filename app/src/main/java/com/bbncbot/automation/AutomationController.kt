@@ -2272,7 +2272,7 @@ object AutomationController {
                                         runBrowsingTask(1)
                                     } else {
                                         // 未进入商品详情页（可能是直播商品/登录对话框/其他页面），pressBack 退出跳过任务
-                                        debugLog("browseTask: not on product detail page after clicking product (activity=${service.currentActivityName}), skipping task")
+                                        debugLog("browseTask: not on product detail page after clicking product (activity=${service.getCurrentActivityName()}), skipping task")
                                         browsingProductEntered = false  // 复位，避免误触发 build630 商品列表页二次退出
                                         currentTaskIndex++  // 跳过此任务，避免重复尝试同一直播商品
                                         exitBrowsePage(service, reason = "not_product_detail_after_click")
