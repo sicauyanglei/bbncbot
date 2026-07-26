@@ -32,7 +32,58 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build633 修复"买限时折扣好物得奖励"任务被误判为浏览任务
+### commit (待提交) - fix: build634 修复 TAOBAO→ALIPAY 跨平台跳转后 navigateAlipay 入口识别失败导致死循环
+**用户需求**: "分析日志" → 选择方案 C "修复 navigateAlipay 入口识别（top=156 < 508.6 判断逻辑）"
+
+**输入日志**: `logs/debug_test_20260726_102123.log`（build633，593 行，TAOBAO 平台，10:15:28~10:21:23 约 6 分钟）
+
+**build633 验证结果**: ✅ 完美生效
+- 两种"买限时折扣好物得奖励"变体都被识别为 `paid=true` 跳过（line 94, 99）
+- isBrowseTask 兜底排除"限时折扣"/"折扣好物"（未触发，因 isPaidTask 已优先识别）
+
+**新问题**: 跨平台任务"逛逛支付宝芭芭农场"切换失败导致死循环（4 分钟）
+
+**问题详情**:
+1. 10:16:04 点击"逛逛支付宝芭芭农场" → SWITCHING_PLATFORM
+2. 10:16:10 ALIPAY 已自动跳转到芭芭农场 H5 页面（act=XRiverActivity）
+3. 10:16:12 navigateAlipay 找到"芭芭农场"入口（bounds=[125,156][567,242], top=156）
+   - 屏幕高 2543, 阈值 = 2543 * 0.20 = 508.6
+   - 156 < 508.6, 被搜索栏区域过滤跳过 → fallback to search 失败
+4. 10:16:10-10:16:35 NAVIGATE_TARGET_FARM 7 次 retry, isOnFarmPage 始终返回 false
+   - sample=[松开刷新, 稍等片刻, 返回, 支付宝·芭芭农场, 更多...] 只有 native 框架元素
+   - 无 hasFarmContent 关键词 → isOnFarmPage=false
+5. 10:16:35 max retries reached, abort → RETURN_ORIGINAL
+6. 10:16:53-10:17:15 回到 TAOBAO 但未回到农场（sample=[下拉刷新, 百亿补贴, 淘宝秒杀]）
+7. 10:17:15 重新导航 → 又遇到相同任务列表 → 又选 #3 跨平台任务 → 又 SWITCHING_PLATFORM → 死循环 4 分钟
+8. 10:21:19 用户手动停止
+
+**根因（双重）**:
+1. **navigateAlipay 入口识别错误**: H5 页面（act=XRiverActivity）的"芭芭农场"标题（top=156）被搜索栏区域过滤跳过
+2. **isOnFarmPage 未识别 H5 页面**: act=XRiverActivity 时 H5 内容未加载完, sample 只有 native 框架元素, 无 hasFarmContent 关键词 → 返回 false
+
+**修复（2 处）**:
+
+#### 修复1: isOnFarmPage 增加 XRiver H5 fallback ([FarmAccessibilityService.kt#L854-870](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L854))
+- 在 `if (!hasFarmContentEffective)` 分支中, 增加 XRiverActivity + 含"芭芭农场"文字的兜底
+- 当 act=XRiverActivity 且页面含"芭芭农场"文字（如"支付宝·芭芭农场"）且 farmPkgWindowVisible 时, 返回 true
+- 安全性: 蚂蚁庄园等其他 XRiverActivity 页面不含"芭芭农场"文字, 不会误判
+
+#### 修复2: navigateAlipay 搜索栏区域过滤增加 act 检查 ([FarmAccessibilityService.kt#L5837-5845](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L5837))
+- 在 `rect.top < screenHeight * 0.20f` 条件中, 增加 `&& !isH5ContainerAct`
+- isH5ContainerAct = act 包含 "xriver" 或 "h5" 或 "webview"
+- H5 容器时, "芭芭农场"文字是页面顶部标题, 不应被当作搜索框占位文字跳过
+
+**预期效果**:
+- TAOBAO→ALIPAY 跨平台跳转后, ALIPAY 自动进入芭芭农场 H5 页面（act=XRiverActivity）
+- isOnFarmPage 通过 XRiver H5 fallback 返回 true → NAVIGATE_TARGET_FARM 成功 → FERTILIZE_TARGET
+- navigateAlipay 不再误过滤 H5 页面顶部标题（即使触发, isOnFarmPage 也能快速返回 true）
+- 不再死循环, 跨平台任务能正常完成
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 10e18c8 - fix: build633 修复"买限时折扣好物得奖励"任务被误判为浏览任务
 **用户需求**: "分析日志，'买限时折扣好物得奖励'不完成这类任务"
 
 **输入日志**: `logs/debug_test_20260726_100620.log`（build632，442 行，TAOBAO 平台，10:03:32~10:06:20 约 3 分钟）

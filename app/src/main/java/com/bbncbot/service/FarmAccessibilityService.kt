@@ -851,6 +851,23 @@ class FarmAccessibilityService : AccessibilityService() {
                 farmPageCacheTime = now
                 return true
             }
+            // build634 修复（debug_test_20260726_102123.log, build633 line 166-167）：
+            // 历史问题：TAOBAO→ALIPAY 跨平台跳转后, ALIPAY 自动进入芭芭农场 H5 页面
+            // (act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity), 但 H5 内容未加载完,
+            // sample=[松开刷新, 稍等片刻, 返回, 支付宝·芭芭农场, 更多...] 只有 native 框架元素,
+            // 无 hasFarmContent 关键词 → isOnFarmPage=false → NAVIGATE_TARGET_FARM 7 次 retry 失败 →
+            // RETURN_ORIGINAL → 重新导航 → 又选跨平台任务 → 死循环 4 分钟。
+            // 修复：XRiverActivity 是支付宝 H5 容器, 若页面含"芭芭农场"标题文字（如"支付宝·芭芭农场"）,
+            // 认为 H5 内容未加载完但已在农场 H5 页, 返回 true。安全性：蚂蚁庄园等其他 XRiverActivity
+            // 页面不含"芭芭农场"文字, 不会误判。
+            val isXRiverFarmActivity = activity.contains("xriver")
+            val hasFarmTitle = allText.any { it.contains("芭芭农场") }
+            if (isXRiverFarmActivity && hasFarmTitle && farmPkgWindowVisible) {
+                debugLog("isOnFarmPage: XRiver H5 fallback triggered (activity=$activity, has Farm title), assuming farm H5 page (content not loaded yet)")
+                farmPageCache = true
+                farmPageCacheTime = now
+                return true
+            }
             debugLog("isOnFarmPage: no farm content, sample=${allText.take(8)}")
             farmPageCache = false
             farmPageCacheTime = now
@@ -5816,7 +5833,16 @@ class FarmAccessibilityService : AccessibilityService() {
             // y=121 在屏幕顶部 5%）isClickable=true, isSearchNode=false（text 不含"搜索"）,
             // 被当作有效入口反复点击,但点击后不跳转（搜索框文字不是入口）,卡 2 分钟。
             // 修复：排除屏幕顶部 y < 20% 的"芭芭农场"节点（搜索框区域）,直接走策略2 搜索。
-            if (screenHeight > 0 && rect.top < screenHeight * 0.20f) {
+            //
+            // build634 修复（debug_test_20260726_102123.log, build633 line 172）：
+            // 历史问题：TAOBAO→ALIPAY 跨平台跳转后, ALIPAY 自动进入芭芭农场 H5 页面
+            // (act=XRiverActivity), "芭芭农场" 是 H5 页面顶部标题 (bounds=[125,156][567,242],
+            // top=156 < 508.6), 被搜索栏区域过滤跳过, 导致 navigateAlipay fallback to search 失败。
+            // 修复：当 act 是 H5 容器（XRiverActivity 等）时, 不应用搜索栏区域过滤。
+            // H5 页面顶部标题是正常的, 不应被当作搜索框占位文字跳过。
+            val currentAct = currentActivityName?.lowercase().orEmpty()
+            val isH5ContainerAct = currentAct.contains("xriver") || currentAct.contains("h5") || currentAct.contains("webview")
+            if (screenHeight > 0 && rect.top < screenHeight * 0.20f && !isH5ContainerAct) {
                 debugLog("navigateAlipay: 芭芭农场 entry at ${rect.toShortString()} is in search bar area (top=${rect.top} < ${screenHeight * 0.20f}), skip and fallback to search")
                 // 直接走策略2（搜索框搜索）
                 farmEntry.recycle()
