@@ -2588,7 +2588,7 @@ object AutomationController {
                 moveTo(AutomationState.RETURNING)
                 handler.postDelayed({ runReturning(0) }, INTERVAL_CLICK_MS)
             } else {
-                debugLog("browseTask: fertilizer granted page detected, but no deep link for $currentPlatform, exiting via pressBack (swipes=$swipeCount/$browseTaskTargetSwipes)")
+                debugLog("browseTask: fertilizer granted page detected, but no deep link for ${service.currentPlatform}, exiting via pressBack (swipes=$swipeCount/$browseTaskTargetSwipes)")
                 exitBrowsePage(service, reason = "fertilizer_granted_no_deep_link")
             }
             return
