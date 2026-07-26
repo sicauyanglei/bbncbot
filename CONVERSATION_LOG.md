@@ -32,7 +32,69 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build637 修复 RESUME_ORIGINAL_FARM 阶段 TAOBAO 未真正启动到前台
+### commit (待提交) - fix: build638 修复 RESUME_ORIGINAL_FARM 反复 kill TAOBAO 导致无法启动到前台
+**用户需求**: "分析日志"
+
+**输入日志**: `logs/debug_test_20260726_125646.log`（build637，565 行，TAOBAO→ALIPAY 跨平台，12:42:34~12:47:54 约 5 分钟）
+
+**build637 验证结果**: ❌ 修复未生效，问题更严重
+- 12:46:44 跨平台任务"逛逛支付宝芭芭农场"点击"去完成"
+- 12:46:50 ALIPAY 自动跳转，XRiver H5 fallback 生效 ✅
+- 12:47:01 `switchPlatform: target farm page loaded, fertilizing` ✅
+- 12:47:03 ALIPAY 施肥完成（11 个坐标点击）✅
+- 12:47:09 `switchPlatform: returning to original TAOBAO` → RETURN_ORIGINAL
+- **12:47:09.326 `switchPlatform: original platform loaded, resuming farm navigation`** ← **误判！**
+- 12:47:19~12:47:36 RESUME_ORIGINAL_FARM retry 0~7，`pkg=com.hihonor.android.launcher` 一直在桌面
+- 12:47:23/28/33 retry 2/4/6 触发 build637 修复逻辑，但每次都 `forceKillApp: killing com.taobao.taobao`
+- 12:47:36 `original farm not loaded, re-navigating from start` → 放弃
+- 12:47:47 用户手动停止
+
+**根因 1**: RETURN_ORIGINAL 误判原平台已加载
+- [AutomationController.kt#L5389](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5389) 用 `getCurrentWindowPackage()` 判断原平台是否在前台
+- `getCurrentWindowPackage()` 扫描所有 `windows`，可能返回 TAOBAO 包名（即使 `activeRootPkg='com.hihonor.android.launcher'`）
+- `service.currentPlatform == switchOriginalPlatform` 在前面 `setCurrentPlatform()` 后必然为 true，无意义
+- 导致误判"原平台已加载"，进入 RESUME_ORIGINAL_FARM 后 `isOnFarmPage()` 一直 false
+
+**根因 2**: reopenFarmByDeepLink 反复 kill TAOBAO
+- [FarmAccessibilityService.kt#L5360-5365](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L5360) 每次 relaunch 都先 HOME + `forceKillApp`
+- 但 RESUME_ORIGINAL_FARM 场景当前前台是 ALIPAY（不是 TAOBAO），kill TAOBAO 没意义
+- 反复 kill 让 TAOBAO 更难启动到前台（Honor 后台启动限制）
+- 日志显示 retry 2/4/6 都触发 kill，但 `pkg` 一直是 `com.hihonor.android.launcher`
+
+**根因 3**: build637 修复的 relaunch 调用链触发 kill 循环
+- `service.launchPlatformApp(switchOriginalPlatform)` → `reopenFarmByDeepLink` → `forceKillApp`
+- 形成 kill-relaunch-kill 循环，TAOBAO 永远无法启动到前台
+
+**修复 1**: RETURN_ORIGINAL 用 activeRootPkg 判断原平台是否真正在前台
+- 原: `getCurrentWindowPackage()` 扫描所有 windows（可能返回非前台窗口的包名）
+- 新: `rootInActiveWindowSafe()?.packageName`（activeRootPkg，用户实际看到的窗口）
+- 同时 retry 时传 `killCurrentFirst=false`
+
+**修复 2**: reopenFarmByDeepLink/launchPlatformApp 添加 `killCurrentFirst` 参数
+- 默认 `killCurrentFirst=true`（保持原有行为，任务完成场景需要 kill 老进程）
+- 跨平台切换场景传 `killCurrentFirst=false`，直接 startActivity 启动目标平台，不 kill
+- 避免 Honor 系统下反复 kill 导致 App 无法启动到前台
+
+**修复 3**: 所有 7 处跨平台切换调用点传 `killCurrentFirst=false`
+- LAUNCH_TARGET: `launchPlatformApp(switchTargetPlatform, killCurrentFirst = false)`
+- LAUNCH_TARGET 失败: `launchPlatformApp(switchOriginalPlatform, killCurrentFirst = false)`
+- NAVIGATE_TARGET_FARM 失败: `launchPlatformApp(switchOriginalPlatform, killCurrentFirst = false)`
+- RETURN_ORIGINAL 入口: `launchPlatformApp(switchOriginalPlatform, killCurrentFirst = false)`
+- RETURN_ORIGINAL retry: `launchPlatformApp(switchOriginalPlatform, killCurrentFirst = false)`
+- RETURN_ORIGINAL MAX_SWITCH_RETRIES 失败: `launchPlatformApp(switchOriginalPlatform, killCurrentFirst = false)`
+- RESUME_ORIGINAL_FARM retry: `launchPlatformApp(switchOriginalPlatform, killCurrentFirst = false)`
+
+**预期效果**:
+- RETURN_ORIGINAL 不再误判原平台已加载（用 activeRootPkg 判断）
+- 跨平台切换时不再 kill 原平台，直接 startActivity 启动
+- 解决 Honor 系统下反复 kill 导致 TAOBAO 无法启动到前台的问题
+- RESUME_ORIGINAL_FARM 能快速回到原平台芭芭农场继续下一个任务
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 86ec158 - fix: build637 修复 RESUME_ORIGINAL_FARM 阶段 TAOBAO 未真正启动到前台
 **用户需求**: "继续修复所有问题"
 
 **输入日志**: `logs/debug_test_20260726_112042.log`（build636，303 行，TAOBAO 平台，11:18:28~11:20:42 约 2 分钟）

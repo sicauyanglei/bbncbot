@@ -5345,7 +5345,7 @@ class FarmAccessibilityService : AccessibilityService() {
      *
      * @return true 表示已发起打开请求，false 表示无 deep link 或打开失败
      */
-    fun reopenFarmByDeepLink(targetPlatform: Platform = currentPlatform): Boolean {
+    fun reopenFarmByDeepLink(targetPlatform: Platform = currentPlatform, killCurrentFirst: Boolean = true): Boolean {
         // 1. 优先用桌面快捷方式（等同点击桌面"芭芭农场"组件，内部含 kill 老进程）
         if (com.bbncbot.util.FarmShortcutLauncher.startFarmShortcut(this, targetPlatform) { msg -> debugLog("FarmShortcut: $msg") }) {
             debugLog("reopenFarmByDeepLink: started shortcut for $targetPlatform")
@@ -5357,11 +5357,21 @@ class FarmAccessibilityService : AccessibilityService() {
         // 2. kill 目标平台老进程后重开（deep link 直达 或 启动 App + 导航）
         // 任务完成时目标 App 在前台，killBackgroundProcesses 只能 kill 后台进程，
         // 所以先按 HOME 键把目标 App 退到后台，再 kill
-        debugLog("reopenFarmByDeepLink: pressing HOME to background $targetPlatform before kill")
-        performGlobalAction(GLOBAL_ACTION_HOME)
-        // 等待 HOME 切换生效后再 kill（无延迟，killBackgroundProcesses 会异步生效）
-        for (pkg in targetPlatform.config.packageNames) {
-            forceKillApp(pkg, pressBackFirst = false)
+        //
+        // build638 修复（debug_test_20260726_125646.log line 488-534）：
+        // 历史问题：跨平台切换 RESUME_ORIGINAL_FARM 场景，当前前台是其他平台（如 ALIPAY），
+        // 目标平台（如 TAOBAO）已不在前台。此时 HOME + kill TAOBAO 没有意义，
+        // 反而反复 kill 让 TAOBAO 更难启动到前台（Honor 后台启动限制）。
+        // 修复：添加 killCurrentFirst 参数，跨平台切换场景传 false，直接 relaunch 不 kill。
+        if (killCurrentFirst) {
+            debugLog("reopenFarmByDeepLink: pressing HOME to background $targetPlatform before kill")
+            performGlobalAction(GLOBAL_ACTION_HOME)
+            // 等待 HOME 切换生效后再 kill（无延迟，killBackgroundProcesses 会异步生效）
+            for (pkg in targetPlatform.config.packageNames) {
+                forceKillApp(pkg, pressBackFirst = false)
+            }
+        } else {
+            debugLog("reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching $targetPlatform")
         }
         // 2a. deep link 直达农场页
         val deepLink = targetPlatform.config.farmDeepLink
@@ -5510,9 +5520,10 @@ class FarmAccessibilityService : AccessibilityService() {
      * @param targetPlatform 目标平台
      * @return true 启动成功，false 失败
      */
-    fun launchPlatformApp(targetPlatform: com.bbncbot.automation.Platform): Boolean {
+    fun launchPlatformApp(targetPlatform: com.bbncbot.automation.Platform, killCurrentFirst: Boolean = true): Boolean {
         // 优先用 deep link 直达目标平台农场页（等同桌面快捷方式进入）
-        if (reopenFarmByDeepLink(targetPlatform)) {
+        // build638: killCurrentFirst 透传给 reopenFarmByDeepLink，跨平台切换场景传 false 避免 kill 原平台
+        if (reopenFarmByDeepLink(targetPlatform, killCurrentFirst)) {
             debugLog("launchPlatformApp: opened $targetPlatform via deep link")
             return true
         }

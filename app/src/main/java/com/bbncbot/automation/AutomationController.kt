@@ -5317,7 +5317,8 @@ object AutomationController {
                 // 未自动跳转，主动启动目标平台
                 if (switchRetryCount == 0) {
                     debugLog("switchPlatform: launching target ${switchTargetPlatform} manually")
-                    service.launchPlatformApp(switchTargetPlatform)
+                    // build638: killCurrentFirst=false，当前前台是原平台，kill 目标平台没意义
+                    service.launchPlatformApp(switchTargetPlatform, killCurrentFirst = false)
                 }
                 switchRetryCount++
                 if (switchRetryCount >= MAX_SWITCH_RETRIES) {
@@ -5330,7 +5331,8 @@ object AutomationController {
                     // 修复：失败后恢复 currentPlatform 到原平台,并重新启动原平台 App。
                     debugLog("switchPlatform: restoring currentPlatform to $switchOriginalPlatform and relaunching")
                     service.setCurrentPlatform(switchOriginalPlatform)
-                    service.launchPlatformApp(switchOriginalPlatform)
+                    // build638: killCurrentFirst=false，当前前台是目标平台，kill 原平台没意义
+                    service.launchPlatformApp(switchOriginalPlatform, killCurrentFirst = false)
                     currentTaskIndex++
                     moveTo(AutomationState.PROCESSING_TASK)
                     handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
@@ -5353,7 +5355,8 @@ object AutomationController {
                     debugLog("switchPlatform: target farm not loaded, returning to original")
                     switchStage = "RETURN_ORIGINAL"
                     switchRetryCount = 0
-                    service.launchPlatformApp(switchOriginalPlatform)
+                    // build638: killCurrentFirst=false，当前前台是目标平台，kill 原平台没意义
+                    service.launchPlatformApp(switchOriginalPlatform, killCurrentFirst = false)
                     handler.postDelayed({ runSwitchingPlatform() }, INTERVAL_PAGE_LOAD_MS)
                     return
                 }
@@ -5381,13 +5384,23 @@ object AutomationController {
                     // build636 修复：取消可能残留的 navigateAlipay 队列（LAUNCH_TARGET 阶段可能触发）
                     service.cancelNavigation()
                     service.setCurrentPlatform(switchOriginalPlatform)
-                    service.launchPlatformApp(switchOriginalPlatform)
+                    // build638: killCurrentFirst=false，当前前台是目标平台，kill 原平台没意义
+                    service.launchPlatformApp(switchOriginalPlatform, killCurrentFirst = false)
                 }
                 service.refreshPlatform()
-                val currentPkg = service.getCurrentWindowPackage() ?: ""
+                // build638 修复（debug_test_20260726_125646.log line 461-534）：
+                // 历史问题：用 getCurrentWindowPackage() 判断原平台是否在前台，但该方法扫描所有 windows，
+                // 可能返回 TAOBAO 包名（即使 activeRootPkg='com.hihonor.android.launcher'），导致误判
+                // "原平台已加载"，进入 RESUME_ORIGINAL_FARM 后 isOnFarmPage 一直 false，17 秒后超时。
+                // 修复：用 rootInActiveWindowSafe().packageName（activeRootPkg）判断，这才是用户实际看到的窗口。
+                val activeRootPkg = service.rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
                 val originalPkg = switchOriginalPlatform.config.packageNames.firstOrNull() ?: ""
-                if (currentPkg == originalPkg || service.currentPlatform == switchOriginalPlatform) {
-                    debugLog("switchPlatform: original platform loaded, resuming farm navigation")
+                val isOriginalInForeground = activeRootPkg.isNotEmpty() && (
+                    activeRootPkg == originalPkg ||
+                    switchOriginalPlatform.config.internalPackagePrefixes.any { activeRootPkg.startsWith(it) }
+                )
+                if (isOriginalInForeground) {
+                    debugLog("switchPlatform: original platform loaded (activeRootPkg=$activeRootPkg), resuming farm navigation")
                     switchStage = "RESUME_ORIGINAL_FARM"
                     switchRetryCount = 0
                     service.cancelNavigation()
@@ -5395,12 +5408,14 @@ object AutomationController {
                     handler.postDelayed({ runSwitchingPlatform() }, INTERVAL_PAGE_LOAD_MS * 2)
                     return
                 }
-                // build636 修复：retry 期间若仍在 launcher，每隔 2 次主动 relaunch 原平台
+                // build638 修复：retry 期间若仍在 launcher，每隔 2 次主动 relaunch 原平台
                 // （Honor 系统下 launchPlatformApp 可能因后台启动限制未成功）
+                // 注意：killCurrentFirst=false，因为当前前台是其他平台（如 ALIPAY），kill 原平台没意义，
+                // 反而会让原平台更难启动到前台（Honor 后台启动限制）
                 if (switchRetryCount > 0 && switchRetryCount % 2 == 0) {
-                    debugLog("switchPlatform: still not on original after $switchRetryCount retries, actively relaunching ${switchOriginalPlatform}")
+                    debugLog("switchPlatform: still not on original after $switchRetryCount retries (activeRootPkg=$activeRootPkg), actively relaunching ${switchOriginalPlatform}")
                     service.setCurrentPlatform(switchOriginalPlatform)
-                    service.launchPlatformApp(switchOriginalPlatform)
+                    service.launchPlatformApp(switchOriginalPlatform, killCurrentFirst = false)
                 }
                 switchRetryCount++
                 if (switchRetryCount >= MAX_SWITCH_RETRIES) {
@@ -5408,7 +5423,8 @@ object AutomationController {
                     // build588: 恢复 currentPlatform 到原平台（与 LAUNCH_TARGET 失败分支同理）
                     debugLog("switchPlatform: restoring currentPlatform to $switchOriginalPlatform and relaunching")
                     service.setCurrentPlatform(switchOriginalPlatform)
-                    service.launchPlatformApp(switchOriginalPlatform)
+                    // build638: killCurrentFirst=false，当前前台是目标平台/launcher，kill 原平台没意义
+                    service.launchPlatformApp(switchOriginalPlatform, killCurrentFirst = false)
                     currentTaskIndex++
                     moveTo(AutomationState.PROCESSING_TASK)
                     handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
@@ -5427,17 +5443,18 @@ object AutomationController {
                     handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)
                     return
                 }
-                // build637 修复（debug_test_20260726_112042.log line 226-248）：
-                // 历史问题: RETURN_ORIGINAL 检测到 currentPkg==TAOBAO 误判为"原平台已加载", 进入 RESUME_ORIGINAL_FARM
-                //   后 isOnFarmPage 一直返回 false (activeRootPkg='com.hihonor.android.launcher', TAOBAO 未真正启动到前台)。
-                //   navigateToFarm 内部 retry 8 次后放弃, RESUME_ORIGINAL_FARM 只等待不主动 relaunch, 17 秒后超时。
-                // 根因: Honor 系统下 launchPlatformApp 可能因后台启动限制未成功, TAOBAO 进程存在但 Activity 不在前台。
-                // 修复: retry 时每隔 2 次主动 relaunch 原平台 + 重新 navigateToFarm
+                // build638 修复（debug_test_20260726_125646.log line 488-534）：
+                // 历史问题: build637 在 RESUME_ORIGINAL_FARM retry 时主动 relaunch 原平台，但
+                //   launchPlatformApp → reopenFarmByDeepLink → forceKillApp，每次 relaunch 都先 kill TAOBAO。
+                //   当前前台是 ALIPAY（不是 TAOBAO），kill TAOBAO 没意义，反复 kill 让 TAOBAO 更难启动到前台
+                //   （Honor 后台启动限制）。日志显示 retry 2/4/6 都触发 kill，但 pkg 一直是 launcher。
+                // 修复: relaunch 时传 killCurrentFirst=false，直接 startActivity 启动原平台，不 kill。
                 if (switchRetryCount > 0 && switchRetryCount % 2 == 0) {
                     debugLog("switchPlatform: original farm not loaded after $switchRetryCount retries, actively relaunching ${switchOriginalPlatform} and re-navigating")
                     service.cancelNavigation()
                     service.setCurrentPlatform(switchOriginalPlatform)
-                    service.launchPlatformApp(switchOriginalPlatform)
+                    // build638: killCurrentFirst=false，避免反复 kill 原平台导致无法启动到前台
+                    service.launchPlatformApp(switchOriginalPlatform, killCurrentFirst = false)
                     // 等待 app 启动后再 navigateToFarm
                     handler.postDelayed({
                         if (state == AutomationState.SWITCHING_PLATFORM) {
