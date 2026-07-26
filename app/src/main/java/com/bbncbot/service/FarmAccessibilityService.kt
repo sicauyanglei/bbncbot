@@ -1177,15 +1177,41 @@ class FarmAccessibilityService : AccessibilityService() {
      */
     fun isGameCompletePage(): Boolean {
         val root = rootInActiveWindowSafe() ?: return false
+        // build646 修复（debug_test_20260726_162937.log）：
+        // 历史问题: 游戏任务（如"玩消消乐得肥料"）点击"去完成"后，系统弹出悬浮窗权限提示：
+        //   "芭芭农场机器人正在其他应用的上层显示内容。如果您不想让此功能..."
+        // 该系统 UI 页面（com.android.systemui）的 root 被读取，
+        // collectAllText 收集到的文本含"芭芭农场"（hasGameOrFarmContext=true），
+        // 且某个文本匹配了 isComplete 关键词（如"已完成"/"任务完成"），
+        // 导致 isGameCompletePage 误判为 YES，游戏任务被误认为已完成。
+        // 日志证据:
+        //   16:27:01 isGameCompletePage: YES, sample=[Android 系统, 1 分钟前, 收起,
+        //     芭芭农场机器人正在其他应用的上层显示内容。, 如果您不想让此功能...]
+        //   ← sample 全是系统悬浮窗权限提示文案，不是游戏完成页
+        //   16:27:01~16:27:14 gamePlay: game complete detected, waiting (no click)
+        //   ← 等待 17 秒后误退出游戏，肥料未获得
+        // 修复: 排除系统 UI 窗口（包名是 com.android.systemui 或含"上层显示内容"文案），
+        // 这类页面是无障碍服务悬浮窗权限提示，不是游戏完成页。
+        val rootPkg = root.packageName?.toString().orEmpty()
+        val firstTexts = collectAllText(root).take(8)
+        val isSystemOverlay = rootPkg == "com.android.systemui" ||
+            firstTexts.any { it.contains("上层显示内容") || it.contains("Android 系统") }
+        if (isSystemOverlay) {
+            debugLog("isGameCompletePage: NO (system overlay window, pkg=$rootPkg)")
+            return false
+        }
         val allText = collectAllText(root)
         // 收紧完成关键词：移除过宽的"恭喜"（"恭喜您获得优惠券"等广告文案会误匹配）
         // 保留更明确的"恭喜获得"/"挑战成功"/"通关"等组合
+        val matchedKeywords = mutableListOf<String>()
         val isComplete = allText.any { text ->
-            text.contains("领取奖励") ||
+            val matched = text.contains("领取奖励") ||
                 text.contains("挑战成功") || text.contains("通关") ||
                 text.contains("升级成功") || text.contains("获得肥料") ||
                 text.contains("任务完成") || text.contains("已完成") ||
                 text.contains("恭喜获得") || text.contains("游戏结束")
+            if (matched) matchedKeywords.add(text.take(50))
+            matched
         }
         if (!isComplete) return false
         // 上下文校验：若同时是广告主落地页（含多个诱导按钮且无农场/游戏核心文案），
@@ -1204,7 +1230,7 @@ class FarmAccessibilityService : AccessibilityService() {
             debugLog("isGameCompletePage: NO (no game/farm context, suspected ad bait)")
             return false
         }
-        debugLog("isGameCompletePage: YES, sample=${allText.take(5)}")
+        debugLog("isGameCompletePage: YES, matched=${matchedKeywords.take(3)}, sample=${allText.take(5)}")
         return true
     }
 

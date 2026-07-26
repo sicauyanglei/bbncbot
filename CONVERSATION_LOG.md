@@ -32,7 +32,54 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build645 修复 collectTaskContextText 兜底策略 root 来源错误
+### commit (待提交) - fix: build646 修复 isGameCompletePage 误判系统悬浮窗为游戏完成页
+**用户需求**: "分析日志"
+
+**输入日志**: `logs/debug_test_20260726_162937.log`（build645，187 行，16:25:52~16:29:37 约 4 分钟）
+
+**build645 验证结果**: ✅ collectTaskContextText 兜底策略修复生效
+- task #1~#3 全部正确获取任务上下文（containerHeight=203）
+- task #1 "买限时折扣好物得奖励" → isPaidTask=YES，正确跳过
+- task #2 "买限时折扣好物得奖励(0/3)" → isPaidTask=YES，正确跳过
+- task #3 "玩消消乐得肥料" → isGameTask=YES，进入 GAME_PLAYING
+- ❌ task #3 游戏任务被误判为完成（系统悬浮窗页面被误判）
+
+**新发现问题**: isGameCompletePage 误判系统悬浮窗权限提示为游戏完成页
+- 16:26:51 processTask: game task #3, text='去完成', trialPlay=false, stayTargetMs=30000
+- 16:26:51 state: PROCESSING_TASK -> GAME_PLAYING
+- 16:27:01 isGameCompletePage: YES, sample=[Android 系统, 1 分钟前, 收起,
+  芭芭农场机器人正在其他应用的上层显示内容。, 如果您不想让此功能...]
+  ← sample 全是系统悬浮窗权限提示文案，不是游戏完成页
+- 16:27:01~16:27:14 gamePlay: game complete detected, waiting (no click)
+  ← 等待 17 秒后误退出游戏（stayTargetMs=30000 未到）
+- 16:27:18 gamePlay: back to farm, assuming complete
+  ← 肥料未获得，游戏任务失败
+
+**根因分析**:
+- 游戏任务点击"去完成"后，系统弹出无障碍服务悬浮窗权限提示
+- 该系统 UI 页面（com.android.systemui）的 root 被读取
+- collectAllText 收集到的文本含"芭芭农场"（hasGameOrFarmContext=true）
+- 且某个文本匹配了 isComplete 关键词（如"已完成"/"任务完成"，可能来自系统 UI 的其他文本）
+- isGameCompletePage 误判为 YES，游戏任务被误认为已完成
+- 等待 17 秒后（远未到 30 秒 stayTargetMs）误退出游戏，肥料未获得
+
+**修复**: isGameCompletePage 排除系统 UI 窗口
+- [FarmAccessibilityService.kt#L1178-1202](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L1178)
+- 检测 root 包名是否为 `com.android.systemui`
+- 或前 8 个文本是否含"上层显示内容"/"Android 系统"
+- 命中则返回 false（不是游戏完成页，是系统悬浮窗权限提示）
+- 增加 matchedKeywords 诊断日志，便于排查误匹配关键词
+
+**预期效果**:
+- 游戏任务点击"去完成"后，系统悬浮窗不再被误判为游戏完成页
+- isGameCompletePage 返回 false，游戏继续等待 30 秒（stayTargetMs）
+- 30 秒后正常退出游戏，获得肥料
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit d236154 - fix: build645 修复 collectTaskContextText 兜底策略 root 来源错误
 **用户需求**: "分析日志"
 
 **输入日志**: `logs/debug_test_20260726_161521.log`（build644，约 1500 行，16:08:25~16:15）
