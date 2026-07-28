@@ -2829,6 +2829,25 @@ object AutomationController {
             // 任务进行中（倒计时或"每浏览x秒"进度提示仍在）时跳过搜索推荐页检测，避免误判提前退出
             val countdownActive = service.findBrowseRewardCountdownHint() > 0
             val progressActive = service.hasBrowseRewardProgressHint()
+            // build663 修复（debug_test_20260728_083516.log, build662-f807e14）：
+            //   08:34:33.765 processTask: browse task #2, entering BROWSING_TASK
+            //   08:34:41.950 browseTask: found progress info type=FRACTION, cur=0, tot=10, percent=0%
+            //   08:34:41.958 browseTask: skipping product click, swiping in list page directly
+            //   08:34:47~08:35:10 swipe #1~#7（pageType=farm_home, countdown=0s, progress=false）
+            //   → 点击"去完成"后未跳转到商品浏览页，仍留在农场主页（onFarm=true, pageType=farm_home）
+            //   → 在农场主页滑动 7 次无效，进度一直 0/10，浪费 25 秒
+            // 根因：UC 平台"去完成"按钮 clickable=false，dispatchGesture 坐标点击在某些 WebView 场景下未触发跳转。
+            // 修复：滑动 2 次后若仍在农场主页（onFarm=true 且 pageType=farm_home）且无倒计时/进度，
+            //   说明"去完成"点击未跳转，提前退出跳过任务，避免空滑浪费时间。
+            if (swipeCount >= 2 && !countdownActive && !progressActive &&
+                service.isOnFarmPage() && service.getPageType() == "farm_home") {
+                debugLog("browseTask: still on farm home after $swipeCount swipes (去完成 click did not navigate), skipping task")
+                Log.i(TAG, "browseTask: still on farm home after $swipeCount swipes, skipping (click did not navigate)")
+                currentTaskIndex++
+                collectedCount++
+                exitBrowsePage(service, reason = "still_on_farm_home_after_swipes")
+                return@postDelayed
+            }
             // 检测搜索推荐页（"当前页下单得肥料"）→ 直接退出
             if (!countdownActive && !progressActive && service.isSearchRecommendPage()) {
                 debugLog("browseTask: search recommend page during swipe, exiting")

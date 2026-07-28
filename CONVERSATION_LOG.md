@@ -32,7 +32,38 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build662 UC 平台 isPaidTask clickable 检查过严 + 互动广告 pressBack 过早
+### commit (待提交) - fix: build663 browseTask 滑动后仍在农场主页则提前退出跳过任务
+
+**用户需求**: "分析日志"（从 GitHub 拉取 build662 日志 debug_test_20260728_083516.log）
+
+**日志分析** (build662, UC 平台):
+- ✅ build662 两个修复均生效：
+  - isPaidTask clickable 检查修复生效（`isPaidTask: YES, context='去支付宝逛蚂蚁庄园...'`，不再 "skip, button not clickable"）
+  - 互动广告 pressBack 过早修复生效（本次广告是 HCRewardVideoActivity 汇川广告，流程正常）
+- ✅ task #1 "签到" 已签（点击后页面变"已领取"），3 次重试后正确跳过
+- ❌ **问题**: task #2 "浏览广告赚肥料 (0/10)" 点击"去完成"后未跳转到商品浏览页
+  - 08:34:41.950 browseTask: found progress info type=FRACTION, cur=0, tot=10, percent=0%
+  - 08:34:41.958 browseTask: skipping product click, swiping in list page directly
+  - 08:34:47~08:35:10 swipe #1~#7（pageType=farm_home, countdown=0s, progress=false）
+  - → 在农场主页滑动 7 次无效，进度一直 0/10，浪费 25 秒
+  - → 08:35:10 用户手动停止（STOPPING 后立即上传日志）
+
+**根因**: UC 平台"去完成"按钮 clickable=false，dispatchGesture 坐标点击在某些 WebView 场景下未触发跳转，仍留在农场主页（onFarm=true, pageType=farm_home）。browseTask 滑动循环中无"仍在农场主页"检测，导致空滑 7 次浪费时间。
+
+**修复**: [AutomationController.kt#scheduleNextBrowseCheck#L2832](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2832)
+- 滑动 2 次后若仍在农场主页（onFarm=true 且 pageType=farm_home）且无倒计时/进度
+- 说明"去完成"点击未跳转，提前退出跳过任务，避免空滑浪费时间
+- 不影响正常浏览任务（正常浏览任务点击后会跳转到商品/活动页，pageType != farm_home）
+
+**预期效果**:
+- UC 平台"去完成"点击未跳转时，滑动 2 次（约 8 秒）后即退出跳过，不再空滑 7 次（25 秒）
+- 正常浏览任务不受影响（落地页是商品/活动页，不会误判为 farm_home）
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit f807e14 - fix: build662 UC 平台 isPaidTask clickable 检查过严 + 互动广告 pressBack 过早
 
 **用户需求**: "分析日志"（从 GitHub 拉取 build661 日志 debug_test_20260727_072301.log）
 
