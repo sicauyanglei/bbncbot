@@ -1037,6 +1037,22 @@ object AutomationController {
         val buttons = service.findDirectCollectButtons()
         debugLog("collectDirect: found ${buttons.size} direct buttons, attempt=$attempt")
 
+        // build666 优化（用户需求"uc芭芭农场主页的'点击领取'按钮应该优先点击"）：
+        // 当 findDirectCollectButtons 返回 0 时，先检测页面是否有"已领取"/"明天领肥料"等已领取标识。
+        // 若有，说明当天"点击领取"奖励已领（按钮已变成"已领取"），无需再等 AI 视觉识别（15秒超时），
+        // 直接走 OPENING_TASK_LIST，避免浪费时间。
+        // 日志证据 debug_test_20260730_074843.log (build664):
+        //   07:47:19.098 [collectDirect-start] claim-text-nodes: text='已领取' bounds=[894,933][1123,1031]
+        //   07:47:19.118 collectDirect: found 0 direct buttons, attempt=0
+        //   → 当天已领过，"点击领取"按钮已变"已领取"，AI 视觉识别必然失败，15 秒超时无意义
+        if (buttons.isEmpty() && attempt == 0 && service.hasDailyRewardClaimedIndicator()) {
+            debugLog("collectDirect: daily reward already claimed (已领取/明天领肥料 detected), skip AI vision, go to task list")
+            Log.i(TAG, "collectDirect: daily reward already claimed, skip AI vision, opening task list")
+            moveTo(AutomationState.OPENING_TASK_LIST)
+            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
         // build596 诊断（用户反馈"uc芭芭农场主页,'点击领取'没有执行点击操作"）：
         // 当 findDirectCollectButtons 返回 0 时,dump 主页全部 text/desc 节点（含 bounds+clickable）,
         // 确认"点击领取"是否在无障碍树里。H5/Canvas 图像按钮不暴露 text 节点时,
@@ -1060,10 +1076,13 @@ object AutomationController {
         // build596 修复（用户反馈"uc芭芭农场主页,'点击领取'没有执行点击操作"）：
         // UC 主页"点击领取"是 H5/Canvas 图像按钮（文字+彩色背景）,无障碍树抓不到 text 节点,
         // findDirectCollectButtons 返回 0。需用 AI 视觉识别按钮坐标并点击。
-        // 策略：当 buttons 为空 且 未尝试过 AI 视觉识别 且 至少尝试过一次（attempt >= 1）时,
+        // 策略：当 buttons 为空 且 未尝试过 AI 视觉识别 时,
         // 截图交给 GLM-4.6V-Flash 识别"点击领取"按钮坐标,用 dispatchGesture 点击。
         // 防死循环：每轮只尝试一次 AI 视觉识别（aiVisionDirectClickAttempted 标记）。
-        if (buttons.isEmpty() && !aiVisionDirectClickAttempted && attempt >= 1) {
+        // build666 优化（用户需求"点击领取"应该优先点击）：原 attempt >= 1 先空转一次再触发 AI 视觉，
+        // 改为 attempt >= 0 在首次就触发 AI 视觉，让"点击领取"更快被识别点击。
+        // （已领取标识已在上面 hasDailyRewardClaimedIndicator 提前拦截，不会无意义触发 AI 视觉）
+        if (buttons.isEmpty() && !aiVisionDirectClickAttempted && attempt >= 0) {
             aiVisionDirectClickAttempted = true
             debugLog("collectDirect: no direct buttons found, trying AI vision to locate '点击领取' button")
             Log.i(TAG, "collectDirect: trying AI vision to locate '点击领取' button (H5/Canvas image button)")

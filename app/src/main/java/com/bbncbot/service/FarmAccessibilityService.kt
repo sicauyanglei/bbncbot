@@ -5347,6 +5347,26 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build666 添加（用户需求"uc芭芭农场主页的'点击领取'按钮应该优先点击"）：
+     * 检测农场主页是否有"已领取"/"明天领肥料"等每日奖励已领取标识。
+     *
+     * 当 findDirectCollectButtons 返回 0 时，若此方法返回 true，说明当天"点击领取"奖励已领
+     * （按钮已变成"已领取"/"明天领肥料"），无需再等 AI 视觉识别（15秒超时），直接走任务列表。
+     *
+     * 检测文案：UC 主页每日签到/领取奖励领取后，"点击领取"按钮会变成"已领取"+"明天领肥料"。
+     *
+     * @return true 表示页面有已领取标识（当天奖励已领）
+     */
+    fun hasDailyRewardClaimedIndicator(): Boolean {
+        val root = getRootInFarmApp() ?: return false
+        val allText = collectAllText(root)
+        // "已领取" + "明天领肥料" 组合是 UC 主页每日奖励领取后的标准标识
+        val hasClaimed = allText.any { it.contains("已领取") }
+        val hasTomorrow = allText.any { it.contains("明天领") }
+        return hasClaimed && hasTomorrow
+    }
+
+    /**
      * 诊断用：递归遍历节点树，收集所有含"领取"/"领肥"/"立即领"/"点击领"/"可领取"等关键字的
      * 文本节点信息（text/desc/bounds/clickable）。
      *

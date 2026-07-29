@@ -32,7 +32,37 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build665 UC 跨 App 浏览任务页 hint 检测失效修复
+### commit (待提交) - fix: build666 UC 主页"点击领取"优先点击 + 已领取标识跳过 AI 视觉
+
+**用户需求**: "uc芭芭农场主页的'点击领取'按钮应该优先点击"
+
+**日志分析** (build664, debug_test_20260730_074843.log):
+- 07:47:19.098 [collectDirect-start] claim-text-nodes: text='已领取' bounds=[894,933][1123,1031]
+- 07:47:19.118 collectDirect: found 0 direct buttons, attempt=0
+- → 当天"点击领取"奖励已领（按钮已变"已领取"），但原逻辑仍等 AI 视觉识别 15 秒超时才走任务列表
+- → UC 主页"点击领取"是 H5/Canvas 图像按钮，无障碍树抓不到 text 节点，需 AI 视觉识别
+- → 原 attempt >= 1 才触发 AI 视觉，attempt=0 空转一次浪费时间
+
+**修复1**: [FarmAccessibilityService.kt#L5360](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L5360)
+- 新增 `hasDailyRewardClaimedIndicator()` 方法
+- 检测页面是否有"已领取"+"明天领肥料"组合（UC 主页每日奖励领取后的标准标识）
+- 若有，说明当天奖励已领，无需 AI 视觉识别
+
+**修复2**: [AutomationController.kt#L1040](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1040)
+- collectDirect 在 buttons 为空且 attempt=0 时，先检测 hasDailyRewardClaimedIndicator
+- 若已领取，直接跳过 AI 视觉走 OPENING_TASK_LIST（省 15 秒超时）
+- 若未领取，attempt=0 就触发 AI 视觉识别（原 attempt>=1 改为 attempt>=0），让"点击领取"更快被识别点击
+
+**预期效果**:
+- 当天已领过时：collectDirect 立即跳过 AI 视觉走任务列表（省 15 秒）
+- 当天未领时：attempt=0 即触发 AI 视觉识别"点击领取"按钮坐标并点击（优先点击）
+- 不再有空转和无效等待
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 04205d7 - fix: build665 UC 跨 App 浏览任务页 hint 检测失效修复
 
 **用户需求**: "分析日志"（从 GitHub 拉取 build664 日志 debug_test_20260730_074843.log）
 
