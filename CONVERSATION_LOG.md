@@ -32,7 +32,37 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build663 browseTask 滑动后仍在农场主页则提前退出跳过任务
+### commit (待提交) - fix: build664 UC 浏览任务跳转淘宝不误判为跨 App 跳转
+
+**用户需求**: "分析日志"（从 GitHub 拉取 build663 日志 debug_test_20260730_074150.log）
+
+**日志分析** (build663, UC 平台):
+- ✅ build663 修复生效：isPaidTask 识别付费任务、task #1 "看视频得巨额肥料" 正确跳过（cross-platform）
+- ❌ **问题**: task #2 "浏览广告赚肥料" 点击"去完成"后跳转到淘宝浏览任务页，被误判为跨 App 跳转
+  - 07:41:29.399 browseTask: after clicking 'go browse', page type=non_farm, onFarm=false
+  - 07:41:29.406 browseTask: cross-app jump detected (currentPkg=com.taobao.taobao, farmPkg=[com.ucmobile.lite])
+  - 页面内容含"浏览得奖励, 下单得奖励, 30秒"和商品列表 —— 是正常浏览任务页
+  - 误判后 pressBack 退出 → re-launch UC 失败 → NAVIGATING -> STOPPING
+
+**根因**: [AutomationController.kt#browseTask#L2309](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2309)
+- 跨 App 检测仅看包名（com.taobao.taobao != com.ucmobile.lite），未判断跳转后的页面是否是浏览任务页
+- UC 农场浏览任务会跳转到淘宝（UC 和淘宝共种一棵树），这是正常行为，不是恶意跨 App 跳转
+
+**修复**: [AutomationController.kt#L2321](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2321)
+- 跨 App 检测前，先判断页面是否是浏览任务页（含"浏览得奖励"/"浏览得"且含"N秒"倒计时）
+- 若是浏览任务页，不视为恶意跨 App 跳转，继续走浏览流程（滑动等待完成）
+- 区分依据：build648 的闲鱼跳转页面无"浏览得奖励"文案，本次淘宝浏览页有
+
+**预期效果**:
+- UC 浏览任务跳转到淘宝时，识别为浏览任务页，继续滑动浏览 30 秒等待完成
+- 闲鱼等无关 App 跳转仍会被正确识别并退出（无"浏览得奖励"文案）
+- 不再因误判导致 pressBack 退出 → re-launch 失败 → STOPPING
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 7e826b1 - fix: build663 browseTask 滑动后仍在农场主页则提前退出跳过任务
 
 **用户需求**: "分析日志"（从 GitHub 拉取 build662 日志 debug_test_20260728_083516.log）
 

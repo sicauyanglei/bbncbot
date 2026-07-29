@@ -2308,7 +2308,19 @@ object AutomationController {
                     val farmPkg = service.currentPlatformConfig().packageNames
                     val isCrossAppJump = currentPkg != null && farmPkg.isNotEmpty() &&
                         !farmPkg.any { currentPkg == it || currentPkg.startsWith(it) }
-                    if (isCrossAppJump) {
+                    // build664 修复（debug_test_20260730_074150.log, build663-7e826b1）：
+                    //   07:41:29.399 browseTask: after clicking 'go browse', page type=non_farm, onFarm=false
+                    //   07:41:29.406 browseTask: cross-app jump detected (currentPkg=com.taobao.taobao, farmPkg=[com.ucmobile.lite])
+                    //   → UC 农场浏览任务会跳转到淘宝（UC 和淘宝共种一棵树），页面含"浏览得奖励, 下单得奖励, 30秒"
+                    //   → 这是正常浏览任务页，不是恶意跨 App 跳转（如闲鱼）
+                    //   → 误判后 pressBack 退出 → re-launch UC 失败 → NAVIGATING -> STOPPING
+                    // 根因：跨 App 检测仅看包名，未判断跳转后的页面是否是浏览任务页。
+                    // 修复：跨 App 检测前，先判断页面是否是浏览任务页（含"浏览得奖励"/"浏览得"且含"秒"倒计时）。
+                    //   若是浏览任务页，不视为恶意跨 App 跳转，继续走浏览流程（滑动等待完成）。
+                    //   区分依据：build648 的闲鱼跳转页面无"浏览得奖励"文案，本次淘宝浏览页有。
+                    val isBrowseTaskPageOnCrossApp = isCrossAppJump && allText.any { it.contains("浏览得") || it.contains("浏览 得") } &&
+                        allText.any { Regex("\\d+\\s*秒").containsMatchIn(it) }
+                    if (isCrossAppJump && !isBrowseTaskPageOnCrossApp) {
                         debugLog("browseTask: cross-app jump detected after clicking '去完成' (currentPkg=$currentPkg, farmPkg=$farmPkg), skipping task and pressing back")
                         Log.i(TAG, "browseTask: cross-app jump to $currentPkg, skipping task")
                         currentTaskIndex++
