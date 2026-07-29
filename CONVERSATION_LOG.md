@@ -32,7 +32,38 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build664 UC 浏览任务跳转淘宝不误判为跨 App 跳转
+### commit (待提交) - fix: build665 UC 跨 App 浏览任务页 hint 检测失效修复
+
+**用户需求**: "分析日志"（从 GitHub 拉取 build664 日志 debug_test_20260730_074843.log）
+
+**日志分析** (build664, UC 平台):
+- ✅ build664 修复生效：跨 App 跳转淘宝不再误判为恶意跳转（无"cross-app jump detected"）
+- ❌ **问题**: 跳转淘宝后 findSwipeForFertilizerHint 等 4 指标全 false → "not a browse task, exiting"
+  - 07:47:53.072 browseTask: after clicking 'go browse', page type=non_farm, onFarm=false
+  - 07:47:53.125 browseTask: no swipe hint and no browse reward indicator, not a browse task, exiting without swiping
+  - 页面含"浏览得奖励, 下单得奖励, 30秒" —— 是正常浏览任务页，但 4 个指标都没识别到
+
+**根因**: [FarmAccessibilityService.kt#findSwipeForFertilizerHint#L1302](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L1302)
+- findSwipeForFertilizerHint/findBrowseProgressInfo/findBrowseRewardCountdownHint 等都用 getRootInFarmApp()
+- UC 平台跳转淘宝后，淘宝包名 com.taobao.taobao 不在 UC 的 packageNames 里
+- getRootInFarmApp() 返回 null → 所有 hint 检测返回 0/NONE → 4 指标全 false → 误判"not a browse task"退出
+
+**修复**: [AutomationController.kt#L2347](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2347)
+- 在 build664 的 isBrowseTaskPageOnCrossApp 检测后，如果是跨 App 浏览任务页
+- 从已采集的 allText 中解析"N秒"倒计时（如"30秒"），设置 browseTaskTargetSwipes
+- 直接开始滑动，不依赖 findSwipeForFertilizerHint（它因 getRootInFarmApp 返回 null 无法工作）
+- 兜底 30 秒（若解析不到具体秒数）
+
+**预期效果**:
+- UC 浏览任务跳转淘宝后，正确识别为跨 App 浏览任务页，滑动 30 秒（15 次）等待完成
+- 不再因 getRootInFarmApp 返回 null 导致 4 指标全 false 误判退出
+- 滑动完成后由 isFertilizerGrantedPage/isTaskCompletePage 检测完成并退出
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 1ed8067 - fix: build664 UC 浏览任务跳转淘宝不误判为跨 App 跳转
 
 **用户需求**: "分析日志"（从 GitHub 拉取 build663 日志 debug_test_20260730_074150.log）
 

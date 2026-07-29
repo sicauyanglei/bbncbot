@@ -2344,6 +2344,29 @@ object AutomationController {
                         }, INTERVAL_CLICK_MS)
                         return@postDelayed
                     }
+                    // build665 修复（debug_test_20260730_074843.log, build664-1ed8067）：
+                    //   07:47:53.072 browseTask: after clicking 'go browse', page type=non_farm, onFarm=false
+                    //   07:47:53.125 browseTask: no swipe hint and no browse reward indicator, not a browse task, exiting without swiping
+                    //   → UC 浏览任务跳转淘宝后，findSwipeForFertilizerHint/findBrowseProgressInfo 等用 getRootInFarmApp()
+                    //   → 淘宝包名不在 UC 的 packageNames 里 → getRootInFarmApp() 返回 null → 4 指标全 false → 误判退出
+                    // 根因：跨 App 浏览任务页（UC→淘宝）的 hint 检测依赖 getRootInFarmApp()，但跨 App 后取不到窗口。
+                    // 修复：build664 已识别为跨 App 浏览任务页（isBrowseTaskPageOnCrossApp=true，跳过恶意跳转退出），
+                    //   此处从已采集的 allText 中解析"N秒"倒计时，设置 browseTaskTargetSwipes 后直接开始滑动，
+                    //   不依赖 findSwipeForFertilizerHint（它因 getRootInFarmApp 返回 null 无法工作）。
+                    if (isCrossAppJump && isBrowseTaskPageOnCrossApp) {
+                        val secondsMatch = allText.firstNotNullOfOrNull { text ->
+                            Regex("(\\d+)\\s*秒").find(text)?.groupValues?.get(1)?.toIntOrNull()
+                        } ?: 0
+                        val targetSec = if (secondsMatch in 1..300) secondsMatch else 30  // 兜底 30 秒
+                        browseTaskTargetSwipes = (targetSec / (BROWSE_SWIPE_INTERVAL_MS / 1000)).toInt() + 2
+                            .coerceIn(3, 30)
+                        debugLog("browseTask: cross-app browse task page detected (UC→$currentPkg), target swipes=$browseTaskTargetSwipes (seconds=$targetSec)")
+                        Log.i(TAG, "browseTask: cross-app browse task page (UC→$currentPkg), swiping $browseTaskTargetSwipes times")
+                        handler.postDelayed({
+                            if (state == AutomationState.BROWSING_TASK) runBrowsingTask(1)
+                        }, INTERVAL_PAGE_LOAD_MS)
+                        return@postDelayed
+                    }
                     // build625 修复：先检测商品列表页，若是则走商品浏览流程（点商品+停留15秒）。
                     // 日志 debug_test_20260726_081800.log 显示 idx=0 "发现精选好物(0/4) 浏览15秒得 +700"
                     // 任务点击"去完成"后落地页是商品列表页（含"滑动浏览得肥料"+商品价格列表），
