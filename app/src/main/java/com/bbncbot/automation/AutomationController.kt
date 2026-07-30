@@ -1087,8 +1087,13 @@ object AutomationController {
             debugLog("collectDirect: no direct buttons found, trying AI vision to locate '点击领取' button")
             Log.i(TAG, "collectDirect: trying AI vision to locate '点击领取' button (H5/Canvas image button)")
             val appContext = service.applicationContext
+            // build667 优化（用户截图反馈"点击领取"按钮位置）：
+            // UC 芭芭农场主页"点击领取"按钮位于"果树右下侧区域"（H5/Canvas 图像按钮）。
+            // 把位置提示写入 sceneContext 让 GLM-4.6V-Flash 更精准定位，避免误识别
+            // 页面其他装饰性"领取/可领取"文字（如签到肥料/任务卡片的装饰文字）。
             val sceneContext = "UC芭芭农场主页, 平台=${service.currentPlatform}, " +
-                "pkg=${service.getCurrentWindowPackage()}, act=${service.getCurrentActivityName()}"
+                "pkg=${service.getCurrentWindowPackage()}, act=${service.getCurrentActivityName()}, " +
+                "目标「点击领取」按钮位于果树右下侧区域（图像按钮，橙色/红色彩色背景）"
             // build607 修复（debug_test_20260722_075045.log line 59-60）：
             // AI 视觉是异步子线程,主线程只 postDelayed 等结果。若 AI 视觉调用慢
             // （2 个 model × 3 次重试 × 45s readTimeout,最坏接近 5 分钟）,主线程

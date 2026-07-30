@@ -32,6 +32,25 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build667 AI 视觉识别"点击领取"加入位置提示（果树右下侧）
+
+**用户需求**: "点击领取按钮在uc芭芭农场主页，果树的右下侧区域"（用户截图反馈按钮位置）
+
+**问题**: build666 已让 attempt=0 即触发 AI 视觉识别"点击领取"按钮坐标，但 sceneContext 只传了"UC芭芭农场主页, 平台=UC, pkg=..., act=..."，GLM-4.6V-Flash 在页面有多处装饰性"领取/可领取/签到肥料"文字时可能误识别坐标。
+
+**修复**: [AutomationController.kt#L1090-L1096](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1090-L1096)
+- collectDirect 触发 AI 视觉时的 sceneContext 追加位置提示：
+  `目标「点击领取」按钮位于果树右下侧区域（图像按钮，橙色/红色彩色背景）`
+- 让 GLM-4.6V-Flash 优先在果树右下侧区域定位，避免误识别签到肥料/任务卡片的装饰文字
+
+**预期效果**:
+- AI 视觉识别"点击领取"更精准，减少误识别其他装饰性文字的概率
+- 不改变原有识别流程，仅增强 prompt 上下文
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build666 UC 主页"点击领取"优先点击 + 已领取标识跳过 AI 视觉
 
 **用户需求**: "uc芭芭农场主页的'点击领取'按钮应该优先点击"
