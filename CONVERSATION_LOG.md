@@ -32,6 +32,39 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build671 watchAd 倒计时停滞检测（静态文字伪装倒计时）
+
+**用户需求**: "分析日志"（build669 日志 debug_test_20260731_214538.log）
+
+**日志分析** (build669, UC 平台, 21:43:32-21:45:34):
+- ✅ build666 已领取跳过 AI 视觉生效
+- ✅ build669 "助力"误匹配修复生效（task #1 "看视频得巨额肥料" 不再被跳过）
+- ❌ **问题**: watchAd 卡死 62 秒直到用户手动停止
+  - 21:44:25 点击 task #1 "看视频得巨额肥料" → 跳转淘宝 TMSActivity
+  - 21:44:32 检测到 "30秒" 倒计时,设置 min wait=32000ms, max wait=90000ms
+  - 21:44:32-21:45:34 持续 62 秒, "30秒" 倒计时从未减少（30+ 次检测全是 30秒）
+  - texts=[返回, 淘宝精选, 更多_细9 按钮, ...] → "淘宝精选" 说明是淘宝商品页,不是广告页
+  - "30秒" 是静态文字（商品页描述）,非动态倒计时
+  - 根因：watchAd 检测到 "30秒" 就认为是广告倒计时,不检测倒计时是否在减少
+  - 影响：bot 卡在 WATCHING_AD 62 秒,直到 90 秒超时或用户手动停止
+
+**修复**: [AutomationController.kt#L254-L263](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L254-L263) + [L4379-L4381](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4379-L4381) + [L4859-L4887](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4859-L4887)
+- 新增字段 `adInitialCountdownSeconds`（记录初始倒计时值）和 `adCountdownStallHandled`（避免重复退出）
+- elapsedMs==0 时记录初始倒计时值
+- 在场景识别之后、超时检查之前,加倒计时停滞检测：
+  - 若 elapsedMs >= 15000 且当前倒计时 == 初始倒计时（未减少）
+  - 判定为静态文字伪装倒计时,pressBack 退出跳过任务
+- 不影响真正广告（真正广告 15 秒后倒计时会减少到约 15-20 秒）
+
+**预期效果**:
+- 淘宝商品页的静态 "30秒" 文字不再导致 bot 卡死 62 秒
+- 15 秒后检测到倒计时未减少,直接退出跳过任务
+- 真正广告不受影响（倒计时会正常减少）
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build670 "去支付"误匹配"去支付宝"
 
 **用户需求**: "继续修复"（基于 build669 日志 debug_test_20260731_213229.log 分析）

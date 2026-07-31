@@ -251,6 +251,17 @@ object AutomationController {
     @Volatile
     private var prevAdHadCountdown: Boolean = false
 
+    // build671 修复（debug_test_20260731_214538.log, build669）：
+    // UC"看视频得巨额肥料"任务点击后跳转淘宝 TMSActivity,页面"30秒"是静态文字（商品页描述）,
+    // 非动态倒计时。watchAd 误判为广告倒计时,设置 min wait=32000ms,卡死 62 秒直到用户手动停止。
+    // 修复：记录初始倒计时值,15 秒后若倒计时未减少,判定为静态文字,直接退出跳过任务。
+    /** 本次广告初始倒计时秒数（elapsedMs==0 时记录） */
+    @Volatile
+    private var adInitialCountdownSeconds: Int = 0
+    /** 倒计时停滞检测已触发（避免重复退出） */
+    @Volatile
+    private var adCountdownStallHandled: Boolean = false
+
     /** 本次广告观看的农场平台（强杀深链 App 后重新启动此平台回到农场） */
     @Volatile
     private var watchingAdPlatform: Platform = Platform.UNKNOWN
@@ -4360,10 +4371,14 @@ object AutomationController {
             lastAiProgressCheckMs = 0L
             watchingAdPlatform = service.currentPlatform  // 记录农场平台，强杀深链 App 后重新启动此平台
             interactiveAdDownloadClicked = false  // build599 v2: 重置互动广告下载按钮点击标记
+            // build671: 重置倒计时停滞检测状态
+            adCountdownStallHandled = false
             // 按平台广告策略加载默认时长与检测间隔（UC/支付宝/淘宝差异化）
             val platformCfg = service.currentPlatformConfig()
             adEndCheckIntervalMs = platformCfg.adEndCheckIntervalMs
             val hintSeconds = service.findAdDurationHint()
+            // build671: 记录初始倒计时值,用于后续检测倒计时是否停滞（静态文字伪装倒计时）
+            adInitialCountdownSeconds = hintSeconds
             if (hintSeconds > 0) {
                 // 页面提示的秒数 + 缓冲时间（毫秒）
                 adMinDurationMs = hintSeconds * 1000L + AD_DURATION_BUFFER_MS
@@ -4838,6 +4853,36 @@ object AutomationController {
             // 继续后续流程检测（超时、深链、最短等待、广告结束等）
             else -> {
                 // 场景识别未命中陷阱，由后续超时/深链/广告结束检测处理
+            }
+        }
+
+        // build671 修复（debug_test_20260731_214538.log, build669）：
+        // UC"看视频得巨额肥料"任务点击后跳转淘宝 TMSActivity,页面"30秒"是静态文字,
+        // 非动态倒计时。watchAd 误判为广告倒计时,卡死 62 秒直到用户手动停止。
+        // 修复：15 秒后检测倒计时是否减少,若初始值 > 0 且当前倒计时 == 初始值（未减少）,
+        // 判定为静态文字伪装倒计时,直接 pressBack 退出跳过任务。
+        // 不影响真正广告（真正广告 15 秒后倒计时会减少到约 15-20 秒）。
+        if (!adCountdownStallHandled && adInitialCountdownSeconds > 0 && elapsedMs >= 15000L) {
+            val currentCountdown = service.findAdDurationHint()
+            if (currentCountdown == adInitialCountdownSeconds) {
+                Log.w(TAG, "watchAd: countdown stalled at ${adInitialCountdownSeconds}s for 15s, static text detected, exiting (elapsed=${elapsedMs}ms)")
+                debugLog("watchAd: countdown stuck at ${adInitialCountdownSeconds}s (static text, not real ad), pressing back to exit")
+                adCountdownStallHandled = true
+                service.setAdMode(false)
+                service.pressBack()
+                currentTaskIndex++  // 跳过任务,不重玩
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) {
+                        if (!service.isOnFarmPage()) service.pressBack()
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) {
+                                moveTo(AutomationState.OPENING_TASK_LIST)
+                                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                            }
+                        }, INTERVAL_PAGE_LOAD_MS)
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
             }
         }
 
