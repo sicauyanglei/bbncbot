@@ -2023,8 +2023,12 @@ object AutomationController {
             // build650 修复（用户反馈"邀请好友助力任务，不做"）：
             // "邀请好友助力(0/3) 邀请成功得 +1000 去完成" 类社交任务需分享给好友/好友助力，
             // bot 无法自动完成（无社交账号、无法分享），直接跳过不点击。
-            // 匹配"邀请好友"覆盖"邀请好友助力"等邀请类任务，"助力"覆盖"邀请成功"/"助力得"等变体。
-            "邀请好友", "助力",
+            // 匹配"邀请好友"覆盖"邀请好友助力"等邀请类任务。
+            // build669 修复（debug_test_20260731_211710.log, build666）：
+            // 原 "助力" 关键词太宽泛,误匹配"看视频得巨额肥料 (0/10) 助力果树光速升级↑"里的
+            // "助力果树光速升级"宣传语,导致"看视频得巨额肥料"任务被错误跳过。
+            // 移除单独的"助力"关键词,"邀请好友"已足够覆盖所有邀请类任务。
+            "邀请好友",
             // build651 修复（用户反馈"去逛逛趣头条任务，不需要做"）：
             // "去逛逛趣头条赚金币(0/1) 逛逛得 +300 去完成" 跳转到趣头条 App，
             // bot 无法在趣头条 App 内自动完成"逛逛赚金币"动作，直接跳过不点击。
@@ -2691,6 +2695,22 @@ object AutomationController {
             val progressInfo = service.findBrowseProgressInfo()
             val hasRemainingProgress = progressInfo.isFound && progressInfo.remainingSeconds > 0
             val waitLimit = browseTaskTargetSwipes + MAX_BROWSE_WAIT_SWIPES
+            // build669 修复（debug_test_20260731_211710.log, build666）：
+            // UC"浏览广告赚肥料"跳转淘宝后,页面"浏览得奖励, 下单得奖励, 30秒"是静态文字,
+            // 非动态倒计时。滑动 18 次后 countdown=0/progress=false/remainingProgress=false,
+            // 三个信号都没有,说明浏览计时未触发（可能需要点击商品才触发,或需要下单才完成）。
+            // 原逻辑继续滑到 waitLimit(48次/90秒)才退出,浪费时间。
+            // 修复：滑动达标后,若三个进度信号全无,再给 3 次机会（约 6 秒）确认,仍无信号则退出跳过。
+            // 不影响正常浏览任务（正常任务滑动后有动态倒计时/进度提示,hasProgressHint=true 会继续等待）。
+            if (swipeCount > browseTaskTargetSwipes + 3 &&
+                countdownSeconds == 0 && !hasProgressHint && !hasRemainingProgress) {
+                Log.i(TAG, "browseTask: target swipes reached but no progress signals (countdown=0, progress=false, remaining=false), exiting (swipes=$swipeCount/$browseTaskTargetSwipes)")
+                debugLog("browseTask: no progress signals after target swipes, exiting browse page (swipes=$swipeCount/$browseTaskTargetSwipes)")
+                currentTaskIndex++
+                collectedCount++
+                exitBrowsePage(service, reason = "no_progress_signals")
+                return
+            }
             if (swipeCount <= waitLimit) {
                 // 还在等待上限内，继续滑动等待"任务完成"出现
                 Log.i(TAG, "browseTask: swipes reached target, keep waiting for task complete (countdown=${countdownSeconds}s, progressHint=$hasProgressHint, remainingProgress=$hasRemainingProgress, swipe #$swipeCount/$waitLimit)")

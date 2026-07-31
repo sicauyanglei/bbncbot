@@ -32,6 +32,47 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build669 "助力"误匹配 + 浏览任务无进度信号提前退出
+
+**用户需求**: "分析日志"（build666 日志 debug_test_20260731_211710.log, 第二次运行 21:14:43-21:17:06）
+
+**日志分析** (build666, UC 平台, 第二次运行):
+- ✅ build666 修复生效：页面加载完整（realContent=135）时 hasDailyRewardClaimedIndicator 正确返回 true
+  - 21:15:00.113 collectDirect: daily reward already claimed, skip AI vision, go to task list
+  - 跳过 AI 视觉 15 秒超时,直接走任务列表
+- ✅ build664 修复生效：跨 App 浏览任务正确识别（UC→淘宝, "cross-app browse task page detected"）
+- ❌ **问题1**: task #1 "看视频得巨额肥料" 被错误跳过
+  - 21:15:05.645 processTask: skip list task #1, text='去完成', context='看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1200 去完成'
+  - 根因：skipTaskTexts 含"助力"关键词,误匹配"助力果树光速升级"宣传语
+  - "助力"是 build650 为跳过"邀请好友助力"任务加的,但"助力果树光速升级"是看视频任务的宣传语,不是邀请任务
+- ❌ **问题2**: task #2 "浏览广告赚肥料" 跳转淘宝后滑动 47 次（约 90 秒）未完成
+  - 21:15:14 页面 texts=[..., 浏览得奖励, 下单得奖励, 30秒, ] ← "30秒"是静态文字,非动态倒计时
+  - swipe #1~#47: countdown=0s, progress=false, remainingProgress=false（三个信号全无）
+  - 21:17:06 用户手动停止（滑动 47 次还在 "keep swiping within wait limit"）
+  - 根因：滑动达标（18次）后,原逻辑继续滑到 waitLimit（48次）才退出,浪费时间
+
+**修复1**: [AutomationController.kt#L2023-L2031](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2023-L2031)
+- skipTaskTexts 移除单独的"助力"关键词,只保留"邀请好友"
+- "邀请好友"已足够覆盖"邀请好友助力"等所有邀请类任务
+- "看视频得巨额肥料 助力果树光速升级↑"不再被误匹配,正常进入看视频流程
+
+**修复2**: [AutomationController.kt#L2698-L2713](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L2698-L2713)
+- browseTask 滑动达标（browseTaskTargetSwipes）后,检测三个进度信号：
+  countdownSeconds、hasProgressHint、hasRemainingProgress
+- 若三个信号全无（说明浏览计时未触发,可能需要点击商品或下单才完成）,
+  再给 3 次机会（约 6 秒）确认,仍无信号则退出跳过
+- 不影响正常浏览任务（正常任务滑动后有动态倒计时/进度提示,hasProgressHint=true 会继续等待）
+- 避免无意义滑动 47 次（90 秒）浪费时间
+
+**预期效果**:
+- "看视频得巨额肥料"任务不再被误跳过,正常点击进入看视频广告流程
+- "浏览广告赚肥料"跳转淘宝后,滑动 18+3=21 次（约 42 秒）无进度信号即退出跳过
+- 不再卡在浏览任务上空滑 90 秒,提高整体任务处理效率
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build668 农场页加载阈值 + 签到后"已领取"跳过
 
 **用户需求**: "分析日志"（build666 日志 debug_test_20260731_210558.log）
