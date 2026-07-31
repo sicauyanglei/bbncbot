@@ -32,6 +32,48 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build668 农场页加载阈值 + 签到后"已领取"跳过
+
+**用户需求**: "分析日志"（build666 日志 debug_test_20260731_210558.log）
+
+**日志分析** (build666, UC 平台):
+- 21:04:55 进入农场页 hasFarmContentLoaded=true,但 text count=34（正常 150+）,realContent count=33
+- → 页面 H5 未渲染完就判定加载完成 → COLLECTING_DIRECT 找不到"已领取"标识
+- → hasDailyRewardClaimedIndicator 返回 false（"已领取"文字还没渲染出来）
+- → 触发 AI 视觉找"点击领取" 15 秒超时（截图也是加载不完整的页面）
+- 21:05:23 点击 task #1 "签到"成功 → 21:05:30 页面出现"已领取"+"明天领肥料"
+- → 签到 = 当天"点击领取",已领成功,但 processTask 未识别
+- 21:05:31 误判 isRechargePage=YES（sample 只有底部导航 6 个文字,页面仍在加载）
+- → 跳过签到,重试点击 task #2,进入广告,用户手动停止
+
+**根因1**: [FarmAccessibilityService.kt#hasFarmContentLoaded#L390](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L390)
+- 原 `realContent.isNotEmpty()` 阈值过低,realContent count=33 就判定加载完成
+- UC 芭芭农场主页完整加载后 realContent count 通常 >= 130（build664 日志 count=144）
+
+**修复1**: [FarmAccessibilityService.kt#L390-L396](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L390-L396)
+- 提高阈值到 `realContent.size >= 80`
+- 确保页面渲染出主要节点（含"已领取"/"明天领肥料"/任务列表等）再进入下一阶段
+- 避免页面未加载完就触发 AI 视觉 15 秒超时
+
+**根因2**: [AutomationController.kt#checkTaskResult#L3338](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L3338)
+- 点击"签到"后页面变"已领取"+"明天领肥料",但 checkTaskResult 没识别这一状态
+- 继续走原流程,误判 isRechargePage,重试点击签到（实际已领成功）
+
+**修复2**: [AutomationController.kt#L3343-L3361](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L3343-L3361)
+- checkTaskResult 最前面加"已领取"+"明天领肥料"检测
+- 检测到时认定当前签到/领取任务已完成,collectedCount++ + advanceTaskIndex() + 前进下一任务
+- 不再重试点击签到,避免误判 isRechargePage 跳过
+
+**预期效果**:
+- 进入农场页时等页面渲染完（realContent >= 80）再进 COLLECTING_DIRECT
+- 页面渲染完后"已领取"标识已出现,hasDailyRewardClaimedIndicator 正确返回 true,跳过 AI 视觉
+- 点击签到后页面变"已领取"时,正确识别签到已完成,前进下一任务,不再误判 isRechargePage
+- 签到领肥料流程顺畅,不再卡在签到任务上
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build667 AI 视觉识别"点击领取"加入位置提示（果树右下侧）
 
 **用户需求**: "点击领取按钮在uc芭芭农场主页，果树的右下侧区域"（用户截图反馈按钮位置）

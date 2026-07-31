@@ -3340,6 +3340,26 @@ object AutomationController {
 
         logPageSnapshot(service, "checkTaskResult")
 
+        // build668 修复（debug_test_20260731_210558.log, build666）：
+        // 点击 task #1 "签到"后页面变"已领取"+"明天领肥料"（签到 = 当天点击领取,已领成功）,
+        // 但 processTask 未识别,继续重试点击 task #1（实际签到已成功）,还误判 isRechargePage
+        // 跳过签到。修复：检测到"已领取"+"明天领肥料"组合时,认定当前签到/领取任务已完成,
+        // 前进到下一任务,不再重试点击。
+        // 日志证据:
+        //   21:05:30.090 [checkTaskResult] text='已领取' bounds=[894,933][1123,1031]
+        //   21:05:30.090 [checkTaskResult] text='明天领肥料' bounds=[894,1054][1123,1110]
+        //   21:05:31.037 processTask: still on farm page, retry task click attempt=0  ← 不应重试
+        if (service.isOnFarmPage() && service.hasDailyRewardClaimedIndicator()) {
+            Log.i(TAG, "processTask: daily reward already claimed (已领取+明天领肥料 detected), advance to next task")
+            debugLog("processTask: 已领取+明天领肥料 detected, task #${currentTaskIndex + 1} done, advance")
+            collectedCount++
+            advanceTaskIndex()
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
+            }, INTERVAL_CLICK_MS)
+            return
+        }
+
         // 最高优先级：肥料图标 + 领取按钮 → 直接点击领取（绕过场景白名单）
         // 用户需求：如果有带肥图标，并有"领取"的按钮，可以直接点击领取
         // 比任务完成/肥料到账检测更早，因为领取按钮还没点就没有"完成"状态

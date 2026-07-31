@@ -387,7 +387,12 @@ class FarmAccessibilityService : AccessibilityService() {
             text.isNotEmpty() && text.length > 1 && placeholderTexts.none { text.equals(it, ignoreCase = true) }
         }
         debugLog("hasFarmContentLoaded: realContent count=${realContent.size}")
-        return realContent.isNotEmpty()
+        // build668 修复（debug_test_20260731_210558.log, build666）：
+        // 原 realContent.isNotEmpty() 阈值过低,进入农场页时 H5 未渲染完（realContent count=33）
+        // 就判定加载完成 → COLLECTING_DIRECT 找不到"已领取"标识 → 误触发 AI 视觉 15s 超时。
+        // UC 芭芭农场主页完整加载后 realContent count 通常 >= 130（build664 日志 count=144）。
+        // 提高阈值到 80,确保页面渲染出主要节点（含"已领取"/"明天领肥料"/任务列表等）再进入下一阶段。
+        return realContent.size >= 80
     }
 
     /** 收集节点树中所有文本 */
