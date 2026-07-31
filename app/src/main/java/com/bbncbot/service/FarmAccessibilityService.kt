@@ -2804,7 +2804,13 @@ class FarmAccessibilityService : AccessibilityService() {
             // （秒杀页需下单购买才能得肥料，bot 无法自动完成；点击"去完成"跳转秒杀页后
             // 页面会回到农场主页，被 isNonAdTaskPage 误判跳过且导致 currentTaskIndex 重置无限循环）
             "秒杀下单", "下单肥料加码", "下单最高得",
-            "去支付", "立即支付", "确认支付",             // 支付类
+            // build670 修复（debug_test_20260731_213229.log, build669）：
+            //   isPaidTask: YES, context='去支付宝农场领肥料 ...'
+            //   isPaidTask: YES, context='去支付宝逛蚂蚁庄园 ...'
+            //   根因："去支付"关键词误匹配"去支付宝"（"去支付宝".contains("去支付")=true）
+            //   导致跨平台浏览任务被误判为付费任务，可能被跳过无法领取跨平台肥料。
+            // 修复：移除"去支付"，"立即支付"/"确认支付"已足够覆盖支付类任务。
+            "立即支付", "确认支付",             // 支付类
             "到店支付", "线下支付",                        // 到店支付类
             "合种"                                        // 合种类（需邀请好友，非广告任务）
         ) + currentPlatformConfig().paidTaskKeywords
