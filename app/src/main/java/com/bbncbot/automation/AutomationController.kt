@@ -4553,6 +4553,31 @@ object AutomationController {
                         }, INTERVAL_PAGE_LOAD_MS)
                         return
                     }
+                    // build677 修复（debug_test_20260801_111614.log, build675, 11:16:00）：
+                    // 阶段2 停留期间,新 App 页面已显示"已完成浏览10秒，提前获得奖励"(taskComplete=true),
+                    // 说明奖励已发放,不需要继续等满 16 秒。原逻辑继续等到 16000ms,用户手动停止。
+                    // 修复：检测到 taskComplete 时,提前进入阶段3（关闭新 App,等"恭喜获得奖励提升"弹窗点关闭）。
+                    if (service.isTaskCompletePage()) {
+                        Log.i(TAG, "watchAd: faster reward task complete detected during stay (提前获得奖励), advancing to stage3 early")
+                        debugLog("watchAd: task complete detected (已完成浏览10秒), skip waiting, go stage3 to close popup")
+                        service.setAdMode(false)
+                        // 1. 激活农场 App 到前台
+                        if (watchingAdPlatform != Platform.UNKNOWN) {
+                            service.launchPlatformApp(watchingAdPlatform)
+                        }
+                        // 2. kill 掉新打开的 App
+                        val killedPkg = fasterRewardAppPkg
+                        if (killedPkg != null) {
+                            service.forceKillApp(killedPkg, pressBackFirst = false)
+                        } else {
+                            service.pressBack()
+                        }
+                        fasterRewardStage = 3
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                        }, INTERVAL_PAGE_LOAD_MS)
+                        return
+                    }
                     // 计算停留时间
                     val stayedMs = if (fasterRewardAppEnterTimeMs > 0) {
                         System.currentTimeMillis() - fasterRewardAppEnterTimeMs
