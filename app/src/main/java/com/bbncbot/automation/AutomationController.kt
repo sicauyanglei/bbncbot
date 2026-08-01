@@ -1385,9 +1385,15 @@ object AutomationController {
         // 需停留 10 秒拿奖励再返回主页继续。与普通 direct 按钮不同（不是弹窗领取）。
         // 识别此文案后走专用流程：点击 → 等待 10 秒 → pressBack 返回 → 继续下一轮。
         // 用 contains 匹配,兼容"点击跳转拿奖励"含额外文字（如"点击跳转拿奖励 50 肥料"）。
-        if (btnText.contains("点击跳转拿奖励") || btnDesc.contains("点击跳转拿奖励")) {
-            Log.i(TAG, "collectDirect: '点击跳转拿奖励' jump button clicked, waiting 10s before back")
-            debugLog("collectDirect: '点击跳转拿奖励' detected, waiting 10000ms then pressBack to return")
+        // build681 扩展（debug_test_20260801_152504.log, build680）：
+        //   "看广告领奖"是"点击跳转拿奖励"的变体文案（同一类跳转类广告入口按钮）,
+        //   日志显示 bounds=[641,1159][822,1211] clickable=false,加入 directCollectTexts 后
+        //   会被 findDirectCollectButtons 识别。同样走 10 秒 + pressBack 专用流程。
+        val isJumpButton = btnText.contains("点击跳转拿奖励") || btnDesc.contains("点击跳转拿奖励") ||
+            btnText.contains("看广告领奖") || btnDesc.contains("看广告领奖")
+        if (isJumpButton) {
+            Log.i(TAG, "collectDirect: jump button '$btnText' clicked, waiting 10s before back")
+            debugLog("collectDirect: jump button '$btnText' detected, waiting 10000ms then pressBack to return")
             handler.postDelayed({
                 if (state != AutomationState.COLLECTING_DIRECT) return@postDelayed
                 // 等待 10 秒后 pressBack 返回主页
@@ -5334,6 +5340,27 @@ object AutomationController {
             handler.postDelayed({
                 if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
             }, adEndCheckIntervalMs)
+            return
+        }
+
+        // build681 修复（debug_test_20260801_152504.log, build680, 15:24:54-15:24:58）：
+        //   15:24:54.320 watchAd: scene=AD_ENDED, elapsed=25000ms/90000ms
+        //   15:24:54.372 watchAd: checking ad end, pageType=unknown(no_root), adActivity=true, adPlaying=true, texts=[]
+        //   15:24:58.475 state: WATCHING_AD -> STOPPING (用户手动停止,卡死 4 秒)
+        // 根因：广告结束后 root 暂时不可用（no_root），isAdEndedMultiSignal 无法执行信号 3/4
+        //   （findClaimRewardButton、collectAllText 都需要 root）。
+        //   但 isAdActivity()/isAdPlaying() 基于 Activity 名仍返回 true（KsRewardVideoActivity）,
+        //   导致 adEnded=false,走到"继续等待"分支,bot 卡死直到用户手动停止。
+        // 修复：当 pageType=unknown(no_root) 且 adActivity=true 且 elapsedMs >= adMinDurationMs + 10s buffer 时,
+        //   主动进入 CLOSING_AD 关闭广告。no_root 通常意味着广告页面正在切换（结束动画/弹窗加载中）,
+        //   此时主动尝试关闭比无脑等待更合理（CLOSING_AD 会找关闭按钮,找不到再 pressBack 兜底）。
+        if (adEndedPageType == "unknown(no_root)" && adEndedActivity &&
+            elapsedMs >= adMinDurationMs + 10_000L) {
+            Log.i(TAG, "watchAd: no_root + adActivity + elapsed ${elapsedMs}ms >= min+10s, entering CLOSING_AD (avoid stall)")
+            debugLog("watchAd: no_root with adActivity and elapsed ${elapsedMs}ms >= ${adMinDurationMs + 10_000L}ms, proactively closing ad to avoid stall")
+            service.setAdMode(false)
+            moveTo(AutomationState.CLOSING_AD)
+            handler.postDelayed({ runClosingAd(strategy = 0) }, INTERVAL_CLICK_MS)
             return
         }
 

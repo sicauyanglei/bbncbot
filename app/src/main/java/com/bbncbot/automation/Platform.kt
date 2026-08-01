@@ -225,7 +225,15 @@ object UcPlatformConfig : PlatformConfig {
         // UC 主页"点击跳转拿奖励"按钮,点击后跳转到广告/活动页,需停留 10 秒拿奖励再返回。
         // 与普通 direct 按钮不同（不是弹窗领取,是跳转停留）,在 runCollectingDirect 中
         // 识别此文案后走专用流程：点击 → 等待 10 秒 → pressBack 返回主页 → 继续下一轮。
-        "点击跳转拿奖励"
+        "点击跳转拿奖励",
+        // build681 新增（debug_test_20260801_152504.log, build680, 15:24:01）：
+        //   日志 line 63 显示页面有 text='看广告领奖' bounds=[641,1159][822,1211] clickable=false,
+        //   这是"点击跳转拿奖励"的变体文案（扩展资源位区域的广告入口）。
+        //   原本 directCollectTexts 不含此文案,findDirectCollectButtons 返回 0,
+        //   触发 AI 视觉识别"点击跳转拿奖励"15s 超时,fallback 到任务列表。
+        //   加入"看广告领奖"让 findDirectCollectButtons 直接识别,无需 AI 视觉,响应更快。
+        //   runCollectingDirect 中会识别此文案走专用流程（等 10 秒 + pressBack 返回）。
+        "看广告领奖"
     )
     override val collectFertilizerCoords = listOf(
         Pair(0.867f, 0.815f),  // 集肥料按钮（OCR 确认，右下角，1200x2664 屏幕）

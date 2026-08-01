@@ -32,6 +32,53 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build681 "看广告领奖"变体文案 + 广告 no_root 卡死
+
+**用户需求**: "分析日志"
+
+**日志分析** (build680, debug_test_20260801_152504.log, 15:23:40-15:24:58):
+
+**问题1**: "点击跳转拿奖励"AI 视觉 15s 超时未点击 (15:24:01-15:24:17)
+- 15:24:01.834 collectDirect: trying AI vision to locate '点击跳转拿奖励' button (dailyClaimed=true)
+- 15:24:16.877 collectDirect: AI vision timed out after 15000ms, fallback to task list
+- 根因：AI 视觉调用超时（GLM-4.6V-Flash 慢/网络问题）
+- 但日志 line 63 显示页面有 text='看广告领奖' bounds=[641,1159][822,1211] clickable=false
+  这是"点击跳转拿奖励"的变体文案（扩展资源位区域的广告入口）
+- 原本 UC directCollectTexts 不含"看广告领奖",findDirectCollectButtons 返回 0,才触发 AI 视觉
+
+**问题2**: 广告结束后 no_root 导致卡死 4 秒 (15:24:54-15:24:58)
+- 15:24:54.320 watchAd: scene=AD_ENDED, elapsed=25000ms/90000ms
+- 15:24:54.372 watchAd: checking ad end, pageType=unknown(no_root), adActivity=true, adPlaying=true, texts=[]
+- 15:24:58.475 state: WATCHING_AD -> STOPPING (用户手动停止)
+- 根因：广告结束后 root 暂时不可用（no_root），isAdEndedMultiSignal 无法执行信号 3/4
+  （findClaimRewardButton、collectAllText 都需要 root）
+  但 isAdActivity()/isAdPlaying() 基于 Activity 名仍返回 true（KsRewardVideoActivity）
+  导致 adEnded=false,走到"继续等待"分支,bot 卡死直到用户手动停止
+
+**修复 1**: [Platform.kt#L229-L236](file:///workspace/app/src/main/java/com/bbncbot/automation/Platform.kt#L229-L236)
+- UC directCollectTexts 加入"看广告领奖"
+- 让 findDirectCollectButtons 直接识别此变体文案,无需 AI 视觉,响应更快
+- 与"点击跳转拿奖励"同类（跳转类广告入口按钮）
+
+**修复 2**: [AutomationController.kt#L1392-L1408](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1392-L1408)
+- runCollectingDirect 中"点击跳转拿奖励"专用流程扩展为同时识别"看广告领奖"
+- isJumpButton 变量统一判断两种文案,都走 10 秒 + pressBack 返回专用流程
+
+**修复 3**: [AutomationController.kt#L5346-L5365](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5346-L5365)
+- watchAd 中"继续等待"分支前增加 no_root 主动关闭逻辑
+- 当 pageType=unknown(no_root) && adActivity=true && elapsedMs >= adMinDurationMs + 10s buffer 时,
+  主动进入 CLOSING_AD 关闭广告,避免 no_root 时卡死
+- no_root 通常意味着广告页面正在切换（结束动画/弹窗加载中）,
+  此时主动尝试关闭比无脑等待更合理（CLOSING_AD 会找关闭按钮,找不到再 pressBack 兜底）
+
+**预期效果**:
+- "看广告领奖"变体文案被 findDirectCollectButtons 直接识别,无需 AI 视觉,响应更快
+- 广告结束后 no_root 时不再卡死,主动进入 CLOSING_AD 关闭广告
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build680 isActivityFarmPage 跳过 AI 视觉 + TRAP_INTERACTIVE 卡死
 
 **用户需求**: "分析日志 为什么没有点击'点击跳转拿奖励'" + "解决所有问题"
