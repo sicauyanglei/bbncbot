@@ -32,6 +32,44 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build674 活动页面任务加载等待 + "已领取"误判修复
+
+**用户需求**: "分析日志"（build673 日志 debug_test_20260801_094058.log）
+
+**日志分析** (build673, UC 平台, 09:38:16-09:40:55):
+- ✅ build672 阈值生效（realContent=37 通过）
+- ✅ build673 活动页面检测生效（跳过 AI 视觉）
+- ❌ **bug1**: openTaskList 卡死 62 秒（09:38:36-09:39:38）
+  - 活动版页面任务直接在主页显示,但首次 findGoCompleteButtons 返回空（页面加载慢）
+  - 原逻辑点"集肥料"5 次试图打开任务列表（活动页面根本不需要点"集肥料"）
+  - 09:39:45 第 6 次终于找到 7 个任务按钮（69 秒后页面才加载出任务节点）
+  - 根因：活动版页面不需要点"集肥料",应该直接等待 findGoCompleteButtons 加载
+- ❌ **bug2**: task #2 "看视频"误判完成 5 次（09:39:58-09:40:35）
+  - 09:39:58 点击 task #2 "看视频得巨额肥料" → 没进入广告（仍在农场页）
+  - 09:40:05 checkTaskResult 检测到"已领取"+"明天领肥料" → 误判 task #2 完成
+  - 但这是 task #1 "签到"的标识,不是 task #2 完成的标识
+  - 导致 task #2 重试 5 次都误判完成,直到第 6 次点击真正进入广告
+  - 根因：checkTaskResult 的"已领取"检测不区分任务,所有任务都用这个标识判断完成
+
+**修复1**: [AutomationController.kt#L1521-L1533](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1521-L1533)
+- openTaskList 中检测到活动版页面时,不点"集肥料"
+- 直接重试 findGoCompleteButtons 等待任务节点加载
+- 每次重试间隔 INTERVAL_PAGE_LOAD_MS,直到任务加载完成
+
+**修复2**: [AutomationController.kt#L3411-L3426](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L3411-L3426)
+- checkTaskResult 的"已领取"检测加 currentTaskIndex == 0 条件
+- 只对 task #1 "签到"有效,后续任务不能用"已领取"标识判断完成
+- "已领取"+"明天领肥料"是签到的标识,与后续任务（看视频/浏览等）无关
+
+**预期效果**:
+- 活动版页面不再点"集肥料"5 次,直接等待任务加载
+- task #2 及后续任务不再因"已领取"标识误判完成
+- 避免无效重试（5 次误判完成 + 6 秒/次 = 30 秒浪费）
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build673 活动版农场页面检测（跳过 AI 视觉）
 
 **用户需求**: "解决bug"（基于 build671 日志 debug_test_20260801_092504.log 分析）

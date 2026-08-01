@@ -1518,6 +1518,19 @@ object AutomationController {
             // 先检查页面上是否已有可见的"去完成"按钮（UC 主页任务入口直接可见的情况）
             val visibleGoComplete = service.findGoCompleteButtons()
             if (visibleGoComplete.isEmpty()) {
+                // build674 修复（debug_test_20260801_094058.log, build673）：
+                // UC 活动版农场页面（"8.4内完成3天即领"）任务直接显示在主页,不需要点"集肥料"。
+                // 但活动页面任务节点加载较慢（日志显示首次 findGoCompleteButtons 返回空,
+                // 69 秒后第 6 次才返回 7 个按钮）。原逻辑会点"集肥料"5 次卡死 62 秒。
+                // 修复：检测到活动版页面时,不点"集肥料",直接重试 findGoCompleteButtons 等待加载。
+                if (service.isActivityFarmPage()) {
+                    debugLog("openTaskList: [${service.currentPlatform}闭环] activity farm page detected, tasks should be on homepage, waiting for goComplete buttons to load (attempt=$attempt)")
+                    taskListOpenedThisRound = true  // 标记本轮已处理,避免重复进入
+                    handler.postDelayed({
+                        if (state == AutomationState.OPENING_TASK_LIST) runOpeningTaskList(attempt + 1)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                    return
+                }
                 // 任务列表未打开：用文本查找 + 坐标兜底调出任务列表
                 taskListOpenedThisRound = true  // 标记本轮已尝试调出，避免重复进入死循环
                 debugLog("openTaskList: [${service.currentPlatform}闭环] no goComplete buttons visible, opening task list (attempt=$attempt, using heuristic)")
@@ -3408,9 +3421,15 @@ object AutomationController {
         //   21:05:30.090 [checkTaskResult] text='已领取' bounds=[894,933][1123,1031]
         //   21:05:30.090 [checkTaskResult] text='明天领肥料' bounds=[894,1054][1123,1110]
         //   21:05:31.037 processTask: still on farm page, retry task click attempt=0  ← 不应重试
-        if (service.isOnFarmPage() && service.hasDailyRewardClaimedIndicator()) {
+        // build674 修复（debug_test_20260801_094058.log, build673）：
+        //   task #2 "看视频"点击后没进广告,checkTaskResult 检测到"已领取"+"明天领肥料"
+        //   （这是 task #1 "签到"的标识,不是 task #2 完成的标识）→ 误判 task #2 完成,
+        //   重试 5 次都误判完成,直到第 6 次点击真正进入广告。
+        // 修复："已领取"检测只对 task #1 "签到"有效（currentTaskIndex == 0）,
+        // 后续任务不能用这个标识判断完成（"已领取"是签到的标识,与后续任务无关）。
+        if (currentTaskIndex == 0 && service.isOnFarmPage() && service.hasDailyRewardClaimedIndicator()) {
             Log.i(TAG, "processTask: daily reward already claimed (已领取+明天领肥料 detected), advance to next task")
-            debugLog("processTask: 已领取+明天领肥料 detected, task #${currentTaskIndex + 1} done, advance")
+            debugLog("processTask: 已领取+明天领肥料 detected, task #1 签到 done, advance")
             collectedCount++
             advanceTaskIndex()
             handler.postDelayed({
