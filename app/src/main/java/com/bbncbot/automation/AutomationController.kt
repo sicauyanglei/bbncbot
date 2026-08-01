@@ -261,6 +261,9 @@ object AutomationController {
     /** 倒计时停滞检测已触发（避免重复退出） */
     @Volatile
     private var adCountdownStallHandled: Boolean = false
+    /** build675: "点我加速"按钮已点击（穿山甲激励视频加速按钮,每轮广告只点一次） */
+    @Volatile
+    private var adSpeedUpClicked: Boolean = false
 
     /** 本次广告观看的农场平台（强杀深链 App 后重新启动此平台回到农场） */
     @Volatile
@@ -4420,6 +4423,8 @@ object AutomationController {
             interactiveAdDownloadClicked = false  // build599 v2: 重置互动广告下载按钮点击标记
             // build671: 重置倒计时停滞检测状态
             adCountdownStallHandled = false
+            // build675: 重置"点我加速"按钮点击标记
+            adSpeedUpClicked = false
             // 按平台广告策略加载默认时长与检测间隔（UC/支付宝/淘宝差异化）
             val platformCfg = service.currentPlatformConfig()
             adEndCheckIntervalMs = platformCfg.adEndCheckIntervalMs
@@ -4900,6 +4905,29 @@ object AutomationController {
             // 继续后续流程检测（超时、深链、最短等待、广告结束等）
             else -> {
                 // 场景识别未命中陷阱，由后续超时/深链/广告结束检测处理
+            }
+        }
+
+        // build675 优化（用户需求"点击我要加速"）：
+        // 穿山甲激励视频广告页面有"点我加速"按钮（日志证据 debug_test_20260801_094058.log:
+        // texts=[..., 点我加速, 限时福利, 13秒后失效, 去体验, 15秒]）。
+        // 点击后可加速倒计时,让广告更快结束,节省等待时间。
+        // 策略：在广告播放期间（elapsedMs < min wait）,检测到"点我加速"按钮时点击一次。
+        // 防重入：用 adSpeedUpClicked 标记,每轮广告只点一次。
+        if (!adSpeedUpClicked && elapsedMs < adMinDurationMs && elapsedMs >= 1000L) {
+            val root = service.getRootInFarmApp()
+            if (root != null) {
+                val speedUpNode = service.findNodeByText(root, "点我加速")
+                if (speedUpNode != null) {
+                    adSpeedUpClicked = true
+                    Log.i(TAG, "watchAd: found '点我加速' button, clicking to speed up ad (elapsed=${elapsedMs}ms)")
+                    debugLog("watchAd: clicking '点我加速' button to speed up ad countdown")
+                    service.performClickSafe(speedUpNode)
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                    }, INTERVAL_CLICK_MS)
+                    return
+                }
             }
         }
 

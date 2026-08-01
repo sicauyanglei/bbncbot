@@ -32,6 +32,28 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - feat: build675 点击"点我加速"按钮加速广告
+
+**用户需求**: "点击'我要加速'"
+
+**日志证据** (debug_test_20260801_094058.log, build673, 09:40:42.914):
+- 穿山甲激励视频广告页面 texts=[..., 点我加速, 限时福利, 13秒后失效, 去体验, 15秒]
+- "点我加速"是穿山甲激励视频的加速按钮,点击后可加速倒计时,让广告更快结束
+
+**实现**: [AutomationController.kt#L264-L266](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L264-L266) + [L4426-L4427](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4426-L4427) + [L4911-L4932](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4911-L4932)
+- 新增字段 `adSpeedUpClicked`（每轮广告只点一次）
+- 广告初始化时重置标记
+- watchAd 非陷阱场景中,广告播放期间（elapsedMs < min wait 且 >= 1000ms）检测"点我加速"按钮
+- 检测到时点击,加速倒计时,节省等待时间
+
+**预期效果**:
+- 穿山甲激励视频广告播放时自动点击"点我加速"按钮
+- 加速倒计时,让广告更快结束,节省等待时间
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build674 活动页面任务加载等待 + "已领取"误判修复
 
 **用户需求**: "分析日志"（build673 日志 debug_test_20260801_094058.log）
