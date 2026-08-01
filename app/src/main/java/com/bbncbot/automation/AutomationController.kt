@@ -4901,6 +4901,16 @@ object AutomationController {
                     //   即使广告倒计时 10s 已结束(min wait=12s),也无法识别广告结束并关闭。
                     // 修复：无下载按钮 且 elapsedMs >= adMinDurationMs 时,不 return,跳出 TRAP_INTERACTIVE 分支,
                     //   让后续的广告结束检测(isAdEndedMultiSignal)有机会执行,识别广告结束后走 CLOSING_AD 关闭。
+                    //
+                    // build682 修复（debug_test_20260801_201024.log, build680, 20:10:03-20:10:18）：
+                    //   原代码 fall through 后误入下方"已点击下载按钮"分支（无条件 return）,
+                    //   导致后续 isAdEndedMultiSignal 检测永远不执行,卡死直到用户手动停止。
+                    //   20:10:03.650 watchAd: interactive ad no download button, min wait elapsed, fall through to ad-end check
+                    //   20:10:03.652 watchAd: interactive ad download clicked, waiting for download complete  ← 误入此分支
+                    //   20:10:13.931 watchAd: interactive ad download clicked, waiting for download complete  ← 反复卡死
+                    //   20:10:18.679 state: WATCHING_AD -> STOPPING (用户手动停止)
+                    // 修复：将"已点击下载按钮"分支改为 else 分支（仅当 interactiveAdDownloadClicked=true 时执行）,
+                    //   无下载按钮 fall through 时不会误入,直接执行后续的广告结束检测。
                     if (elapsedMs < adMinDurationMs) {
                         debugLog("watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=${elapsedMs}ms/${adMaxDurationMs}ms)")
                         handler.postDelayed({
@@ -4911,13 +4921,15 @@ object AutomationController {
                     // elapsedMs >= adMinDurationMs: 广告倒计时应该已结束,跳出 TRAP_INTERACTIVE 分支,
                     // 让后续的 isAdEndedMultiSignal 检测广告结束状态并关闭广告
                     debugLog("watchAd: interactive ad no download button, min wait elapsed (${elapsedMs}ms/${adMinDurationMs}ms), fall through to ad-end check")
+                    // 不 return,跳出 TRAP_INTERACTIVE 分支,执行后续广告结束检测
+                } else {
+                    // 已点击下载按钮,继续轮询等待下载完成 + 肥料发放
+                    debugLog("watchAd: interactive ad download clicked, waiting for download complete (elapsed=${elapsedMs}ms/${adMaxDurationMs}ms)")
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                    }, adEndCheckIntervalMs)
+                    return
                 }
-                // 已点击下载按钮,继续轮询等待下载完成 + 肥料发放
-                debugLog("watchAd: interactive ad download clicked, waiting for download complete (elapsed=${elapsedMs}ms/${adMaxDurationMs}ms)")
-                handler.postDelayed({
-                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
-                }, adEndCheckIntervalMs)
-                return
             }
             // 陷阱5：诱导弹窗（页面上有"立即下载"等按钮，可能是广告播放中弹出的诱导遮罩）
             // 策略：优先点"关闭/暂不/拒绝"关闭弹窗，绝不点诱导按钮，继续轮询

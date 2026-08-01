@@ -32,6 +32,44 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build682 TRAP_INTERACTIVE fall through 误入 download clicked 分支
+
+**用户需求**: "分析日志"
+
+**日志分析** (build680, debug_test_20260801_201024.log, 第二段 20:09:08-20:10:18):
+
+**问题**: TRAP_INTERACTIVE 广告卡死 31 秒 (20:09:47-20:10:18)
+- 20:09:47.928 watchAd: scene=TRAP_INTERACTIVE, elapsed=0ms
+- 20:10:03.650 watchAd: interactive ad no download button, min wait elapsed, fall through to ad-end check
+- 20:10:03.652 watchAd: interactive ad download clicked, waiting for download complete  ← 误入此分支
+- 20:10:13.931 watchAd: interactive ad download clicked, waiting for download complete  ← 反复卡死
+- 20:10:18.679 state: WATCHING_AD -> STOPPING (用户手动停止)
+
+**根因**: build680 修复的 bug
+- build680 修复让无下载按钮且 elapsedMs >= adMinDurationMs 时 fall through（不 return）
+- 但 fall through 后,代码继续执行到下方"已点击下载按钮"分支（无条件 return）
+- 这个分支原本是给"已点击下载按钮"场景用的,现在被无下载按钮场景错误触发
+- 导致后续的 isAdEndedMultiSignal 检测永远不执行,卡死直到用户手动停止
+
+**修复**: [AutomationController.kt#L4857-L4933](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4857-L4933)
+- 将"已点击下载按钮"分支改为 `else` 分支（仅当 interactiveAdDownloadClicked=true 时执行）
+- 无下载按钮 fall through 时不会误入 else 分支,直接跳出 TRAP_INTERACTIVE 分支
+- 执行后续的广告结束检测（isAdEndedMultiSignal、no_root 主动关闭等）
+
+**预期效果**:
+- TRAP_INTERACTIVE 无下载按钮时,min wait 后能正确 fall through 到广告结束检测
+- 不再误入"已点击下载按钮"分支导致卡死
+- 广告结束后能识别并关闭（包括 no_root 时的主动关闭）
+
+**备注**: 此日志还包含第一段（15:23:40-15:25:07）的已知问题（build681 已修复）：
+- "看广告领奖"AI 视觉超时（build681: 加入 directCollectTexts）
+- 广告 no_root 卡死（build681: no_root 主动关闭）
+但设备运行的是 build680,build681 代码未部署到设备。
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build681 "看广告领奖"变体文案 + 广告 no_root 卡死
 
 **用户需求**: "分析日志"
