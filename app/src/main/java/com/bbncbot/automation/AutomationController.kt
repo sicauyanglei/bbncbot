@@ -1078,6 +1078,20 @@ object AutomationController {
             return
         }
 
+        // build673 修复（debug_test_20260801_092504.log, build671）：
+        // UC 芭芭农场活动期间（如"8.4内完成3天即领"）页面改版,没有"点击领取"按钮和"已领取"标识,
+        // 任务直接显示在主页（"施肥3次"/"完整观看广告1次"/"今日任务余3"）。
+        // 这种页面 findDirectCollectButtons 返回 0,hasDailyRewardClaimedIndicator 返回 false,
+        // 导致触发 AI 视觉找"点击领取"15 秒超时（活动页面根本没这个按钮）。
+        // 修复：检测到活动页面特征时,跳过 AI 视觉直接进入 OPENING_TASK_LIST 处理任务。
+        if (buttons.isEmpty() && attempt == 0 && service.isActivityFarmPage()) {
+            debugLog("collectDirect: activity farm page detected (今日任务余/完成即领), no 点击领取 button, skip AI vision, go to task list")
+            Log.i(TAG, "collectDirect: activity farm page detected, skip AI vision, opening task list")
+            moveTo(AutomationState.OPENING_TASK_LIST)
+            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
         // build596 诊断（用户反馈"uc芭芭农场主页,'点击领取'没有执行点击操作"）：
         // 当 findDirectCollectButtons 返回 0 时,dump 主页全部 text/desc 节点（含 bounds+clickable）,
         // 确认"点击领取"是否在无障碍树里。H5/Canvas 图像按钮不暴露 text 节点时,

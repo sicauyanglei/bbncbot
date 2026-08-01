@@ -5381,6 +5381,36 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 检测是否为 UC 芭芭农场活动版页面（非标准版）
+     *
+     * build673 添加（debug_test_20260801_092504.log, build671）：
+     * UC 芭芭农场在活动期间（如"8.4内完成3天即领"）会改版,页面结构与标准版完全不同：
+     * - 没有标准版的"点击领取"按钮和"已领取"/"明天领肥料"标识
+     * - 任务直接显示在主页（"施肥3次"/"完整观看广告1次"/"去支付宝逛蚂蚁庄园"）
+     * - 有"今日任务余 N"任务剩余数标识
+     * - 有"X天内完成N天即领"活动标题
+     *
+     * 这种页面 findDirectCollectButtons 返回 0（没有"点击领取"）,
+     * hasDailyRewardClaimedIndicator 返回 false（没有"已领取"）,
+     * 导致 collectDirect 触发 AI 视觉找"点击领取"15 秒超时（活动页面根本没这个按钮）。
+     *
+     * 检测到活动页面时,应跳过 AI 视觉直接进入 OPENING_TASK_LIST 处理任务。
+     *
+     * @return true 如果是活动版农场页面
+     */
+    fun isActivityFarmPage(): Boolean {
+        val root = getRootInFarmApp() ?: return false
+        val allText = collectAllText(root)
+        // 活动页面特征：有"今日任务余"任务剩余数标识
+        // 这是活动版页面独有的标识,标准版没有
+        val hasTaskRemain = allText.any { it.contains("今日任务余") }
+        if (hasTaskRemain) return true
+        // 备用特征：有"X天内完成N天即领"活动标题
+        val hasActivityTitle = allText.any { it.contains("完成") && it.contains("即领") }
+        return hasActivityTitle
+    }
+
+    /**
      * 诊断用：递归遍历节点树，收集所有含"领取"/"领肥"/"立即领"/"点击领"/"可领取"等关键字的
      * 文本节点信息（text/desc/bounds/clickable）。
      *

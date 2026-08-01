@@ -32,6 +32,34 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build673 活动版农场页面检测（跳过 AI 视觉）
+
+**用户需求**: "解决bug"（基于 build671 日志 debug_test_20260801_092504.log 分析）
+
+**日志分析** (build671, UC 平台, 09:23:48-09:25:04):
+- UC 芭芭农场改版（"8.4内完成3天即领"活动页面）,页面结构完全不同：
+  - 没有标准版的"点击领取"按钮和"已领取"/"明天领肥料"标识
+  - 任务直接显示在主页（"施肥3次"/"完整观看广告1次"/"去支付宝逛蚂蚁庄园"）
+  - 有"今日任务余 3"任务剩余数标识
+  - realContent=36-40（build672 阈值 >= 30 可通过）
+- collectDirect 找不到按钮 → hasDailyRewardClaimedIndicator 返回 false → 触发 AI 视觉 15 秒超时
+- 根因：活动页面根本没有"点击领取"按钮,AI 视觉识别必然失败
+
+**修复**: [FarmAccessibilityService.kt#L5383-L5411](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L5383-L5411) + [AutomationController.kt#L1081-L1093](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1081-L1093)
+- 新增 `isActivityFarmPage()` 方法检测活动版农场页面：
+  - 特征1："今日任务余"（活动版独有标识,标准版没有）
+  - 特征2："完成"+"即领"（活动标题,如"8.4内完成3天即领"）
+- collectDirect 中 hasDailyRewardClaimedIndicator 之后加 isActivityFarmPage 检测
+- 检测到活动页面时,跳过 AI 视觉直接进入 OPENING_TASK_LIST 处理任务
+
+**预期效果**:
+- 活动版农场页面不再触发 AI 视觉 15 秒超时
+- 直接进入 OPENING_TASK_LIST 处理活动任务（施肥3次/完整观看广告1次等）
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build672 农场页阈值降回 + 锁屏检测
 
 **用户需求**: "分析日志"（build671 日志 debug_test_20260801_082040.log）
