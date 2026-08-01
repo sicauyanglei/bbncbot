@@ -1,0 +1,11 @@
+=== cleared on app start (version=2.2, build=build683-5787664, time=20:48:17) ===
+20:48:17.991 killPlatformApps: killed com.ucmobile.lite for UC
+20:48:17.993 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+20:48:17.994 killPlatformApps: killed com.taobao.taobao for TAOBAO
+20:48:27.064 FarmAccessibilityService connected, API=36
+20:48:28.349 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+20:48:28.351 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:48:28.352 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+20:48:33.702 saveToken: saved (len=93, head='gith', tail='McKr')
+20:48:33.711 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+20:48:33.713 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260801_204833.log, localFile=debug.log (796 bytes)
