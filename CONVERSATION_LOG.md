@@ -32,6 +32,41 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build672 农场页阈值降回 + 锁屏检测
+
+**用户需求**: "分析日志"（build671 日志 debug_test_20260801_082040.log）
+
+**日志分析** (build671, UC 平台, 08:16:28-08:20:36):
+- ❌ **问题1**: build668 阈值 >= 80 过高,UC 简化版农场页 realContent=35 过不了
+  - 08:17:03-08:20:33 持续 3 分多钟,text count=37, realContent=35
+  - sample=[..., UC芭芭农场, 8.4内完成3天即领, 1天, 2天] ← 已含农场专属内容
+  - 这是活动期间简化版农场页,节点数少但已加载完成
+  - build668 阈值 >= 80 过于激进,导致永远过不了阈值
+- ❌ **问题2**: 锁屏期间 navigate 误判为 generic popup,无限 pressBack
+  - 08:17:37 手机锁屏（activeRootPkg='com.android.systemui'）
+  - navigate 识别为 GENERIC_POPUP（"手电筒已关闭"desc）
+  - 每 5 秒循环 pressBack（锁屏状态无效）,卡死 2 分 44 秒
+  - 直到用户手动解锁才恢复
+
+**修复1**: [FarmAccessibilityService.kt#L389-L398](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L389-L398)
+- hasFarmContentLoaded 阈值从 >= 80 降为 >= 30
+- realContent=35（简化版农场页）能通过,realContent=12/33（未渲染完）不通过
+- 配合 hasDailyRewardClaimedIndicator 和 AI 视觉兜底,即使节点少也能正确处理
+
+**修复2**: [AutomationController.kt#L890-L905](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L890-L905)
+- navigate generic popup 处理前加锁屏检测
+- 检测到 com.android.systemui 时,不当作 generic popup 处理
+- 延长等待间隔到 15 秒,等用户解锁后继续
+- 避免锁屏期间无限 pressBack 循环
+
+**预期效果**:
+- UC 简化版农场页（realContent=35）正常通过加载检测
+- 锁屏期间不再误判为 generic popup,避免无限 pressBack 循环
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build671 watchAd 倒计时停滞检测（静态文字伪装倒计时）
 
 **用户需求**: "分析日志"（build669 日志 debug_test_20260731_214538.log）

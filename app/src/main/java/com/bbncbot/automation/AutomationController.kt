@@ -889,6 +889,20 @@ object AutomationController {
             }
             Log.i(TAG, "navigate: generic popup detected (no fertilizer hint), closing it")
             debugLog("navigate: generic popup (no fertilizer), attempting to close")
+            // build672 修复（debug_test_20260801_082040.log, build671）：
+            // 手机锁屏时 activeRootPkg='com.android.systemui',navigate 误判为 generic popup,
+            // 每 5 秒 pressBack 循环（锁屏状态 pressBack 无效）,卡死 2 分 44 秒。
+            // 修复：检测到 systemui（锁屏/系统界面）时,不当作 generic popup 处理,
+            // 延长等待间隔到 15 秒,等用户解锁后继续。
+            val currentPkg = service.getCurrentWindowPackage()
+            if (currentPkg == "com.android.systemui") {
+                Log.w(TAG, "navigate: lock screen / system UI detected (pkg=$currentPkg), waiting 15s for user unlock")
+                debugLog("navigate: lock screen detected, skip generic popup handling, wait 15s for unlock")
+                handler.postDelayed({
+                    if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
+                }, 15000L)
+                return
+            }
             val closeBtn = service.findAdCloseButton()
             if (closeBtn != null) {
                 debugLog("navigate: clicking close button on generic popup (text='${closeBtn.text}')")

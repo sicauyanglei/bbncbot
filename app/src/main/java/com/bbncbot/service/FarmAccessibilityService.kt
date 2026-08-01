@@ -390,9 +390,12 @@ class FarmAccessibilityService : AccessibilityService() {
         // build668 修复（debug_test_20260731_210558.log, build666）：
         // 原 realContent.isNotEmpty() 阈值过低,进入农场页时 H5 未渲染完（realContent count=33）
         // 就判定加载完成 → COLLECTING_DIRECT 找不到"已领取"标识 → 误触发 AI 视觉 15s 超时。
-        // UC 芭芭农场主页完整加载后 realContent count 通常 >= 130（build664 日志 count=144）。
-        // 提高阈值到 80,确保页面渲染出主要节点（含"已领取"/"明天领肥料"/任务列表等）再进入下一阶段。
-        return realContent.size >= 80
+        // build672 修复（debug_test_20260801_082040.log, build671）：
+        // build668 阈值 >= 80 过高,UC 简化版农场页（活动期间布局）realContent count=35
+        // 但已包含"UC芭芭农场"/"8.4内完成3天即领"/"1天"/"2天"等农场专属内容,属于已加载完成。
+        // 阈值降为 >= 30,既能过滤未渲染完页面（realContent=12）,又能让简化版农场页通过。
+        // 配合 hasDailyRewardClaimedIndicator 和 AI 视觉兜底,即使节点少也能正确处理。
+        return realContent.size >= 30
     }
 
     /** 收集节点树中所有文本 */
