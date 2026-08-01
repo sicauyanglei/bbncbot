@@ -1087,9 +1087,14 @@ object AutomationController {
         // 这种页面 findDirectCollectButtons 返回 0,hasDailyRewardClaimedIndicator 返回 false,
         // 导致触发 AI 视觉找"点击领取"15 秒超时（活动页面根本没这个按钮）。
         // 修复：检测到活动页面特征时,跳过 AI 视觉直接进入 OPENING_TASK_LIST 处理任务。
-        if (buttons.isEmpty() && attempt == 0 && service.isActivityFarmPage()) {
-            debugLog("collectDirect: activity farm page detected (今日任务余/完成即领), no 点击领取 button, skip AI vision, go to task list")
-            Log.i(TAG, "collectDirect: activity farm page detected, skip AI vision, opening task list")
+        // build680 修复（debug_test_20260801_151301.log, build679, 15:12:03）：
+        //   日志显示页面同时有"已领取"+"明天领肥料"+"8.4内完成3天即领"(活动标题),
+        //   isActivityFarmPage() 返回 true 直接跳过 AI 视觉,导致"点击跳转拿奖励"未被识别。
+        //   修复：与 hasDailyRewardClaimedIndicator 同样,增加 aiVisionDirectClickAttempted 检查,
+        //   尚未尝试 AI 视觉时不跳过,让 AI 视觉有机会识别"点击跳转拿奖励"按钮。
+        if (buttons.isEmpty() && attempt == 0 && service.isActivityFarmPage() && aiVisionDirectClickAttempted) {
+            debugLog("collectDirect: activity farm page detected (今日任务余/完成即领), AI vision already tried, skip to task list")
+            Log.i(TAG, "collectDirect: activity farm page detected, AI vision already tried, opening task list")
             moveTo(AutomationState.OPENING_TASK_LIST)
             handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
             return
@@ -4880,11 +4885,26 @@ object AutomationController {
                     //   - 倒计时结束后 isAdEndedMultiSignal 检测"恭喜获取奖励"等信号 → CLOSING_AD 主动关闭
                     //   - 或 adMaxDurationMs（hint+buffer）超时后兜底退出
                     //   两种方式都比 5s 盲目 pressBack 更可靠。
-                    debugLog("watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=${elapsedMs}ms/${adMaxDurationMs}ms)")
-                    handler.postDelayed({
-                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
-                    }, adEndCheckIntervalMs)
-                    return
+                    //
+                    // build680 修复（debug_test_20260801_151301.log, build679, 15:12:16-15:12:56）：
+                    //   15:12:16.470 findAdDurationHint: found countdown '10秒', seconds=10
+                    //   15:12:16.474 watchAd: parsed ad duration hint=10s, min wait=12000ms
+                    //   15:12:16-15:12:53 scene=TRAP_INTERACTIVE, no download button, continue waiting
+                    //   15:12:56 用户手动停止(卡死 40 秒)
+                    // 根因：无下载按钮时一直 return,后续的 isAdEndedMultiSignal 检测永远不执行,
+                    //   即使广告倒计时 10s 已结束(min wait=12s),也无法识别广告结束并关闭。
+                    // 修复：无下载按钮 且 elapsedMs >= adMinDurationMs 时,不 return,跳出 TRAP_INTERACTIVE 分支,
+                    //   让后续的广告结束检测(isAdEndedMultiSignal)有机会执行,识别广告结束后走 CLOSING_AD 关闭。
+                    if (elapsedMs < adMinDurationMs) {
+                        debugLog("watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=${elapsedMs}ms/${adMaxDurationMs}ms)")
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                        }, adEndCheckIntervalMs)
+                        return
+                    }
+                    // elapsedMs >= adMinDurationMs: 广告倒计时应该已结束,跳出 TRAP_INTERACTIVE 分支,
+                    // 让后续的 isAdEndedMultiSignal 检测广告结束状态并关闭广告
+                    debugLog("watchAd: interactive ad no download button, min wait elapsed (${elapsedMs}ms/${adMinDurationMs}ms), fall through to ad-end check")
                 }
                 // 已点击下载按钮,继续轮询等待下载完成 + 肥料发放
                 debugLog("watchAd: interactive ad download clicked, waiting for download complete (elapsed=${elapsedMs}ms/${adMaxDurationMs}ms)")

@@ -32,6 +32,48 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build680 isActivityFarmPage 跳过 AI 视觉 + TRAP_INTERACTIVE 卡死
+
+**用户需求**: "分析日志 为什么没有点击'点击跳转拿奖励'" + "解决所有问题"
+
+**日志分析** (build679, debug_test_20260801_151301.log, 15:11:43-15:12:56):
+
+**问题1**: "点击跳转拿奖励"仍未被识别 (15:12:03)
+- 15:12:03.577 collectDirect: found 0 direct buttons, attempt=0
+- 15:12:03.607 collectDirect: **activity farm page detected (今日任务余/完成即领)**, no 点击领取 button, skip AI vision, go to task list
+- 根因：页面同时有"已领取"+"明天领肥料"+"8.4内完成3天即领"(活动标题),
+  isActivityFarmPage() 返回 true 直接跳过 AI 视觉(build673 修复),
+  build679 只给 hasDailyRewardClaimedIndicator 加了 aiVisionDirectClickAttempted 检查,
+  isActivityFarmPage 没加,导致 AI 视觉仍被跳过,"点击跳转拿奖励"未被识别。
+
+**问题2**: task #1 "看视频得巨额肥料" 卡在 TRAP_INTERACTIVE 广告 40 秒 (15:12:16-15:12:56)
+- 15:12:16.470 findAdDurationHint: found countdown '10秒', seconds=10
+- 15:12:16.474 watchAd: parsed ad duration hint=10s, min wait=12000ms
+- 15:12:16-15:12:53 scene=TRAP_INTERACTIVE, no download button, continue waiting
+- 15:12:56 用户手动停止(卡死 40 秒)
+- 根因：TRAP_INTERACTIVE 无下载按钮时一直 return,后续的 isAdEndedMultiSignal 检测
+  永远不执行,即使广告倒计时 10s 已结束(min wait=12s),也无法识别广告结束并关闭。
+
+**修复 1**: [AutomationController.kt#L1095](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1095)
+- isActivityFarmPage 跳过条件增加 `aiVisionDirectClickAttempted` 检查
+- 与 build679 的 hasDailyRewardClaimedIndicator 修复保持一致
+- 尚未尝试 AI 视觉时不跳过,让 AI 视觉有机会识别"点击跳转拿奖励"按钮
+
+**修复 2**: [AutomationController.kt#L4898-L4907](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4898-L4907)
+- TRAP_INTERACTIVE 无下载按钮时,增加 elapsedMs < adMinDurationMs 条件判断:
+  - 未到 min wait: 继续轮询等待(原逻辑)
+  - 已到 min wait: 不 return,跳出 TRAP_INTERACTIVE 分支
+- 让后续的 isAdEndedMultiSignal 检测有机会执行,识别广告结束后走 CLOSING_AD 关闭
+- 避免互动广告倒计时结束后仍卡死在 TRAP_INTERACTIVE 分支
+
+**预期效果**:
+- 活动页面+每日奖励已领取时,AI 视觉不再被跳过,会找"点击跳转拿奖励"按钮
+- 互动广告无下载按钮时,倒计时结束后能识别广告结束并关闭,不再卡死 40 秒
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build679 每日奖励已领取时 AI 视觉找"点击跳转拿奖励"按钮
 
 **用户需求**: "分析日志 为啥点击'点击跳转拿奖励'" + "希望点击"
