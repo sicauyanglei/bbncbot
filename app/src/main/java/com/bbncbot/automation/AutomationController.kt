@@ -1409,6 +1409,18 @@ object AutomationController {
                 //   pressBack 无法关闭此类广告,应该进入 WATCHING_AD 状态处理广告。
                 // 修复：10秒后先检查是否进入广告 Activity,是则进入 WATCHING_AD 处理广告；
                 //   否则 pressBack 返回主页继续 COLLECTING_DIRECT。
+                //
+                // build685 修复（debug_test_20260801_211023.log, build684, 21:07:46-21:08:53）：
+                //   21:07:46 点击'看广告领奖' → waiting 10000ms
+                //   21:07:56 10s elapsed, pressing back
+                //   21:08:16 activeRootPkg='com.taobao.taobao', act=SearchActivity  ← 跳转到淘宝搜索页!
+                //   → 不是广告 Activity,isAdActivity()=false,走了 pressBack 分支
+                //   → pressBack 无法从淘宝返回 UC,反复 reopenFarmByDeepLink 失败 → STOPPING
+                // 根因：跳转按钮可能跳转到淘宝/其他 App（非广告）,pressBack 无法跨 App 返回。
+                // 修复：10秒后检查三种情况：
+                //   1. 是广告 Activity → WATCHING_AD（原 build683 逻辑）
+                //   2. 在农场页面 → 继续下一轮 COLLECTING_DIRECT
+                //   3. 不在农场页面（其他 App）→ 重新启动农场 App 返回主页
                 if (service.isAdActivity() || service.isAdPlaying()) {
                     Log.i(TAG, "collectDirect: jump button led to ad activity, entering WATCHING_AD")
                     debugLog("collectDirect: jump button '$btnText' led to ad (act=${service.getCurrentActivityName()}), entering WATCHING_AD")
@@ -1417,7 +1429,19 @@ object AutomationController {
                     handler.postDelayed({ runWatchingAd(elapsedMs = 0L) }, INTERVAL_CLICK_MS)
                     return@postDelayed
                 }
-                // 未进入广告,pressBack 返回主页
+                // 检查是否还在农场页面
+                if (!service.isOnFarmPage()) {
+                    // 不在农场页面（跳转到淘宝等其他 App）,重新启动农场 App 返回主页
+                    Log.i(TAG, "collectDirect: jump button led to other app (pkg=${service.getCurrentWindowPackage()}), relaunching farm app")
+                    debugLog("collectDirect: jump button '$btnText' led to non-farm app (pkg=${service.getCurrentWindowPackage()}), relaunching farm app to return")
+                    service.launchPlatformApp(service.currentPlatform)
+                    // 等待农场 App 重新打开,继续 COLLECTING_DIRECT 下一轮
+                    handler.postDelayed({
+                        if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                    return@postDelayed
+                }
+                // 在农场页面,pressBack 返回主页
                 debugLog("collectDirect: 10s elapsed, pressing back to return to farm home")
                 service.pressBack()
                 // 再等待 2 秒页面恢复,继续 COLLECTING_DIRECT 下一轮

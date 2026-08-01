@@ -32,7 +32,53 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build684 stepClickFarmTab 误点跨平台跳转入口
+### commit (待提交) - fix: build685 跳转按钮跨App返回 + stepTab 误点系统提示
+
+**用户需求**: "分析日志，点击了'点击跳转拿奖励'，需要10秒后返回页面" + "分析日志"
+
+**日志分析** (build684, debug_test_20260801_211023.log & debug_test_20260801_211034.log, 21:07:46-21:09:44):
+
+**问题1**: 点击"看广告领奖"跳转按钮后,10秒 pressBack 无法从淘宝返回 UC,卡死 STOPPING
+- 21:07:46.359 点击'看广告领奖' bounds=[641,1156][822,1205] (jump button, waiting 10000ms)
+- 21:07:56.393 10s elapsed, pressing back to return to farm home (build684 走 pressBack 分支)
+- 21:08:16.466 activeRootPkg='com.taobao.taobao', act=SearchActivity ← 跳转到淘宝搜索页!
+- → 不是广告 Activity,isAdActivity()=false,走 pressBack 分支
+- → pressBack 无法跨 App 从淘宝返回 UC,反复 reopenFarmByDeepLink 失败 → STOPPING
+- 21:08:55.507 第二次点击'看广告领奖' → 同样跳转淘宝 → 卡死
+
+**根因1**: 跳转按钮可能跳转到淘宝/其他 App(非广告),pressBack 无法跨 App 返回。
+
+**修复1**: [AutomationController.kt#L1424-L1450](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1424-L1450)
+- 跳转按钮10秒等待结束后,检查三种情况:
+  1. 是广告 Activity → WATCHING_AD（原 build683 逻辑）
+  2. 在农场页面 → pressBack 返回主页继续 COLLECTING_DIRECT
+  3. 不在农场页面（其他 App 如淘宝）→ `service.launchPlatformApp()` 重新启动农场 App 返回主页
+
+**问题2**: stepTab 误点系统提示"芭芭农场机器人正在其他应用的上层显示内容"跳转到设置页
+- 21:08:31.677 performClickSafe: text='芭芭农场机器人正在其他应用的上层显示内容。'
+  bounds=[215,563][958,621] clickable=false
+  ← findNodeByText contains 匹配到无障碍服务系统提示（含"芭芭农场"+机器人名）
+  ← bounds 有效(top=563<bottom=621), clickable=false, 走 ancestor bounds 点击
+- 21:08:35.977 activeRootPkg='com.android.settings' ← 跳转到系统设置页!
+
+**根因2**: 系统无障碍服务提示文本"芭芭农场机器人正在其他应用的上层显示内容"包含关键词"芭芭农场",
+  且 bounds 有效,被 findNodeByText 误识别为可点击的农场标签,通过 ancestor bounds 点击后
+  跳转到系统无障碍服务设置页。
+
+**修复2**: [FarmAccessibilityService.kt#L6058-L6072](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L6058-L6072)
+- findNodeByText 匹配到的节点增加系统提示过滤:
+  文本/desc 含"正在其他应用"/"机器人正在"/"上层显示内容"则跳过
+- 这样只会点击真正的"芭芭农场"标签,不会误点无障碍服务系统提示
+
+**预期效果**:
+- 跳转按钮跳转到淘宝等非广告 App 时,能自动重启农场 App 返回主页继续任务
+- stepTab 导航不再误点无障碍服务系统提示,避免跳转到系统设置页
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit a399fb7 - fix: build684 stepClickFarmTab 误点跨平台跳转入口
 
 **用户需求**: "分析日志"
 

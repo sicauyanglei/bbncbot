@@ -6055,6 +6055,20 @@ class FarmAccessibilityService : AccessibilityService() {
                     // 排除无效 bounds（top>bottom 等）
                     debugLog("navigate stepTab: text node invalid bounds ${rect.toShortString()} (top>bottom or zero size), skipping")
                     tab = null
+                } else if (tabText.contains("正在其他应用") || tabDesc.contains("正在其他应用") ||
+                    tabText.contains("机器人正在") || tabDesc.contains("机器人正在") ||
+                    tabText.contains("上层显示内容") || tabDesc.contains("上层显示内容")) {
+                    // build685 修复（debug_test_20260801_211023.log, build684, 21:08:31）：
+                    //   21:08:31.677 performClickSafe: text='芭芭农场机器人正在其他应用的上层显示内容。'
+                    //     bounds=[215,563][958,621] clickable=false
+                    //   ← findNodeByText contains 匹配到无障碍服务系统提示（含"芭芭农场"+机器人名）
+                    //   ← bounds 有效(top=563<bottom=621), clickable=false, 走 ancestor bounds 点击
+                    //   21:08:35.977 activeRootPkg='com.android.settings' ← 跳转到系统设置页!
+                    //   根因：系统无障碍服务提示文本"芭芭农场机器人正在其他应用的上层显示内容"
+                    //   包含关键词"芭芭农场",且 bounds 有效,被误识别为可点击的农场标签。
+                    //   修复：排除含"正在其他应用"/"机器人正在"/"上层显示内容"的系统提示文本。
+                    debugLog("navigate stepTab: text node is system overlay '$tabText', skipping")
+                    tab = null
                 }
             }
         }
