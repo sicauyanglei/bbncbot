@@ -1,0 +1,188 @@
+=== cleared on app start (version=2.2, build=build671-0ef84f3, time=08:16:28) ===
+08:16:28.520 killPlatformApps: killed com.ucmobile.lite for UC
+08:16:28.521 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+08:16:28.523 killPlatformApps: killed com.taobao.taobao for TAOBAO
+08:16:36.092 FarmAccessibilityService connected, API=36
+08:16:38.198 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+08:16:38.200 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+08:16:38.201 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+08:16:46.139 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+08:16:46.139 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+08:16:54.342 === Automation v2 Started === platform=UC
+08:16:54.345 cancelNavigation: all navigation callbacks cancelled
+08:16:54.358 reset platform complete: UC
+08:16:54.361 state: IDLE -> NAVIGATING
+08:16:55.239 isOnFarmPage: no farm content, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页]
+08:16:56.453 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+08:16:56.496 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+08:16:57.213 navigate: calling navigateToFarm, platform=UC
+08:16:58.984 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+08:16:58.990 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+08:16:58.991 performClickSafe: ACTION_CLICK failed, trying gesture
+08:16:58.991 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+08:16:58.993 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+08:17:03.025 navigate: on farm page, platform=UC
+08:17:03.039 hasFarmContentLoaded: text count=37, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 8.4内完成3天即领, 1天, 2天]
+08:17:03.040 hasFarmContentLoaded: realContent count=35
+08:17:03.041 navigate: hasFarmContentLoaded=false, attempt=1
+08:17:08.186 navigate: on farm page, platform=UC
+08:17:08.218 hasFarmContentLoaded: text count=37, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 8.4内完成3天即领, 1天, 2天]
+08:17:08.219 hasFarmContentLoaded: realContent count=35
+08:17:08.220 navigate: hasFarmContentLoaded=false, attempt=2
+08:17:13.363 navigate: on farm page, platform=UC
+08:17:13.390 hasFarmContentLoaded: text count=37, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 8.4内完成3天即领, 1天, 2天]
+08:17:13.393 hasFarmContentLoaded: realContent count=35
+08:17:13.396 navigate: hasFarmContentLoaded=false, attempt=3
+08:17:18.534 navigate: on farm page, platform=UC
+08:17:18.549 hasFarmContentLoaded: text count=37, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 8.4内完成3天即领, 1天, 2天]
+08:17:18.552 hasFarmContentLoaded: realContent count=35
+08:17:18.555 navigate: hasFarmContentLoaded=false, attempt=4
+08:17:23.700 navigate: on farm page, platform=UC
+08:17:23.726 hasFarmContentLoaded: text count=37, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 8.4内完成3天即领, 1天, 2天]
+08:17:23.729 hasFarmContentLoaded: realContent count=35
+08:17:23.731 navigate: hasFarmContentLoaded=false, attempt=5
+08:17:28.874 navigate: on farm page, platform=UC
+08:17:28.903 hasFarmContentLoaded: text count=37, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 8.4内完成3天即领, 1天, 2天]
+08:17:28.906 hasFarmContentLoaded: realContent count=35
+08:17:28.908 navigate: hasFarmContentLoaded=false, attempt=6
+08:17:37.031 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:17:37.214 navigate: generic popup (no fertilizer), attempting to close
+08:17:37.325 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:17:37.347 navigate: no close button found for generic popup, pressing back
+08:17:42.511 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:17:42.612 navigate: generic popup (no fertilizer), attempting to close
+08:17:42.695 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:17:42.702 navigate: no close button found for generic popup, pressing back
+08:17:47.729 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:17:47.865 navigate: generic popup (no fertilizer), attempting to close
+08:17:47.967 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:17:47.975 navigate: no close button found for generic popup, pressing back
+08:17:53.000 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:17:53.102 navigate: generic popup (no fertilizer), attempting to close
+08:17:53.173 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:17:53.178 navigate: no close button found for generic popup, pressing back
+08:17:58.201 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:17:58.346 navigate: generic popup (no fertilizer), attempting to close
+08:17:58.475 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:17:58.482 navigate: no close button found for generic popup, pressing back
+08:18:03.509 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:18:03.657 navigate: generic popup (no fertilizer), attempting to close
+08:18:03.764 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:18:03.770 navigate: no close button found for generic popup, pressing back
+08:18:08.792 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:18:08.875 navigate: generic popup (no fertilizer), attempting to close
+08:18:08.929 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:18:08.935 navigate: no close button found for generic popup, pressing back
+08:18:13.964 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:18:14.105 navigate: generic popup (no fertilizer), attempting to close
+08:18:14.241 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:18:14.257 navigate: no close button found for generic popup, pressing back
+08:18:19.293 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:18:19.460 navigate: generic popup (no fertilizer), attempting to close
+08:18:19.628 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:18:19.634 navigate: no close button found for generic popup, pressing back
+08:18:24.663 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:18:24.810 navigate: generic popup (no fertilizer), attempting to close
+08:18:24.959 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:18:24.966 navigate: no close button found for generic popup, pressing back
+08:18:29.995 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:18:30.172 navigate: generic popup (no fertilizer), attempting to close
+08:18:30.317 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:18:30.338 navigate: no close button found for generic popup, pressing back
+08:18:35.371 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:18:35.533 navigate: generic popup (no fertilizer), attempting to close
+08:18:35.663 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:18:35.678 navigate: no close button found for generic popup, pressing back
+08:18:40.704 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:18:40.850 navigate: generic popup (no fertilizer), attempting to close
+08:18:40.914 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:18:40.927 navigate: no close button found for generic popup, pressing back
+08:18:45.961 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:18:46.107 navigate: generic popup (no fertilizer), attempting to close
+08:18:46.225 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:18:46.239 navigate: no close button found for generic popup, pressing back
+08:18:51.267 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:18:51.411 navigate: generic popup (no fertilizer), attempting to close
+08:18:51.550 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:18:51.562 navigate: no close button found for generic popup, pressing back
+08:18:56.596 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:18:56.756 navigate: generic popup (no fertilizer), attempting to close
+08:18:56.834 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:18:56.841 navigate: no close button found for generic popup, pressing back
+08:19:01.876 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:19:02.011 navigate: generic popup (no fertilizer), attempting to close
+08:19:02.069 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:19:02.074 navigate: no close button found for generic popup, pressing back
+08:19:07.098 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:19:07.210 navigate: generic popup (no fertilizer), attempting to close
+08:19:07.350 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:19:07.374 navigate: no close button found for generic popup, pressing back
+08:19:12.399 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:19:12.551 navigate: generic popup (no fertilizer), attempting to close
+08:19:12.691 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:19:12.695 navigate: no close button found for generic popup, pressing back
+08:19:17.720 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:19:17.885 navigate: generic popup (no fertilizer), attempting to close
+08:19:18.007 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:19:18.015 navigate: no close button found for generic popup, pressing back
+08:19:23.040 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:19:23.200 navigate: generic popup (no fertilizer), attempting to close
+08:19:23.310 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:19:23.331 navigate: no close button found for generic popup, pressing back
+08:19:28.369 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:19:28.491 navigate: generic popup (no fertilizer), attempting to close
+08:19:28.570 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:19:28.577 navigate: no close button found for generic popup, pressing back
+08:19:33.602 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:19:33.763 navigate: generic popup (no fertilizer), attempting to close
+08:19:33.888 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:19:33.893 navigate: no close button found for generic popup, pressing back
+08:19:38.919 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:19:39.070 navigate: generic popup (no fertilizer), attempting to close
+08:19:39.198 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:19:39.207 navigate: no close button found for generic popup, pressing back
+08:19:44.231 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:19:44.383 navigate: generic popup (no fertilizer), attempting to close
+08:19:44.530 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:19:44.547 navigate: no close button found for generic popup, pressing back
+08:19:49.578 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:19:49.729 navigate: generic popup (no fertilizer), attempting to close
+08:19:49.854 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:19:49.875 navigate: no close button found for generic popup, pressing back
+08:19:54.906 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:19:55.043 navigate: generic popup (no fertilizer), attempting to close
+08:19:55.176 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:19:55.196 navigate: no close button found for generic popup, pressing back
+08:20:00.227 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:20:00.370 navigate: generic popup (no fertilizer), attempting to close
+08:20:00.520 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:20:00.535 navigate: no close button found for generic popup, pressing back
+08:20:05.563 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:20:05.699 navigate: generic popup (no fertilizer), attempting to close
+08:20:05.817 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:20:05.823 navigate: no close button found for generic popup, pressing back
+08:20:10.844 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:20:10.951 navigate: generic popup (no fertilizer), attempting to close
+08:20:11.087 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:20:11.093 navigate: no close button found for generic popup, pressing back
+08:20:16.120 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:20:16.268 navigate: generic popup (no fertilizer), attempting to close
+08:20:16.345 findAdCloseButton: drop system control node text='null' desc='手电筒已关闭'
+08:20:16.352 navigate: no close button found for generic popup, pressing back
+08:20:21.538 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+08:20:27.861 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+08:20:27.880 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+08:20:27.994 navigate: on farm page, platform=UC
+08:20:28.028 hasFarmContentLoaded: text count=37, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 8.4内完成3天即领, 1天, 2天]
+08:20:28.032 hasFarmContentLoaded: realContent count=35
+08:20:28.035 navigate: hasFarmContentLoaded=false, attempt=0
+08:20:33.172 navigate: on farm page, platform=UC
+08:20:33.201 hasFarmContentLoaded: text count=37, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 8.4内完成3天即领, 1天, 2天]
+08:20:33.205 hasFarmContentLoaded: realContent count=35
+08:20:33.206 navigate: hasFarmContentLoaded=false, attempt=1
+08:20:36.087 state: NAVIGATING -> STOPPING
+08:20:36.090 cancelNavigation: all navigation callbacks cancelled
+08:20:36.092 state: STOPPING -> IDLE
+08:20:40.402 saveToken: saved (len=93, head='gith', tail='McKr')
+08:20:40.404 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+08:20:40.406 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260801_082040.log, localFile=debug.log (17390 bytes)
