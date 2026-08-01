@@ -32,6 +32,43 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build679 每日奖励已领取时 AI 视觉找"点击跳转拿奖励"按钮
+
+**用户需求**: "分析日志 为啥点击'点击跳转拿奖励'" + "希望点击"
+
+**日志分析** (build677, debug_test_20260801_144605.log, 14:44:54):
+- 14:44:54.401 collectDirect: found 0 direct buttons, attempt=0
+- 14:44:54.413 collectDirect: daily reward already claimed (已领取/明天领肥料 detected), skip AI vision, go to task list
+- 14:44:54.415 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+
+**根因**: UC 主页"点击跳转拿奖励"是 H5/Canvas 图像按钮,文本不在 accessibility tree 中,
+findDirectCollectButtons 返回 0。build666 优化导致 hasDailyRewardClaimedIndicator() 为 true 时
+（"已领取"+"明天领肥料"）直接跳过 AI 视觉,进入 OPENING_TASK_LIST。
+这会同时跳过"点击领取"和"点击跳转拿奖励"的 AI 视觉识别。
+但"点击跳转拿奖励"和"点击领取"是不同按钮,即使每日签到奖励已领,"点击跳转拿奖励"仍可点击。
+
+**修复 1**: [AutomationController.kt#L1076](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1076)
+- hasDailyRewardClaimedIndicator 跳过条件增加 `aiVisionDirectClickAttempted` 检查
+- 尚未尝试 AI 视觉时不跳过,让 AI 视觉有机会识别"点击跳转拿奖励"按钮
+
+**修复 2**: [AutomationController.kt#L1118-L1258](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1118-L1258)
+- AI 视觉目标根据每日奖励状态切换：
+  - dailyClaimed=true → AI 视觉找"点击跳转拿奖励"按钮
+  - dailyClaimed=false → AI 视觉找"点击领取"按钮（原逻辑）
+- sceneContext 根据 dailyClaimed 切换位置提示
+- AI 视觉找到"点击跳转拿奖励"后走专用流程（等 10 秒 + pressBack 返回主页）
+  - 与 L1356 的按钮点击流程一致：点击 → 等待 10 秒 → pressBack → 继续下一轮
+- AI 视觉找到"点击领取"后继续下一轮 COLLECTING_DIRECT（原逻辑）
+
+**预期效果**:
+- 每日奖励已领取时,AI 视觉不再被跳过,而是找"点击跳转拿奖励"按钮
+- 找到后点击,等 10 秒拿奖励,pressBack 返回主页继续
+- 找不到时（15 秒超时或 AI 未找到）,fallback 到 OPENING_TASK_LIST
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build678 watchAd 未处理"点击商品,领取奖励"广告 + 番茄畅听下载确认对话框
 
 **用户需求**: "分析日志"

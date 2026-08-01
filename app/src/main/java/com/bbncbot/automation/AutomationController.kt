@@ -1073,9 +1073,9 @@ object AutomationController {
         //   07:47:19.098 [collectDirect-start] claim-text-nodes: text='已领取' bounds=[894,933][1123,1031]
         //   07:47:19.118 collectDirect: found 0 direct buttons, attempt=0
         //   → 当天已领过，"点击领取"按钮已变"已领取"，AI 视觉识别必然失败，15 秒超时无意义
-        if (buttons.isEmpty() && attempt == 0 && service.hasDailyRewardClaimedIndicator()) {
-            debugLog("collectDirect: daily reward already claimed (已领取/明天领肥料 detected), skip AI vision, go to task list")
-            Log.i(TAG, "collectDirect: daily reward already claimed, skip AI vision, opening task list")
+        if (buttons.isEmpty() && attempt == 0 && service.hasDailyRewardClaimedIndicator() && aiVisionDirectClickAttempted) {
+            debugLog("collectDirect: daily reward already claimed (已领取/明天领肥料 detected), AI vision already tried, skip to task list")
+            Log.i(TAG, "collectDirect: daily reward already claimed, AI vision already tried, opening task list")
             moveTo(AutomationState.OPENING_TASK_LIST)
             handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
             return
@@ -1119,23 +1119,36 @@ object AutomationController {
         // UC 主页"点击领取"是 H5/Canvas 图像按钮（文字+彩色背景）,无障碍树抓不到 text 节点,
         // findDirectCollectButtons 返回 0。需用 AI 视觉识别按钮坐标并点击。
         // 策略：当 buttons 为空 且 未尝试过 AI 视觉识别 时,
-        // 截图交给 GLM-4.6V-Flash 识别"点击领取"按钮坐标,用 dispatchGesture 点击。
+        // 截图交给 GLM-4.6V-Flash 识别按钮坐标,用 dispatchGesture 点击。
         // 防死循环：每轮只尝试一次 AI 视觉识别（aiVisionDirectClickAttempted 标记）。
         // build666 优化（用户需求"点击领取"应该优先点击）：原 attempt >= 1 先空转一次再触发 AI 视觉，
         // 改为 attempt >= 0 在首次就触发 AI 视觉，让"点击领取"更快被识别点击。
-        // （已领取标识已在上面 hasDailyRewardClaimedIndicator 提前拦截，不会无意义触发 AI 视觉）
+        // build678 修复（用户需求"希望点击点击跳转拿奖励"）：
+        // 当 hasDailyRewardClaimedIndicator=true 时,"点击领取"已变"已领取",
+        // 但"点击跳转拿奖励"按钮可能仍然可点击（H5 图像按钮,不在 accessibility tree）。
+        // AI 视觉目标根据每日奖励状态切换：已领取→找"点击跳转拿奖励",未领取→找"点击领取"。
         if (buttons.isEmpty() && !aiVisionDirectClickAttempted && attempt >= 0) {
             aiVisionDirectClickAttempted = true
-            debugLog("collectDirect: no direct buttons found, trying AI vision to locate '点击领取' button")
-            Log.i(TAG, "collectDirect: trying AI vision to locate '点击领取' button (H5/Canvas image button)")
+            // build678: 根据每日奖励状态决定 AI 视觉目标
+            val dailyClaimed = service.hasDailyRewardClaimedIndicator()
+            val aiVisionTarget = if (dailyClaimed) "点击跳转拿奖励" else "点击领取"
+            debugLog("collectDirect: no direct buttons found, trying AI vision to locate '$aiVisionTarget' button (dailyClaimed=$dailyClaimed)")
+            Log.i(TAG, "collectDirect: trying AI vision to locate '$aiVisionTarget' button (H5/Canvas image button, dailyClaimed=$dailyClaimed)")
             val appContext = service.applicationContext
             // build667 优化（用户截图反馈"点击领取"按钮位置）：
             // UC 芭芭农场主页"点击领取"按钮位于"果树右下侧区域"（H5/Canvas 图像按钮）。
             // 把位置提示写入 sceneContext 让 GLM-4.6V-Flash 更精准定位，避免误识别
             // 页面其他装饰性"领取/可领取"文字（如签到肥料/任务卡片的装饰文字）。
-            val sceneContext = "UC芭芭农场主页, 平台=${service.currentPlatform}, " +
-                "pkg=${service.getCurrentWindowPackage()}, act=${service.getCurrentActivityName()}, " +
-                "目标「点击领取」按钮位于果树右下侧区域（图像按钮，橙色/红色彩色背景）"
+            // build678: 当 dailyClaimed=true 时,目标改为"点击跳转拿奖励"按钮（跳转广告/活动页拿奖励）。
+            val sceneContext = if (dailyClaimed) {
+                "UC芭芭农场主页, 平台=${service.currentPlatform}, " +
+                    "pkg=${service.getCurrentWindowPackage()}, act=${service.getCurrentActivityName()}, " +
+                    "目标「点击跳转拿奖励」按钮位于页面中（图像按钮，点击后跳转广告/活动页停留拿奖励）"
+            } else {
+                "UC芭芭农场主页, 平台=${service.currentPlatform}, " +
+                    "pkg=${service.getCurrentWindowPackage()}, act=${service.getCurrentActivityName()}, " +
+                    "目标「点击领取」按钮位于果树右下侧区域（图像按钮，橙色/红色彩色背景）"
+            }
             // build607 修复（debug_test_20260722_075045.log line 59-60）：
             // AI 视觉是异步子线程,主线程只 postDelayed 等结果。若 AI 视觉调用慢
             // （2 个 model × 3 次重试 × 45s readTimeout,最坏接近 5 分钟）,主线程
@@ -1176,7 +1189,7 @@ object AutomationController {
                 }
                 try {
                     val result = AiVisionClient.findButtonLocationByVision(
-                        appContext, bitmap, sceneContext, "点击领取"
+                        appContext, bitmap, sceneContext, aiVisionTarget
                     )
                     bitmap.recycle()
                     handler.post {
@@ -1186,8 +1199,8 @@ object AutomationController {
                         }
                         if (state != AutomationState.COLLECTING_DIRECT) return@post
                         if (result == null) {
-                            debugLog("collectDirect: AI vision did not find '点击领取' button, continue to cross-platform/task-list")
-                            Log.i(TAG, "collectDirect: AI vision did not find '点击领取' button")
+                            debugLog("collectDirect: AI vision did not find '$aiVisionTarget' button, continue to cross-platform/task-list")
+                            Log.i(TAG, "collectDirect: AI vision did not find '$aiVisionTarget' button")
                             // AI 未找到,继续 attempt+1 重试（会走跨平台跳转/OPENING_TASK_LIST）
                             handler.postDelayed({
                                 if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
@@ -1198,19 +1211,33 @@ object AutomationController {
                         val metrics = service.resources.displayMetrics
                         val clickX = result.xRatio * metrics.widthPixels
                         val clickY = result.yRatio * metrics.heightPixels
-                        debugLog("collectDirect: AI vision found '点击领取' at ratio=(${result.xRatio}, ${result.yRatio}), " +
+                        debugLog("collectDirect: AI vision found '$aiVisionTarget' at ratio=(${result.xRatio}, ${result.yRatio}), " +
                             "screen=(${clickX}, ${clickY}), reason='${result.reason.take(80)}', clicking")
-                        Log.i(TAG, "collectDirect: AI vision found '点击领取' at (${clickX}, ${clickY}), clicking")
+                        Log.i(TAG, "collectDirect: AI vision found '$aiVisionTarget' at (${clickX}, ${clickY}), clicking")
                         // 记录防死循环（用 AI 视觉点击的坐标作为 bounds 标记）
-                        lastDirectClickedText = "点击领取(AI)"
+                        lastDirectClickedText = "$aiVisionTarget(AI)"
                         lastDirectClickedBounds = "(${result.xRatio},${result.yRatio})"
                         // 用 dispatchGesture 坐标点击
                         val clicked = service.dispatchGestureClick(clickX, clickY)
-                        debugLog("collectDirect: AI vision click dispatched=$clicked at ($clickX, $clickY)")
-                        // 点击后等待页面变化,继续 COLLECTING_DIRECT 下一轮（会重新检测 direct buttons）
-                        handler.postDelayed({
-                            if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
-                        }, INTERVAL_PAGE_LOAD_MS)
+                        debugLog("collectDirect: AI vision click dispatched=$clicked at ($clickX, $clickY) for '$aiVisionTarget'")
+                        // build678: "点击跳转拿奖励"专用流程（等 10 秒 + pressBack 返回主页）
+                        // 与 L1356 的按钮点击流程一致：点击 → 等待 10 秒 → pressBack 返回 → 继续下一轮
+                        if (dailyClaimed) {
+                            debugLog("collectDirect: '点击跳转拿奖励' (AI) clicked, waiting 10000ms then pressBack to return")
+                            handler.postDelayed({
+                                if (state != AutomationState.COLLECTING_DIRECT) return@postDelayed
+                                debugLog("collectDirect: 10s elapsed after AI '点击跳转拿奖励' click, pressing back to return to farm home")
+                                service.pressBack()
+                                handler.postDelayed({
+                                    if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
+                                }, INTERVAL_PAGE_LOAD_MS)
+                            }, 10000L)
+                        } else {
+                            // "点击领取"流程：点击后等待页面变化,继续 COLLECTING_DIRECT 下一轮
+                            handler.postDelayed({
+                                if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
+                            }, INTERVAL_PAGE_LOAD_MS)
+                        }
                     }
                 } catch (e: Exception) {
                     debugLog("collectDirect: AI vision exception: ${e.message}")
