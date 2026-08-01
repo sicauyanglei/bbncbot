@@ -32,6 +32,47 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build683 跳转按钮10秒后进入广告Activity则切 WATCHING_AD
+
+**用户需求**: "分析日志，点击了'点击跳转拿奖励'，需要10秒后返回页面"
+
+**日志分析** (build682, debug_test_20260801_202144.log, 20:20:14-20:21:41):
+
+**成功部分**: 两个跳转按钮都被正确点击 (20:20:37-20:21:02)
+- 20:20:37.145 点击'看广告领奖' bounds=[641,1149][822,1201]
+- 20:20:37.154 jump button '看广告领奖' detected, waiting 10000ms then pressBack
+- 20:20:47.156 10s elapsed, pressing back to return to farm home ✓
+- 20:20:52.441 点击'点击跳转拿奖励' bounds=[201,1401][1000,1578] clickable=true
+- 20:20:52.520 jump button '点击跳转拿奖励' detected, waiting 10000ms then pressBack
+- 20:21:02.527 10s elapsed, pressing back to return to farm home ✓
+
+**问题**: pressBack 后进入广告 Activity,卡死导致 STOPPING (20:21:02-20:21:41)
+- 20:21:07.555 collectDirect: found 0 direct buttons (实际已进入广告 Activity)
+- 20:21:22.601 activeRootPkg='com.antgroup.leopard.android' (穿山甲广告)
+- 20:21:22.778 act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, adActivity=true
+- → pressBack 未能关闭广告(UC 激励视频 pressBack 无效)
+- → bot 继续走 COLLECTING_DIRECT 但实际卡在广告页
+- → AI 视觉超时后 fallback 到 OPENING_TASK_LIST → NAVIGATING
+- → 反复"UC ad, waiting instead of pressBack" → STOPPING
+
+**根因**: 跳转类按钮点击后,10秒内页面可能跳转到穿山甲激励视频广告 Activity。
+  pressBack 无法关闭此类广告,应该进入 WATCHING_AD 状态处理广告。
+
+**修复**: [AutomationController.kt#L1394-L1428](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1394-L1428)
+- 跳转按钮点击后,10秒等待结束时先检查是否进入广告 Activity
+- `if (service.isAdActivity() || service.isAdPlaying())`:
+  - 是 → 进入 WATCHING_AD 状态,调用 runWatchingAd 处理广告
+  - 否 → pressBack 返回主页,继续 COLLECTING_DIRECT 下一轮（原逻辑）
+- 这样跳转类按钮无论是跳转到活动页还是广告页,都能正确处理
+
+**预期效果**:
+- 跳转按钮点击后若进入广告,会走完整的广告处理流程（识别广告结束 → 关闭 → 返回）
+- 不再因 pressBack 无效而卡死在广告 Activity
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build682 TRAP_INTERACTIVE fall through 误入 download clicked 分支
 
 **用户需求**: "分析日志"

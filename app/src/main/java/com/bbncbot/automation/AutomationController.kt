@@ -1396,7 +1396,28 @@ object AutomationController {
             debugLog("collectDirect: jump button '$btnText' detected, waiting 10000ms then pressBack to return")
             handler.postDelayed({
                 if (state != AutomationState.COLLECTING_DIRECT) return@postDelayed
-                // 等待 10 秒后 pressBack 返回主页
+                // build683 修复（debug_test_20260801_202144.log, build682, 20:21:02-20:21:41）：
+                //   20:20:52.520 点击'点击跳转拿奖励', waiting 10000ms
+                //   20:21:02.527 10s elapsed, pressing back
+                //   20:21:07.555 found 0 direct buttons (实际已进入广告 Activity)
+                //   20:21:22.601 activeRootPkg='com.antgroup.leopard.android' (穿山甲广告)
+                //   20:21:22.778 act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, adActivity=true
+                //   → pressBack 未能关闭广告(UC 激励视频 pressBack 无效),bot 继续走 COLLECTING_DIRECT
+                //     但实际卡在广告页,AI 视觉超时后 fallback 到 OPENING_TASK_LIST → NAVIGATING,
+                //     反复"UC ad, waiting instead of pressBack" → STOPPING
+                // 根因：跳转类按钮点击后,10秒内页面可能跳转到穿山甲激励视频广告 Activity。
+                //   pressBack 无法关闭此类广告,应该进入 WATCHING_AD 状态处理广告。
+                // 修复：10秒后先检查是否进入广告 Activity,是则进入 WATCHING_AD 处理广告；
+                //   否则 pressBack 返回主页继续 COLLECTING_DIRECT。
+                if (service.isAdActivity() || service.isAdPlaying()) {
+                    Log.i(TAG, "collectDirect: jump button led to ad activity, entering WATCHING_AD")
+                    debugLog("collectDirect: jump button '$btnText' led to ad (act=${service.getCurrentActivityName()}), entering WATCHING_AD")
+                    service.setAdMode(true)
+                    moveTo(AutomationState.WATCHING_AD)
+                    handler.postDelayed({ runWatchingAd(elapsedMs = 0L) }, INTERVAL_CLICK_MS)
+                    return@postDelayed
+                }
+                // 未进入广告,pressBack 返回主页
                 debugLog("collectDirect: 10s elapsed, pressing back to return to farm home")
                 service.pressBack()
                 // 再等待 2 秒页面恢复,继续 COLLECTING_DIRECT 下一轮
