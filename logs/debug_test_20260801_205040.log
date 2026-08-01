@@ -1,0 +1,61 @@
+=== cleared on app start (version=2.2, build=build683-5787664, time=20:48:17) ===
+20:48:17.991 killPlatformApps: killed com.ucmobile.lite for UC
+20:48:17.993 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+20:48:17.994 killPlatformApps: killed com.taobao.taobao for TAOBAO
+20:48:27.064 FarmAccessibilityService connected, API=36
+20:48:28.349 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+20:48:28.351 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:48:28.352 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+20:48:33.702 saveToken: saved (len=93, head='gith', tail='McKr')
+20:48:33.711 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+20:48:33.713 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260801_204833.log, localFile=debug.log (796 bytes)
+20:48:34.933 uploadFile resp: code=201, url=logs/debug_test_20260801_204833.log, errBody=
+20:48:34.935 uploaded: logs/debug_test_20260801_204833.log (953 bytes)
+20:48:34.937 upload: success, remotePath=logs/debug_test_20260801_204833.log
+20:48:34.938 upload done: 1 files uploaded (tag=test), errors=[]
+20:49:54.365 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:49:54.370 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+20:49:58.817 === Automation v2 Started === platform=UC
+20:49:58.819 cancelNavigation: all navigation callbacks cancelled
+20:49:58.827 reset platform complete: UC
+20:49:58.832 state: IDLE -> NAVIGATING
+20:49:59.733 isOnFarmPage: no farm content, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页]
+20:50:00.903 isNonAdTaskPage: YES, matched non-ad task in [后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 8.4内完成3天即领]
+20:50:01.133 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=android.widget.FrameLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+20:50:01.199 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:50:01.357 isRechargePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 2]
+20:50:01.501 navigate: calling navigateToFarm, platform=UC
+20:50:03.762 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+20:50:03.763 performClickSafe: text='前往手机支付宝-芭芭农场' desc='' bounds=[330,3877][815,2509] clickable=false
+20:50:03.764 performClickSafe: ACTION_CLICK failed, trying gesture
+20:50:03.765 dispatchGesture: screen=[[330,3877][815,2509]] window=[[0,0][0,0]]
+20:50:03.766 dispatchGesture: inPopup=false, trying coordinate fix
+20:50:03.771 estimateWebViewPopupOffset: no anchor found
+20:50:03.772 dispatchGesture: estimated popupOffset=0
+20:50:03.776 dispatchGesture: ancestor bounds valid at depth=2, click at (600.5, 1840.5) ancBounds=[22,1172][1179,2509]
+20:50:06.634 isOnFarmPage: activeRootPkg='com.eg.android.AlipayGphone' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:50:12.054 isOnFarmPage: activeRootPkg='com.eg.android.AlipayGphone' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:50:12.343 navigate: generic popup (no fertilizer), attempting to close
+20:50:12.552 navigate: clicking close button on generic popup (text='null')
+20:50:12.553 performClickSafe: text='' desc='关闭' bounds=[1040,150][1172,249] clickable=true
+20:50:12.583 performClickSafe: ACTION_CLICK success at depth=0
+20:50:22.849 isOnFarmPage: activeRootPkg='com.eg.android.AlipayGphone' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:50:23.032 navigate: farm app still not in foreground after relaunch (attempt=2), waiting for next retry
+20:50:29.272 isOnFarmPage: activeRootPkg='com.eg.android.AlipayGphone' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:50:29.476 navigate: farm app not in foreground (platform=UC, attempt=3), calling reopenFarmByDeepLink
+20:50:29.487 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:50:29.489 reopenFarmByDeepLink: pressing HOME to background UC before kill
+20:50:29.494 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+20:50:29.500 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+20:50:29.555 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+20:50:34.586 navigate: still not in farm app after relaunch, calling navigateToFarm to push navigation
+20:50:35.317 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:50:36.110 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+20:50:36.111 navigate stepTab: text node too large [0,0][1200,2241], skipping
+20:50:36.112 navigate stepTab: 芭芭农场 not found (retry=0), pressing back to go home
+20:50:38.262 state: NAVIGATING -> STOPPING
+20:50:38.264 cancelNavigation: all navigation callbacks cancelled
+20:50:38.266 state: STOPPING -> IDLE
+20:50:40.625 saveToken: saved (len=93, head='gith', tail='McKr')
+20:50:40.627 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+20:50:40.628 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260801_205040.log, localFile=debug.log (5458 bytes)
