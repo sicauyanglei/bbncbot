@@ -32,6 +32,38 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build684 stepClickFarmTab 误点跨平台跳转入口
+
+**用户需求**: "分析日志"
+
+**日志分析** (build683, debug_test_20260801_205040.log, 20:49:58-20:50:38):
+
+**问题**: NAVIGATING 阶段误点"前往手机支付宝-芭芭农场"跳转到支付宝,卡死 STOPPING
+- 20:50:03.762 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+- 20:50:03.763 performClickSafe: text='前往手机支付宝-芭芭农场' bounds=[330,3877][815,2509] clickable=false
+  ← findNodeByText contains 匹配到跨平台跳转入口
+  ← bounds=[330,3877][815,2509] top=3877 > bottom=2509 无效!
+- 20:50:06.634 activeRootPkg='com.eg.android.AlipayGphone' (跳转到支付宝了)
+- 20:50:38.262 state: NAVIGATING -> STOPPING (卡死)
+
+**根因**: findNodeByText 使用 contains 匹配,text='前往手机支付宝-芭芭农场' 匹配了 keyword "芭芭农场"。
+  该节点 clickable=false, bounds 无效(top>bottom),但代码仍尝试点击(通过 ancestor bounds 点击),
+  导致跳转到支付宝 App,UC 农场自动化卡死。
+
+**修复**: [FarmAccessibilityService.kt#L6039-L6059](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L6039-L6059)
+- findNodeByText 匹配到的节点增加两项检查:
+  1. 排除跨平台跳转入口: 文本/desc 含"支付宝"/"前往"则跳过
+  2. 排除无效 bounds: top>bottom 或 left>right 或 宽高<=0 则跳过
+- 这样只会点击 UC 自己的"芭芭农场"标签,不会误点跨平台跳转入口
+
+**预期效果**:
+- NAVIGATING 阶段不再误点"前往手机支付宝-芭芭农场"跳转到支付宝
+- 无效 bounds 的节点不会被点击
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build683 跳转按钮10秒后进入广告Activity则切 WATCHING_AD
 
 **用户需求**: "分析日志，点击了'点击跳转拿奖励'，需要10秒后返回页面"

@@ -6021,6 +6021,11 @@ class FarmAccessibilityService : AccessibilityService() {
         // 直接在主页上找"芭芭农场"标签
         // 优先精确匹配 content-desc="芭芭农场"（避免误匹配"芭芭农场机器人"等）
         // 然后 findNodeByText 兜底，但排除超大容器节点（如"芭芭农场-固搜-interact" bounds 占满全屏）
+        // build684 修复（debug_test_20260801_205040.log, build683, 20:50:03）：
+        //   findNodeByText contains 匹配到 text='前往手机支付宝-芭芭农场'（跨平台跳转入口）,
+        //   该节点 clickable=false, bounds=[330,3877][815,2509] (top>bottom 无效),
+        //   但代码仍尝试点击,导致跳转到支付宝 App,卡死在 NAVIGATING → STOPPING。
+        //   修复：匹配到的节点需排除含"支付宝"/"淘宝"的跨平台跳转入口,且 bounds 必须有效(top<=bottom)。
         var tab = findNodeByExactDesc(root, "芭芭农场")
         if (tab != null) {
             val rect = android.graphics.Rect()
@@ -6034,10 +6039,21 @@ class FarmAccessibilityService : AccessibilityService() {
         if (tab == null) {
             tab = findNodeByText(root, "芭芭农场")
             if (tab != null) {
+                val tabText = tab.text?.toString().orEmpty()
+                val tabDesc = tab.contentDescription?.toString().orEmpty()
                 val rect = android.graphics.Rect()
                 tab.getBoundsInScreen(rect)
-                if (rect.height() > 600 || (rect.width() > 1000 && rect.height() > 400)) {
+                // 排除跨平台跳转入口（如"前往手机支付宝-芭芭农场"）
+                if (tabText.contains("支付宝") || tabDesc.contains("支付宝") ||
+                    tabText.contains("前往") || tabDesc.contains("前往")) {
+                    debugLog("navigate stepTab: text node is cross-platform jump entry '$tabText', skipping")
+                    tab = null
+                } else if (rect.height() > 600 || (rect.width() > 1000 && rect.height() > 400)) {
                     debugLog("navigate stepTab: text node too large ${rect.toShortString()}, skipping")
+                    tab = null
+                } else if (rect.top > rect.bottom || rect.left > rect.right || rect.width() <= 0 || rect.height() <= 0) {
+                    // 排除无效 bounds（top>bottom 等）
+                    debugLog("navigate stepTab: text node invalid bounds ${rect.toShortString()} (top>bottom or zero size), skipping")
                     tab = null
                 }
             }
