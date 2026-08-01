@@ -4946,15 +4946,23 @@ object AutomationController {
                 service.setAdMode(false)
                 service.pressBack()
                 currentTaskIndex++  // 跳过任务,不重玩
+                // build676 修复（debug_test_20260801_100054.log, build675）：
+                // 原逻辑只 pressBack 一次,如果退出后仍在淘宝页（非农场页）,
+                // 会直接进入 OPENING_TASK_LIST,导致 openTaskList 误把淘宝页当农场页 reset 任务进度。
+                // 修复：检测退出后是否回到农场页,如果没回,走 NAVIGATING 重新导航回农场页。
                 handler.postDelayed({
                     if (state == AutomationState.WATCHING_AD) {
-                        if (!service.isOnFarmPage()) service.pressBack()
-                        handler.postDelayed({
-                            if (state == AutomationState.WATCHING_AD) {
-                                moveTo(AutomationState.OPENING_TASK_LIST)
-                                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
-                            }
-                        }, INTERVAL_PAGE_LOAD_MS)
+                        if (!service.isOnFarmPage()) {
+                            // 仍在非农场页（如淘宝）,走 NAVIGATING 重新回农场页
+                            Log.i(TAG, "watchAd: not on farm page after exit, navigating back to farm")
+                            debugLog("watchAd: not on farm after stall exit, go NAVIGATING")
+                            moveTo(AutomationState.NAVIGATING)
+                            handler.postDelayed({ runNavigating(attempt = 0) }, INTERVAL_CLICK_MS)
+                        } else {
+                            // 已回农场页,继续任务列表
+                            moveTo(AutomationState.OPENING_TASK_LIST)
+                            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        }
                     }
                 }, INTERVAL_PAGE_LOAD_MS)
                 return

@@ -32,6 +32,38 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build676 倒计时停滞退出后未回农场页的修复
+
+**用户需求**: "分析日志"（build675 日志 debug_test_20260801_100054.log）
+
+**日志分析** (build675, UC 平台, 09:59:28-10:00:54):
+- ✅ build666 已领取跳过 AI 视觉生效
+- ✅ build674 修复2（"已领取"误判）有效（task #1 "看视频"没被误判完成）
+- ✅ build671 倒计时停滞检测生效（15秒后仍 30秒,pressBack 退出）
+- ❌ **bug**: 倒计时停滞退出后仍在淘宝页,openTaskList 误把淘宝页当农场页 reset 任务进度
+  - 10:00:07 pressBack 退出广告,仍在淘宝 TMSActivity
+  - 10:00:12 WATCHING_AD → OPENING_TASK_LIST（错误！应该先回农场页）
+  - 10:00:15 openTaskList reset currentTaskIndex=0,丢失 task #1 进度
+  - 10:00:18 navigate 误判 isRechargePage=YES（淘宝百亿补贴页）
+  - 10:00:23-10:00:34 杀淘宝后跳到桌面 launcher,卡死找不到"芭芭农场"入口
+
+**根因**: watchAd 倒计时停滞退出后,只 pressBack 一次,如果没回农场页就继续 OPENING_TASK_LIST,
+导致 openTaskList 误把非农场页当农场页处理,reset 任务进度,后续 navigate 误判。
+
+**修复**: [AutomationController.kt#L4949-L4967](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4949-L4967)
+- 倒计时停滞 pressBack 退出后,检测是否回到农场页
+- 如果没回农场页,走 NAVIGATING 重新导航回农场页（而不是直接 OPENING_TASK_LIST）
+- 已回农场页时才继续 OPENING_TASK_LIST
+
+**预期效果**:
+- 倒计时停滞退出后不再误把淘宝页当农场页
+- 不丢失任务进度（不再 reset currentTaskIndex=0）
+- 正确回农场页后继续处理任务
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - feat: build675 点击"点我加速"按钮加速广告
 
 **用户需求**: "点击'我要加速'"
