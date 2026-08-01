@@ -3603,6 +3603,55 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 检测当前是否为"下载确认"系统对话框（如番茄畅听下载确认）
+     *
+     * 场景（debug_test_20260801_144605.log, build677, 14:45:39）：
+     * - 点击商品广告中的商品后,广告 SDK 可能触发应用下载
+     * - 退出广告时弹出系统 AlertDialog："您已下载的"番茄畅听"未下载完成（文件大小98.24 M），要继续下载吗"
+     * - 含"取消"/"确认"两个按钮
+     * - 用户要求：点"取消"不继续下载
+     *
+     * 特征：
+     * - Activity = android.app.AlertDialog（系统对话框）
+     * - 文本含"未下载完成"
+     * - 含"取消"和"确认"按钮
+     *
+     * @return true 表示当前是下载确认对话框
+     */
+    fun isDownloadConfirmDialog(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val activity = getCurrentActivityName()
+        // 必须是系统 AlertDialog（避免误判广告页内的弹窗）
+        if (activity != "android.app.AlertDialog") return false
+        val allText = collectAllText(root)
+        // 含"未下载完成"提示文字
+        return allText.any { it.contains("未下载完成") }
+    }
+
+    /**
+     * 在"下载确认"对话框中查找"取消"按钮
+     *
+     * @return "取消"按钮节点或 null
+     */
+    fun findDownloadConfirmCancelButton(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        // 查找文本为"取消"的可点击节点（系统对话框按钮通常 isClickable=true）
+        return findNodeByText(root, "取消")?.let { node ->
+            // 优先返回可点击的祖先节点（按钮容器）
+            var clickableAncestor: AccessibilityNodeInfo? = node
+            repeat(10) {
+                val parent = clickableAncestor?.parent
+                if (parent != null && parent.isClickable) {
+                    clickableAncestor = parent
+                } else {
+                    return@repeat
+                }
+            }
+            clickableAncestor ?: node
+        }
+    }
+
+    /**
      * 在"点击商品，领取奖励"广告页中查找可点击的商品节点
      *
      * 选择策略：

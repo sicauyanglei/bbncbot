@@ -4425,6 +4425,10 @@ object AutomationController {
             adCountdownStallHandled = false
             // build675: 重置"点我加速"按钮点击标记
             adSpeedUpClicked = false
+            // build678: 重置"点击商品,领取奖励"广告商品点击标记
+            // (checkTaskListOpened 中也有此广告处理,但 watchAd 从 processTask 进入时未重置)
+            adProductClicked = false
+            adProductClickTimeMs = 0L
             // 按平台广告策略加载默认时长与检测间隔（UC/支付宝/淘宝差异化）
             val platformCfg = service.currentPlatformConfig()
             adEndCheckIntervalMs = platformCfg.adEndCheckIntervalMs
@@ -4931,6 +4935,87 @@ object AutomationController {
             else -> {
                 // 场景识别未命中陷阱，由后续超时/深链/广告结束检测处理
             }
+        }
+
+        // build678 修复（debug_test_20260801_144605.log, build677, 14:45:04-14:45:58）：
+        // UC"看视频得巨额肥料"任务点击后进入穿山甲激励视频,顶部提示"点击商品，领取奖励"
+        // (clickable=false),页面含商品列表（淘宝精选/医用不锈钢剪刀等）。
+        // 原本 isClickProductAd 只在 checkTaskListOpened(OPENING_TASK_LIST 状态)中处理,
+        // 但实际广告是从 processTask 进入 WATCHING_AD 状态的,watchAd 没有对应处理逻辑,
+        // 导致 scene 误判 AD_ENDED,bot 干等 53 秒直到用户手动停止。
+        //
+        // 用户需求："点击商品，领取奖励，这只是一个提示，不需要点击，通过点击商品去获取奖励"
+        // 策略（复用 checkTaskListOpened 中的 adProductClicked 标记）：
+        // - 阶段1：isClickProductAd() 且未点击商品时,找商品节点(findAdProductNode)并点击
+        // - 阶段2：已点击商品后等 5s（让奖励触发），找关闭按钮或 pressBack 关闭广告
+        // - 重置标记,继续轮询（若仍在广告页,会重新尝试点击商品）
+        if (service.isClickProductAd()) {
+            val now = System.currentTimeMillis()
+            if (!adProductClicked) {
+                // 阶段1：找商品节点点击
+                val productNode = service.findAdProductNode()
+                if (productNode != null) {
+                    val rect = Rect()
+                    productNode.getBoundsInScreen(rect)
+                    Log.i(TAG, "watchAd: clicking ad product to trigger reward (bounds=${rect.toShortString()})")
+                    debugLog("watchAd: 点击商品 ad detected, clicking product bounds=${rect.toShortString()}")
+                    service.performClickSafe(productNode)
+                    adProductClicked = true
+                    adProductClickTimeMs = now
+                } else {
+                    // 找不到可点击商品节点：可能是页面还没渲染,等 2s 后重试
+                    debugLog("watchAd: 点击商品 ad detected but no clickable product node, retrying in 2s (elapsed=${elapsedMs}ms)")
+                }
+            } else {
+                // 阶段2：已点击商品,等待 5s 让奖励触发后关闭广告
+                val sinceClick = now - adProductClickTimeMs
+                if (sinceClick >= 5000L) {
+                    Log.i(TAG, "watchAd: 5s after clicking ad product, closing ad window (sinceClick=${sinceClick}ms)")
+                    debugLog("watchAd: closing ad window 5s after product click (sinceClick=${sinceClick}ms)")
+                    // 优先找关闭按钮,找不到 pressBack
+                    val closeBtn = service.findAdCloseButton(service.currentPlatformConfig().adCloseButtonTexts, enforceSceneWhitelist = false)
+                    if (closeBtn != null) {
+                        debugLog("watchAd: clicking close button on ad (text='${closeBtn.text}')")
+                        service.performClickSafe(closeBtn)
+                    } else {
+                        debugLog("watchAd: no close button, pressing back to close ad")
+                        service.pressBack()
+                    }
+                    // 重置标记：下一轮如果还在广告中,会重新尝试点击商品
+                    adProductClicked = false
+                    adProductClickTimeMs = 0L
+                } else {
+                    debugLog("watchAd: waiting ${sinceClick}ms/5000ms after clicking ad product")
+                }
+            }
+            // 点击商品广告：用较短间隔(2s)轮询
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + INTERVAL_CLICK_MS)
+            }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // build678 修复（debug_test_20260801_144605.log, build677, 14:45:39-14:45:58）：
+        // 点击商品广告后弹出"番茄畅听下载确认"系统对话框(act=android.app.AlertDialog)：
+        // texts=[您已下载的"番茄畅听"未下载完成（文件大小98.24 M），要继续下载吗, 取消, 确认]
+        // 原逻辑未识别此对话框,继续干等广告结束,卡死 13 秒直到用户手动停止。
+        //
+        // 策略：检测到下载确认对话框时,优先点"取消"（不继续下载）,继续轮询等待广告恢复。
+        // 特征：AlertDialog + 含"未下载完成" + 含"取消"/"确认"按钮
+        if (service.isDownloadConfirmDialog()) {
+            val cancelBtn = service.findDownloadConfirmCancelButton()
+            if (cancelBtn != null) {
+                Log.i(TAG, "watchAd: download confirm dialog detected, clicking cancel")
+                debugLog("watchAd: 番茄畅听下载确认对话框, clicking 取消")
+                service.performClickSafe(cancelBtn)
+            } else {
+                debugLog("watchAd: download confirm dialog detected but no cancel button, pressing back")
+                service.pressBack()
+            }
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+            }, INTERVAL_CLICK_MS)
+            return
         }
 
         // build675 优化（用户需求"点击我要加速"）：

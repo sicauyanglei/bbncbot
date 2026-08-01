@@ -32,6 +32,64 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build678 watchAd 未处理"点击商品,领取奖励"广告 + 番茄畅听下载确认对话框
+
+**用户需求**: "分析日志"
+
+**日志分析** (build677, debug_test_20260801_144605.log, 14:44:22-14:45:58):
+- 14:44:22-14:44:54 启动正常,导航到农场页,已领取检测生效(跳过 AI 视觉) ✅
+- 14:44:56 任务列表打开,6 个"去完成"按钮
+- 14:44:59 处理 task #1 "看视频得巨额肥料" (0/10) → 点击 → 进入穿山甲激励视频
+- 14:45:04 isAdContentShown: YES, matched ad signal in [点击商品，领取奖励, 广告] ← 关键
+- 14:45:05 进入 WATCHING_AD 状态
+- 14:45:08-14:45:34 scene 一直被识别为 AD_ENDED ← **bug 1**
+  - 实际页面有商品列表(淘宝精选/医用不锈钢剪刀直头弯/正品保证/¥7.8 等)
+  - bot 没有点击商品,只是干等到超时
+- 14:45:39 弹出"番茄畅听下载确认"系统对话框 ← **bug 2**
+  - act=android.app.AlertDialog
+  - texts=[您已下载的"番茄畅听"未下载完成（文件大小98.24 M），要继续下载吗, 取消, 确认]
+  - bot 未识别此对话框,继续干等广告结束
+- 14:45:49 AI progress percent=0%, remaining=0s, hasBar=false
+- 14:45:58 用户手动停止(卡死 53 秒)
+
+**根因 1**: `isClickProductAd()` 和 `findAdProductNode()` 已在 FarmAccessibilityService.kt 实现,
+且在 `checkTaskListOpened()` (OPENING_TASK_LIST 状态) 中有调用逻辑(L1766-1810)。
+但本次广告是从 `processTask` 进入 `WATCHING_AD` 状态的,`runWatchingAd` 函数中
+**没有**处理"点击商品,领取奖励"广告的逻辑,导致 scene 误判 AD_ENDED 后干等到超时。
+
+**根因 2**: 点击商品广告中的商品后,广告 SDK 可能触发应用下载,退出广告时弹出系统
+AlertDialog("番茄畅听未下载完成,要继续下载吗")。原代码未识别此对话框,没有点"取消",
+导致卡在对话框页面 13 秒直到用户手动停止。
+
+**修复 1**: [AutomationController.kt#L4428-L4431](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4428-L4431)
+- watchAd 初始化时(elapsedMs == 0L)重置 `adProductClicked` 和 `adProductClickTimeMs`
+- (原本只在 openTaskList 和 checkTaskListOpened 中重置,从 processTask 进入 watchAd 时未重置)
+
+**修复 2**: [AutomationController.kt#L4940-L4996](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4940-L4996)
+- 在 watchAd 主循环 scene 检测之后、"点我加速"检测之前,添加 `isClickProductAd()` 处理:
+  - 阶段1: 未点击商品时,`findAdProductNode()` 找商品节点并点击
+  - 阶段2: 已点击商品后等 5s(让奖励触发),找关闭按钮或 pressBack 关闭广告
+  - 重置标记,继续轮询(若仍在广告页,会重新尝试点击商品)
+- 用户需求："点击商品，领取奖励，这只是一个提示，不需要点击，通过点击商品去获取奖励"
+
+**修复 3**: [AutomationController.kt#L4998-L5019](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4998-L5019)
+- 在 watchAd 中添加"下载确认对话框"检测,优先点"取消"按钮
+- 继续轮询等待广告恢复
+
+**修复 4**: [FarmAccessibilityService.kt#L3605-L3652](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L3605-L3652)
+- 新增 `isDownloadConfirmDialog()`: 检测 act=android.app.AlertDialog + 含"未下载完成"
+- 新增 `findDownloadConfirmCancelButton()`: 查找"取消"按钮的可点击祖先节点
+
+**预期效果**:
+- "点击商品,领取奖励"广告出现时,主动点击商品获取奖励,等 5s 后关闭广告
+- 不再干等 53 秒直到超时
+- 退出广告时弹出"番茄畅听下载确认"对话框时,自动点"取消"不继续下载
+- 不再卡在对话框页面
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build677 "我要更快拿奖"提前完成后未关闭广告页
 
 **用户需求**: "分析日志，恭喜获得奖励 需要点击右上角关闭图标"
