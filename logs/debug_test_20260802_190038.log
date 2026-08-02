@@ -1,0 +1,96 @@
+=== cleared on app start (version=2.2, build=build690-dda5046, time=18:59:18) ===
+18:59:18.029 killPlatformApps: killed com.ucmobile.lite for UC
+18:59:18.031 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+18:59:18.033 killPlatformApps: killed com.taobao.taobao for TAOBAO
+18:59:25.006 FarmAccessibilityService connected, API=36
+18:59:26.347 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+18:59:26.350 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+18:59:26.351 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+18:59:32.967 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+18:59:32.968 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+18:59:36.499 === Automation v2 Started === platform=UC
+18:59:36.500 cancelNavigation: all navigation callbacks cancelled
+18:59:36.525 reset platform complete: UC
+18:59:36.526 state: IDLE -> NAVIGATING
+18:59:36.932 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:37.076 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:37.475 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:37.527 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:37.718 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:37.964 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=pz1.c, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+18:59:38.046 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+18:59:38.111 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:38.279 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:38.553 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:38.708 navigate: calling navigateToFarm, platform=UC
+18:59:40.339 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+18:59:40.343 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+18:59:40.344 performClickSafe: ACTION_CLICK failed, trying gesture
+18:59:40.345 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+18:59:40.345 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+18:59:43.915 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:43.998 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:44.283 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:49.989 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:50.104 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:50.211 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:50.312 navigate: calling navigateToFarm, platform=UC
+18:59:52.247 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+18:59:52.249 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+18:59:52.250 performClickSafe: ACTION_CLICK failed, trying gesture
+18:59:52.251 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+18:59:52.256 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+18:59:55.446 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:55.546 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+18:59:55.678 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:00.739 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:00.873 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:01.070 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:01.210 navigate: calling navigateToFarm, platform=UC
+19:00:02.746 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+19:00:02.747 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+19:00:02.747 performClickSafe: ACTION_CLICK failed, trying gesture
+19:00:02.748 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+19:00:02.752 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+19:00:06.244 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:06.294 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:06.435 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:11.503 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:11.619 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:11.786 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:11.937 navigate: calling navigateToFarm, platform=UC
+19:00:13.461 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+19:00:13.461 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+19:00:13.462 performClickSafe: ACTION_CLICK failed, trying gesture
+19:00:13.463 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+19:00:13.463 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+19:00:16.970 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:17.043 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:17.160 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:22.200 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:22.268 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:22.399 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:22.487 navigate: calling navigateToFarm, platform=UC
+19:00:24.008 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+19:00:24.014 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+19:00:24.019 performClickSafe: ACTION_CLICK failed, trying gesture
+19:00:24.021 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+19:00:24.023 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+19:00:27.541 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:27.591 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:27.691 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:32.756 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:32.810 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:32.892 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page
+19:00:32.934 navigate: calling navigateToFarm, platform=UC
+19:00:34.481 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+19:00:34.483 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+19:00:34.484 performClickSafe: ACTION_CLICK failed, trying gesture
+19:00:34.484 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+19:00:34.485 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+19:00:36.807 state: NAVIGATING -> STOPPING
+19:00:36.809 cancelNavigation: all navigation callbacks cancelled
+19:00:36.814 state: STOPPING -> IDLE
+19:00:38.881 saveToken: saved (len=93, head='gith', tail='McKr')
+19:00:38.884 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+19:00:38.886 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260802_190038.log, localFile=debug.log (7774 bytes)
