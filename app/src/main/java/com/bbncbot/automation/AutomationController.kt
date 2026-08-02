@@ -966,8 +966,23 @@ object AutomationController {
                 return
             }
             if (service.currentPlatform == Platform.UC) {
-                Log.i(TAG, "navigate: UC reward video ad playing, waiting for it to finish (not pressing back)")
-                debugLog("navigate: UC ad (act=${service.getCurrentActivityName()}), waiting instead of pressBack")
+                // build690 修复（debug_test_20260802_111340.log, build689, 10:52:35-11:13:33）：
+                //   10:52:30 watchAd 检测到 countdown stuck at 10s,pressBack 退出 → NAVIGATING
+                //   10:52:38 navigate: UC ad (KsRewardVideoActivity), waiting instead of pressBack
+                //   10:52:38-11:13:33 一直 waiting instead of pressBack ← 卡死 20 分钟!
+                //   根因：快手广告 KsRewardVideoActivity 倒计时卡在"10秒"(静态文本),
+                //         watchAd stall exit 后进入 NAVIGATING,但仍在广告 Activity,
+                //         navigate 选择等待而不是 pressBack,广告已卡住,等待永远无法结束。
+                //   修复：UC ad waiting 分支增加 attempt >= 6 超时(约30秒),
+                //         超过后强制 reopenFarmByDeepLink 退出卡住的广告 Activity。
+                if (attempt >= 6) {
+                    Log.w(TAG, "navigate: UC ad stuck after $attempt attempts, forcing reopenFarmByDeepLink to exit")
+                    debugLog("navigate: UC ad (act=${service.getCurrentActivityName()}) stuck after $attempt attempts, forcing reopenFarmByDeepLink")
+                    service.reopenFarmByDeepLink()
+                } else {
+                    Log.i(TAG, "navigate: UC reward video ad playing, waiting for it to finish (not pressing back)")
+                    debugLog("navigate: UC ad (act=${service.getCurrentActivityName()}), waiting instead of pressBack (attempt=$attempt)")
+                }
             } else {
                 Log.w(TAG, "navigate: in ad, trying to close")
                 service.pressBack()

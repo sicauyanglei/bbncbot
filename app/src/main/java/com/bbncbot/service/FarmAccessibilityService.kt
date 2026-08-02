@@ -1627,7 +1627,13 @@ class FarmAccessibilityService : AccessibilityService() {
         if (bestSeconds > 0) return bestSeconds
         // 兜底：在广告页面上查找独立的 "Ns" / "N秒" 倒计时（最后手段）
         // 仅当确认在广告页面时才使用，避免误匹配
-        if (isAdActivity() || isAdPlaying() || isAdContentShown()) {
+        // build690 修复（debug_test_20260802_111340.log, build689, 10:42:44-10:44:20）：
+        //   跨 App 浏览任务(UC→淘宝)进入 WATCHING_AD 后 adModeFlag=true,isAdPlaying()=true,
+        //   兜底逻辑误匹配淘宝页面商品描述中的"30秒"为广告倒计时,导致 scene=AD_PLAYING,
+        //   findClaimRewardButton 被场景白名单阻止,卡死 90 秒。
+        //   修复：兜底逻辑只在真正的广告 Activity 上执行(isAdActivity()),
+        //   不依赖 isAdPlaying()(可能因 adModeFlag 误判)和 isAdContentShown()。
+        if (isAdActivity()) {
             for (text in allText) {
                 // 精确匹配纯倒计时文本，如 "15s" / "30秒" / "15 s"
                 val exactMatch = Regex("^(\\d+)\\s*[秒s]$").find(text.trim())

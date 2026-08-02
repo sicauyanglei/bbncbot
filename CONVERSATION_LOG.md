@@ -32,7 +32,51 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build689 跳转按钮跨App时launchPlatformApp不杀UC
+### commit (待提交) - fix: build690 跨App浏览任务"30秒"误识别+UC广告卡死20分钟
+
+**用户需求**: "分析日志"
+
+**日志分析** (build689, debug_test_20260802_111340.log, 10:40:51-11:13:33):
+
+**问题1**: 跨 App 浏览任务(UC→淘宝)"30秒"误识别为广告倒计时,卡死 90 秒
+- 10:42:36 点击"去完成"(看视频得巨额肥料任务) → 跳转到淘宝
+- 10:42:44 processTask: deep-link ad task, activeRoot=com.taobao.taobao, entering WATCHING_AD
+- 10:42:52 findAdDurationHint: found countdown '30秒', seconds=30 ← 误匹配淘宝页面文字!
+- 10:42:52-10:44:20 一直 scene=AD_PLAYING,findClaimRewardButton 被场景白名单阻止
+- 根因：跨 App 浏览任务进入 WATCHING_AD 后 adModeFlag=true,isAdPlaying()=true,
+  findAdDurationHint 兜底逻辑 `isAdActivity() || isAdPlaying() || isAdContentShown()` 执行,
+  误匹配淘宝页面商品描述中的"30秒"为广告倒计时。
+
+**修复1**: [FarmAccessibilityService.kt#L1627-L1636](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L1627-L1636)
+- findAdDurationHint 兜底逻辑改为只 `isAdActivity()`,去掉 isAdPlaying()(可能因 adModeFlag 误判)和 isAdContentShown()
+- 跨 App 浏览任务(adActivity=false)不再执行兜底逻辑,不会误匹配"30秒"
+
+**问题2**: 快手广告 KsRewardVideoActivity 卡死 20 分钟(10:52:35-11:13:33)
+- 10:52:02 点击'看广告领奖' → 快手 KsRewardVideoActivity → WATCHING_AD
+- 10:52:15 findAdDurationHint: found countdown '10秒', seconds=10
+- 10:52:30 countdown stuck at 10s (static text), pressing back to exit → NAVIGATING
+- 10:52:38 navigate: UC ad (KsRewardVideoActivity), waiting instead of pressBack
+- 10:52:38-11:13:33 一直 waiting instead of pressBack ← 卡死 20 分钟!(中间屏幕熄灭)
+- 11:13:33 STOPPING ← 最终超时
+- 根因：快手广告倒计时卡在"10秒"(静态文本),watchAd stall exit 后进入 NAVIGATING,
+  但仍在广告 Activity,navigate 选择等待而不是 pressBack,广告已卡住,等待永远无法结束。
+
+**修复2**: [AutomationController.kt#L968-L985](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L968-L985)
+- navigate UC ad waiting 分支增加 attempt >= 6 超时(约30秒)
+- 超过后强制 reopenFarmByDeepLink 退出卡住的广告 Activity
+
+**build688 修复验证**: ✓ 生效
+- 10:41:51 findAdDurationHint: skip duration hint (page contains '可立即领奖') ← build688 修复生效
+- 10:41:52 scene=REWARD_POPUP ← scene 正确识别
+- 10:42:07 奖励已领取
+- 10:42:23 task complete (multi-signal), exiting via close/back icon ← 成功退出
+- 任务进度 0/10 → 1/10 ← 奖励领取成功
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 44c4ee4 - fix: build689 跳转按钮跨App时launchPlatformApp不杀UC
 
 **用户需求**: "分析日志"
 
