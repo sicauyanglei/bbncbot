@@ -385,6 +385,10 @@ object AutomationController {
     @Volatile
     private var fasterRewardAppEnterTimeMs: Long = 0L
 
+    /** "更快拿奖"流程：stage=1 等待 confirm popup 的重试次数（超时放弃） */
+    @Volatile
+    private var fasterRewardStage1WaitCount: Int = 0
+
     // ---------- 跨平台切换 ----------
     /** 跨平台切换：原平台（切换完成后回到此平台） */
     @Volatile
@@ -1441,13 +1445,17 @@ object AutomationController {
                     }, INTERVAL_PAGE_LOAD_MS)
                     return@postDelayed
                 }
-                // 在农场页面,pressBack 返回主页
-                debugLog("collectDirect: 10s elapsed, pressing back to return to farm home")
-                service.pressBack()
-                // 再等待 2 秒页面恢复,继续 COLLECTING_DIRECT 下一轮
+                // 在农场页面,说明跳转按钮点击后未跳转或已自动返回主页
+                // build686 修复（debug_test_20260802_095406.log, build685, 09:52:25）：
+                //   09:52:13 点击'看广告领奖' → waiting 10000ms
+                //   09:52:25 10s elapsed, isOnFarmPage()=true → pressBack
+                //   09:52:45 activity=com.bbncbot.mainactivity ← pressBack 退出 UC 农场回到 bbncbot!
+                //   根因：本来就在农场主页,pressBack 反而后退一步退出 UC 农场 H5 页面。
+                //   修复：在农场页面时不 pressBack,直接继续下一轮 COLLECTING_DIRECT。
+                debugLog("collectDirect: 10s elapsed, already on farm page, continue next round (no pressBack)")
                 handler.postDelayed({
                     if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
-                }, INTERVAL_PAGE_LOAD_MS)
+                }, INTERVAL_CLICK_MS)
             }, 10000L)
             return
         }
@@ -4499,6 +4507,7 @@ object AutomationController {
             fasterRewardStage = 0       // 重置"更快拿奖"弹窗处理状态
             fasterRewardAppPkg = null   // 重置新 App 包名记录
             fasterRewardAppEnterTimeMs = 0L  // 重置新 App 进入时间戳
+            fasterRewardStage1WaitCount = 0  // 重置 stage=1 等待计数器
             prevAdHadCountdown = false  // 重置倒计时状态，供多信号融合检测用
             // build529：进入广告时重置 AI 视觉进度识别节流（每个广告独立计数）
             lastAiProgressCheckMs = 0L
@@ -4554,6 +4563,7 @@ object AutomationController {
                         debugLog("watchAd: clicking '我要更快拿奖' entry button")
                         service.performClickSafe(entryBtn)
                         fasterRewardStage = 1
+                        fasterRewardStage1WaitCount = 0  // 重置等待计数器
                         // 等待确认弹窗出现（"15秒更快拿奖"）
                         handler.postDelayed({
                             if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
@@ -4587,7 +4597,26 @@ object AutomationController {
                         }
                     } else {
                         // 确认弹窗还没出现，继续等待（可能页面切换中）
-                        debugLog("watchAd: waiting for faster reward confirm popup (stage=1)")
+                        // build686 修复（debug_test_20260802_095406.log, build685, 09:53:04-09:53:56）：
+                        //   09:53:04 点击'我要更快拿奖' → stage=1
+                        //   09:53:19 pkg=com.hihonor.appmarket ← 跳转到华为应用市场!
+                        //   09:53:04-09:53:52 一直 waiting for confirm popup (stage=1)
+                        //   09:53:56 WATCHING_AD -> STOPPING ← 卡死 47 秒后超时
+                        //   根因："我要更快拿奖"可能实为下载入口,点击后跳转应用市场而非弹窗。
+                        //   修复：stage=1 等待超过 4 次重试(约20秒)仍未出现 confirm popup,
+                        //         放弃 faster reward 流程(stage=4),回到正常广告等待。
+                        fasterRewardStage1WaitCount++
+                        if (fasterRewardStage1WaitCount > 4) {
+                            Log.w(TAG, "watchAd: faster reward confirm popup not shown after ${fasterRewardStage1WaitCount * 5}s, aborting faster reward flow")
+                            debugLog("watchAd: stage=1 timeout (${fasterRewardStage1WaitCount * 5}s), aborting faster reward (可能误点下载入口)")
+                            fasterRewardStage = 4  // 放弃 faster reward,回到正常广告等待
+                            fasterRewardStage1WaitCount = 0
+                            handler.postDelayed({
+                                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                            }, adEndCheckIntervalMs)
+                            return
+                        }
+                        debugLog("watchAd: waiting for faster reward confirm popup (stage=1, wait=$fasterRewardStage1WaitCount)")
                         handler.postDelayed({
                             if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
                         }, adEndCheckIntervalMs)

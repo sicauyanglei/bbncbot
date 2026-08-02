@@ -32,7 +32,46 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build685 跳转按钮跨App返回 + stepTab 误点系统提示
+### commit (待提交) - fix: build686 跳转按钮在农场页不pressBack + faster reward stage=1超时
+
+**用户需求**: "分析日志"
+
+**日志分析** (build685, debug_test_20260802_095406.log, 09:52:02-09:53:56):
+
+**问题1**: 跳转按钮10秒后在农场页面 pressBack,退出 UC 农场回到 bbncbot MainActivity
+- 09:52:13.776 点击'看广告领奖' → waiting 10000ms
+- 09:52:25.175 10s elapsed, isOnFarmPage()=true → pressBack (build685 走 pressBack 分支)
+- 09:52:45.222 activity=com.bbncbot.mainactivity ← pressBack 退出 UC 农场回到 bbncbot!
+- 09:52:45.564 not on farm page, re-navigating → NAVIGATING → 重新回到农场
+- 根因：本来就在农场主页(广告没打开或已自动关闭),pressBack 反而后退一步退出 UC 农场 H5。
+
+**修复1**: [AutomationController.kt#L1444-L1454](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1444-L1454)
+- 跳转按钮10秒后如果在农场页面,不 pressBack(本来就在主页),直接继续下一轮 COLLECTING_DIRECT
+
+**问题2**: WATCHING_AD 点击"我要更快拿奖"后 stage=1 卡死等 confirm popup
+- 09:53:02.485 jump button '看广告领奖' led to ad (act=com.qq.e.ads.PortraitADActivity), entering WATCHING_AD ✓ (build685 修复生效)
+- 09:53:04.620 findFasterRewardEntryButton: found '我要更快拿奖' → 点击
+- 09:53:09-09:53:52 一直 waiting for faster reward confirm popup (stage=1)
+- 09:53:19.828 pkg=com.hihonor.appmarket ← 跳转到华为应用市场(广告下载内容)
+- 09:53:56.957 WATCHING_AD -> STOPPING ← 卡死 47 秒后超时
+- 根因："我要更快拿奖"可能实为下载入口,点击后跳转应用市场而非 confirm popup。
+  stage=1 没有超时机制,一直等 confirm popup 直到 WATCHING_AD 超时。
+
+**修复2**: [AutomationController.kt#L4598-L4624](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4598-L4624)
+- 新增 `fasterRewardStage1WaitCount` 计数器(每次进入 stage=0 时重置为 0)
+- stage=1 每次重试等待 confirm popup 时计数器 +1
+- 超过 4 次(约20秒)仍未出现 confirm popup → 放弃 faster reward 流程(stage=4)
+- stage=4 为空处理,会 fall through 到正常广告等待逻辑
+
+**预期效果**:
+- 跳转按钮点击后如果还在农场页面,不会 pressBack 退出 UC,直接继续下一轮
+- "我要更快拿奖"点击后如果跳转到应用市场(无 confirm popup),20秒后自动放弃,回到正常广告等待
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 673c167 - fix: build685 跳转按钮跨App返回 + stepTab 误点系统提示
 
 **用户需求**: "分析日志，点击了'点击跳转拿奖励'，需要10秒后返回页面" + "分析日志"
 
