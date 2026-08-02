@@ -32,7 +32,40 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build690 跨App浏览任务"30秒"误识别+UC广告卡死20分钟
+### commit (待提交) - fix: build691 UC浏览器pz1.c混淆Activity名识别+立即领取/签到不点击
+
+**用户需求**: "分析日志，立即领取 和签到 怎么不点击"
+
+**日志分析** (build690, debug_test_20260802_190038.log, 18:59:36-19:00:36):
+
+**问题**: bot 无法进入农场页,导致无法点击"立即领取"和"签到"按钮
+- 18:59:36 state: IDLE -> NAVIGATING
+- 18:59:37 isOnFarmPage: activity=pz1.c not in farm keywords, not on farm page ← pz1.c 不被识别!
+- 18:59:40 navigate stepTab: click 芭芭农场 tab via node
+  ← performClickSafe: text='芭芭农场，免费领水果，助果农增收' (页面已是农场页,但Activity名不对)
+- 18:59:40-19:00:34 反复 navigate stepTab 点击"芭芭农场"文本,但 Activity 始终是 pz1.c
+- 19:00:36 STOPPING ← 卡死 60 秒后停止
+
+**根因**: UC 浏览器新版本使用混淆 Activity 名 `pz1.c` 渲染 H5 页面,
+  UC 的 `farmPageActivityKeywords = listOf("innerucmobile", "mainactivity")` 不包含 `pz1.c`,
+  `isOnFarmPage()` 第 725-732 行检查 Activity 名不匹配直接返回 false,
+  导致 bot 认为不在农场页,反复 navigateToFarm 但 Activity 不变(已在页面,只是名不对)。
+
+**修复**: [Platform.kt#L203](file:///workspace/app/src/main/java/com/bbncbot/automation/Platform.kt#L203)
+- UC 的 `farmPageActivityKeywords` 添加 `"pz1"`
+- `pz1.c`.contains("pz1") = true,`isOnFarmPage()` 能识别 pz1.c 为农场页
+
+**关于"立即领取"和"签到"按钮**:
+- `directCollectTexts` 已包含 `"点击领取", "签到", "立即领取"` (Platform.kt#L217, L223)
+- build689 日志验证: 10:41:16 点击'签到' → 10:41:22 变成'已领取' ← 签到成功 ✓
+- build690 日志中 bot 没进入农场页(pz1.c 不识别),所以无法点击任何按钮
+- 修复 pz1.c 识别后,bot 能进入农场页,就能点击签到和立即领取
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit dda5046 - fix: build690 跨App浏览任务"30秒"误识别+UC广告卡死20分钟
 
 **用户需求**: "分析日志"
 

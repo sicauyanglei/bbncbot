@@ -200,7 +200,7 @@ object UcPlatformConfig : PlatformConfig {
     override val platform = Platform.UC
     override val packageNames = listOf("com.ucmobile.lite")
     override val internalPackagePrefixes = listOf("com.UCMobile")
-    override val farmPageActivityKeywords = listOf("innerucmobile", "mainactivity")
+    override val farmPageActivityKeywords = listOf("innerucmobile", "mainactivity", "pz1")
     override val collectFertilizerTexts = listOf(
         "集肥料", "领取肥料", "获取肥料", "收集肥料", "开始施肥", "看视频", "看广告领奖"
     )
