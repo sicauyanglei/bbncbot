@@ -32,7 +32,41 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build697 forceKillApp前台App无效+third-party overlay卡死
+### commit (待提交) - fix: build698 回退forceKillApp HOME键副作用
+
+**用户需求**: "分析日志"
+
+**日志分析** (build697, debug_test_20260803_073303.log, 07:32:26-07:33:01):
+
+**build697 验证**: forceKillApp HOME键逻辑生效但有副作用
+- 07:32:36 forceKillApp(淘宝, pressBackFirst=true) → `(with HOME)` 日志确认
+- 淘宝被成功退到后台,UC deep link 拉起
+
+**问题**: HOME键副作用导致UC农场页加载失败
+- 07:32:36 HOME键把所有前台App(包括UC)都退到桌面
+- 07:32:41 UC deep link 拉起,但农场页加载不完整 → found 0 direct buttons
+- 07:32:41 触发 AI vision 找"点击领取" → 白等15秒
+- 07:32:56 AI vision timeout → activeRootPkg='com.hihonor.android.launcher'(桌面)
+- 07:32:57 openTaskList: root is null → NAVIGATING
+- 07:32:59 仍在 launcher → reopenFarmByDeepLink → forceKillApp(UC) 杀UC重启
+- 07:33:01 用户手动停止
+
+**根因**: HOME键是全局的,会把所有前台App都退到桌面
+- 原意:把淘宝退到后台
+- 实际:UC也被退到桌面,deep link 拉起后农场页加载不完整
+- 导致 AI vision 白等15秒,最终卡在桌面
+
+**修复**: [FarmAccessibilityService.kt#L5997-L6026](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L5997-L6026)
+- 移除 build697 的 HOME 键,回到 build694 的纯 pressBack + killBackgroundProcesses
+- 对前台 App 无效的问题,由 navigate 的 third-party overlay 分支兜底:
+  attempt >= 1 时改用 reopenFarmByDeepLink(killCurrentFirst=false) 拉起农场 App 覆盖
+- navigate 的 third-party overlay 分支修复(build697)保留
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit c78e2d2 - fix: build697 forceKillApp前台App无效+third-party overlay卡死
 
 **用户需求**: "分析日志"
 

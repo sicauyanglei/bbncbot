@@ -6001,14 +6001,13 @@ class FarmAccessibilityService : AccessibilityService() {
             if (pressBackFirst) {
                 performGlobalAction(GLOBAL_ACTION_BACK)
             }
-            // build697 修复（debug_test_20260803_072453.log, build696, 07:24:24-07:24:40）：
-            //   killBackgroundProcesses 对前台 App(如淘宝直播间 TaoLiveVideoActivity)无效,
-            //   反复 forceKillApp 失败卡死。pressBack 也可能无法退出直播间(直播间常拦截返回键)。
-            //   修复:pressBack 后再按 HOME 键强制把目标 App 退到后台,然后再 killBackgroundProcesses。
-            //   HOME 键能保证 App 退到后台(系统级行为,无法被 App 拦截),kill 才能生效。
-            if (pressBackFirst) {
-                performGlobalAction(GLOBAL_ACTION_HOME)
-            }
+            // build698 回退（debug_test_20260803_073303.log, build697, 07:32:36-07:33:01）：
+            //   build697 在 pressBack 后加 HOME 键,但 HOME 键是全局的,会把所有前台 App(包括 UC)都退到桌面。
+            //   导致 UC deep link 拉起后农场页加载不完整,activeRootPkg=launcher(桌面),
+            //   AI vision 白等15秒,最终用户手动停止。
+            //   回退:移除 HOME 键,回到 build694 的纯 pressBack + killBackgroundProcesses。
+            //   对前台 App 无效的问题,由 navigate 的 third-party overlay 分支兜底:
+            //   attempt >= 1 时改用 reopenFarmByDeepLink(killCurrentFirst=false) 拉起农场 App 覆盖。
             // 调用 killBackgroundProcesses 结束后台进程
             val am = getSystemService(android.content.Context.ACTIVITY_SERVICE)
                 as android.app.ActivityManager
@@ -6018,7 +6017,7 @@ class FarmAccessibilityService : AccessibilityService() {
             // （日志现象：act=xriveractivity 但 onFarm=false，因为 windows 里已无农场包名窗口）
             currentActivityName = null
             currentEventPkg = null
-            debugLog("forceKillApp: killBackgroundProcesses($pkg) called (with HOME), cleared currentActivityName/currentEventPkg")
+            debugLog("forceKillApp: killBackgroundProcesses($pkg) called, cleared currentActivityName/currentEventPkg")
             true
         } catch (e: Exception) {
             debugLog("forceKillApp: failed to kill $pkg, ${e.message}")
