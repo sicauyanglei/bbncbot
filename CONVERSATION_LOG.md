@@ -32,7 +32,45 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build691 UC浏览器pz1.c混淆Activity名识别+立即领取/签到不点击
+### commit (待提交) - fix: build692 跳转按钮反复跳非广告App陷入循环
+
+**用户需求**: "分析日志"
+
+**日志分析** (build691, debug_test_20260802_193426.log, 19:33:21-19:34:23):
+
+**build691 修复验证**: ✓ 生效
+- 19:33:22 isOnFarmPage: onFarm=true (pz1.c 被 build691 的 farmPageActivityKeywords 添加 "pz1" 识别) ✓
+- 19:33:22 state: NAVIGATING -> COLLECTING_DIRECT ← 成功进入农场页!
+
+**问题**: "看广告领奖"跳转按钮反复跳到通义千问 App,陷入循环
+- 19:33:25 点击'看广告领奖' → 19:33:35 activeRootPkg='com.aliyun.tongyi' → relaunching farm app
+- 19:33:41 重试'看广告领奖' → 19:33:51 又跳到通义千问 → relaunching farm app
+- 19:33:57 重试'看广告领奖' → 19:34:07 又跳到通义千问 → relaunching farm app
+- 19:34:13 重试'看广告领奖' → 19:34:23 STOPPING ← 4 次都跳到通义千问,陷入循环!
+
+**根因**: 跳转按钮跳到非广告 App(通义千问)时:
+1. 每次重启 UC 后,按钮 bounds 略有不同(页面重载位置差异):
+   - attempt 1: [641,1156][822,1205]
+   - attempt 2: [641,1146][822,1198]
+   - attempt 3: [641,1152][822,1205]
+   - attempt 4: [641,1149][822,1201]
+2. lastDirectClickedText+bounds 防死循环判断要求 text+bounds 完全一致,bounds 不同导致判断失效
+3. 反复点击同一按钮,每次都跳到通义千问,直到 attempt=4 后 STOPPING
+
+**修复**: [AutomationController.kt#L1477-L1486](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1477-L1486)
+- 跳转按钮跳到非广告 App 时,attempt >= 2 后放弃此按钮
+- 清除 lastDirectClickedText/lastDirectClickedBounds,进入任务列表(OPENING_TASK_LIST)
+- 避免反复点击同一跳转按钮陷入循环
+
+**预期效果**:
+- 跳转按钮跳到非广告 App 时,最多重试 2 次,之后放弃此按钮进入任务列表
+- 任务列表中有其他可完成的任务(看视频得巨额肥料等),不会卡死
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 5e611ed - fix: build691 UC浏览器pz1.c混淆Activity名识别+立即领取/签到不点击
 
 **用户需求**: "分析日志，立即领取 和签到 怎么不点击"
 

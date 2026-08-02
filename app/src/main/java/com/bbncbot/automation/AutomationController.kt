@@ -1462,8 +1462,28 @@ object AutomationController {
                     //         UC 被杀后重启可能因 Honor 后台限制失败,卡死在桌面。
                     //   修复：传 killCurrentFirst=false,不杀 UC,直接用 deep link 拉起 UC 农场页,
                     //         让 UC 回到前台覆盖淘宝,避免杀进程导致重启失败。
+                    //
+                    // build692 修复（debug_test_20260802_193426.log, build691, 19:33:25-19:34:23）：
+                    //   19:33:25 点击'看广告领奖' → 跳到通义千问 → relaunching farm app
+                    //   19:33:41 重试'看广告领奖' → 又跳到通义千问 → relaunching farm app
+                    //   19:33:57 重试'看广告领奖' → 又跳到通义千问 → relaunching farm app
+                    //   19:34:13 重试'看广告领奖' → 又跳到通义千问 → relaunching farm app
+                    //   19:34:23 STOPPING ← 4 次都跳到通义千问,陷入循环!
+                    //   根因：跳转按钮跳到非广告 App(通义千问)时,bounds 每次略有不同(页面重载位置差异),
+                    //         lastDirectClickedText+bounds 防死循环判断失效,反复点击同一按钮。
+                    //   修复：跳转按钮跳到非广告 App 时,attempt >= 2 后放弃此按钮,进入任务列表。
                     Log.i(TAG, "collectDirect: jump button led to other app (pkg=${service.getCurrentWindowPackage()}), relaunching farm app (no kill)")
-                    debugLog("collectDirect: jump button '$btnText' led to non-farm app (pkg=${service.getCurrentWindowPackage()}), relaunching farm app (killCurrentFirst=false)")
+                    debugLog("collectDirect: jump button '$btnText' led to non-farm app (pkg=${service.getCurrentWindowPackage()}), relaunching farm app (killCurrentFirst=false, attempt=$attempt)")
+                    // build692: 跳转按钮反复跳到非广告 App 时,放弃此按钮,进入任务列表
+                    if (attempt >= 2) {
+                        Log.w(TAG, "collectDirect: jump button '$btnText' keeps leading to non-ad app (attempt=$attempt), giving up this button, opening task list")
+                        debugLog("collectDirect: jump button '$btnText' repeatedly led to non-ad app, giving up (attempt=$attempt), opening task list")
+                        lastDirectClickedText = ""
+                        lastDirectClickedBounds = ""
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        return@postDelayed
+                    }
                     service.launchPlatformApp(service.currentPlatform, killCurrentFirst = false)
                     // 等待农场 App 重新打开,继续 COLLECTING_DIRECT 下一轮
                     handler.postDelayed({
