@@ -4598,17 +4598,19 @@ object AutomationController {
                     } else {
                         // 确认弹窗还没出现，继续等待（可能页面切换中）
                         // build686 修复（debug_test_20260802_095406.log, build685, 09:53:04-09:53:56）：
-                        //   09:53:04 点击'我要更快拿奖' → stage=1
-                        //   09:53:19 pkg=com.hihonor.appmarket ← 跳转到华为应用市场!
+                        //   09:53:04 点击'我要更快拿奖' → stage=1（按钮应被点击,用户确认）
+                        //   09:53:19 pkg=com.hihonor.appmarket ← 广告内容切换到华为应用市场
                         //   09:53:04-09:53:52 一直 waiting for confirm popup (stage=1)
                         //   09:53:56 WATCHING_AD -> STOPPING ← 卡死 47 秒后超时
-                        //   根因："我要更快拿奖"可能实为下载入口,点击后跳转应用市场而非弹窗。
+                        //   根因：点击"我要更快拿奖"后,部分广告未弹出确认弹窗(广告内容已切换),
+                        //         stage=1 没有超时机制,一直等 confirm popup 直到 WATCHING_AD 超时。
                         //   修复：stage=1 等待超过 4 次重试(约20秒)仍未出现 confirm popup,
                         //         放弃 faster reward 流程(stage=4),回到正常广告等待。
+                        //         （注意：不阻止点击"我要更快拿奖",仅作为确认弹窗未出现的兜底）
                         fasterRewardStage1WaitCount++
                         if (fasterRewardStage1WaitCount > 4) {
                             Log.w(TAG, "watchAd: faster reward confirm popup not shown after ${fasterRewardStage1WaitCount * 5}s, aborting faster reward flow")
-                            debugLog("watchAd: stage=1 timeout (${fasterRewardStage1WaitCount * 5}s), aborting faster reward (可能误点下载入口)")
+                            debugLog("watchAd: stage=1 timeout (${fasterRewardStage1WaitCount * 5}s), aborting faster reward (确认弹窗未出现,回到正常广告等待)")
                             fasterRewardStage = 4  // 放弃 faster reward,回到正常广告等待
                             fasterRewardStage1WaitCount = 0
                             handler.postDelayed({

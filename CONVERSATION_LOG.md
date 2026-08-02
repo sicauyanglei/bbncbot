@@ -50,18 +50,19 @@
 
 **问题2**: WATCHING_AD 点击"我要更快拿奖"后 stage=1 卡死等 confirm popup
 - 09:53:02.485 jump button '看广告领奖' led to ad (act=com.qq.e.ads.PortraitADActivity), entering WATCHING_AD ✓ (build685 修复生效)
-- 09:53:04.620 findFasterRewardEntryButton: found '我要更快拿奖' → 点击
+- 09:53:04.620 findFasterRewardEntryButton: found '我要更快拿奖' → 点击（按钮应被点击,用户确认）
 - 09:53:09-09:53:52 一直 waiting for faster reward confirm popup (stage=1)
-- 09:53:19.828 pkg=com.hihonor.appmarket ← 跳转到华为应用市场(广告下载内容)
+- 09:53:19.828 pkg=com.hihonor.appmarket ← 广告内容切换到华为应用市场
 - 09:53:56.957 WATCHING_AD -> STOPPING ← 卡死 47 秒后超时
-- 根因："我要更快拿奖"可能实为下载入口,点击后跳转应用市场而非 confirm popup。
+- 根因：点击"我要更快拿奖"后,部分广告未弹出确认弹窗(广告内容已切换),
   stage=1 没有超时机制,一直等 confirm popup 直到 WATCHING_AD 超时。
 
-**修复2**: [AutomationController.kt#L4598-L4624](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4598-L4624)
+**修复2**: [AutomationController.kt#L4598-L4626](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4598-L4626)
 - 新增 `fasterRewardStage1WaitCount` 计数器(每次进入 stage=0 时重置为 0)
 - stage=1 每次重试等待 confirm popup 时计数器 +1
 - 超过 4 次(约20秒)仍未出现 confirm popup → 放弃 faster reward 流程(stage=4)
 - stage=4 为空处理,会 fall through 到正常广告等待逻辑
+- **注意：不阻止点击"我要更快拿奖"**,仅作为确认弹窗未出现的兜底
 
 **预期效果**:
 - 跳转按钮点击后如果还在农场页面,不会 pressBack 退出 UC,直接继续下一轮
