@@ -5241,14 +5241,18 @@ object AutomationController {
         // 点击后可加速倒计时,让广告更快结束,节省等待时间。
         // 策略：在广告播放期间（elapsedMs < min wait）,检测到"点我加速"按钮时点击一次。
         // 防重入：用 adSpeedUpClicked 标记,每轮广告只点一次。
+        // build700: 用户需求"应该点击我要加速",扩展匹配"我要加速"(字节穿山甲 TTRewardVideoActivity 用此文案)。
         if (!adSpeedUpClicked && elapsedMs < adMinDurationMs && elapsedMs >= 1000L) {
             val root = service.getRootInFarmApp()
             if (root != null) {
+                // 优先匹配"点我加速"(穿山甲 KsRewardVideoActivity),其次"我要加速"(字节穿山甲 TTRewardVideoActivity)
                 val speedUpNode = service.findNodeByText(root, "点我加速")
+                    ?: service.findNodeByText(root, "我要加速")
                 if (speedUpNode != null) {
                     adSpeedUpClicked = true
-                    Log.i(TAG, "watchAd: found '点我加速' button, clicking to speed up ad (elapsed=${elapsedMs}ms)")
-                    debugLog("watchAd: clicking '点我加速' button to speed up ad countdown")
+                    val speedUpText = speedUpNode.text?.toString().orEmpty()
+                    Log.i(TAG, "watchAd: found speedUp button '$speedUpText', clicking to speed up ad (elapsed=${elapsedMs}ms)")
+                    debugLog("watchAd: clicking speedUp button '$speedUpText' to speed up ad countdown")
                     service.performClickSafe(speedUpNode)
                     handler.postDelayed({
                         if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)

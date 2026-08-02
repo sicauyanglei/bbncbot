@@ -32,7 +32,28 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build699 findClaimRewardButton误匹配体验CTA+continue_button循环卡死
+### commit (待提交) - feat: build700 扩展加速按钮匹配"我要加速"
+
+**用户需求**: "应该点击我要加速"
+
+**背景**: build699 修复后,"去体验15秒可立即领奖"CTA 不再点击(避免"确定要退出吗？"弹窗循环)。
+但用户希望点击"我要加速"按钮加速广告倒计时,减少等待时间。
+
+**问题**: 当前 watchAd 只匹配"点我加速"(穿山甲 KsRewardVideoActivity),
+不匹配"我要加速"(字节穿山甲 TTRewardVideoActivity)。
+
+**修复**: [AutomationController.kt#L5238-L5263](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5238-L5263)
+- 扩展加速按钮匹配:优先"点我加速",其次"我要加速"
+- 两个文案对应不同广告 SDK 的加速按钮:
+  - "点我加速":穿山甲 KsRewardVideoActivity
+  - "我要加速":字节穿山甲 TTRewardVideoActivity
+- 仍用 adSpeedUpClicked 标记防重入,每轮广告只点一次
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 3b4e509 - fix: build699 findClaimRewardButton误匹配体验CTA+continue_button循环卡死
 
 **用户需求**: "分析日志"
 
