@@ -1930,9 +1930,24 @@ class FarmAccessibilityService : AccessibilityService() {
             "可直接拿奖励",  // 穿山甲互动广告特有文案
             "shake_title", "rotate_view", "rotate_view_container"
         )
-        return allText.any { text ->
+        val hasInteractiveKeyword = allText.any { text ->
             interactiveKeywords.any { kw -> text.contains(kw) }
         }
+        if (!hasInteractiveKeyword) return false
+        // build695 修复（debug_test_20260802_202311.log, build694, 20:22:36）:
+        //   穿山甲 KsRewardVideoActivity 既播放互动广告(摇一摇/扭一扭)也播放普通激励视频,
+        //   两者都可能含"可直接拿奖励"文案。仅凭关键词会误判普通激励视频为互动广告,
+        //   导致走 TRAP_INTERACTIVE 分支找下载按钮,找不到后 fall through,
+        //   15秒后倒计时卡死检测 pressBack 退出,但 KsRewardVideoActivity pressBack 无效,卡死。
+        //   修复:必须同时含互动关键词 **且** 找到"点击打开或者下载第三方应用"下载按钮,
+        //         才判定为 TRAP_INTERACTIVE。普通激励视频广告无下载按钮,不会被误判,
+        //         scene 改为 AD_PLAYING,走正常激励视频等待流程。
+        val hasDownloadButton = findInteractiveAdDownloadButton() != null
+        if (!hasDownloadButton) {
+            debugLog("isInteractiveAdPage: has interactive keyword but no download button, not interactive ad (likely reward video)")
+            return false
+        }
+        return true
     }
 
     /**

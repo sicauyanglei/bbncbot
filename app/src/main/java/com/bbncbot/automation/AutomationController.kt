@@ -5250,9 +5250,29 @@ object AutomationController {
         if (!adCountdownStallHandled && adInitialCountdownSeconds > 0 && elapsedMs >= 15000L) {
             val currentCountdown = service.findAdDurationHint()
             if (currentCountdown == adInitialCountdownSeconds) {
+                adCountdownStallHandled = true
+                // build695 修复（debug_test_20260802_202311.log, build694, 20:22:52）:
+                //   穿山甲 KsRewardVideoActivity 激励视频广告"10秒"是静态文本(广告总时长提示),
+                //   15秒后仍在,触发 countdown stuck 检测 pressBack 退出。
+                //   但 KsRewardVideoActivity 的 pressBack 无效,卡在广告 Activity,
+                //   NAVIGATING 反复"waiting instead of pressBack" → 用户手动停止。
+                //   修复:检测当前是否是激励视频广告 Activity(KsRewardVideoActivity/kwad),
+                //         这类广告 pressBack 无效,直接进入 CLOSING_AD 多策略关闭
+                //         (策略0找关闭按钮/策略1坐标点击右上角/策略2放弃奖励/策略3 pressBack/策略4领取奖励),
+                //         比单纯 pressBack 更有效。不跳过任务(CLOSING_AD 可能成功关闭并获奖励)。
+                val actName = service.getCurrentActivityName()?.lowercase().orEmpty()
+                val isRewardVideoAd = actName.contains("ksrewardvideo") || actName.contains("kwad")
+                if (isRewardVideoAd) {
+                    Log.w(TAG, "watchAd: countdown stalled at ${adInitialCountdownSeconds}s, reward video ad (act=$actName), entering CLOSING_AD (pressBack ineffective, elapsed=${elapsedMs}ms)")
+                    debugLog("watchAd: countdown stuck at ${adInitialCountdownSeconds}s (static text), reward video ad pressBack ineffective, entering CLOSING_AD")
+                    service.setAdMode(true)
+                    moveTo(AutomationState.CLOSING_AD)
+                    handler.postDelayed({ runClosingAd(strategy = 0) }, INTERVAL_CLICK_MS)
+                    return
+                }
+                // 原逻辑:非激励视频广告(如淘宝 TMSActivity),pressBack 退出跳过任务
                 Log.w(TAG, "watchAd: countdown stalled at ${adInitialCountdownSeconds}s for 15s, static text detected, exiting (elapsed=${elapsedMs}ms)")
                 debugLog("watchAd: countdown stuck at ${adInitialCountdownSeconds}s (static text, not real ad), pressing back to exit")
-                adCountdownStallHandled = true
                 service.setAdMode(false)
                 service.pressBack()
                 currentTaskIndex++  // 跳过任务,不重玩

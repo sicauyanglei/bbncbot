@@ -1,0 +1,63 @@
+=== cleared on app start (version=2.2, build=build694-14435e6, time=20:31:43) ===
+20:31:43.156 killPlatformApps: killed com.ucmobile.lite for UC
+20:31:43.158 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+20:31:43.160 killPlatformApps: killed com.taobao.taobao for TAOBAO
+20:31:43.187 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+20:31:43.189 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:31:43.190 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+20:31:50.804 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:31:50.806 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+20:31:56.638 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:31:56.639 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+20:31:59.899 === Automation v2 Started === platform=UC
+20:31:59.901 cancelNavigation: all navigation callbacks cancelled
+20:31:59.926 reset platform complete: UC
+20:31:59.932 state: IDLE -> NAVIGATING
+20:32:01.199 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:32:01.215 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:32:01.331 navigate: on farm page, platform=UC
+20:32:01.365 hasFarmContentLoaded: text count=39, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 8.4内完成3天即领, 1天, 2天]
+20:32:01.366 hasFarmContentLoaded: realContent count=38
+20:32:01.366 navigate: hasFarmContentLoaded=true, attempt=0
+20:32:01.367 state: NAVIGATING -> COLLECTING_DIRECT
+20:32:03.960 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:32:03.974 [collectDirect-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:32:04.000 collectDirect: found 1 direct buttons, attempt=0
+20:32:04.000 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1159][822,1208] (attempt 1)
+20:32:04.001 performClickSafe: text='看广告领奖' desc='' bounds=[641,1159][822,1208] clickable=false
+20:32:04.002 performClickSafe: ACTION_CLICK failed, trying gesture
+20:32:04.002 dispatchGesture: screen=[[641,1159][822,1208]] window=[[0,0][0,0]]
+20:32:04.003 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1183.5)
+20:32:04.006 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+20:32:14.010 collectDirect: jump button '看广告领奖' led to ad (act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity), entering WATCHING_AD
+20:32:14.015 state: COLLECTING_DIRECT -> WATCHING_AD
+20:32:16.236 findAdDurationHint: found countdown '10秒', seconds=10
+20:32:16.250 watchAd: parsed ad duration hint=10s, min wait=12000ms, max wait=90000ms (hint+buffer), checkInterval=5000ms
+20:32:16.345 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:32:16.363 [watchAd-0ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:32:16.463 watchAd: scene=TRAP_INTERACTIVE, elapsed=0ms/90000ms
+20:32:16.517 watchAd: interactive ad detected but download button not found (elapsed=0ms), waiting
+20:32:21.621 watchAd: scene=TRAP_INTERACTIVE, elapsed=5000ms/90000ms
+20:32:21.654 watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=5000ms/90000ms)
+20:32:26.761 watchAd: scene=TRAP_INTERACTIVE, elapsed=10000ms/90000ms
+20:32:26.815 watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=10000ms/90000ms)
+20:32:31.917 [watchAd-15000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:32:31.933 [watchAd-15000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:32:32.016 watchAd: scene=TRAP_INTERACTIVE, elapsed=15000ms/90000ms
+20:32:32.054 watchAd: interactive ad no download button, min wait elapsed (15000ms/12000ms), fall through to ad-end check
+20:32:32.091 findAdDurationHint: found countdown '10秒', seconds=10
+20:32:32.097 watchAd: countdown stuck at 10s (static text, not real ad), pressing back to exit
+20:32:37.123 watchAd: not on farm after stall exit, go NAVIGATING
+20:32:37.128 state: WATCHING_AD -> NAVIGATING
+20:32:39.321 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:32:39.334 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:32:39.652 findClaimRewardButton: scene not allowed for claim (scene=TRAP_INTERACTIVE), skip
+20:32:39.669 navigate: UC ad (act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity), waiting instead of pressBack (attempt=0)
+20:32:44.975 findClaimRewardButton: scene not allowed for claim (scene=TRAP_INTERACTIVE), skip
+20:32:44.994 navigate: UC ad (act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity), waiting instead of pressBack (attempt=1)
+20:32:48.759 state: NAVIGATING -> STOPPING
+20:32:48.764 cancelNavigation: all navigation callbacks cancelled
+20:32:48.768 state: STOPPING -> IDLE
+20:32:50.854 saveToken: saved (len=93, head='gith', tail='McKr')
+20:32:50.858 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+20:32:50.860 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260802_203250.log, localFile=debug.log (6174 bytes)

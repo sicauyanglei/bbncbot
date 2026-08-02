@@ -32,7 +32,44 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build694 跳转千问后先退出千问再回农场页
+### commit (待提交) - fix: build695 激励视频广告TRAP_INTERACTIVE误判+pressBack无效卡死
+
+**用户需求**: "分析日志"
+
+**日志分析** (build694, debug_test_20260802_202311.log / 202313.log / 203250.log, 20:22:14-20:23:10):
+
+**build694 修复验证**: ✓ 千问跳转问题已解决
+- "看广告领奖"成功进入穿山甲激励视频广告(KsRewardVideoActivity),没有跳到通义千问
+- forceKillApp 逻辑未被触发(因为没跳非广告App)
+
+**问题1**: TRAP_INTERACTIVE 误判
+- 20:22:36 scene=TRAP_INTERACTIVE(误判为互动广告)
+- 根因: `isInteractiveAdPage()` 仅凭"可直接拿奖励"关键词判定为互动广告
+- 但穿山甲 KsRewardVideoActivity 既播放互动广告(摇一摇)也播放普通激励视频,两者都可能含此文案
+- 普通激励视频广告没有"点击打开或者下载第三方应用"下载按钮
+
+**问题2**: 倒计时卡死检测 pressBack 无效
+- 20:22:36 found countdown '10秒' → 20:22:52(16秒后)'10秒'仍在 → countdown stuck
+- pressBack 退出 → KsRewardVideoActivity pressBack 无效 → 卡在广告 Activity
+- 20:22:57-23:10 NAVIGATING 反复"waiting instead of pressBack" 3次 → 用户手动停止
+
+**修复1**: [FarmAccessibilityService.kt#L1923-L1951](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L1923-L1951)
+- `isInteractiveAdPage()` 增加下载按钮检测
+- 必须同时含互动关键词 **且** 找到"点击打开或者下载第三方应用"下载按钮,才判定为 TRAP_INTERACTIVE
+- 普通激励视频广告(无下载按钮)不会被误判,scene 改为 AD_PLAYING,走正常激励视频等待流程
+
+**修复2**: [AutomationController.kt#L5250-L5300](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5250-L5300)
+- 倒计时卡死检测:检测当前是否是激励视频广告 Activity(KsRewardVideoActivity/kwad)
+- 如果是,不 pressBack(对 KsRewardVideoActivity 无效),直接进入 CLOSING_AD 多策略关闭
+- CLOSING_AD 会尝试:策略0找关闭按钮/策略1坐标点击右上角/策略2放弃奖励/策略3 pressBack/策略4领取奖励
+- 不跳过任务(CLOSING_AD 可能成功关闭并获奖励)
+- 非激励视频广告(如淘宝 TMSActivity)仍走原 pressBack 退出逻辑
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 14435e6 - fix: build694 跳转千问后先退出千问再回农场页
 
 **用户需求**: "跳到千问后，需要退出千问，回到芭芭农场页面"
 
@@ -44,7 +81,7 @@
 - `forceKillApp` 的 `pressBackFirst=true` 会先按返回键把千问退到后台,再 killBackgroundProcesses 结束千问进程
 - 这样 UC deep link 拉起时千问已退出,UC 农场页能正常显示
 
-**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+**编译验证**: CI 构建通过,APK 已发布(Build 694)。
 
 ---
 
