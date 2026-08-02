@@ -32,7 +32,42 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build688 体验类广告"可立即领奖"按钮被场景白名单阻止
+### commit (待提交) - fix: build689 跳转按钮跨App时launchPlatformApp不杀UC
+
+**用户需求**: "分析日志"
+
+**日志分析** (build688, debug_test_20260802_102429.log, 10:23:51-10:24:25):
+
+**问题**: "看广告领奖"跳转按钮跳到淘宝,重启 UC 失败卡死在桌面 launcher
+- 10:23:51.416 activeRootPkg='com.taobao.taobao' ← 跳转到淘宝
+- 10:23:51.434 collectDirect: jump button led to non-farm app (pkg=com.taobao.taobao), relaunching farm app
+- 10:23:51.438 launchPlatformApp(killCurrentFirst=true 默认值)
+- 10:23:51.439 reopenFarmByDeepLink: HOME + kill UC
+  ← HOME 把淘宝推到后台显示桌面,kill UC(已在后台),启动 UC deep link
+- 10:23:56.488 collectDirect: found 0 direct buttons, attempt=1
+- 10:24:11.567 activeRootPkg='com.hihonor.android.launcher' ← UC 启动失败,还在桌面!
+- 10:24:14.554 activeRootPkg='com.hihonor.android.launcher' ← 反复 navigate 重试失败
+- 10:24:25.704 WATCHING_AD -> STOPPING ← 卡死
+
+**根因**: 当前前台是淘宝不是 UC,`launchPlatformApp` 默认 `killCurrentFirst=true`:
+1. HOME 把淘宝推到后台 → 显示桌面 launcher
+2. kill UC(UC 已经在后台被淘宝覆盖)
+3. 启动 UC deep link → 但 UC 被杀后重启可能因 Honor 后台限制失败,卡死在桌面
+
+**修复**: [AutomationController.kt#L1437-L1458](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1437-L1458)
+- 跳转按钮跳转到其他 App 时,`launchPlatformApp` 传 `killCurrentFirst=false`
+- 不杀 UC,直接用 deep link 拉起 UC 农场页,让 UC 回到前台覆盖淘宝
+- 避免杀进程导致 UC 重启失败
+
+**预期效果**:
+- 跳转按钮跳转到淘宝等非广告 App 时,UC 不被杀,deep link 直接拉起农场页
+- 避免卡死在桌面 launcher
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 1cbbd60 - fix: build688 体验类广告"可立即领奖"按钮被场景白名单阻止
 
 **用户需求**: "分析日志"
 

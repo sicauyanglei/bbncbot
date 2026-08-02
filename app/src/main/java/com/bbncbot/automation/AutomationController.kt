@@ -1436,9 +1436,20 @@ object AutomationController {
                 // 检查是否还在农场页面
                 if (!service.isOnFarmPage()) {
                     // 不在农场页面（跳转到淘宝等其他 App）,重新启动农场 App 返回主页
-                    Log.i(TAG, "collectDirect: jump button led to other app (pkg=${service.getCurrentWindowPackage()}), relaunching farm app")
-                    debugLog("collectDirect: jump button '$btnText' led to non-farm app (pkg=${service.getCurrentWindowPackage()}), relaunching farm app to return")
-                    service.launchPlatformApp(service.currentPlatform)
+                    // build689 修复（debug_test_20260802_102429.log, build688, 10:23:51-10:24:25）：
+                    //   10:23:51 activeRootPkg='com.taobao.taobao' ← 跳转到淘宝
+                    //   10:23:51 launchPlatformApp(killCurrentFirst=true 默认值)
+                    //   10:23:51 reopenFarmByDeepLink: HOME + kill UC
+                    //   ← HOME 把淘宝推到后台显示桌面,kill UC(已在后台),启动 UC deep link
+                    //   10:23:56 activeRootPkg='com.hihonor.android.launcher' ← UC 启动失败,还在桌面!
+                    //   → 反复 navigate 重试 reopenFarmByDeepLink 失败 → STOPPING
+                    //   根因：当前前台是淘宝不是 UC,killCurrentFirst=true 会 HOME + kill UC,
+                    //         UC 被杀后重启可能因 Honor 后台限制失败,卡死在桌面。
+                    //   修复：传 killCurrentFirst=false,不杀 UC,直接用 deep link 拉起 UC 农场页,
+                    //         让 UC 回到前台覆盖淘宝,避免杀进程导致重启失败。
+                    Log.i(TAG, "collectDirect: jump button led to other app (pkg=${service.getCurrentWindowPackage()}), relaunching farm app (no kill)")
+                    debugLog("collectDirect: jump button '$btnText' led to non-farm app (pkg=${service.getCurrentWindowPackage()}), relaunching farm app (killCurrentFirst=false)")
+                    service.launchPlatformApp(service.currentPlatform, killCurrentFirst = false)
                     // 等待农场 App 重新打开,继续 COLLECTING_DIRECT 下一轮
                     handler.postDelayed({
                         if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
