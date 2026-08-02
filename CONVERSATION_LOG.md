@@ -32,7 +32,44 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build695 激励视频广告TRAP_INTERACTIVE误判+pressBack无效卡死
+### commit (待提交) - fix: build696 体验类广告CTA点击+findAdDurationHint跳过逻辑修复
+
+**用户需求**: "分析日志"
+
+**日志分析** (build695, debug_test_20260803_071531.log, 07:14:50-07:15:29):
+
+**build695 修复验证**: ✓ KsRewardVideoActivity 问题已解决
+- 这次进入字节穿山甲 TTRewardVideoActivity(不同广告 SDK),没有卡在 pressBack 无效问题
+
+**问题**: 字节穿山甲激励视频广告卡死,用户手动停止
+- 07:15:00 进入 TTRewardVideoActivity → WATCHING_AD
+- 07:15:02 页面含"去体验15秒可立即领奖" → findAdDurationHint 跳过检测返回 0
+- 07:15:02 scene=AD_ENDED(无倒计时+isAdPlaying), min=30000ms(默认)
+- 07:15:02-28 一直 waiting(elapsedMs < 30000ms)
+- 07:15:29 用户手动停止(等不到30秒)
+
+**根因**: build688 的 findAdDurationHint 跳过逻辑过度防护
+- 页面含"可立即领奖"/"立即领奖"时直接返回 0
+- 导致 scene=AD_ENDED(无倒计时), min=30000ms(默认)
+- 一直 waiting 30秒,用户手动停止
+- build688 原意是避免兜底逻辑误匹配体验时长"15秒",但误伤了没有独立"15秒"节点的广告
+
+**修复1**: [FarmAccessibilityService.kt#L1593-L1653](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L1593-L1653)
+- findAdDurationHint 不再直接返回 0,只跳过兜底逻辑(纯"Ns"/"N秒"节点)
+- 带关键词的倒计时(如"观看15秒"/"剩余15秒")仍会被检测到
+- 避免误匹配体验时长的"15秒",同时不影响正常倒计时检测
+
+**修复2**: [AutomationController.kt#L5250-L5288](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5250-L5288)
+- 添加"去体验N秒可立即领奖"CTA 点击逻辑(类似"点我加速")
+- 检测"可立即领奖"CTA 节点,点击后提取体验时长N秒
+- 设置 adMinDurationMs = N秒 + 缓冲(如15秒+2秒=17秒),避免等30秒默认值
+- 用 adExperienceClicked 标记防重入,每轮广告只点一次
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 1c01f7c - fix: build695 激励视频广告TRAP_INTERACTIVE误判+pressBack无效卡死
 
 **用户需求**: "分析日志"
 

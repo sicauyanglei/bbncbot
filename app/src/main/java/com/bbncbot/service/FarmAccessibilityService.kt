@@ -1595,14 +1595,16 @@ class FarmAccessibilityService : AccessibilityService() {
         if (isOnFarmPage()) return 0
         val root = rootInActiveWindowSafe() ?: return 0
         val allText = collectAllText(root)
-        // build688 修复（debug_test_20260802_100757.log, build687, 10:07:02-10:07:54）：
-        //   广告页面含"去体验15秒可立即领奖"+"可立即领奖"按钮,这是体验类广告的 CTA 描述,
-        //   "15秒"是体验时长不是倒计时。findAdDurationHint 兜底逻辑误匹配独立"15秒"节点,
-        //   导致 scene=AD_PLAYING,findClaimRewardButton 被场景白名单阻止,卡死直到 STOPPING。
-        //   修复：页面含"可立即领奖"/"立即领奖"明确奖励按钮时,"15秒"是体验时长,不识别为倒计时。
-        if (allText.any { it.contains("可立即领奖") || it.contains("立即领奖") }) {
-            debugLog("findAdDurationHint: skip duration hint (page contains '可立即领奖'/'立即领奖', 15秒 is experience duration not countdown)")
-            return 0
+        // build696 修复（debug_test_20260803_071531.log, build695, 07:15:02-07:15:29）：
+        //   字节穿山甲 TTRewardVideoActivity 激励视频广告页面含"去体验15秒可立即领奖"CTA,
+        //   build688 的跳过逻辑直接返回 0,导致 scene=AD_ENDED(无倒计时+isAdPlaying),
+        //   min=30000ms(默认),一直 waiting 30秒,用户手动停止。
+        //   根因:build688 跳过逻辑过度防护,误伤没有独立"15秒"节点的广告。
+        //   修复:不直接返回 0,只跳过兜底逻辑(纯"Ns"/"N秒"节点),避免误匹配体验时长。
+        //   带关键词的倒计时(如"观看15秒"/"剩余15秒")仍会被检测到。
+        val hasExperienceCta = allText.any { it.contains("可立即领奖") || it.contains("立即领奖") }
+        if (hasExperienceCta) {
+            debugLog("findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)")
         }
         // 优先匹配带关键词的时长提示（更精确）
         val adDurationKeywords = listOf(
@@ -1633,7 +1635,8 @@ class FarmAccessibilityService : AccessibilityService() {
         //   findClaimRewardButton 被场景白名单阻止,卡死 90 秒。
         //   修复：兜底逻辑只在真正的广告 Activity 上执行(isAdActivity()),
         //   不依赖 isAdPlaying()(可能因 adModeFlag 误判)和 isAdContentShown()。
-        if (isAdActivity()) {
+        // build696: 体验类广告(hasExperienceCta)跳过兜底逻辑,避免误匹配体验时长"15秒"。
+        if (isAdActivity() && !hasExperienceCta) {
             for (text in allText) {
                 // 精确匹配纯倒计时文本，如 "15s" / "30秒" / "15 s"
                 val exactMatch = Regex("^(\\d+)\\s*[秒s]$").find(text.trim())

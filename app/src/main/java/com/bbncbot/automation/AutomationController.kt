@@ -265,6 +265,10 @@ object AutomationController {
     @Volatile
     private var adSpeedUpClicked: Boolean = false
 
+    /** build696: "去体验N秒可立即领奖"CTA 已点击（体验类广告,每轮广告只点一次） */
+    @Volatile
+    private var adExperienceClicked: Boolean = false
+
     /** 本次广告观看的农场平台（强杀深链 App 后重新启动此平台回到农场） */
     @Volatile
     private var watchingAdPlatform: Platform = Platform.UNKNOWN
@@ -4576,6 +4580,8 @@ object AutomationController {
             adCountdownStallHandled = false
             // build675: 重置"点我加速"按钮点击标记
             adSpeedUpClicked = false
+            // build696: 重置"去体验N秒可立即领奖"CTA 点击标记
+            adExperienceClicked = false
             // build678: 重置"点击商品,领取奖励"广告商品点击标记
             // (checkTaskListOpened 中也有此广告处理,但 watchAd 从 processTask 进入时未重置)
             adProductClicked = false
@@ -5233,6 +5239,46 @@ object AutomationController {
                     Log.i(TAG, "watchAd: found '点我加速' button, clicking to speed up ad (elapsed=${elapsedMs}ms)")
                     debugLog("watchAd: clicking '点我加速' button to speed up ad countdown")
                     service.performClickSafe(speedUpNode)
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                    }, INTERVAL_CLICK_MS)
+                    return
+                }
+            }
+        }
+
+        // build696 修复（debug_test_20260803_071531.log, build695, 07:15:02-07:15:29）：
+        //   字节穿山甲 TTRewardVideoActivity 激励视频广告页面含"去体验15秒可立即领奖"CTA,
+        //   findAdDurationHint 跳过兜底逻辑返回 0(无倒计时),scene=AD_ENDED,
+        //   min=30000ms(默认),一直 waiting 30秒,用户手动停止。
+        //   修复:检测"去体验N秒可立即领奖"CTA 并点击,提取N秒作为体验时长,
+        //         设置 adMinDurationMs = N秒 + 缓冲,避免等30秒默认值。
+        //   日志特征:texts=[..., 去体验15秒可立即领奖, ｜跳过]
+        //   策略:在广告播放期间(elapsedMs < min wait),检测到 CTA 时点击一次。
+        //   防重入:用 adExperienceClicked 标记,每轮广告只点一次。
+        if (!adExperienceClicked && elapsedMs < adMinDurationMs && elapsedMs >= 1000L) {
+            val root = service.getRootInFarmApp()
+            if (root != null) {
+                // 查找"去体验N秒可立即领奖"CTA 节点
+                val ctaNode = service.findNodeByText(root, "可立即领奖")
+                if (ctaNode != null) {
+                    val ctaText = ctaNode.text?.toString().orEmpty()
+                    // 从"去体验15秒可立即领奖"中提取体验时长"15秒"
+                    val experienceMatch = Regex("(\\d+)\\s*秒").find(ctaText)
+                    val experienceSeconds = experienceMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+                    adExperienceClicked = true
+                    Log.i(TAG, "watchAd: found '去体验N秒可立即领奖' CTA (text='$ctaText', experience=${experienceSeconds}s), clicking (elapsed=${elapsedMs}ms)")
+                    debugLog("watchAd: clicking experience CTA '$ctaText' (experience=${experienceSeconds}s), adjusting min wait")
+                    service.performClickSafe(ctaNode)
+                    // 点击后根据体验时长调整 min wait,避免等30秒默认值
+                    if (experienceSeconds > 0 && experienceSeconds <= 300) {
+                        val newMinWait = experienceSeconds * 1000L + AD_DURATION_BUFFER_MS
+                        if (newMinWait < adMinDurationMs) {
+                            adMinDurationMs = newMinWait
+                            Log.i(TAG, "watchAd: adjusted adMinDurationMs=${adMinDurationMs}ms (experience=${experienceSeconds}s + buffer)")
+                            debugLog("watchAd: adjusted min wait to ${adMinDurationMs}ms based on experience duration ${experienceSeconds}s")
+                        }
+                    }
                     handler.postDelayed({
                         if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
                     }, INTERVAL_CLICK_MS)
