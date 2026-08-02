@@ -1,0 +1,115 @@
+=== cleared on app start (version=2.2, build=build696-45c28c4, time=07:23:14) ===
+07:23:14.613 killPlatformApps: killed com.ucmobile.lite for UC
+07:23:14.614 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+07:23:14.615 killPlatformApps: killed com.taobao.taobao for TAOBAO
+07:23:14.650 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+07:23:14.655 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+07:23:14.655 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+07:23:20.415 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+07:23:20.419 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+07:23:22.696 === Automation v2 Started === platform=UC
+07:23:22.700 cancelNavigation: all navigation callbacks cancelled
+07:23:22.721 reset platform complete: UC
+07:23:22.722 state: IDLE -> NAVIGATING
+07:23:23.036 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:23:23.052 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+07:23:23.093 navigate: on farm page, platform=UC
+07:23:23.102 hasFarmContentLoaded: text count=13, sample=[后退, 智能组件, 菜单, 多窗口, 4, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+07:23:23.103 hasFarmContentLoaded: realContent count=12
+07:23:23.104 navigate: hasFarmContentLoaded=false, attempt=0
+07:23:28.626 navigate: on farm page, platform=UC
+07:23:28.640 hasFarmContentLoaded: text count=34, sample=[后退, 智能组件, 菜单, 多窗口, 4, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+07:23:28.642 hasFarmContentLoaded: realContent count=33
+07:23:28.645 navigate: hasFarmContentLoaded=true, attempt=1
+07:23:28.645 state: NAVIGATING -> COLLECTING_DIRECT
+07:23:31.087 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:23:31.108 [collectDirect-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+07:23:31.129 collectDirect: found 1 direct buttons, attempt=0
+07:23:31.138 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1156][822,1208] (attempt 1)
+07:23:31.139 performClickSafe: text='看广告领奖' desc='' bounds=[641,1156][822,1208] clickable=false
+07:23:31.140 performClickSafe: ACTION_CLICK failed, trying gesture
+07:23:31.141 dispatchGesture: screen=[[641,1156][822,1208]] window=[[0,0][0,0]]
+07:23:31.151 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1182.0)
+07:23:31.157 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+07:23:41.185 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+07:23:41.201 collectDirect: jump button '看广告领奖' led to non-farm app (pkg=com.taobao.taobao), exiting it first, then relaunching farm app (attempt=0)
+07:23:41.202 forceKillApp: killing com.taobao.taobao (pressBackFirst=true)
+07:23:41.206 forceKillApp: killBackgroundProcesses(com.taobao.taobao) called, cleared currentActivityName/currentEventPkg
+07:23:41.209 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+07:23:41.210 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching UC
+07:23:41.241 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+07:23:41.247 launchPlatformApp: opened UC via deep link
+07:23:46.508 collectDirect: found 1 direct buttons, attempt=1
+07:23:46.512 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1149][822,1201] (attempt 2)
+07:23:46.518 performClickSafe: text='看广告领奖' desc='' bounds=[641,1149][822,1201] clickable=false
+07:23:46.523 performClickSafe: ACTION_CLICK failed, trying gesture
+07:23:46.525 dispatchGesture: screen=[[641,1149][822,1201]] window=[[0,0][0,0]]
+07:23:46.532 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1175.0)
+07:23:46.536 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+07:23:56.581 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+07:23:56.599 collectDirect: jump button '看广告领奖' led to non-farm app (pkg=com.taobao.taobao), exiting it first, then relaunching farm app (attempt=1)
+07:23:56.601 forceKillApp: killing com.taobao.taobao (pressBackFirst=true)
+07:23:56.606 forceKillApp: killBackgroundProcesses(com.taobao.taobao) called, cleared currentActivityName/currentEventPkg
+07:23:56.608 collectDirect: jump button '看广告领奖' repeatedly led to non-ad app, giving up (attempt=1), opening task list
+07:23:56.609 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+07:23:59.009 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+07:24:00.263 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+07:24:01.376 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+07:24:01.387 isNonAdTaskPage: YES, matched non-ad task in [ALIVE互动层, 'HYYakuHei-85W', 'AlibabaSans102-Bd', 'AlibabaSans102-Md', 'AlibabaSans102-Rg', ​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​, 头像, 省钱大掌柜518645.1万 观看]
+07:24:01.477 [openTaskList-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.taolive.room.TaoLiveVideoActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+07:24:01.491 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+07:24:01.492 openTaskList: [UC闭环] heuristic text search (attempt=0)
+07:24:01.496 findCollectFertilizerButton: root is null!
+07:24:01.498 openTaskList: [UC闭环] not on farm page (no entry button and not on farm), re-navigating instead of coordinate fallback
+07:24:01.499 state: OPENING_TASK_LIST -> NAVIGATING
+07:24:03.566 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+07:24:04.898 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+07:24:04.949 isNonAdTaskPage: YES, matched non-ad task in [ALIVE互动层, 'HYYakuHei-85W', 'AlibabaSans102-Bd', 'AlibabaSans102-Md', 'AlibabaSans102-Rg', ​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​, 头像, 省钱大掌柜518645.2万 观看]
+07:24:04.978 [navigate-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.taolive.room.TaoLiveVideoActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+07:24:05.114 navigate: sign-in popup detected (scene=SIGN_IN), attempting to close
+07:24:05.255 navigate: clicking sign-in button (text='null')
+07:24:05.256 performClickSafe: text='' desc='' bounds=[994,1553][1200,1681] clickable=true
+07:24:05.296 performClickSafe: ACTION_CLICK success at depth=0
+07:24:12.432 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+07:24:13.035 navigate: generic popup (no fertilizer), attempting to close
+07:24:13.516 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+07:24:13.643 navigate: clicking close button on generic popup (text='null')
+07:24:13.649 performClickSafe: text='' desc='关闭' bounds=[1075,193][1127,245] clickable=true
+07:24:13.733 performClickSafe: ACTION_CLICK success at depth=0
+07:24:18.759 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+07:24:18.817 navigate: generic popup (no fertilizer), attempting to close
+07:24:18.905 navigate: no close button found for generic popup, pressing back
+07:24:24.296 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+07:24:24.309 isRechargePage: YES, sample=[, 下拉刷新, , 下拉刷新, 百亿补贴]
+07:24:24.330 isFarmAppInForeground: windows miss farm pkg, but activity=com.taobao.tao.tbmainactivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+07:24:24.332 getThirdPartyOverlayPkg: detected overlay pkg=com.taobao.taobao (platform=UC)
+07:24:24.333 navigate: third-party overlay pkg=com.taobao.taobao detected, forceKillApp(pressBackFirst=false) to dismiss
+07:24:24.334 forceKillApp: killing com.taobao.taobao (pressBackFirst=false)
+07:24:24.335 forceKillApp: killBackgroundProcesses(com.taobao.taobao) called, cleared currentActivityName/currentEventPkg
+07:24:29.901 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+07:24:29.913 isRechargePage: YES, sample=[, 下拉刷新, , 下拉刷新, 百亿补贴]
+07:24:29.958 navigate: farm app still not in foreground after relaunch (attempt=4), waiting for next retry
+07:24:35.346 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+07:24:35.365 isRechargePage: YES, sample=[, 下拉刷新, , 下拉刷新, 百亿补贴]
+07:24:35.408 navigate: farm app still not in foreground after relaunch (attempt=5), waiting for next retry
+07:24:40.914 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+07:24:40.927 isRechargePage: YES, sample=[, 下拉刷新, , 下拉刷新, 百亿补贴]
+07:24:40.949 navigate: farm app not in foreground (platform=UC, attempt=6), calling reopenFarmByDeepLink
+07:24:40.952 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+07:24:40.953 reopenFarmByDeepLink: pressing HOME to background UC before kill
+07:24:40.956 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+07:24:40.958 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+07:24:40.998 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+07:24:46.144 navigate: still not in farm app after relaunch, calling navigateToFarm to push navigation
+07:24:47.173 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+07:24:47.698 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+07:24:47.700 navigate stepTab: text node too large [0,0][1200,2241], skipping
+07:24:47.701 navigate stepTab: 芭芭农场 not found (retry=0), pressing back to go home
+07:24:50.735 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+07:24:50.737 navigate stepTab: text node too large [0,0][1200,2241], skipping
+07:24:51.732 state: NAVIGATING -> STOPPING
+07:24:51.734 cancelNavigation: all navigation callbacks cancelled
+07:24:51.737 state: STOPPING -> IDLE
+07:24:53.791 saveToken: saved (len=93, head='gith', tail='McKr')
+07:24:53.794 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+07:24:53.796 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260803_072453.log, localFile=debug.log (13053 bytes)

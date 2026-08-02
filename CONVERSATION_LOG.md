@@ -32,7 +32,46 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build696 体验类广告CTA点击+findAdDurationHint跳过逻辑修复
+### commit (待提交) - fix: build697 forceKillApp前台App无效+third-party overlay卡死
+
+**用户需求**: "分析日志"
+
+**日志分析** (build696, debug_test_20260803_072453.log, 07:23:31-07:24:51):
+
+**build696 修复验证**: ✓ "看广告领奖"跳淘宝问题处理正确
+- 07:23:41 跳淘宝 → forceKillApp(淘宝) → relaunch UC (attempt=0)
+- 07:23:56 又跳淘宝 → forceKillApp(淘宝) → give up (attempt=1) → OPENING_TASK_LIST
+- build693/build694 的跳转按钮放弃逻辑生效
+
+**问题**: 进入 OPENING_TASK_LIST 后卡在淘宝直播间,用户手动停止
+- 07:23:59-07:24:01 仍在淘宝(TaoLiveVideoActivity 直播间)
+- 07:24:01 isNonAdTaskPage: YES → NAVIGATING
+- 07:24:05 误判签到弹窗(SIGN_IN) → 点击空节点
+- 07:24:13 误判 generic popup → 点关闭按钮
+- 07:24:24 误判 isRechargePage(百亿补贴) → 触发 third-party overlay 逻辑
+- 07:24:24-40 反复 forceKillApp(淘宝) 但淘宝仍在前台 → 卡死
+- 07:24:51 用户手动停止
+
+**根因**: forceKillApp 对前台 App 无效
+- killBackgroundProcesses 只能杀后台进程,淘宝直播间是前台 Activity
+- pressBack 可能被直播间拦截(直播间常拦截返回键)
+- navigate 的 third-party overlay 分支反复 forceKillApp 失败
+
+**修复1**: [FarmAccessibilityService.kt#L5997-L6027](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L5997-L6027)
+- forceKillApp 的 pressBackFirst=true 时,pressBack 后再按 HOME 键
+- HOME 键能保证 App 退到后台(系统级行为,无法被 App 拦截)
+- App 退到后台后 killBackgroundProcesses 才能生效
+
+**修复2**: [AutomationController.kt#L1044-L1064](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1044-L1064)
+- navigate 的 third-party overlay 分支:forceKillApp 失败后(attempt >= 1)
+- 改用 reopenFarmByDeepLink(killCurrentFirst=false) 强制重启农场 App
+- 通过 deep link 把农场 App 拉到前台,覆盖淘宝直播间
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 45c28c4 - fix: build696 体验类广告CTA点击+findAdDurationHint跳过逻辑修复
 
 **用户需求**: "分析日志"
 

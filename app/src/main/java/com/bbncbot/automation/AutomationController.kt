@@ -1043,9 +1043,20 @@ object AutomationController {
             // 结束该 App,让 UC 浏览器重新成为活动窗口,下一轮 runNavigating 正常导航。
             val overlayPkg = service.getThirdPartyOverlayPkg()
             if (overlayPkg != null) {
-                Log.i(TAG, "navigate: third-party app overlay detected (pkg=$overlayPkg), killing it to restore farm app foreground")
-                debugLog("navigate: third-party overlay pkg=$overlayPkg detected, forceKillApp(pressBackFirst=false) to dismiss")
-                service.forceKillApp(overlayPkg, pressBackFirst = false)
+                // build697 修复（debug_test_20260803_072453.log, build696, 07:24:24-07:24:40）：
+                //   淘宝直播间(TaoLiveVideoActivity)是前台 Activity,forceKillApp 的
+                //   killBackgroundProcesses 对前台 App 无效,反复 forceKillApp 失败卡死。
+                //   修复:forceKillApp 失败后(attempt >= 1),改用 reopenFarmByDeepLink 强制重启农场 App,
+                //         通过 deep link 把农场 App 拉到前台,覆盖淘宝直播间。
+                if (attempt >= 1) {
+                    Log.w(TAG, "navigate: third-party overlay pkg=$overlayPkg persists after forceKillApp (attempt=$attempt), forcing reopenFarmByDeepLink")
+                    debugLog("navigate: third-party overlay pkg=$overlayPkg kill failed (foreground app), forcing reopenFarmByDeepLink")
+                    service.reopenFarmByDeepLink(killCurrentFirst = false)
+                } else {
+                    Log.i(TAG, "navigate: third-party app overlay detected (pkg=$overlayPkg), killing it to restore farm app foreground")
+                    debugLog("navigate: third-party overlay pkg=$overlayPkg detected, forceKillApp(pressBackFirst=false) to dismiss")
+                    service.forceKillApp(overlayPkg, pressBackFirst = false)
+                }
                 handler.postDelayed({
                     if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
                 }, INTERVAL_PAGE_LOAD_MS)
