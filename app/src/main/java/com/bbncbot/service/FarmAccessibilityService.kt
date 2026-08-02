@@ -1595,6 +1595,15 @@ class FarmAccessibilityService : AccessibilityService() {
         if (isOnFarmPage()) return 0
         val root = rootInActiveWindowSafe() ?: return 0
         val allText = collectAllText(root)
+        // build688 修复（debug_test_20260802_100757.log, build687, 10:07:02-10:07:54）：
+        //   广告页面含"去体验15秒可立即领奖"+"可立即领奖"按钮,这是体验类广告的 CTA 描述,
+        //   "15秒"是体验时长不是倒计时。findAdDurationHint 兜底逻辑误匹配独立"15秒"节点,
+        //   导致 scene=AD_PLAYING,findClaimRewardButton 被场景白名单阻止,卡死直到 STOPPING。
+        //   修复：页面含"可立即领奖"/"立即领奖"明确奖励按钮时,"15秒"是体验时长,不识别为倒计时。
+        if (allText.any { it.contains("可立即领奖") || it.contains("立即领奖") }) {
+            debugLog("findAdDurationHint: skip duration hint (page contains '可立即领奖'/'立即领奖', 15秒 is experience duration not countdown)")
+            return 0
+        }
         // 优先匹配带关键词的时长提示（更精确）
         val adDurationKeywords = listOf(
             "观看", "倒计时", "还剩", "剩余", "后可领取", "后可关闭",
@@ -4360,9 +4369,10 @@ class FarmAccessibilityService : AccessibilityService() {
         // 签到专属关键词放最前：签到页面的"立即签到"/"签到领取"按钮需要优先匹配，
         // 避免"领取"子串先命中无关文案。签到按钮不是诱导按钮，无需 trapTexts 过滤。
         // 通用关键词"领取奖励"/"领取"/"确定"/"知道了"用于广告结束/奖励弹窗。
+        // build688: 增加"可立即领奖"/"立即领奖"用于体验类广告（如"去体验15秒可立即领奖"）
         val keywords = listOf(
             "立即签到", "签到领取", "签到",
-            "领取奖励", "领取", "确定", "知道了"
+            "领取奖励", "可立即领奖", "立即领奖", "领取", "确定", "知道了"
         )
         for (kw in keywords) {
             val node = findNodeByText(root, kw)

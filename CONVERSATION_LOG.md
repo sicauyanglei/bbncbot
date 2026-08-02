@@ -32,7 +32,44 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build686 跳转按钮在农场页不pressBack + faster reward stage=1超时
+### commit (待提交) - fix: build688 体验类广告"可立即领奖"按钮被场景白名单阻止
+
+**用户需求**: "分析日志"
+
+**日志分析** (build687, debug_test_20260802_100757.log, 10:06:50-10:07:54):
+
+**问题**: "去体验15秒可立即领奖"广告卡死,WATCHING_AD 超时 STOPPING
+- 10:06:50 点击'看广告领奖' → jump button led to ad (TTRewardVideoActivity), entering WATCHING_AD ✓
+- 10:07:02 进入广告页,页面文本含"可立即领奖"+"去体验15秒可立即领奖"
+- 10:07:02-10:07:51 findAdDurationHint 一直返回 15(误把"15秒"识别为倒计时)
+  ← "15秒"是体验时长(CTA描述),不是广告倒计时
+- 10:07:02-10:07:51 scene=AD_PLAYING(因 isAdPlaying=true 且 findAdDurationHint>0)
+- 10:07:02-10:07:51 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+  ← 场景白名单只允许 AD_ENDED/REWARD_POPUP/SIGN_IN,AD_PLAYING 被阻止
+- 10:07:54 WATCHING_AD -> STOPPING ← 卡死 52 秒后超时
+
+**根因**: 
+1. findAdDurationHint 兜底逻辑误匹配独立"15秒"节点(来自"去体验15秒可立即领奖"文案),
+   导致 scene=AD_PLAYING
+2. findClaimRewardButton 场景白名单阻止 AD_PLAYING 场景点击领取按钮
+3. findClaimRewardButton keywords 不含"可立即领奖"/"立即领奖",即使放行也匹配不到
+
+**修复**: 
+1. [FarmAccessibilityService.kt#L1598-L1606](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L1598-L1606):
+   findAdDurationHint 开头检测页面含"可立即领奖"/"立即领奖"时返回0(15秒是体验时长不是倒计时)
+   → scene 变为 AD_ENDED(广告页无倒计时),findClaimRewardButton 场景白名单放行
+2. [FarmAccessibilityService.kt#L4372-L4376](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4372-L4376):
+   findClaimRewardButton keywords 增加"可立即领奖"/"立即领奖"
+
+**预期效果**:
+- 体验类广告("去体验15秒可立即领奖")不再卡死,scene 识别为 AD_ENDED
+- findClaimRewardButton 能匹配并点击"可立即领奖"按钮获取奖励
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 9f0bbfd - docs: build686 注释调整 - 确认"我要更快拿奖"应被点击
 
 **用户需求**: "分析日志"
 
