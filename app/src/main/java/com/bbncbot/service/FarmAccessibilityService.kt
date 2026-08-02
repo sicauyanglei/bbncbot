@@ -4057,6 +4057,13 @@ class FarmAccessibilityService : AccessibilityService() {
     fun isRechargePage(): Boolean {
         val root = rootInActiveWindowSafe() ?: return false
         val allText = collectAllText(root)
+        // build701 修复（debug_test_20260803_075404.log, build699, 07:53:02）：
+        //   农场任务列表页面含"下单得"(如"下单得 肥料 +80000")被误判为充值页。
+        //   但实际是农场任务列表的任务描述,不是充值页。
+        //   修复:若页面同时是农场页(isOnFarmPage),不识别为充值页。
+        if (isOnFarmPage()) {
+            return false
+        }
         val isRecharge = allText.any { text ->
             text.contains("充值") || text.contains("立即充值") ||
                 text.contains("马上充值") || text.contains("去充值") ||
@@ -4424,6 +4431,15 @@ class FarmAccessibilityService : AccessibilityService() {
                     debugLog("findClaimRewardButton: skip continue_button text='$text' desc='$desc' (matched kw='$kw')")
                     continue
                 }
+                // build701 修复（debug_test_20260803_075404.log, build699, 07:53:30-07:54:01）：
+                //   汇川 HCRewardVideoActivity 广告点击商品后,出现"确认要离开吗？"弹窗,
+                //   弹窗含"点击商家后立即领奖"(含"立即领奖")。findClaimRewardButton 误匹配,
+                //   点击空节点 bounds=[120,912][1080,1751](整个弹窗背景),反复点击无效,循环卡死。
+                //   修复:排除"点击商家后"开头的文本(提示文案,不是领取按钮)。
+                if (text.startsWith("点击商家后")) {
+                    debugLog("findClaimRewardButton: skip 'click merchant' hint text='$text' desc='$desc' (matched kw='$kw')")
+                    continue
+                }
                 Log.d(TAG, "findClaimRewardButton: found by text='$kw'")
                 return node
             }
@@ -4590,6 +4606,14 @@ class FarmAccessibilityService : AccessibilityService() {
     fun isTaskCompletePage(): Boolean {
         val root = getRootInFarmApp() ?: return false
         val allText = collectAllText(root)
+        // build701 修复（debug_test_20260803_075404.log, build699, 07:51:47）：
+        //   字节穿山甲 TTRewardVideoActivity 广告页面含"奖励已领取"静态文案,
+        //   isTaskCompletePage 误判为任务完成,导致 scene=AD_ENDED,白等30秒。
+        //   修复:若页面是广告 Activity,不识别为任务完成页。
+        //   广告页面的"奖励已领取"是静态文案,不代表任务真正完成。
+        if (isAdActivity()) {
+            return false
+        }
         // 收紧完成关键词：移除"恭喜获得"、"获得肥料"等过宽关键词
         // 原因：浏览任务进行中页面常显示"已获得肥料 xxx"（已领取的部分奖励），
         // 会被误判为任务完成而提前退出。只有明确的完成标志才算完成。

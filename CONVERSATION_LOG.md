@@ -32,7 +32,50 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - feat: build700 扩展加速按钮匹配"我要加速"
+### commit (待提交) - fix: build701 isRechargePage/isTaskCompletePage误判+点击商家后弹窗循环
+
+**用户需求**: "分析日志"
+
+**日志分析** (build699, debug_test_20260803_075404.log, 07:51:45-07:54:02):
+
+**build699 验证**: ✓ "去体验15秒可立即领奖"CTA 不再点击
+- 但出现了新的循环问题
+
+**问题1**: isTaskCompletePage 误判 → 白等30秒
+- 07:51:47 字节穿山甲 TTRewardVideoActivity 广告页面含"奖励已领取"静态文案
+- isTaskCompletePage: YES → scene=AD_ENDED
+- 一直 waiting min=30000ms,直到 07:52:19 才点击关闭
+
+**问题2**: isRechargePage 误判 → 场景被误判为 TRAP_RECHARGE
+- 07:53:02 农场任务列表页面含"下单得"(如"下单得 肥料 +80000")
+- isRechargePage: YES → scene=TRAP_RECHARGE
+- findClaimRewardButton 被场景白名单阻止
+
+**问题3**: "点击商家后立即领奖"+"确认要离开吗？"弹窗循环卡死
+- 07:53:11 汇川 HCRewardVideoActivity 广告,点击商品(✓ build642逻辑生效)
+- 07:53:18 5秒后点击关闭图标
+- 07:53:30 出现"确认要离开吗？"弹窗,含"点击商家后立即领奖"
+- 07:53:46-07:54:01 findClaimRewardButton 匹配"立即领奖"→点击空节点 bounds=[120,912][1080,1751]
+- 反复点击空节点(整个弹窗背景),循环卡死,用户手动停止
+
+**修复1**: [FarmAccessibilityService.kt#L4057-L4066](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4057-L4066)
+- isRechargePage 增加农场页检测:若 isOnFarmPage() 返回 false
+- 避免农场任务列表页面的"下单得"被误判为充值页
+
+**修复2**: [FarmAccessibilityService.kt#L4600-L4607](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4600-L4607)
+- isTaskCompletePage 增加广告页面检测:若 isAdActivity() 返回 false
+- 避免广告页面的"奖励已领取"静态文案被误判为任务完成
+
+**修复3**: [FarmAccessibilityService.kt#L4434-L4442](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4434-L4442)
+- findClaimRewardButton 排除"点击商家后"开头的文本
+- 避免匹配"点击商家后立即领奖"(提示文案,不是领取按钮)
+- 防止反复点击空节点循环卡死
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 945dccc - feat: build700 扩展加速按钮匹配"我要加速"
 
 **用户需求**: "应该点击我要加速"
 
