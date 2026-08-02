@@ -1,0 +1,66 @@
+=== cleared on app start (version=2.2, build=build695-1c01f7c, time=07:14:10) ===
+07:14:10.215 killPlatformApps: killed com.ucmobile.lite for UC
+07:14:10.218 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+07:14:10.219 killPlatformApps: killed com.taobao.taobao for TAOBAO
+07:14:18.658 FarmAccessibilityService connected, API=36
+07:14:19.778 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+07:14:19.781 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+07:14:19.781 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+07:14:32.534 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+07:14:32.537 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+07:14:38.568 === Automation v2 Started === platform=UC
+07:14:38.584 cancelNavigation: all navigation callbacks cancelled
+07:14:38.634 reset platform complete: UC
+07:14:38.639 state: IDLE -> NAVIGATING
+07:14:39.022 isOnFarmPage: no farm content, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页]
+07:14:40.977 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:14:40.999 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+07:14:41.850 navigate: calling navigateToFarm, platform=UC
+07:14:43.626 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+07:14:43.629 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+07:14:43.633 performClickSafe: ACTION_CLICK failed, trying gesture
+07:14:43.639 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+07:14:43.640 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+07:14:47.548 navigate: on farm page, platform=UC
+07:14:47.561 hasFarmContentLoaded: text count=32, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+07:14:47.563 hasFarmContentLoaded: realContent count=31
+07:14:47.564 navigate: hasFarmContentLoaded=true, attempt=1
+07:14:47.565 state: NAVIGATING -> COLLECTING_DIRECT
+07:14:50.248 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:14:50.297 [collectDirect-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+07:14:50.329 collectDirect: found 1 direct buttons, attempt=0
+07:14:50.333 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1146][822,1198] (attempt 1)
+07:14:50.335 performClickSafe: text='看广告领奖' desc='' bounds=[641,1146][822,1198] clickable=false
+07:14:50.339 performClickSafe: ACTION_CLICK failed, trying gesture
+07:14:50.343 dispatchGesture: screen=[[641,1146][822,1198]] window=[[0,0][0,0]]
+07:14:50.350 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1172.0)
+07:14:50.354 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+07:15:00.361 collectDirect: jump button '看广告领奖' led to ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity), entering WATCHING_AD
+07:15:00.365 state: COLLECTING_DIRECT -> WATCHING_AD
+07:15:02.403 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+07:15:02.531 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:15:02.543 [watchAd-0ms] claim-text-nodes (count=1):
+07:15:02.546 [watchAd-0ms]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:15:02.654 findAdDurationHint: skip duration hint (page contains '可立即领奖'/'立即领奖', 15秒 is experience duration not countdown)
+07:15:02.657 watchAd: scene=AD_ENDED, elapsed=0ms/90000ms
+07:15:02.678 watchAd: waiting 0ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, oo2YIIO6sdugaDuQ45atkhjqBmzBAWgETcgtA~tplv-noop, 低价捡漏，就用闲鱼！, 上滑或点击查看, 反馈, 广告, 去体验15秒可立即领奖, ｜跳过]
+07:15:07.869 findAdDurationHint: skip duration hint (page contains '可立即领奖'/'立即领奖', 15秒 is experience duration not countdown)
+07:15:07.870 watchAd: scene=AD_ENDED, elapsed=5000ms/90000ms
+07:15:12.972 findAdDurationHint: skip duration hint (page contains '可立即领奖'/'立即领奖', 15秒 is experience duration not countdown)
+07:15:12.974 watchAd: scene=AD_ENDED, elapsed=10000ms/90000ms
+07:15:18.047 [watchAd-15000ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:15:18.066 [watchAd-15000ms] claim-text-nodes (count=1):
+07:15:18.072 [watchAd-15000ms]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:15:18.144 findAdDurationHint: skip duration hint (page contains '可立即领奖'/'立即领奖', 15秒 is experience duration not countdown)
+07:15:18.145 watchAd: scene=AD_ENDED, elapsed=15000ms/90000ms
+07:15:18.172 watchAd: waiting 15000ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, oo2YIIO6sdugaDuQ45atkhjqBmzBAWgETcgtA~tplv-noop, 低价捡漏，就用闲鱼！, 上滑或点击查看, 反馈, 广告, 去体验15秒可立即领奖, ｜跳过]
+07:15:23.273 findAdDurationHint: skip duration hint (page contains '可立即领奖'/'立即领奖', 15秒 is experience duration not countdown)
+07:15:23.274 watchAd: scene=AD_ENDED, elapsed=20000ms/90000ms
+07:15:28.408 findAdDurationHint: skip duration hint (page contains '可立即领奖'/'立即领奖', 15秒 is experience duration not countdown)
+07:15:28.409 watchAd: scene=AD_ENDED, elapsed=25000ms/90000ms
+07:15:29.134 state: WATCHING_AD -> STOPPING
+07:15:29.136 cancelNavigation: all navigation callbacks cancelled
+07:15:29.138 state: STOPPING -> IDLE
+07:15:31.018 saveToken: saved (len=93, head='gith', tail='McKr')
+07:15:31.023 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+07:15:31.025 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260803_071531.log, localFile=debug.log (6870 bytes)
