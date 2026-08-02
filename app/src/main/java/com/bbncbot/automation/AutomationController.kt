@@ -5258,45 +5258,13 @@ object AutomationController {
             }
         }
 
-        // build696 修复（debug_test_20260803_071531.log, build695, 07:15:02-07:15:29）：
-        //   字节穿山甲 TTRewardVideoActivity 激励视频广告页面含"去体验15秒可立即领奖"CTA,
-        //   findAdDurationHint 跳过兜底逻辑返回 0(无倒计时),scene=AD_ENDED,
-        //   min=30000ms(默认),一直 waiting 30秒,用户手动停止。
-        //   修复:检测"去体验N秒可立即领奖"CTA 并点击,提取N秒作为体验时长,
-        //         设置 adMinDurationMs = N秒 + 缓冲,避免等30秒默认值。
-        //   日志特征:texts=[..., 去体验15秒可立即领奖, ｜跳过]
-        //   策略:在广告播放期间(elapsedMs < min wait),检测到 CTA 时点击一次。
-        //   防重入:用 adExperienceClicked 标记,每轮广告只点一次。
-        if (!adExperienceClicked && elapsedMs < adMinDurationMs && elapsedMs >= 1000L) {
-            val root = service.getRootInFarmApp()
-            if (root != null) {
-                // 查找"去体验N秒可立即领奖"CTA 节点
-                val ctaNode = service.findNodeByText(root, "可立即领奖")
-                if (ctaNode != null) {
-                    val ctaText = ctaNode.text?.toString().orEmpty()
-                    // 从"去体验15秒可立即领奖"中提取体验时长"15秒"
-                    val experienceMatch = Regex("(\\d+)\\s*秒").find(ctaText)
-                    val experienceSeconds = experienceMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
-                    adExperienceClicked = true
-                    Log.i(TAG, "watchAd: found '去体验N秒可立即领奖' CTA (text='$ctaText', experience=${experienceSeconds}s), clicking (elapsed=${elapsedMs}ms)")
-                    debugLog("watchAd: clicking experience CTA '$ctaText' (experience=${experienceSeconds}s), adjusting min wait")
-                    service.performClickSafe(ctaNode)
-                    // 点击后根据体验时长调整 min wait,避免等30秒默认值
-                    if (experienceSeconds > 0 && experienceSeconds <= 300) {
-                        val newMinWait = experienceSeconds * 1000L + AD_DURATION_BUFFER_MS
-                        if (newMinWait < adMinDurationMs) {
-                            adMinDurationMs = newMinWait
-                            Log.i(TAG, "watchAd: adjusted adMinDurationMs=${adMinDurationMs}ms (experience=${experienceSeconds}s + buffer)")
-                            debugLog("watchAd: adjusted min wait to ${adMinDurationMs}ms based on experience duration ${experienceSeconds}s")
-                        }
-                    }
-                    handler.postDelayed({
-                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
-                    }, INTERVAL_CLICK_MS)
-                    return
-                }
-            }
-        }
+        // build699 回退（debug_test_20260803_074314.log, build698, 07:42:20-07:43:11）：
+        //   build696 添加了"去体验N秒可立即领奖"CTA 点击逻辑,但点击 CTA 会触发
+        //   "确定要退出吗？"弹窗(穿山甲退出确认),弹窗含"去领取奖励"(continue_button)按钮。
+        //   findClaimRewardButton 误匹配"去体验15秒可立即领奖"和"去领取奖励",
+        //   两者循环卡死60秒,用户手动停止。
+        //   回退:移除 CTA 点击逻辑,不点击"去体验N秒可立即领奖",避免触发"确定要退出吗？"弹窗。
+        //   findAdDurationHint 仍会检测倒计时(build696 修复保留),广告会在 min=30000ms 后正常结束。
 
         // build671 修复（debug_test_20260731_214538.log, build669）：
         // UC"看视频得巨额肥料"任务点击后跳转淘宝 TMSActivity,页面"30秒"是静态文字,

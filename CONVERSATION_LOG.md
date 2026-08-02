@@ -32,7 +32,45 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build698 回退forceKillApp HOME键副作用
+### commit (待提交) - fix: build699 findClaimRewardButton误匹配体验CTA+continue_button循环卡死
+
+**用户需求**: "分析日志"
+
+**日志分析** (build698, debug_test_20260803_074314.log, 07:42:07-07:43:11):
+
+**build698 验证**: ✓ forceKillApp HOME键问题已解决
+- 07:42:07 进入字节穿山甲 TTRewardVideoActivity → WATCHING_AD
+- findAdDurationHint: found '15秒'+'29s' → scene=AD_PLAYING (build696修复生效)
+
+**问题**: "确定要退出吗？"弹窗循环卡死60秒,用户手动停止
+- 07:42:10 页面显示"恭喜获得奖励"+"无法播放媒体"(广告视频无法播放)
+- 07:42:20 点击"去体验15秒可立即领奖"CTA(build696逻辑) → adjusted min=17000ms
+- 07:42:22 出现"确定要退出吗？"弹窗(穿山甲退出确认) + "去领取奖励"(continue_button)
+- 07:42:28 点击"去领取奖励" → 回到广告页
+- 07:42:33 findClaimRewardButton又找到"去体验15秒可立即领奖" → 点击
+- 07:42:38 又出现"确定要退出吗？" → 又点"去领取奖励" → 循环
+- 持续到 07:43:11(约60秒),用户手动停止
+
+**根因**: findClaimRewardButton 误匹配体验CTA和continue_button
+1. findClaimRewardButton 含"可立即领奖"关键词 → 匹配"去体验15秒可立即领奖"
+2. 点击它触发"确定要退出吗？"弹窗
+3. 弹窗含"去领取奖励"(desc='continue_button') → findClaimRewardButton匹配"领取奖励"
+4. 点击continue_button关闭弹窗回到广告页 → 又匹配"去体验15秒可立即领奖" → 循环
+
+**修复1**: [FarmAccessibilityService.kt#L4411-L4426](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4411-L4426)
+- findClaimRewardButton 排除"去体验"开头的文本(体验CTA,不是领取按钮)
+- findClaimRewardButton 排除 desc='continue_button' 的节点(继续看广告按钮,不是领取奖励按钮)
+
+**修复2**: [AutomationController.kt#L5261-L5267](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5261-L5267)
+- 移除 build696 的"去体验N秒可立即领奖"CTA 点击逻辑
+- 不点击CTA,避免触发"确定要退出吗？"弹窗循环
+- findAdDurationHint 仍会检测倒计时(build696修复保留),广告会在 min=30000ms 后正常结束
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 9f9d954 - fix: build698 回退forceKillApp HOME键副作用
 
 **用户需求**: "分析日志"
 

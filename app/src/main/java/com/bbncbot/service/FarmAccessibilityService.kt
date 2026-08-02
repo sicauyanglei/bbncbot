@@ -4408,6 +4408,22 @@ class FarmAccessibilityService : AccessibilityService() {
                     debugLog("findClaimRewardButton: skip trap button text='$text' desc='$desc' (matched kw='$kw')")
                     continue
                 }
+                // build699 修复（debug_test_20260803_074314.log, build698, 07:42:22-07:43:11）：
+                //   字节穿山甲体验类广告点击"去体验15秒可立即领奖"CTA 后触发"确定要退出吗？"弹窗,
+                //   弹窗含"去领取奖励"(desc='continue_button')按钮。findClaimRewardButton 误匹配:
+                //   1. "去体验15秒可立即领奖"(含"可立即领奖") → 点击触发"确定要退出吗？"弹窗
+                //   2. "去领取奖励"(desc='continue_button') → 点击关闭弹窗回到广告页
+                //   两者循环卡死60秒,用户手动停止。
+                //   修复:排除"去体验"开头的文本(体验CTA,不是领取按钮)和 desc='continue_button'
+                //   的节点(继续看广告按钮,不是领取奖励按钮)。
+                if (text.startsWith("去体验")) {
+                    debugLog("findClaimRewardButton: skip experience CTA text='$text' desc='$desc' (matched kw='$kw')")
+                    continue
+                }
+                if (desc == "continue_button") {
+                    debugLog("findClaimRewardButton: skip continue_button text='$text' desc='$desc' (matched kw='$kw')")
+                    continue
+                }
                 Log.d(TAG, "findClaimRewardButton: found by text='$kw'")
                 return node
             }

@@ -1,0 +1,162 @@
+=== cleared on app start (version=2.2, build=build698-9f9d954, time=07:41:39) ===
+07:41:39.539 killPlatformApps: killed com.ucmobile.lite for UC
+07:41:39.541 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+07:41:39.542 killPlatformApps: killed com.taobao.taobao for TAOBAO
+07:41:39.562 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+07:41:39.566 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+07:41:39.567 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+07:41:47.145 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+07:41:47.149 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+07:41:49.439 === Automation v2 Started === platform=UC
+07:41:49.440 cancelNavigation: all navigation callbacks cancelled
+07:41:49.446 reset platform complete: UC
+07:41:49.447 state: IDLE -> NAVIGATING
+07:41:49.854 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:41:49.873 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+07:41:50.032 navigate: on farm page, platform=UC
+07:41:50.039 hasFarmContentLoaded: text count=17, sample=[后退, 智能组件, 菜单, 多窗口, 10, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+07:41:50.040 hasFarmContentLoaded: realContent count=17
+07:41:50.040 navigate: hasFarmContentLoaded=false, attempt=0
+07:41:55.297 navigate: on farm page, platform=UC
+07:41:55.312 hasFarmContentLoaded: text count=34, sample=[后退, 智能组件, 菜单, 多窗口, 10, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+07:41:55.314 hasFarmContentLoaded: realContent count=34
+07:41:55.316 navigate: hasFarmContentLoaded=true, attempt=1
+07:41:55.318 state: NAVIGATING -> COLLECTING_DIRECT
+07:41:57.839 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:41:57.855 [collectDirect-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+07:41:57.879 collectDirect: found 1 direct buttons, attempt=0
+07:41:57.881 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1159][822,1208] (attempt 1)
+07:41:57.884 performClickSafe: text='看广告领奖' desc='' bounds=[641,1159][822,1208] clickable=false
+07:41:57.885 performClickSafe: ACTION_CLICK failed, trying gesture
+07:41:57.887 dispatchGesture: screen=[[641,1159][822,1208]] window=[[0,0][0,0]]
+07:41:57.888 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1183.5)
+07:41:57.892 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+07:42:07.900 collectDirect: jump button '看广告领奖' led to ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity), entering WATCHING_AD
+07:42:07.908 state: COLLECTING_DIRECT -> WATCHING_AD
+07:42:09.952 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+07:42:10.139 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:42:10.152 [watchAd-0ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+07:42:10.320 findAdDurationHint: found countdown '15秒', seconds=15
+07:42:10.343 findAdDurationHint: found countdown '29s', seconds=29
+07:42:10.346 watchAd: scene=AD_PLAYING, elapsed=0ms/90000ms
+07:42:10.391 watchAd: waiting 0ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, 无法播放媒体。, 不支持的音频/视频格式请试试刷新, 无法播放媒体。, 不支持的音频/视频格式请试试刷新, 无法播放媒体。, 不支持的音频/视频格式请试试刷新, 恭喜获得奖励]
+07:42:15.634 watchAd: scene=REWARD_POPUP, elapsed=5000ms/90000ms
+07:42:20.895 watchAd: scene=REWARD_POPUP, elapsed=10000ms/90000ms
+07:42:20.917 watchAd: clicking experience CTA '去体验15秒可立即领奖' (experience=15s), adjusting min wait
+07:42:20.918 performClickSafe: text='去体验15秒可立即领奖' desc='' bounds=[543,176][1015,235] clickable=false
+07:42:20.919 performClickSafe: ACTION_CLICK failed, trying gesture
+07:42:20.920 dispatchGesture: screen=[[543,176][1015,235]] window=[[0,0][0,0]]
+07:42:20.920 dispatchGesture: not in popup, screen bounds valid, click at (779.0, 205.5)
+07:42:20.922 watchAd: adjusted min wait to 17000ms based on experience duration 15s
+07:42:22.945 isAdContentShown: YES, matched ad signal in [ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:42:22.961 [watchAd-15000ms] snapshot: pkg=com.ucmobile.lite, act=com.byazt.jz.ew, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:42:22.968 [watchAd-15000ms] claim-text-nodes (count=1):
+07:42:22.971 [watchAd-15000ms]   text='去领取奖励' desc='continue_button' bounds=[206,1541][993,1698] clickable=true
+07:42:23.022 watchAd: scene=AD_ENDED, elapsed=15000ms/90000ms
+07:42:23.035 isAdContentShown: YES, matched ad signal in [ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:42:23.037 watchAd: waiting 15000ms/17000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:42:28.102 watchAd: scene=AD_ENDED, elapsed=20000ms/90000ms
+07:42:28.116 isAdContentShown: YES, matched ad signal in [ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:42:28.121 watchAd: checking ad end (20000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:42:28.194 isAdEndedMultiSignal: YES (claim reward button appeared)
+07:42:28.271 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+07:42:28.273 performClickSafe: text='去领取奖励' desc='continue_button' bounds=[206,1541][993,1698] clickable=true
+07:42:28.305 performClickSafe: ACTION_CLICK success at depth=0
+07:42:33.501 watchAd: scene=REWARD_POPUP, elapsed=25000ms/90000ms
+07:42:33.525 watchAd: checking ad end (25000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, 无法播放媒体。, 不支持的音频/视频格式请试试刷新, 无法播放媒体。, 不支持的音频/视频格式请试试刷新, 无法播放媒体。, 不支持的音频/视频格式请试试刷新, 上滑或点击领取]
+07:42:33.610 isAdEndedMultiSignal: YES (claim reward button appeared)
+07:42:33.618 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:42:33.717 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+07:42:33.719 performClickSafe: text='去体验15秒可立即领奖' desc='' bounds=[543,176][1015,235] clickable=false
+07:42:33.720 performClickSafe: ACTION_CLICK failed, trying gesture
+07:42:33.720 dispatchGesture: screen=[[543,176][1015,235]] window=[[0,0][0,0]]
+07:42:33.721 dispatchGesture: not in popup, screen bounds valid, click at (779.0, 205.5)
+07:42:38.756 isAdContentShown: YES, matched ad signal in [ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:42:38.776 [watchAd-30000ms] snapshot: pkg=com.ucmobile.lite, act=com.byazt.jz.ew, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:42:38.784 [watchAd-30000ms] claim-text-nodes (count=1):
+07:42:38.786 [watchAd-30000ms]   text='去领取奖励' desc='continue_button' bounds=[206,1541][993,1698] clickable=true
+07:42:38.866 watchAd: scene=AD_ENDED, elapsed=30000ms/90000ms
+07:42:38.883 isAdContentShown: YES, matched ad signal in [ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:42:38.890 watchAd: checking ad end (30000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:42:38.958 isAdEndedMultiSignal: YES (claim reward button appeared)
+07:42:39.026 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+07:42:39.028 performClickSafe: text='去领取奖励' desc='continue_button' bounds=[206,1541][993,1698] clickable=true
+07:42:39.063 performClickSafe: ACTION_CLICK success at depth=0
+07:42:44.213 watchAd: scene=REWARD_POPUP, elapsed=35000ms/90000ms
+07:42:44.240 watchAd: checking ad end (35000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, 无法播放媒体。, 不支持的音频/视频格式请试试刷新, 无法播放媒体。, 不支持的音频/视频格式请试试刷新, 无法播放媒体。, 不支持的音频/视频格式请试试刷新, 上滑或点击领取]
+07:42:44.325 isAdEndedMultiSignal: YES (claim reward button appeared)
+07:42:44.328 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:42:44.402 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+07:42:44.404 performClickSafe: text='去体验15秒可立即领奖' desc='' bounds=[543,176][1015,235] clickable=false
+07:42:44.404 performClickSafe: ACTION_CLICK failed, trying gesture
+07:42:44.405 dispatchGesture: screen=[[543,176][1015,235]] window=[[0,0][0,0]]
+07:42:44.405 dispatchGesture: not in popup, screen bounds valid, click at (779.0, 205.5)
+07:42:49.498 watchAd: scene=AD_ENDED, elapsed=40000ms/90000ms
+07:42:49.514 isAdContentShown: YES, matched ad signal in [ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:42:49.517 watchAd: checking ad end (40000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:42:49.553 isAdEndedMultiSignal: YES (claim reward button appeared)
+07:42:49.601 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+07:42:49.602 performClickSafe: text='去领取奖励' desc='continue_button' bounds=[206,1541][993,1698] clickable=true
+07:42:49.616 performClickSafe: ACTION_CLICK success at depth=0
+07:42:54.651 isAdContentShown: YES, matched ad signal in [ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:42:54.675 [watchAd-45000ms] snapshot: pkg=com.ucmobile.lite, act=com.byazt.jz.ew, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:42:54.685 [watchAd-45000ms] claim-text-nodes (count=1):
+07:42:54.687 [watchAd-45000ms]   text='去领取奖励' desc='continue_button' bounds=[206,1541][993,1698] clickable=true
+07:42:54.748 watchAd: scene=AD_ENDED, elapsed=45000ms/90000ms
+07:42:54.762 isAdContentShown: YES, matched ad signal in [ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:42:54.769 watchAd: checking ad end (45000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:42:54.839 isAdEndedMultiSignal: YES (claim reward button appeared)
+07:42:54.919 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+07:42:54.921 performClickSafe: text='去领取奖励' desc='continue_button' bounds=[206,1541][993,1698] clickable=true
+07:42:54.954 performClickSafe: ACTION_CLICK success at depth=0
+07:43:00.091 watchAd: scene=AD_ENDED, elapsed=50000ms/90000ms
+07:43:00.107 isAdContentShown: YES, matched ad signal in [ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:43:00.114 watchAd: checking ad end (50000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:43:00.191 isAdEndedMultiSignal: YES (claim reward button appeared)
+07:43:00.279 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+07:43:00.281 performClickSafe: text='去领取奖励' desc='continue_button' bounds=[206,1541][993,1698] clickable=true
+07:43:00.301 performClickSafe: ACTION_CLICK success at depth=0
+07:43:05.523 watchAd: scene=REWARD_POPUP, elapsed=55000ms/90000ms
+07:43:05.552 watchAd: checking ad end (55000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, 无法播放媒体。, 不支持的音频/视频格式请试试刷新, 无法播放媒体。, 不支持的音频/视频格式请试试刷新, 无法播放媒体。, 不支持的音频/视频格式请试试刷新, 上滑或点击领取]
+07:43:05.645 isAdEndedMultiSignal: YES (claim reward button appeared)
+07:43:05.651 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:43:05.758 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+07:43:05.759 performClickSafe: text='去体验15秒可立即领奖' desc='' bounds=[543,176][1015,235] clickable=false
+07:43:05.760 performClickSafe: ACTION_CLICK failed, trying gesture
+07:43:05.761 dispatchGesture: screen=[[543,176][1015,235]] window=[[0,0][0,0]]
+07:43:05.761 dispatchGesture: not in popup, screen bounds valid, click at (779.0, 205.5)
+07:43:10.796 isAdContentShown: YES, matched ad signal in [ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:43:10.828 [watchAd-60000ms] snapshot: pkg=com.ucmobile.lite, act=com.byazt.jz.ew, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:43:10.842 [watchAd-60000ms] claim-text-nodes (count=1):
+07:43:10.844 [watchAd-60000ms]   text='去领取奖励' desc='continue_button' bounds=[206,1541][993,1698] clickable=true
+07:43:10.901 watchAd: scene=AD_ENDED, elapsed=60000ms/90000ms
+07:43:10.915 isAdContentShown: YES, matched ad signal in [ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:43:10.922 watchAd: checking ad end (60000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+07:43:10.989 isAdEndedMultiSignal: YES (claim reward button appeared)
+07:43:11.045 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+07:43:11.046 performClickSafe: text='去领取奖励' desc='continue_button' bounds=[206,1541][993,1698] clickable=true
+07:43:11.073 performClickSafe: ACTION_CLICK success at depth=0
+07:43:12.298 state: WATCHING_AD -> STOPPING
+07:43:12.303 cancelNavigation: all navigation callbacks cancelled
+07:43:12.306 state: STOPPING -> IDLE
+07:43:14.786 saveToken: saved (len=93, head='gith', tail='McKr')
+07:43:14.791 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+07:43:14.793 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260803_074314.log, localFile=debug.log (17072 bytes)
