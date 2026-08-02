@@ -32,7 +32,23 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build693 跳转按钮跳非广告App更快放弃(attempt>=1)
+### commit (待提交) - fix: build694 跳转千问后先退出千问再回农场页
+
+**用户需求**: "跳到千问后，需要退出千问，回到芭芭农场页面"
+
+**问题**: build693 的 `launchPlatformApp(killCurrentFirst=false)` 直接用 deep link 拉起 UC,但没有退出千问,千问可能仍在后台或遮挡,用户要求先退出千问再回农场页。
+
+**修复**: [AutomationController.kt#L1479-L1505](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1479-L1505)
+- 跳到非广告 App(千问/淘宝等)时,先 `forceKillApp(nonAdPkg, pressBackFirst=true)` 退出千问
+- 再 `launchPlatformApp(killCurrentFirst=false)` 用 deep link 拉起 UC 农场页
+- `forceKillApp` 的 `pressBackFirst=true` 会先按返回键把千问退到后台,再 killBackgroundProcesses 结束千问进程
+- 这样 UC deep link 拉起时千问已退出,UC 农场页能正常显示
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 43f1116 - fix: build693 跳转按钮跳非广告App更快放弃(attempt>=1)
 
 **用户需求**: "修复问题"
 

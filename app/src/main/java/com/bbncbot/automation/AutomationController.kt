@@ -1476,8 +1476,17 @@ object AutomationController {
                     //     attempt 0,1,2 共 3 次跳通义千问,每次 10s 等待 + 5s relaunch,总浪费约 32 秒。
                     //     用户看到反复跳转手动停止。改为 attempt >= 1 即放弃(第 2 次跳非广告 App 就放弃),
                     //     减少到约 16 秒,更快进入任务列表处理其他任务。
-                    Log.i(TAG, "collectDirect: jump button led to other app (pkg=${service.getCurrentWindowPackage()}), relaunching farm app (no kill)")
-                    debugLog("collectDirect: jump button '$btnText' led to non-farm app (pkg=${service.getCurrentWindowPackage()}), relaunching farm app (killCurrentFirst=false, attempt=$attempt)")
+                    //   build694 修复（用户反馈"跳到千问后，需要退出千问，回到芭芭农场页面"）：
+                    //     build693 的 launchPlatformApp(killCurrentFirst=false) 直接用 deep link 拉起 UC,
+                    //     但没有退出千问,千问可能仍在后台或遮挡。用户要求先退出千问再回农场页。
+                    //     修复：先 forceKillApp(千问pkg, pressBackFirst=true) 退出千问,再 launchPlatformApp 回农场。
+                    val nonAdPkg = service.getCurrentWindowPackage()
+                    Log.i(TAG, "collectDirect: jump button led to other app (pkg=$nonAdPkg), exiting it then relaunching farm app")
+                    debugLog("collectDirect: jump button '$btnText' led to non-farm app (pkg=$nonAdPkg), exiting it first, then relaunching farm app (attempt=$attempt)")
+                    // build694: 先退出跳转到的非广告 App(千问/淘宝等),再回农场页
+                    if (!nonAdPkg.isNullOrEmpty()) {
+                        service.forceKillApp(nonAdPkg, pressBackFirst = true)
+                    }
                     // build693: 跳转按钮跳到非广告 App 时,第 2 次(attempt>=1)即放弃此按钮,进入任务列表
                     if (attempt >= 1) {
                         Log.w(TAG, "collectDirect: jump button '$btnText' keeps leading to non-ad app (attempt=$attempt), giving up this button, opening task list")
