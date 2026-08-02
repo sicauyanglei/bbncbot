@@ -32,7 +32,33 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build692 跳转按钮反复跳非广告App陷入循环
+### commit (待提交) - fix: build693 跳转按钮跳非广告App更快放弃(attempt>=1)
+
+**用户需求**: "修复问题"
+
+**日志分析** (build692, debug_test_20260802_194248.log, 19:42:02-19:42:46):
+
+**build692 修复验证**: ✓ 生效
+- 19:42:45.220 collectDirect: jump button '看广告领奖' repeatedly led to non-ad app, giving up (attempt=2), opening task list
+- 19:42:45.221 state: COLLECTING_DIRECT -> OPENING_TASK_LIST ← 成功跳出循环!
+
+**问题**: "看广告领奖"反复跳通义千问浪费约 32 秒
+- attempt 0: 19:42:02 点击 → 19:42:12 跳通义千问 → relaunch (10s等待 + 5s重启)
+- attempt 1: 19:42:18 点击 → 19:42:28 跳通义千问 → relaunch (10s + 5s)
+- attempt 2: 19:42:35 点击 → 19:42:45 give up (10s + 放弃)
+- 总计约 32 秒,用户看到反复跳转手动停止(19:42:46 STOPPING)
+
+**根因**: build692 的 attempt >= 2 条件太宽松,需要 3 次跳转(attempt 0,1,2)才放弃,每次 10s 等待 + 5s relaunch,总浪费约 32 秒。
+
+**修复**: [AutomationController.kt#L1481-L1490](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1481-L1490)
+- attempt >= 2 改为 attempt >= 1 (第 2 次跳非广告 App 就放弃)
+- 减少到约 16 秒(1 次 10s 等待 + 1 次 5s relaunch),更快进入任务列表处理其他任务
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 2f5f390 - fix: build692 跳转按钮反复跳非广告App陷入循环
 
 **用户需求**: "分析日志"
 

@@ -1471,11 +1471,15 @@ object AutomationController {
                     //   19:34:23 STOPPING ← 4 次都跳到通义千问,陷入循环!
                     //   根因：跳转按钮跳到非广告 App(通义千问)时,bounds 每次略有不同(页面重载位置差异),
                     //         lastDirectClickedText+bounds 防死循环判断失效,反复点击同一按钮。
-                    //   修复：跳转按钮跳到非广告 App 时,attempt >= 2 后放弃此按钮,进入任务列表。
+                    //   build692 修复：跳转按钮跳到非广告 App 时,attempt >= 2 后放弃此按钮,进入任务列表。
+                    //   build693 优化（debug_test_20260802_194248.log, build692）：
+                    //     attempt 0,1,2 共 3 次跳通义千问,每次 10s 等待 + 5s relaunch,总浪费约 32 秒。
+                    //     用户看到反复跳转手动停止。改为 attempt >= 1 即放弃(第 2 次跳非广告 App 就放弃),
+                    //     减少到约 16 秒,更快进入任务列表处理其他任务。
                     Log.i(TAG, "collectDirect: jump button led to other app (pkg=${service.getCurrentWindowPackage()}), relaunching farm app (no kill)")
                     debugLog("collectDirect: jump button '$btnText' led to non-farm app (pkg=${service.getCurrentWindowPackage()}), relaunching farm app (killCurrentFirst=false, attempt=$attempt)")
-                    // build692: 跳转按钮反复跳到非广告 App 时,放弃此按钮,进入任务列表
-                    if (attempt >= 2) {
+                    // build693: 跳转按钮跳到非广告 App 时,第 2 次(attempt>=1)即放弃此按钮,进入任务列表
+                    if (attempt >= 1) {
                         Log.w(TAG, "collectDirect: jump button '$btnText' keeps leading to non-ad app (attempt=$attempt), giving up this button, opening task list")
                         debugLog("collectDirect: jump button '$btnText' repeatedly led to non-ad app, giving up (attempt=$attempt), opening task list")
                         lastDirectClickedText = ""
