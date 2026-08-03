@@ -1945,28 +1945,43 @@ class FarmAccessibilityService : AccessibilityService() {
     private fun isInteractiveAdPage(): Boolean {
         val root = rootInActiveWindowSafe() ?: return false
         val allText = collectAllText(root)
-        // 互动广告特征文案（含摇一摇/扭一扭/晃动等互动动作提示）
-        val interactiveKeywords = listOf(
+        // build706 修复（debug_test_20260803_201027.log, build704, 20:08:39-20:10:24）:
+        //   快手"扭一扭"互动广告文案为"扭一扭或点击跳转详情页或第三方应用",
+        //   含 shake_title/rotate_view_container/rotate_view 互动组件,
+        //   但 findInteractiveAdDownloadButton 找的是"点击打开或者下载第三方应用"按钮,
+        //   文案不匹配 → 找不到下载按钮 → isInteractiveAdPage 返回 false → scene=AD_PLAYING,
+        //   "10秒"是静态文案,15秒后 countdown stuck 才 CLOSING_AD,关闭耗时 20 秒,
+        //   重复触发同一广告,用户手动停止。
+        //
+        //   修复:区分强信号和弱信号。
+        //   - 强信号(扭一扭/摇一摇等明确动作提示):直接判定为互动广告,无需下载按钮。
+        //     这类广告无障碍服务无法模拟摇动,必须立即退出,不应干等 15 秒。
+        //   - 弱信号(可直接拿奖励/shake_title/rotate_view):需配合下载按钮才判定,
+        //     避免误判普通激励视频(build695 修复保留)。
+        val strongInteractiveKeywords = listOf(
             "扭一扭", "摇一摇", "摇手机", "摇晃手机", "晃动手机",
-            "摇动手机", "转动手机", "旋转手机", "翻转手机",
+            "摇动手机", "转动手机", "旋转手机", "翻转手机"
+        )
+        val hasStrongSignal = allText.any { text ->
+            strongInteractiveKeywords.any { kw -> text.contains(kw) }
+        }
+        if (hasStrongSignal) {
+            debugLog("isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)")
+            return true
+        }
+        // 弱信号(可直接拿奖励/shake_title/rotate_view):需配合下载按钮
+        val weakInteractiveKeywords = listOf(
             "可直接拿奖励",  // 穿山甲互动广告特有文案
             "shake_title", "rotate_view", "rotate_view_container"
         )
-        val hasInteractiveKeyword = allText.any { text ->
-            interactiveKeywords.any { kw -> text.contains(kw) }
+        val hasWeakSignal = allText.any { text ->
+            weakInteractiveKeywords.any { kw -> text.contains(kw) }
         }
-        if (!hasInteractiveKeyword) return false
-        // build695 修复（debug_test_20260802_202311.log, build694, 20:22:36）:
-        //   穿山甲 KsRewardVideoActivity 既播放互动广告(摇一摇/扭一扭)也播放普通激励视频,
-        //   两者都可能含"可直接拿奖励"文案。仅凭关键词会误判普通激励视频为互动广告,
-        //   导致走 TRAP_INTERACTIVE 分支找下载按钮,找不到后 fall through,
-        //   15秒后倒计时卡死检测 pressBack 退出,但 KsRewardVideoActivity pressBack 无效,卡死。
-        //   修复:必须同时含互动关键词 **且** 找到"点击打开或者下载第三方应用"下载按钮,
-        //         才判定为 TRAP_INTERACTIVE。普通激励视频广告无下载按钮,不会被误判,
-        //         scene 改为 AD_PLAYING,走正常激励视频等待流程。
+        if (!hasWeakSignal) return false
+        // build695 修复保留:弱信号需配合下载按钮,避免误判普通激励视频
         val hasDownloadButton = findInteractiveAdDownloadButton() != null
         if (!hasDownloadButton) {
-            debugLog("isInteractiveAdPage: has interactive keyword but no download button, not interactive ad (likely reward video)")
+            debugLog("isInteractiveAdPage: has weak interactive keyword but no download button, not interactive ad (likely reward video)")
             return false
         }
         return true

@@ -32,7 +32,46 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build705 快手广告纯数字倒计时检测+30秒后无法关闭
+### commit (待提交) - fix: build706 快手"扭一扭"互动广告误判为非互动广告导致卡死循环
+
+**用户需求**: "分析日志"
+
+**日志分析** (build704, debug_test_20260803_201027.log, 20:08:39-20:10:24):
+
+**build705 验证**: 已生效(commit ced4322),但本次广告用"10秒"带后缀格式,纯数字分支未触发。
+
+**问题 (严重)**: 快手"扭一扭"互动广告重复触发,卡死循环,用户手动停止
+- 20:08:39 进入快手广告,texts=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看, 10秒, 可直接拿奖励, 京东]
+- 20:08:39 isInteractiveAdPage: has interactive keyword but no download button, not interactive ad (likely reward video) ← **误判!**
+- 20:08:39-20:08:55 "10秒"是静态文案(体验时长),15秒后 countdown stuck → CLOSING_AD
+- 20:08:58-20:09:18 CLOSING_AD 关闭耗时 20 秒(策略0点跳过+策略1坐标+策略2大区域)
+- 20:09:18 进入 RETURNING,deep link 重开农场
+- 20:09:36 第二次点击"看广告领奖" → 又进入同样的快手"扭一扭"广告
+- 20:09:48-20:10:24 完全重复第一次的卡死流程,用户手动停止
+
+**根因**: isInteractiveAdPage 误判"扭一扭"广告为非互动广告
+- 文案明确含"扭一扭或点击跳转详情页或第三方应用" + shake_title/rotate_view 互动组件
+- 但 findInteractiveAdDownloadButton 找的是"点击打开或者下载第三方应用"按钮
+- 文案不匹配 → 找不到下载按钮 → isInteractiveAdPage 返回 false
+- scene 被判定为 AD_PLAYING → 走正常激励视频流程
+- "10秒"是静态文案,15秒后 countdown stuck 才 CLOSING_AD,关闭耗时 20 秒
+- 重复触发同一广告,用户手动停止
+
+**修复**: [FarmAccessibilityService.kt#L1945-L1988](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L1945-L1988)
+- 区分强信号和弱信号:
+  - 强信号(扭一扭/摇一摇等明确动作提示):直接判定为互动广告,无需下载按钮
+    这类广告无障碍服务无法模拟摇动,必须立即退出,不应干等 15 秒
+  - 弱信号(可直接拿奖励/shake_title/rotate_view):需配合下载按钮才判定
+    避免误判普通激励视频(build695 修复保留)
+- 修复后:"扭一扭"广告立即识别为 TRAP_INTERACTIVE → 走 TRAP_INTERACTIVE 分支
+  → 无下载按钮时 fall through 到广告结束检测 → CLOSING_AD 关闭
+  避免干等 15 秒 countdown stuck
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit ced4322 - fix: build705 快手广告纯数字倒计时检测+30秒后无法关闭
 
 **用户需求**: "分析日志"
 
