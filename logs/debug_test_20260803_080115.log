@@ -1,0 +1,99 @@
+=== cleared on app start (version=2.2, build=build701-e533369, time=08:00:04) ===
+08:00:04.218 killPlatformApps: killed com.ucmobile.lite for UC
+08:00:04.220 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+08:00:04.221 killPlatformApps: killed com.taobao.taobao for TAOBAO
+08:00:04.244 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+08:00:04.246 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+08:00:04.246 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+08:00:11.047 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+08:00:11.050 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+08:00:13.791 === Automation v2 Started === platform=UC
+08:00:13.792 cancelNavigation: all navigation callbacks cancelled
+08:00:13.801 reset platform complete: UC
+08:00:13.801 state: IDLE -> NAVIGATING
+08:00:14.010 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+08:00:14.016 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+08:00:14.058 navigate: on farm page, platform=UC
+08:00:14.072 hasFarmContentLoaded: text count=12, sample=[后退, 智能组件, 菜单, 多窗口, 14, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+08:00:14.074 hasFarmContentLoaded: realContent count=12
+08:00:14.074 navigate: hasFarmContentLoaded=false, attempt=0
+08:00:19.744 navigate: on farm page, platform=UC
+08:00:19.757 hasFarmContentLoaded: text count=149, sample=[后退, 智能组件, 菜单, 多窗口, 14, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+08:00:19.759 hasFarmContentLoaded: realContent count=149
+08:00:19.760 navigate: hasFarmContentLoaded=true, attempt=1
+08:00:19.760 state: NAVIGATING -> COLLECTING_DIRECT
+08:00:22.119 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+08:00:22.138 [collectDirect-start] claim-text-nodes (count=3):
+08:00:22.139 [collectDirect-start]   text='已领取' desc='' bounds=[894,936][1123,1038] clickable=false
+08:00:22.139 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2233][222,2377] clickable=false
+08:00:22.140 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2233][694,2302] clickable=false
+08:00:22.156 collectDirect: found 1 direct buttons, attempt=0
+08:00:22.157 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1152][822,1201] (attempt 1)
+08:00:22.158 performClickSafe: text='看广告领奖' desc='' bounds=[641,1152][822,1201] clickable=false
+08:00:22.158 performClickSafe: ACTION_CLICK failed, trying gesture
+08:00:22.159 dispatchGesture: screen=[[641,1152][822,1201]] window=[[0,0][0,0]]
+08:00:22.159 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1176.5)
+08:00:22.161 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+08:00:32.170 collectDirect: jump button '看广告领奖' led to ad (act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity), entering WATCHING_AD
+08:00:32.176 state: COLLECTING_DIRECT -> WATCHING_AD
+08:00:34.232 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+08:00:34.267 isAdContentShown: YES, matched ad signal in [点击商品，领取奖励, 广告]
+08:00:34.450 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+08:00:34.461 [watchAd-0ms] claim-text-nodes (count=1):
+08:00:34.462 [watchAd-0ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+08:00:34.651 watchAd: scene=AD_ENDED, elapsed=0ms/90000ms
+08:00:34.669 findAdProductNode: found clickable product node bounds=[26,985][586,1716]
+08:00:34.671 watchAd: 点击商品 ad detected, clicking product bounds=[26,985][586,1716]
+08:00:34.672 performClickSafe: text='' desc='门窗维修上门服务铝合 ¥ 30' bounds=[26,985][586,1716] clickable=true
+08:00:34.678 performClickSafe: ACTION_CLICK success at depth=0
+08:00:36.804 isAdContentShown: YES, matched ad signal in [淘宝精选, , 附近维修玻璃门联系电话, , 上门开锁师傅同城开锁 包邮 七天退换 ¥ 10, O1CN01wuG8rO1FERMaj7PsD_!!4099780455.jpg_310x310xzq90.jpg_, 上门开锁师傅同城开锁, 包邮]
+08:00:36.823 [watchAd-2000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+08:00:36.830 [watchAd-2000ms] claim-text-nodes (count=1):
+08:00:36.832 [watchAd-2000ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+08:00:37.061 watchAd: scene=AD_ENDED, elapsed=2000ms/90000ms
+08:00:37.067 watchAd: waiting 2411ms/5000ms after clicking ad product
+08:00:39.093 isAdContentShown: YES, matched ad signal in [淘宝精选, , 附近维修玻璃门联系电话, , 上门开锁师傅同城开锁 包邮 七天退换 ¥ 10, O1CN01wuG8rO1FERMaj7PsD_!!4099780455.jpg_310x310xzq90.jpg_, 上门开锁师傅同城开锁, 包邮]
+08:00:39.117 [watchAd-4000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+08:00:39.125 [watchAd-4000ms] claim-text-nodes (count=1):
+08:00:39.127 [watchAd-4000ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+08:00:39.381 watchAd: scene=AD_ENDED, elapsed=4000ms/90000ms
+08:00:39.387 watchAd: waiting 4731ms/5000ms after clicking ad product
+08:00:41.571 watchAd: scene=AD_ENDED, elapsed=6000ms/90000ms
+08:00:41.578 watchAd: closing ad window 5s after product click (sinceClick=6922ms)
+08:00:41.614 findTopCornerIcon: found right icon at [1082,62][1128,108] (screen=1200x2543)
+08:00:41.615 findAdCloseButton: found top-right close icon
+08:00:41.616 watchAd: clicking close button on ad (text='null')
+08:00:41.617 performClickSafe: text='' desc='' bounds=[1082,62][1128,108] clickable=true
+08:00:41.676 performClickSafe: ACTION_CLICK success at depth=0
+08:00:43.726 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+08:00:43.727 watchAd: scene=AD_ENDED, elapsed=8000ms/90000ms
+08:00:48.791 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+08:00:48.792 watchAd: scene=AD_ENDED, elapsed=13000ms/90000ms
+08:00:53.851 [watchAd-18000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.sdk.ui.dialog.a, onFarm=false, adActivity=false, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+08:00:53.865 [watchAd-18000ms] claim-text-nodes (count=1):
+08:00:53.867 [watchAd-18000ms]   text='点击商家后立即领奖' desc='' bounds=[303,1042][897,1130] clickable=false
+08:00:53.910 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+08:00:53.912 watchAd: scene=AD_ENDED, elapsed=18000ms/90000ms
+08:00:53.934 watchAd: waiting 18000ms/30000ms (min), pageType=unknown, adActivity=false, adPlaying=true, adContent=false, texts=[点击商家后立即领奖, 确认要离开吗？, 返回点击商家, 放弃奖励离开]
+08:00:58.985 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+08:00:58.988 watchAd: scene=AD_ENDED, elapsed=23000ms/90000ms
+08:01:04.075 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+08:01:04.080 watchAd: scene=AD_ENDED, elapsed=28000ms/90000ms
+08:01:09.217 isAdContentShown: YES, matched ad signal in [淘宝精选, , 附近维修玻璃门联系电话, , 上门开锁师傅同城开锁 包邮 七天退换 ¥ 10, O1CN01wuG8rO1FERMaj7PsD_!!4099780455.jpg_310x310xzq90.jpg_, 上门开锁师傅同城开锁, 包邮]
+08:01:09.231 [watchAd-33000ms] snapshot: pkg=null, act=com.noah.sdk.ui.dialog.a, onFarm=false, adActivity=false, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+08:01:09.251 isAdContentShown: YES, matched ad signal in [淘宝精选, , 附近维修玻璃门联系电话, , 上门开锁师傅同城开锁 包邮 七天退换 ¥ 10, O1CN01wuG8rO1FERMaj7PsD_!!4099780455.jpg_310x310xzq90.jpg_, 上门开锁师傅同城开锁, 包邮]
+08:01:09.400 watchAd: scene=AD_ENDED, elapsed=33000ms/90000ms
+08:01:09.421 findAdProductNode: found clickable product node bounds=[26,985][586,1716]
+08:01:09.423 watchAd: 点击商品 ad detected, clicking product bounds=[26,985][586,1716]
+08:01:09.425 performClickSafe: text='' desc='门窗维修上门服务铝合 ¥ 30' bounds=[26,985][586,1716] clickable=true
+08:01:09.430 performClickSafe: ACTION_CLICK success at depth=0
+08:01:11.745 watchAd: scene=AD_ENDED, elapsed=35000ms/90000ms
+08:01:11.753 watchAd: waiting 2346ms/5000ms after clicking ad product
+08:01:13.874 watchAd: scene=AD_ENDED, elapsed=37000ms/90000ms
+08:01:13.877 watchAd: waiting 4470ms/5000ms after clicking ad product
+08:01:14.079 state: WATCHING_AD -> STOPPING
+08:01:14.082 cancelNavigation: all navigation callbacks cancelled
+08:01:14.084 state: STOPPING -> IDLE
+08:01:15.777 saveToken: saved (len=93, head='gith', tail='McKr')
+08:01:15.779 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+08:01:15.781 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260803_080115.log, localFile=debug.log (10514 bytes)

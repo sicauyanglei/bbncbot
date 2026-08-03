@@ -1876,6 +1876,14 @@ object AutomationController {
     private var adProductClicked: Boolean = false
 
     /**
+     * build702: "点击商品,领取奖励"广告中商品点击次数
+     *
+     * 用于限制点击商品的次数,避免关闭广告后再次点击商品循环。
+     * 每轮广告最多点击2次商品,超过后不再点击,直接 pressBack 退出。
+     */
+    private var adProductClickCount: Int = 0
+
+    /**
      * "点击商品,领取奖励"广告中商品点击的时间戳
      *
      * 用于在点击商品后等待一段时间(5s)再关闭广告,让广告主落地页加载/奖励触发
@@ -4597,6 +4605,8 @@ object AutomationController {
             // (checkTaskListOpened 中也有此广告处理,但 watchAd 从 processTask 进入时未重置)
             adProductClicked = false
             adProductClickTimeMs = 0L
+            // build702: 重置商品点击次数计数
+            adProductClickCount = 0
             // 按平台广告策略加载默认时长与检测间隔（UC/支付宝/淘宝差异化）
             val platformCfg = service.currentPlatformConfig()
             adEndCheckIntervalMs = platformCfg.adEndCheckIntervalMs
@@ -5168,6 +5178,21 @@ object AutomationController {
         // - 重置标记,继续轮询（若仍在广告页,会重新尝试点击商品）
         if (service.isClickProductAd()) {
             val now = System.currentTimeMillis()
+            // build702 修复（debug_test_20260803_080115.log, build701, 08:01:09-08:01:14）：
+            //   关闭广告后出现"确认要离开吗？"弹窗,30秒后弹窗消失回到广告页,
+            //   isClickProductAd() 又返回 true,adProductClicked 已被重置为 false,
+            //   导致再次点击商品 → 循环。
+            //   修复:增加 adProductClickCount 计数,每轮广告最多点击2次商品,
+            //   超过后不再点击,直接 pressBack 退出。
+            if (!adProductClicked && adProductClickCount >= 2) {
+                Log.w(TAG, "watchAd: 点击商品 ad detected but already clicked ${adProductClickCount} times, pressing back to exit (elapsed=${elapsedMs}ms)")
+                debugLog("watchAd: 点击商品 ad detected but click count=${adProductClickCount} >= 2, pressing back to exit")
+                service.pressBack()
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                }, INTERVAL_CLICK_MS)
+                return
+            }
             if (!adProductClicked) {
                 // 阶段1：找商品节点点击
                 val productNode = service.findAdProductNode()
@@ -5175,10 +5200,11 @@ object AutomationController {
                     val rect = Rect()
                     productNode.getBoundsInScreen(rect)
                     Log.i(TAG, "watchAd: clicking ad product to trigger reward (bounds=${rect.toShortString()})")
-                    debugLog("watchAd: 点击商品 ad detected, clicking product bounds=${rect.toShortString()}")
+                    debugLog("watchAd: 点击商品 ad detected, clicking product bounds=${rect.toShortString()} (count=${adProductClickCount + 1})")
                     service.performClickSafe(productNode)
                     adProductClicked = true
                     adProductClickTimeMs = now
+                    adProductClickCount++
                 } else {
                     // 找不到可点击商品节点：可能是页面还没渲染,等 2s 后重试
                     debugLog("watchAd: 点击商品 ad detected but no clickable product node, retrying in 2s (elapsed=${elapsedMs}ms)")

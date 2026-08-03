@@ -32,7 +32,40 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build701 isRechargePage/isTaskCompletePage误判+点击商家后弹窗循环
+### commit (待提交) - fix: build702 点击商品广告循环+adProductClickCount次数限制
+
+**用户需求**: "分析日志"
+
+**日志分析** (build701, debug_test_20260803_080115.log, 08:00:32-08:01:14):
+
+**build701 验证**: ✓ 3个修复全部生效
+- isTaskCompletePage 没有误判(广告页"奖励已领取"不再触发)
+- isRechargePage 没有误判(农场页"下单得"不再触发)
+- findClaimRewardButton 不再匹配"点击商家后立即领奖"(没有反复点击空节点)
+
+**问题**: 点击商品广告循环,用户手动停止
+- 08:00:34 汇川 HCRewardVideoActivity 广告,点击商品(✓ build642)
+- 08:00:41 5秒后点击关闭图标
+- 08:00:53 出现"确认要离开吗？"弹窗,waiting 30秒(build701修复生效,没有循环)
+- 08:01:09 30秒后弹窗消失,回到广告页,isClickProductAd() 又返回 true
+- 08:01:09 adProductClicked 已被重置为 false → 再次点击商品 → 循环
+- 08:01:14 用户手动停止
+
+**根因**: adProductClicked 重置后无记忆,导致循环
+- 阶段2关闭广告后,adProductClicked 重置为 false(原设计:下一轮重新尝试)
+- 但"确认要离开吗？"弹窗消失后回到广告页,isClickProductAd() 又返回 true
+- adProductClicked=false → 再次点击商品 → 循环
+
+**修复**: [AutomationController.kt#L1878-L1884](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1878-L1884) + [L5179-L5193](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5179-L5193)
+- 增加 adProductClickCount 计数,每轮广告最多点击2次商品
+- 超过后不再点击,直接 pressBack 退出
+- 新广告开始时重置 adProductClickCount = 0
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit e533369 - fix: build701 isRechargePage/isTaskCompletePage误判+点击商家后弹窗循环
 
 **用户需求**: "分析日志"
 
