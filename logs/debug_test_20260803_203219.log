@@ -1,0 +1,130 @@
+=== cleared on app start (version=2.2, build=build705-4115fa8, time=20:30:30) ===
+20:30:30.315 killPlatformApps: killed com.ucmobile.lite for UC
+20:30:30.316 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+20:30:30.318 killPlatformApps: killed com.taobao.taobao for TAOBAO
+20:30:30.349 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+20:30:30.351 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:30:30.352 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+20:30:35.297 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:30:35.301 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+20:30:37.412 === Automation v2 Started === platform=UC
+20:30:37.413 cancelNavigation: all navigation callbacks cancelled
+20:30:37.549 reset platform complete: UC
+20:30:37.550 state: IDLE -> NAVIGATING
+20:30:38.004 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:30:38.012 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:30:38.133 navigate: on farm page, platform=UC
+20:30:38.164 hasFarmContentLoaded: text count=12, sample=[后退, 智能组件, 菜单, 多窗口, 7, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+20:30:38.165 hasFarmContentLoaded: realContent count=11
+20:30:38.165 navigate: hasFarmContentLoaded=false, attempt=0
+20:30:44.206 navigate: on farm page, platform=UC
+20:30:44.226 hasFarmContentLoaded: text count=131, sample=[后退, 智能组件, 菜单, 多窗口, 7, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+20:30:44.227 hasFarmContentLoaded: realContent count=130
+20:30:44.227 navigate: hasFarmContentLoaded=true, attempt=1
+20:30:44.228 state: NAVIGATING -> COLLECTING_DIRECT
+20:30:47.534 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:30:47.569 [collectDirect-start] claim-text-nodes (count=3):
+20:30:47.570 [collectDirect-start]   text='已领取' desc='' bounds=[894,936][1123,1038] clickable=false
+20:30:47.572 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,1827][222,1971] clickable=false
+20:30:47.573 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,1827][694,1896] clickable=false
+20:30:47.602 collectDirect: found 1 direct buttons, attempt=0
+20:30:47.602 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1159][822,1208] (attempt 1)
+20:30:47.603 performClickSafe: text='看广告领奖' desc='' bounds=[641,1159][822,1208] clickable=false
+20:30:47.604 performClickSafe: ACTION_CLICK failed, trying gesture
+20:30:47.604 dispatchGesture: screen=[[641,1159][822,1208]] window=[[0,0][0,0]]
+20:30:47.605 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1183.5)
+20:30:47.606 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+20:30:57.618 collectDirect: jump button '看广告领奖' led to ad (act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity), entering WATCHING_AD
+20:30:57.628 state: COLLECTING_DIRECT -> WATCHING_AD
+20:30:59.806 findAdDurationHint: found countdown '10秒', seconds=10
+20:30:59.828 watchAd: parsed ad duration hint=10s, min wait=12000ms, max wait=90000ms (hint+buffer), checkInterval=5000ms
+20:30:59.926 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:30:59.941 [watchAd-0ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:31:00.058 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+20:31:00.060 watchAd: scene=TRAP_INTERACTIVE, elapsed=0ms/90000ms
+20:31:00.092 watchAd: interactive ad detected but download button not found (elapsed=0ms), waiting
+20:31:05.207 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+20:31:05.208 watchAd: scene=TRAP_INTERACTIVE, elapsed=5000ms/90000ms
+20:31:05.224 watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=5000ms/90000ms)
+20:31:10.318 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+20:31:10.319 watchAd: scene=TRAP_INTERACTIVE, elapsed=10000ms/90000ms
+20:31:10.348 watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=10000ms/90000ms)
+20:31:15.451 [watchAd-15000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:31:15.469 [watchAd-15000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:31:15.574 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+20:31:15.577 watchAd: scene=TRAP_INTERACTIVE, elapsed=15000ms/90000ms
+20:31:15.606 watchAd: interactive ad no download button, min wait elapsed (15000ms/12000ms), fall through to ad-end check
+20:31:15.656 findAdDurationHint: found countdown '10秒', seconds=10
+20:31:15.675 watchAd: countdown stuck at 10s (static text), reward video ad pressBack ineffective, entering CLOSING_AD
+20:31:15.678 state: WATCHING_AD -> CLOSING_AD
+20:31:17.695 closeAd: start closing, pageType=ad, texts=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看, 10秒, 可直接拿奖励, 京东, 京东大牌齐聚放价，正品现货速发, 点击跳转拿奖励]
+20:31:17.816 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+20:31:17.898 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+20:31:17.901 findAdCloseButton: scene not allowed for close (scene=TRAP_INTERACTIVE), skip
+20:31:17.903 closeAd: close button node not found, trying next strategy
+20:31:17.905 ad-close-0: click at (1140.0, 63.575), ratio=(0.95, 0.025), screen=1200x2543
+20:31:17.909 ad-close-1: click at (1152.0, 63.575), ratio=(0.96, 0.025), screen=1200x2543
+20:31:17.918 ad-close-2: click at (1128.0, 38.145), ratio=(0.94, 0.015), screen=1200x2543
+20:31:17.922 ad-close-3: click at (1164.0, 38.145), ratio=(0.97, 0.015), screen=1200x2543
+20:31:17.937 ad-close-4: click at (1152.0, 89.005), ratio=(0.96, 0.035), screen=1200x2543
+20:31:17.940 ad-close-5: click at (1116.0, 25.43), ratio=(0.93, 0.01), screen=1200x2543
+20:31:17.943 ad-close-6: click at (600.0, 127.15), ratio=(0.5, 0.05), screen=1200x2543
+20:31:17.947 ad-close-7: click at (1140.0, 2441.28), ratio=(0.95, 0.96), screen=1200x2543
+20:31:28.103 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+20:31:28.191 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+20:31:28.196 findClaimRewardButton: scene not allowed for claim (scene=TRAP_INTERACTIVE), skip
+20:31:33.224 state: CLOSING_AD -> RETURNING
+20:31:35.401 [return-start] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:31:35.419 [return-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:31:35.427 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:31:35.429 reopenFarmByDeepLink: pressing HOME to background UC before kill
+20:31:35.435 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+20:31:35.440 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+20:31:35.473 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+20:31:35.473 state: RETURNING -> NAVIGATING
+20:31:40.501 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:31:41.540 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:31:41.615 [navigate-start] snapshot: pkg=com.hihonor.android.launcher, act=null, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:31:41.908 navigate: farm app not in foreground (platform=UC, attempt=0), calling reopenFarmByDeepLink
+20:31:41.912 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:31:41.913 reopenFarmByDeepLink: pressing HOME to background UC before kill
+20:31:41.917 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+20:31:41.919 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+20:31:41.954 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+20:31:46.975 navigate: still not in farm app after relaunch, calling navigateToFarm to push navigation
+20:31:47.000 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:31:48.519 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+20:31:48.522 navigate stepTab: text node too large [0,0][1200,2241], skipping
+20:31:48.524 navigate stepTab: 芭芭农场 not found (retry=0), pressing back to go home
+20:31:51.558 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+20:31:51.560 navigate stepTab: text node too large [0,0][1200,2241], skipping
+20:31:52.320 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:31:53.607 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+20:31:53.610 navigate stepTab: text node too large [0,0][1200,2241], skipping
+20:31:53.611 navigate stepTab: 芭芭农场 not found (retry=2), pressing back to go home
+20:31:56.657 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+20:31:56.659 navigate stepTab: text node too large [0,0][1200,2241], skipping
+20:31:57.550 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:31:58.704 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+20:31:58.705 navigate stepTab: text node too large [0,0][1200,2241], skipping
+20:31:58.706 navigate stepTab: 芭芭农场 not found (retry=4), pressing back to go home
+20:32:01.734 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+20:32:01.736 navigate stepTab: text node too large [0,0][1200,2241], skipping
+20:32:02.831 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:32:03.782 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+20:32:03.785 navigate stepTab: text node too large [0,0][1200,2241], skipping
+20:32:05.814 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+20:32:05.815 navigate stepTab: text node too large [0,0][1200,2241], skipping
+20:32:07.852 navigate stepTab: exactDesc node too large [0,0][1200,2241], skipping
+20:32:07.855 navigate stepTab: text node too large [0,0][1200,2241], skipping
+20:32:07.856 navigate stepTab: abort on UC (taobao-only gesture fallback skipped)
+20:32:08.086 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:32:08.407 navigate: farm app still not in foreground after relaunch (attempt=1), waiting for next retry
+20:32:13.468 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:32:13.791 navigate: farm app still not in foreground after relaunch (attempt=2), waiting for next retry
+20:32:16.801 state: NAVIGATING -> STOPPING
+20:32:16.802 cancelNavigation: all navigation callbacks cancelled
+20:32:16.804 state: STOPPING -> IDLE
+20:32:19.324 saveToken: saved (len=93, head='gith', tail='McKr')
+20:32:19.326 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+20:32:19.327 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260803_203219.log, localFile=debug.log (12922 bytes)

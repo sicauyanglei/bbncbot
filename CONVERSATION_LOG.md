@@ -32,7 +32,45 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build706 快手"扭一扭"互动广告误判为非互动广告导致卡死循环
+### commit (待提交) - fix: build707 CLOSING_AD策略0允许TRAP_INTERACTIVE场景查找关闭按钮
+
+**用户需求**: "分析日志"
+
+**日志分析** (build705, debug_test_20260803_203219.log, 20:31:00-20:32:16):
+
+**build706 验证**: ✓ 强信号识别生效
+- 20:31:00 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+- 20:31:00 watchAd: scene=TRAP_INTERACTIVE, elapsed=0ms
+
+**问题 (严重)**: CLOSING_AD 关闭失败,forceKillApp(UC) 后无法回到农场页,用户手动停止
+- 20:31:15 countdown stuck at 10s → CLOSING_AD
+- 20:31:17 findAdCloseButton: scene not allowed for close (scene=TRAP_INTERACTIVE), skip ← **关闭按钮被白名单阻止**
+- 20:31:17 坐标点击右上角 8 个位置都无效(快手关闭按钮不在常规右上角位置)
+- 20:31:28 findClaimRewardButton: scene not allowed for claim (scene=TRAP_INTERACTIVE), skip
+- 20:31:33 所有策略失败 → RETURNING
+- 20:31:35 forceKillApp(UC) + reopenFarmByDeepLink
+- 20:31:40-20:32:16 UC 无法回到前台,activeRootPkg 一直是 com.hihonor.android.launcher
+- 20:32:16 用户手动停止
+
+**根因**: findAdCloseButton 场景白名单不包括 TRAP_INTERACTIVE
+- build706 将"扭一扭"广告识别为 TRAP_INTERACTIVE(正确)
+- 但 CLOSING_AD 策略0 调用 findAdCloseButton 时 scene=TRAP_INTERACTIVE
+- isCloseAdAllowedScene 白名单:AD_PLAYING/AD_ENDED/REWARD_POPUP/SIGN_IN/GENERIC_POPUP
+- TRAP_INTERACTIVE 不在白名单 → findAdCloseButton 返回 null → 跳过策略0
+- 广告页明明有"跳过"按钮(build704 日志 20:08:58 确认可点击),但因白名单被跳过
+- 坐标点击无效 → 所有策略失败 → RETURNING → forceKillApp(UC) → deep link 失败 → 卡死
+
+**修复**: [AutomationController.kt#L5708-L5717](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5708-L5717)
+- CLOSING_AD 策略0 调用 findAdCloseButton 时传入 enforceSceneWhitelist=false
+- 允许在 TRAP_INTERACTIVE 场景查找关闭按钮(如"跳过"按钮)
+- 安全性:CLOSING_AD 是主动关闭流程,不会误点陷阱(已有 isFakeCloseButton 检测)
+- 修复后:"扭一扭"广告 CLOSING_AD 策略0 能找到"跳过"按钮并点击 → 广告正常关闭 → 不再进入 RETURNING/forceKillApp 流程
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 4115fa8 - fix: build706 快手"扭一扭"互动广告误判为非互动广告导致卡死循环
 
 **用户需求**: "分析日志"
 

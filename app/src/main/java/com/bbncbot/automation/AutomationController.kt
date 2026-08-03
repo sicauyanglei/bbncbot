@@ -5705,7 +5705,16 @@ object AutomationController {
             0 -> {
                 // 策略0：查找并点击"×"/"关闭"按钮节点（优先平台特有关闭文本）
                 val platformCloseTexts = service.currentPlatformConfig().adCloseButtonTexts
-                val closeBtn = service.findAdCloseButton(platformCloseTexts)
+                // build707 修复（debug_test_20260803_203219.log, build705, 20:31:17）:
+                //   快手"扭一扭"互动广告被 build706 正确识别为 TRAP_INTERACTIVE,
+                //   但 CLOSING_AD 策略0 调用 findAdCloseButton 时 scene=TRAP_INTERACTIVE
+                //   不在白名单(AD_PLAYING/AD_ENDED/REWARD_POPUP/SIGN_IN/GENERIC_POPUP)中,
+                //   返回 null,跳过策略0。坐标点击右上角也无效,所有策略失败 → RETURNING,
+                //   forceKillApp(UC) 后 deep link 拉起失败,卡死在 launcher,用户手动停止。
+                //   修复:CLOSING_AD 已确认在关闭流程中,传入 enforceSceneWhitelist=false,
+                //   允许在 TRAP_INTERACTIVE 场景查找关闭按钮(如"跳过"按钮)。
+                //   安全性:CLOSING_AD 是主动关闭流程,不会误点陷阱(已有 isFakeCloseButton 检测)。
+                val closeBtn = service.findAdCloseButton(platformCloseTexts, enforceSceneWhitelist = false)
                 if (closeBtn != null) {
                     // 虚假关闭按钮检测：尺寸过大或位置居中的"关闭"可能是诱导跳转
                     if (service.isFakeCloseButton(closeBtn)) {
