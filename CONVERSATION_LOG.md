@@ -32,7 +32,45 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build703+704 点击商品后缩短等待2s+处理"确认要离开吗"弹窗
+### commit (待提交) - fix: build705 快手广告纯数字倒计时检测+30秒后无法关闭
+
+**用户需求**: "分析日志"
+
+**日志分析** (build703, debug_test_20260803_195642.log, 19:55:50-19:56:35):
+
+**build703+704 验证**: 本次未遇到"点击商品广告"场景,2s 等待和"确认要离开吗"弹窗修复未触发。
+
+**问题 (严重)**: 快手广告 30 秒后未关闭,用户手动停止
+- 19:55:50 进入快手 KsRewardVideoActivity 广告
+- 19:55:52 texts=[16, 免费获取, 跳过, 快手, 广告...] → 倒计时是纯数字"16"/"1"(无"秒"后缀)
+- 19:56:23 elapsed=30000ms,30 秒到了,checking ad end
+- 19:56:23-19:56:35 isAdEndedMultiSignal 一直返回 false,广告无法关闭
+- 19:56:35 用户手动停止
+
+**根因**: findAdDurationHint 兜底正则不匹配纯数字倒计时
+- 快手广告倒计时是纯数字"16"/"1",无"秒"/"s"后缀
+- 原正则 `^(\d+)\s*[秒s]$` 只匹配"15s"/"30秒",不匹配纯数字
+- findAdDurationHint 一直返回 0 → prevHadCountdown 一直 false
+- 30 秒后 isAdEndedMultiSignal 弱信号(倒计时消失)不触发
+- "免费获取"不匹配 findClaimRewardButton 关键词
+- 一直干等到用户手动停止
+
+**修复**: [FarmAccessibilityService.kt#L1651-L1669](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L1651-L1669)
+- findAdDurationHint 兜底逻辑增加纯数字倒计时匹配
+- 正则 `^(\d{1,2})$` 匹配 1-2 位纯数字,范围 1-60
+- 安全性:在 isAdActivity() 条件下,纯数字 1-60 通常是倒计时
+- 商品价格通常含"¥"/"元"或更长文本,不会误匹配
+- 修复后:findAdDurationHint 检测到"16"→prevHadCountdown=true→30秒后倒计时消失→弱信号触发→广告关闭
+
+**其他问题 (未修复,非严重)**:
+1. navigate hasFarmContentLoaded=false 持续 50 秒(阈值>=30,realContent=18-25),attempt=10 超时兜底
+2. "看广告领奖"点击无效(可能网络慢/广告未加载),第三次检测到"same as last clicked"放弃
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit bc65d07 - fix: build703+704 点击商品后缩短等待2s+处理"确认要离开吗"弹窗
 
 **用户需求**: "点击商品后，右上角点击关闭任务就完成了"
 

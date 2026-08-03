@@ -1648,6 +1648,25 @@ class FarmAccessibilityService : AccessibilityService() {
                     }
                 }
             }
+            // build705 修复（debug_test_20260803_195642.log, build703, 19:55:52-19:56:35）：
+            //   快手 KsRewardVideoActivity 激励视频倒计时是纯数字"16"/"1"(无"秒"/"s"后缀),
+            //   原正则 ^(\d+)\s*[秒s]$ 不匹配,导致 findAdDurationHint 返回 0,
+            //   prevHadCountdown 一直 false,30秒后 isAdEndedMultiSignal 弱信号不触发,
+            //   广告无法关闭,用户手动停止。
+            //   修复:增加纯数字倒计时匹配(1-2位,范围1-60)。
+            //   安全性:在 isAdActivity() 条件下,纯数字 1-60 通常是倒计时;
+            //   商品价格通常含"¥"/"元"或更长文本,不会误匹配。
+            for (text in allText) {
+                val trimmed = text.trim()
+                val pureNumberMatch = Regex("^(\\d{1,2})$").find(trimmed)
+                if (pureNumberMatch != null) {
+                    val seconds = pureNumberMatch.groupValues[1].toIntOrNull() ?: 0
+                    if (seconds > 0 && seconds <= 60) {
+                        debugLog("findAdDurationHint: found pure-number countdown '$trimmed', seconds=$seconds")
+                        if (seconds > bestSeconds) bestSeconds = seconds
+                    }
+                }
+            }
         }
         return bestSeconds
     }
