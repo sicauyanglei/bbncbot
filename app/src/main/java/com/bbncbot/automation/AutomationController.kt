@@ -5210,11 +5210,13 @@ object AutomationController {
                     debugLog("watchAd: 点击商品 ad detected but no clickable product node, retrying in 2s (elapsed=${elapsedMs}ms)")
                 }
             } else {
-                // 阶段2：已点击商品,等待 5s 让奖励触发后关闭广告
+                // 阶段2：已点击商品,等待 2s 让奖励触发后关闭广告
+                // build703: 用户需求"点击商品后,右上角点击关闭任务就完成了"
+                //   原 5s 等待太长,缩短到 2s,点击商品后更快关闭广告。
                 val sinceClick = now - adProductClickTimeMs
-                if (sinceClick >= 5000L) {
-                    Log.i(TAG, "watchAd: 5s after clicking ad product, closing ad window (sinceClick=${sinceClick}ms)")
-                    debugLog("watchAd: closing ad window 5s after product click (sinceClick=${sinceClick}ms)")
+                if (sinceClick >= 2000L) {
+                    Log.i(TAG, "watchAd: 2s after clicking ad product, closing ad window (sinceClick=${sinceClick}ms)")
+                    debugLog("watchAd: closing ad window 2s after product click (sinceClick=${sinceClick}ms)")
                     // 优先找关闭按钮,找不到 pressBack
                     val closeBtn = service.findAdCloseButton(service.currentPlatformConfig().adCloseButtonTexts, enforceSceneWhitelist = false)
                     if (closeBtn != null) {
@@ -5228,7 +5230,7 @@ object AutomationController {
                     adProductClicked = false
                     adProductClickTimeMs = 0L
                 } else {
-                    debugLog("watchAd: waiting ${sinceClick}ms/5000ms after clicking ad product")
+                    debugLog("watchAd: waiting ${sinceClick}ms/2000ms after clicking ad product")
                 }
             }
             // 点击商品广告：用较短间隔(2s)轮询
@@ -5257,6 +5259,24 @@ object AutomationController {
             }
             handler.postDelayed({
                 if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+            }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // build704 修复（debug_test_20260803_080115.log, build701, 08:00:41-08:01:14）：
+        //   点击商品广告→2s后点关闭按钮→弹出"确认要离开吗？"对话框,
+        //   texts=[点击商家后立即领奖, 确认要离开吗？, 返回点击商家, 放弃奖励离开]
+        //   原逻辑未识别此弹窗,scene=AD_ENDED,干等 30 秒直到用户手动停止。
+        //   用户需求："点击商品后,右上角点击关闭任务就完成了"
+        //   修复:检测到"确认要离开吗"弹窗时,点击"放弃奖励离开"立即退出,不再干等。
+        //   (商品奖励已在点击商品时触发,放弃奖励离开只是确认退出广告)
+        val leaveConfirmBtn = service.findLeaveConfirmAbandonButton()
+        if (leaveConfirmBtn != null) {
+            Log.i(TAG, "watchAd: leave confirm dialog detected, clicking abandon reward to exit (elapsed=${elapsedMs}ms)")
+            debugLog("watchAd: 确认要离开吗弹窗, clicking 放弃奖励离开")
+            service.performClickSafe(leaveConfirmBtn)
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + INTERVAL_CLICK_MS)
             }, INTERVAL_CLICK_MS)
             return
         }

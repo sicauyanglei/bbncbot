@@ -32,7 +32,43 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build702 点击商品广告循环+adProductClickCount次数限制
+### commit (待提交) - fix: build703+704 点击商品后缩短等待2s+处理"确认要离开吗"弹窗
+
+**用户需求**: "点击商品后，右上角点击关闭任务就完成了"
+
+**日志分析** (build701, debug_test_20260803_080115.log, 08:00:32-08:01:14):
+
+**问题1**: 点击商品后等待 5s 才关闭广告,时间太长
+- 08:00:34 点击商品(汇川 HCRewardVideoActivity)
+- 08:00:41 5s 后才点击关闭图标(等太久)
+
+**修复1 (build703)**: [AutomationController.kt#L5213-L5217](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5213-L5217)
+- 点击商品后等待时间从 5s 缩短到 2s
+- `sinceClick >= 5000L` → `sinceClick >= 2000L`
+- 更快关闭广告,减少等待
+
+**问题2**: 点击关闭按钮后弹出"确认要离开吗？"弹窗,干等 30 秒
+- 08:00:41 点击关闭按钮
+- 08:00:53 弹出"确认要离开吗？"弹窗,texts=[点击商家后立即领奖, 确认要离开吗？, 返回点击商家, 放弃奖励离开]
+- 08:00:53-08:01:14 原逻辑未识别此弹窗,scene=AD_ENDED,干等 30 秒直到用户手动停止
+
+**根因**: watchAd 未检测"确认要离开吗"弹窗,无对应处理逻辑
+- 点击关闭按钮后广告 SDK 弹出退出确认对话框
+- 弹窗含"放弃奖励离开"按钮,但 watchAd 没有检测和点击逻辑
+- 商品奖励已在点击商品时触发,"放弃奖励离开"只是确认退出广告
+
+**修复2 (build704)**:
+- [FarmAccessibilityService.kt#L4394-L4406](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4394-L4406): 新增 `findLeaveConfirmAbandonButton()`
+  - 必须同时含"确认要离开"标题和"放弃奖励离开"按钮才返回(避免误匹配)
+- [AutomationController.kt#L5266-L5282](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5266-L5282): watchAd 增加弹窗检测
+  - 检测到"确认要离开吗"弹窗时,点击"放弃奖励离开"立即退出
+  - 不再干等 30 秒
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 5b719d5 - fix: build702 点击商品广告循环+adProductClickCount次数限制
 
 **用户需求**: "分析日志"
 

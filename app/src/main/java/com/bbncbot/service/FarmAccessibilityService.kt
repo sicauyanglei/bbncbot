@@ -4379,6 +4379,33 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 检测"确认要离开吗？"弹窗并返回"放弃奖励离开"按钮
+     *
+     * 场景（debug_test_20260803_080115.log, build701, 08:00:53）：
+     * - 点击商品广告的关闭按钮后,广告 SDK 弹出退出确认对话框
+     * - texts=[点击商家后立即领奖, 确认要离开吗？, 返回点击商家, 放弃奖励离开]
+     * - 原逻辑未识别此弹窗,干等 30 秒
+     *
+     * 策略：必须同时含"确认要离开"标题和"放弃奖励离开"按钮才返回,
+     * 避免误匹配其他含"离开"的页面。
+     *
+     * @return "放弃奖励离开"按钮节点或null
+     */
+    fun findLeaveConfirmAbandonButton(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        // 必须含"确认要离开"标题,确认是退出确认弹窗
+        val titleNode = findNodeByText(root, "确认要离开")
+        if (titleNode == null) return null
+        // 查找"放弃奖励离开"按钮(精确匹配,避免误点)
+        val abandonNode = findNodeByText(root, "放弃奖励离开")
+        if (abandonNode != null) {
+            Log.d(TAG, "findLeaveConfirmAbandonButton: found '放弃奖励离开' button")
+            return abandonNode
+        }
+        return null
+    }
+
+    /**
      * 查找"领取奖励"按钮（广告结束后）
      * - 不包含"关闭"（避免误关闭任务列表）
      * - 排除广告主诱导按钮（"领取优惠"/"领取福利"/"立即领取福利"会被"领取"子串匹配，
