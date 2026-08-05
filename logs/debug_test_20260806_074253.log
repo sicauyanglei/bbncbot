@@ -1,0 +1,79 @@
+=== cleared on app start (version=2.2, build=build707-eb3240d, time=07:41:31) ===
+07:41:31.603 killPlatformApps: killed com.ucmobile.lite for UC
+07:41:31.604 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+07:41:31.606 killPlatformApps: killed com.taobao.taobao for TAOBAO
+07:41:31.623 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+07:41:31.626 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+07:41:31.627 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+07:41:38.436 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+07:41:38.437 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+07:41:41.503 === Automation v2 Started === platform=UC
+07:41:41.504 cancelNavigation: all navigation callbacks cancelled
+07:41:41.512 reset platform complete: UC
+07:41:41.513 state: IDLE -> NAVIGATING
+07:41:42.422 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:41:42.504 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+07:41:42.622 navigate: on farm page, platform=UC
+07:41:42.638 hasFarmContentLoaded: text count=13, sample=[后退, 智能组件, 菜单, 多窗口, 6, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+07:41:42.640 hasFarmContentLoaded: realContent count=12
+07:41:42.643 navigate: hasFarmContentLoaded=false, attempt=0
+07:41:47.941 navigate: on farm page, platform=UC
+07:41:47.976 hasFarmContentLoaded: text count=21, sample=[后退, 智能组件, 菜单, 多窗口, 6, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+07:41:47.977 hasFarmContentLoaded: realContent count=20
+07:41:47.978 navigate: hasFarmContentLoaded=false, attempt=1
+07:41:54.764 navigate: on farm page, platform=UC
+07:41:54.798 hasFarmContentLoaded: text count=152, sample=[后退, 智能组件, 菜单, 多窗口, 6, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+07:41:54.800 hasFarmContentLoaded: realContent count=139
+07:41:54.802 navigate: hasFarmContentLoaded=true, attempt=2
+07:41:54.803 state: NAVIGATING -> COLLECTING_DIRECT
+07:41:57.228 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:41:57.251 [collectDirect-start] claim-text-nodes (count=4):
+07:41:57.253 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+07:41:57.255 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+07:41:57.256 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+07:41:57.258 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2230][694,2299] clickable=false
+07:41:57.294 collectDirect: found 1 direct buttons, attempt=0
+07:41:57.295 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1159][822,1211] (attempt 1)
+07:41:57.296 performClickSafe: text='看广告领奖' desc='' bounds=[641,1159][822,1211] clickable=false
+07:41:57.297 performClickSafe: ACTION_CLICK failed, trying gesture
+07:41:57.300 dispatchGesture: screen=[[641,1159][822,1211]] window=[[0,0][0,0]]
+07:41:57.302 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1185.0)
+07:41:57.306 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+07:42:07.312 collectDirect: jump button '看广告领奖' led to ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity), entering WATCHING_AD
+07:42:07.320 state: COLLECTING_DIRECT -> WATCHING_AD
+07:42:09.396 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+07:42:09.557 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:42:09.574 [watchAd-0ms] claim-text-nodes (count=1):
+07:42:09.577 [watchAd-0ms]   text='领取成功' desc='' bounds=[798,202][982,264] clickable=false
+07:42:09.816 watchAd: scene=REWARD_POPUP, elapsed=0ms/90000ms
+07:42:09.874 watchAd: waiting 0ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[反馈, 领取成功, 跳过, 网页无法打开, x+AAAAAElFTkSuQmCC, 网页无法打开, 位于, https://ether-pack.pangolin-sdk-toutiao.com/union/endcard/1872666956842123/?rit=948023644&req_id=ab357ffb-a7b5-41ef-a089-6552cc6fbc61u4008&ad_sdk_version=7.6.3.4&os=android&lang=zh&union_imei=4cf04bfd8ba8b191b7c2d19a2c240e9c&app_version=&developer_name=&app_name=&product_id=3502160749697348533&real_product_id=3490106215168625871&is_dsp=False&style_id=6771315&lp=peDSnrpZWCHsxLpV3lf881RxMF6BxrbntohQpamwuul7nw1BvJDpwLBsKzyQFObbIIJtt1YNXE4PfaJ4fC4CO%2FdNAXrVDBtfmqbV7xawF6G2lAa9%2Be%2FlTaAcElz9PpQTbydgs3RUSt1D2JEZZ203Bl9b5jo0NejTmw4vF3umqQ%2F5XqURf5Tcsu2nvNZvgwRfey4Y%2BlsncbNgLxoPkCdSkw7L2mo82Hrfbv8zAys3S5Zmn1f43BvyA9gIEhcDJHOj&enable_click_ext=3&deeplink=1&button_text_id=6942150860923584553&comment_num=96&like_num=104&share_num=91&customer_id=761091266&luban_web_style=4&qc_web_template=1&ad_id=1872666710171784&_toutiao_params=%7B%22cid%22%3A1872666956842123%2C%22device_id%22%3A33443008487268%2C%22log_extra%22%3A%22%7B%5C%22ad_price%5C%22%3A%5C%22anAIvQAFm3FqcAi9AAWbcQJ82p0e3Dr65oGmwg%5C%22%2C%5C%22city_id%5C%22%3Anull%2C%5C%22convert_id%5C%22%3A0%2C%5C%22country_id%5C%22%3Anull%2C%5C%22dma_id%5C%22%3Anull%2C%5C%22orit%5C%22%3A900000000%2C%5C%22province_id%5C%22%3Anull%2C%5C%22req_id%5C%22%3A%5C%22ab357ffb-a7b5-41ef-a089-6552cc6fbc61u4008%5C%22%2C%5C%22rit%5C%22%3A948023644%7D%22%2C%22orit%22%3A900000000%2C%22req_id%22%3A%22ab357ffb-a7b5-41ef-a089-6552cc6fbc61u4008%22%2C%22rit%22%3A948023644%2C%22sign%22%3A%22D41D8CD98F00B204E9800998ECF8427E%22%2C%22uid%22%3A2510887732121703%2C%22ut%22%3A12%7D&orientation=portrait&height=776&width=366&aspect_ratio=100.0&sdkVersion=7634]
+07:42:15.120 watchAd: scene=REWARD_POPUP, elapsed=5000ms/90000ms
+07:42:20.323 watchAd: scene=REWARD_POPUP, elapsed=10000ms/90000ms
+07:42:25.458 [watchAd-15000ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:42:25.476 [watchAd-15000ms] claim-text-nodes (count=1):
+07:42:25.479 [watchAd-15000ms]   text='领取成功' desc='' bounds=[798,202][982,264] clickable=false
+07:42:25.664 watchAd: scene=REWARD_POPUP, elapsed=15000ms/90000ms
+07:42:25.738 watchAd: waiting 15000ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[反馈, 领取成功, 跳过, 网页无法打开, x+AAAAAElFTkSuQmCC, 网页无法打开, 位于, https://ether-pack.pangolin-sdk-toutiao.com/union/endcard/1872666956842123/?rit=948023644&req_id=ab357ffb-a7b5-41ef-a089-6552cc6fbc61u4008&ad_sdk_version=7.6.3.4&os=android&lang=zh&union_imei=4cf04bfd8ba8b191b7c2d19a2c240e9c&app_version=&developer_name=&app_name=&product_id=3502160749697348533&real_product_id=3490106215168625871&is_dsp=False&style_id=6771315&lp=peDSnrpZWCHsxLpV3lf881RxMF6BxrbntohQpamwuul7nw1BvJDpwLBsKzyQFObbIIJtt1YNXE4PfaJ4fC4CO%2FdNAXrVDBtfmqbV7xawF6G2lAa9%2Be%2FlTaAcElz9PpQTbydgs3RUSt1D2JEZZ203Bl9b5jo0NejTmw4vF3umqQ%2F5XqURf5Tcsu2nvNZvgwRfey4Y%2BlsncbNgLxoPkCdSkw7L2mo82Hrfbv8zAys3S5Zmn1f43BvyA9gIEhcDJHOj&enable_click_ext=3&deeplink=1&button_text_id=6942150860923584553&comment_num=96&like_num=104&share_num=91&customer_id=761091266&luban_web_style=4&qc_web_template=1&ad_id=1872666710171784&_toutiao_params=%7B%22cid%22%3A1872666956842123%2C%22device_id%22%3A33443008487268%2C%22log_extra%22%3A%22%7B%5C%22ad_price%5C%22%3A%5C%22anAIvQAFm3FqcAi9AAWbcQJ82p0e3Dr65oGmwg%5C%22%2C%5C%22city_id%5C%22%3Anull%2C%5C%22convert_id%5C%22%3A0%2C%5C%22country_id%5C%22%3Anull%2C%5C%22dma_id%5C%22%3Anull%2C%5C%22orit%5C%22%3A900000000%2C%5C%22province_id%5C%22%3Anull%2C%5C%22req_id%5C%22%3A%5C%22ab357ffb-a7b5-41ef-a089-6552cc6fbc61u4008%5C%22%2C%5C%22rit%5C%22%3A948023644%7D%22%2C%22orit%22%3A900000000%2C%22req_id%22%3A%22ab357ffb-a7b5-41ef-a089-6552cc6fbc61u4008%22%2C%22rit%22%3A948023644%2C%22sign%22%3A%22D41D8CD98F00B204E9800998ECF8427E%22%2C%22uid%22%3A2510887732121703%2C%22ut%22%3A12%7D&orientation=portrait&height=776&width=366&aspect_ratio=100.0&sdkVersion=7634]
+07:42:30.954 watchAd: scene=REWARD_POPUP, elapsed=20000ms/90000ms
+07:42:36.192 watchAd: scene=REWARD_POPUP, elapsed=25000ms/90000ms
+07:42:41.341 [watchAd-30000ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:42:41.358 [watchAd-30000ms] claim-text-nodes (count=1):
+07:42:41.361 [watchAd-30000ms]   text='领取成功' desc='' bounds=[798,202][982,264] clickable=false
+07:42:41.532 watchAd: scene=REWARD_POPUP, elapsed=30000ms/90000ms
+07:42:41.606 watchAd: checking ad end (30000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[反馈, 领取成功, 跳过, 网页无法打开, x+AAAAAElFTkSuQmCC, 网页无法打开, 位于, https://ether-pack.pangolin-sdk-toutiao.com/union/endcard/1872666956842123/?rit=948023644&req_id=ab357ffb-a7b5-41ef-a089-6552cc6fbc61u4008&ad_sdk_version=7.6.3.4&os=android&lang=zh&union_imei=4cf04bfd8ba8b191b7c2d19a2c240e9c&app_version=&developer_name=&app_name=&product_id=3502160749697348533&real_product_id=3490106215168625871&is_dsp=False&style_id=6771315&lp=peDSnrpZWCHsxLpV3lf881RxMF6BxrbntohQpamwuul7nw1BvJDpwLBsKzyQFObbIIJtt1YNXE4PfaJ4fC4CO%2FdNAXrVDBtfmqbV7xawF6G2lAa9%2Be%2FlTaAcElz9PpQTbydgs3RUSt1D2JEZZ203Bl9b5jo0NejTmw4vF3umqQ%2F5XqURf5Tcsu2nvNZvgwRfey4Y%2BlsncbNgLxoPkCdSkw7L2mo82Hrfbv8zAys3S5Zmn1f43BvyA9gIEhcDJHOj&enable_click_ext=3&deeplink=1&button_text_id=6942150860923584553&comment_num=96&like_num=104&share_num=91&customer_id=761091266&luban_web_style=4&qc_web_template=1&ad_id=1872666710171784&_toutiao_params=%7B%22cid%22%3A1872666956842123%2C%22device_id%22%3A33443008487268%2C%22log_extra%22%3A%22%7B%5C%22ad_price%5C%22%3A%5C%22anAIvQAFm3FqcAi9AAWbcQJ82p0e3Dr65oGmwg%5C%22%2C%5C%22city_id%5C%22%3Anull%2C%5C%22convert_id%5C%22%3A0%2C%5C%22country_id%5C%22%3Anull%2C%5C%22dma_id%5C%22%3Anull%2C%5C%22orit%5C%22%3A900000000%2C%5C%22province_id%5C%22%3Anull%2C%5C%22req_id%5C%22%3A%5C%22ab357ffb-a7b5-41ef-a089-6552cc6fbc61u4008%5C%22%2C%5C%22rit%5C%22%3A948023644%7D%22%2C%22orit%22%3A900000000%2C%22req_id%22%3A%22ab357ffb-a7b5-41ef-a089-6552cc6fbc61u4008%22%2C%22rit%22%3A948023644%2C%22sign%22%3A%22D41D8CD98F00B204E9800998ECF8427E%22%2C%22uid%22%3A2510887732121703%2C%22ut%22%3A12%7D&orientation=portrait&height=776&width=366&aspect_ratio=100.0&sdkVersion=7634]
+07:42:41.820 isAdEndedMultiSignal: YES (claim reward button appeared)
+07:42:42.086 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+07:42:42.091 performClickSafe: text='' desc='' bounds=[722,202][982,264] clickable=true
+07:42:42.107 performClickSafe: ACTION_CLICK success at depth=0
+07:42:47.309 watchAd: scene=REWARD_POPUP, elapsed=35000ms/90000ms
+07:42:47.362 watchAd: checking ad end (35000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[反馈, 领取成功, 跳过, 网页无法打开, x+AAAAAElFTkSuQmCC, 网页无法打开, 位于, https://ether-pack.pangolin-sdk-toutiao.com/union/endcard/1872666956842123/?rit=948023644&req_id=ab357ffb-a7b5-41ef-a089-6552cc6fbc61u4008&ad_sdk_version=7.6.3.4&os=android&lang=zh&union_imei=4cf04bfd8ba8b191b7c2d19a2c240e9c&app_version=&developer_name=&app_name=&product_id=3502160749697348533&real_product_id=3490106215168625871&is_dsp=False&style_id=6771315&lp=peDSnrpZWCHsxLpV3lf881RxMF6BxrbntohQpamwuul7nw1BvJDpwLBsKzyQFObbIIJtt1YNXE4PfaJ4fC4CO%2FdNAXrVDBtfmqbV7xawF6G2lAa9%2Be%2FlTaAcElz9PpQTbydgs3RUSt1D2JEZZ203Bl9b5jo0NejTmw4vF3umqQ%2F5XqURf5Tcsu2nvNZvgwRfey4Y%2BlsncbNgLxoPkCdSkw7L2mo82Hrfbv8zAys3S5Zmn1f43BvyA9gIEhcDJHOj&enable_click_ext=3&deeplink=1&button_text_id=6942150860923584553&comment_num=96&like_num=104&share_num=91&customer_id=761091266&luban_web_style=4&qc_web_template=1&ad_id=1872666710171784&_toutiao_params=%7B%22cid%22%3A1872666956842123%2C%22device_id%22%3A33443008487268%2C%22log_extra%22%3A%22%7B%5C%22ad_price%5C%22%3A%5C%22anAIvQAFm3FqcAi9AAWbcQJ82p0e3Dr65oGmwg%5C%22%2C%5C%22city_id%5C%22%3Anull%2C%5C%22convert_id%5C%22%3A0%2C%5C%22country_id%5C%22%3Anull%2C%5C%22dma_id%5C%22%3Anull%2C%5C%22orit%5C%22%3A900000000%2C%5C%22province_id%5C%22%3Anull%2C%5C%22req_id%5C%22%3A%5C%22ab357ffb-a7b5-41ef-a089-6552cc6fbc61u4008%5C%22%2C%5C%22rit%5C%22%3A948023644%7D%22%2C%22orit%22%3A900000000%2C%22req_id%22%3A%22ab357ffb-a7b5-41ef-a089-6552cc6fbc61u4008%22%2C%22rit%22%3A948023644%2C%22sign%22%3A%22D41D8CD98F00B204E9800998ECF8427E%22%2C%22uid%22%3A2510887732121703%2C%22ut%22%3A12%7D&orientation=portrait&height=776&width=366&aspect_ratio=100.0&sdkVersion=7634]
+07:42:47.572 isAdEndedMultiSignal: YES (claim reward button appeared)
+07:42:47.834 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+07:42:47.837 performClickSafe: text='' desc='' bounds=[722,202][982,264] clickable=true
+07:42:47.859 performClickSafe: ACTION_CLICK success at depth=0
+07:42:51.521 state: WATCHING_AD -> STOPPING
+07:42:51.523 cancelNavigation: all navigation callbacks cancelled
+07:42:51.525 state: STOPPING -> IDLE
+07:42:53.537 saveToken: saved (len=93, head='gith', tail='McKr')
+07:42:53.540 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+07:42:53.541 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260806_074253.log, localFile=debug.log (14423 bytes)

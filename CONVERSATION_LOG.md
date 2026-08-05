@@ -32,7 +32,40 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build708 第三方overlay直接reopenFarmByDeepLink避免UC进程被回收后无法拉起
+### commit (待提交) - fix: build709 排除"领取成功"静态文案避免穿山甲广告endcard循环点击
+
+**用户需求**: "分析日志"
+
+**日志分析** (build707, debug_test_20260806_074253.log, 07:42:07-07:42:51):
+
+**build708 验证**: 本次未遇到跨 App 浏览任务,未触发。
+
+**问题 (严重)**: 穿山甲广告"领取成功"endcard 后循环点击,用户手动停止
+- 07:42:07 进入穿山甲广告 TTRewardVideoActivity
+- 07:42:09 text='领取成功' bounds=[798,202][982,264] clickable=false ← **广告刚开始就显示"领取成功"**
+- 07:42:09 scene=REWARD_POPUP,等待 30 秒 min duration
+- 07:42:41 isAdEndedMultiSignal: YES (claim reward button appeared) ← 误判
+- 07:42:42 点击 bounds=[722,202][982,264] clickable=true ← "领取成功"的父节点容器
+- 07:42:47 页面没变化,isAdEndedMultiSignal 再次触发
+- 07:42:47 再次点击同一区域
+- 07:42:51 用户手动停止
+
+**根因**: findClaimRewardButton 用"领取"子串匹配命中"领取成功"
+- "领取成功"是广告 endcard 的静态标题文案(clickable=false)
+- 但其父节点 clickable=true(bounds=[722,202][982,264])
+- findClaimRewardButton 返回该节点,watchAd 点击父节点容器无效
+- 页面不变,isAdEndedMultiSignal 重复触发→重复点击→循环
+
+**修复**: [FarmAccessibilityService.kt#L4504-L4516](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4504-L4516)
+- findClaimRewardButton 排除"领取成功"文本
+- "领取成功"是领取后的结果提示,不是领取动作按钮
+- 真正的领取按钮文案是"领取奖励"/"立即领取"/"可立即领奖"等
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit eb3240d - fix: build708 第三方overlay直接reopenFarmByDeepLink避免UC进程被回收后无法拉起
 
 **用户需求**: "分析日志"
 

@@ -4501,6 +4501,19 @@ class FarmAccessibilityService : AccessibilityService() {
                     debugLog("findClaimRewardButton: skip 'click merchant' hint text='$text' desc='$desc' (matched kw='$kw')")
                     continue
                 }
+                // build709 修复（debug_test_20260806_074253.log, build707, 07:42:42-07:42:51）：
+                //   穿山甲 TTRewardVideoActivity 广告 endcard 标题是"领取成功"(静态文案,
+                //   clickable=false),但其父节点 clickable=true(bounds=[722,202][982,264])。
+                //   findClaimRewardButton 用"领取"子串匹配命中"领取成功",返回该节点,
+                //   watchAd 点击父节点(bounds=[722,202][982,264])无效,页面不变,
+                //   isAdEndedMultiSignal 重复触发→重复点击→循环,用户手动停止。
+                //   修复:排除"领取成功"文本(广告 endcard 静态标题,不是领取按钮)。
+                //   真正的领取按钮文案是"领取奖励"/"立即领取"/"可立即领奖"等,
+                //   "领取成功"是领取后的结果提示,不是领取动作按钮。
+                if (text == "领取成功" || text.startsWith("领取成功")) {
+                    debugLog("findClaimRewardButton: skip '领取成功' static endcard title text='$text' desc='$desc' (matched kw='$kw')")
+                    continue
+                }
                 Log.d(TAG, "findClaimRewardButton: found by text='$kw'")
                 return node
             }
