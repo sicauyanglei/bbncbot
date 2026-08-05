@@ -1048,15 +1048,17 @@ object AutomationController {
                 //   killBackgroundProcesses 对前台 App 无效,反复 forceKillApp 失败卡死。
                 //   修复:forceKillApp 失败后(attempt >= 1),改用 reopenFarmByDeepLink 强制重启农场 App,
                 //         通过 deep link 把农场 App 拉到前台,覆盖淘宝直播间。
-                if (attempt >= 1) {
-                    Log.w(TAG, "navigate: third-party overlay pkg=$overlayPkg persists after forceKillApp (attempt=$attempt), forcing reopenFarmByDeepLink")
-                    debugLog("navigate: third-party overlay pkg=$overlayPkg kill failed (foreground app), forcing reopenFarmByDeepLink")
-                    service.reopenFarmByDeepLink(killCurrentFirst = false)
-                } else {
-                    Log.i(TAG, "navigate: third-party app overlay detected (pkg=$overlayPkg), killing it to restore farm app foreground")
-                    debugLog("navigate: third-party overlay pkg=$overlayPkg detected, forceKillApp(pressBackFirst=false) to dismiss")
-                    service.forceKillApp(overlayPkg, pressBackFirst = false)
-                }
+                // build708 修复（debug_test_20260806_071848.log, build705, 07:18:13-07:18:45）：
+                //   UC→淘宝跨 App 浏览任务完成后,exitBrowsePage 点击淘宝"返回"按钮没生效(H5 页面),
+                //   一直停留在淘宝。navigate attempt=0 时 forceKillApp(taobao) 对前台 App 无效,
+                //   等 attempt=1 才用 reopenFarmByDeepLink,但此时 UC 进程已被系统回收,
+                //   deep link 拉起 UC 失败,卡死在 launcher,用户手动停止。
+                //   修复:第三方 overlay 场景直接用 reopenFarmByDeepLink(killCurrentFirst=true),
+                //         先 HOME+kill 第三方 App,再用 deep link 拉起农场 App 到前台。
+                //         不再先 forceKillApp 再等下一轮,避免 UC 进程被回收后无法拉起。
+                Log.w(TAG, "navigate: third-party overlay pkg=$overlayPkg detected, forcing reopenFarmByDeepLink to restore farm app")
+                debugLog("navigate: third-party overlay pkg=$overlayPkg detected, reopenFarmByDeepLink(killCurrentFirst=true)")
+                service.reopenFarmByDeepLink(killCurrentFirst = true)
                 handler.postDelayed({
                     if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
                 }, INTERVAL_PAGE_LOAD_MS)

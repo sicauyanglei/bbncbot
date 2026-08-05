@@ -32,7 +32,44 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build707 CLOSING_AD策略0允许TRAP_INTERACTIVE场景查找关闭按钮
+### commit (待提交) - fix: build708 第三方overlay直接reopenFarmByDeepLink避免UC进程被回收后无法拉起
+
+**用户需求**: "分析日志"
+
+**日志分析** (build705, debug_test_20260806_071848.log, 07:16:22-07:18:45):
+
+**build706/707 验证**: 本次未遇到"扭一扭"广告场景,未触发。
+
+**问题 (严重)**: UC→淘宝跨 App 浏览任务完成后,无法返回农场页,卡死在 launcher,用户手动停止
+- 07:16:22 点击"看广告领奖" → 跳转淘宝(pkg=com.taobao.taobao)
+- 07:16:32 forceKillApp(taobao) + reopenFarmByDeepLink(killCurrentFirst=false) → UC 重开成功
+- 07:16:38 点击"签到" → 07:16:44 点击"已领取" → 07:17:01 AI vision 超时 → OPENING_TASK_LIST
+- 07:17:02 找到 6 个"去完成"任务,task #1="浏览广告赚肥料"
+- 07:17:07 点击"去完成" → 跳转淘宝(跨 App 浏览任务,含"浏览得奖励"+"30秒")
+- 07:17:17-07:18:05 滑动 22 次完成浏览 → exitBrowsePage 点击淘宝"返回"图标
+- 07:18:05 performClickSafe: text='' desc='返回' bounds=[33,147][125,239] → ACTION_CLICK success
+- 07:18:11 activeRootPkg='com.taobao.taobao' ← **返回没生效!** 淘宝 H5 页面返回按钮 ACTION_CLICK 无效
+- 07:18:13 navigate 检测到第三方 overlay(taobao) → forceKillApp(taobao, pressBackFirst=false)
+- 07:18:18-07:18:29 UC 还是没回到前台(UC 进程可能已被系统回收)
+- 07:18:29 reopenFarmByDeepLink → forceKillApp(UC) + deep link
+- 07:18:35-07:18:45 UC 无法启动,卡在 launcher,用户手动停止
+
+**根因**: build697 修复逻辑有缺陷
+- attempt=0 时 forceKillApp(taobao) 对前台 App 无效(killBackgroundProcesses 只能 kill 后台进程)
+- 等 attempt=1 才用 reopenFarmByDeepLink,但此时 UC 进程已被系统回收
+- UC 被回收后 deep link 拉起失败,卡死在 launcher
+
+**修复**: [AutomationController.kt#L1044-L1066](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L1044-L1066)
+- 第三方 overlay 场景直接用 reopenFarmByDeepLink(killCurrentFirst=true)
+- 先 HOME+kill 第三方 App,再用 deep link 拉起农场 App 到前台
+- 不再先 forceKillApp 再等下一轮,避免 UC 进程被回收后无法拉起
+- killCurrentFirst=true 会先按 HOME 把第三方 App 退到后台,再 killBackgroundProcesses 才有效
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 3710d9a - fix: build707 CLOSING_AD策略0允许TRAP_INTERACTIVE场景查找关闭按钮
 
 **用户需求**: "分析日志"
 
