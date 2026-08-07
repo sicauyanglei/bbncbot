@@ -32,7 +32,43 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build709 排除"领取成功"静态文案避免穿山甲广告endcard循环点击
+### commit (待提交) - fix: build710 RETURNING在广告Activity中时pressBack而非forceKillApp(UC)避免卡死
+
+**用户需求**: "分析日志"
+
+**日志分析** (build708, debug_test_20260808_064321.log, 06:42:27-06:43:17):
+
+**build709 验证**: 未遇穿山甲 endcard,未触发。
+
+**build707 验证**: ✓ findAdCloseButton 找到"跳过"按钮
+- 06:42:48 performClickSafe: text='跳过' bounds=[1019,162][1109,224] clickable=true → ACTION_CLICK success
+
+**问题 (严重)**: 快手"扭一扭"广告"跳过"按钮点击成功但广告没关闭,RETURNING → forceKillApp(UC) → 卡死
+- 06:42:48 点击"跳过"成功,但广告没关闭(假跳过按钮)
+- 06:42:53 策略1 坐标点击 8 个位置都无效
+- 06:43:03 isInteractiveAdPage: YES ← 广告还在
+- 06:43:08 所有策略失败 → RETURNING
+- 06:43:10 runReturning attempt=0 → reopenFarmByDeepLink() → forceKillApp(UC)
+- 06:43:15-17 UC 无法回到前台,卡在 com.hihonor.android.launcher
+- 06:43:17 用户手动停止
+
+**根因**: runReturning attempt=0 直接调用 reopenFarmByDeepLink()
+- reopenFarmByDeepLink 内部 forceKillApp(UC) 杀掉 UC 进程
+- UC 被杀后 deep link 拉起 UC 浏览器失败(可能需要浏览器进程已存在)
+- 卡在 launcher,用户手动停止
+
+**修复**: [AutomationController.kt#L5840-L5870](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5840-L5870)
+- runReturning attempt=0 时,如果仍在广告 Activity 中(isAdActivity()=true)
+- 不用 reopenFarmByDeepLink(会杀 UC),改为 pressBack 退出广告 Activity
+- pressBack 对快手广告通常会弹出"确认要离开吗?"弹窗
+- 下一轮 RETURNING 会通过 findAbandonRewardButton 点击"放弃奖励离开"退出
+- 只有不在广告 Activity 时才用 reopenFarmByDeepLink 重开农场
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 50d5a14 - fix: build709 排除"领取成功"静态文案避免穿山甲广告endcard循环点击
 
 **用户需求**: "分析日志"
 

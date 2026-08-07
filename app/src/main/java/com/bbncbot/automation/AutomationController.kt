@@ -5839,6 +5839,25 @@ object AutomationController {
 
         if (attempt == 0) {
             logPageSnapshot(service, "return-start")
+            // build710 修复（debug_test_20260808_064321.log, build708, 06:43:10-06:43:17）:
+            //   快手"扭一扭"互动广告 CLOSING_AD 所有策略(0-4)失败后进入 RETURNING。
+            //   attempt=0 直接调用 reopenFarmByDeepLink() → forceKillApp(UC) → UC 被杀,
+            //   deep link 拉起 UC 浏览器失败(可能需要浏览器进程已存在),
+            //   卡在 launcher(com.hihonor.android.launcher),用户手动停止。
+            //   修复:RETURNING attempt=0 时,如果仍在广告 Activity 中(isAdActivity()=true),
+            //   不用 reopenFarmByDeepLink(会杀 UC),改为 pressBack 退出广告 Activity。
+            //   pressBack 对快手广告通常会弹出"确认要离开吗?"弹窗,
+            //   下一轮 RETURNING 会通过 findAbandonRewardButton 点击"放弃奖励离开"退出。
+            //   只有不在广告 Activity 时才用 reopenFarmByDeepLink 重开农场。
+            if (service.isAdActivity()) {
+                Log.i(TAG, "return: still in ad activity, pressing back to exit ad (not using deepLink to avoid killing UC)")
+                debugLog("return: ad activity detected, pressBack instead of reopenFarmByDeepLink to preserve UC process")
+                service.pressBack()
+                handler.postDelayed({
+                    if (state == AutomationState.RETURNING) runReturning(attempt + 1)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
             // 优先用 deep link 重开农场主页（等同从桌面快捷方式进入），替代按返回键逐步退回
             // 成功后进入 NAVIGATING 等待页面加载，再重新走 COLLECTING_DIRECT → OPENING_TASK_LIST
             if (service.reopenFarmByDeepLink()) {
