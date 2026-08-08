@@ -1,0 +1,196 @@
+=== cleared on app start (version=2.2, build=build712-068bdff, time=10:11:35) ===
+10:11:35.640 killPlatformApps: killed com.ucmobile.lite for UC
+10:11:35.641 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+10:11:35.643 killPlatformApps: killed com.taobao.taobao for TAOBAO
+10:11:35.659 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+10:11:35.663 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+10:11:35.664 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+10:11:42.022 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+10:11:42.023 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+10:11:43.962 === Automation v2 Started === platform=UC
+10:11:43.963 cancelNavigation: all navigation callbacks cancelled
+10:11:43.980 reset platform complete: UC
+10:11:43.981 state: IDLE -> NAVIGATING
+10:11:44.242 isOnFarmPage: no farm content, sample=[后退, 智能组件, 菜单, 多窗口, 7, 首页]
+10:11:44.565 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+10:11:44.572 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+10:11:45.125 navigate: calling navigateToFarm, platform=UC
+10:11:47.948 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+10:11:47.949 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+10:11:47.950 performClickSafe: ACTION_CLICK failed, trying gesture
+10:11:47.950 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+10:11:47.951 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+10:11:51.097 navigate: on farm page, platform=UC
+10:11:51.121 hasFarmContentLoaded: text count=148, sample=[后退, 智能组件, 菜单, 多窗口, 7, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+10:11:51.122 hasFarmContentLoaded: realContent count=135
+10:11:51.123 navigate: hasFarmContentLoaded=true, attempt=1
+10:11:51.126 state: NAVIGATING -> COLLECTING_DIRECT
+10:11:53.678 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+10:11:53.693 [collectDirect-start] claim-text-nodes (count=4):
+10:11:53.694 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+10:11:53.695 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+10:11:53.695 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+10:11:53.696 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2230][694,2299] clickable=false
+10:11:53.714 collectDirect: found 1 direct buttons, attempt=0
+10:11:53.715 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1152][822,1205] (attempt 1)
+10:11:53.716 performClickSafe: text='看广告领奖' desc='' bounds=[641,1152][822,1205] clickable=false
+10:11:53.717 performClickSafe: ACTION_CLICK failed, trying gesture
+10:11:53.718 dispatchGesture: screen=[[641,1152][822,1205]] window=[[0,0][0,0]]
+10:11:53.718 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1178.5)
+10:11:53.723 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+10:12:03.732 collectDirect: jump button '看广告领奖' led to ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity), entering WATCHING_AD
+10:12:03.739 state: COLLECTING_DIRECT -> WATCHING_AD
+10:12:05.776 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+10:12:05.892 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+10:12:05.903 [watchAd-0ms] claim-text-nodes (count=2):
+10:12:05.905 [watchAd-0ms]   text='可立即领奖' desc='' bounds=[622,975][989,1064] clickable=false
+10:12:05.907 [watchAd-0ms]   text='去体验15秒可立即领奖' desc='' bounds=[543,176][1015,235] clickable=false
+10:12:06.034 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+10:12:06.036 watchAd: scene=AD_ENDED, elapsed=0ms/90000ms
+10:12:06.070 watchAd: waiting 0ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, 天降福利小游戏, 第一关, 7s, 目标, 点击, 跳过小游戏立即前往, 点击按钮/滑动跳转落地页或下载应用]
+10:12:11.226 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+10:12:11.227 watchAd: scene=AD_ENDED, elapsed=5000ms/90000ms
+10:12:11.251 watchAd: clicking speedUp button '我要加速' to speed up ad countdown
+10:12:11.253 performClickSafe: text='我要加速' desc='' bounds=[212,1535][989,1738] clickable=false
+10:12:11.254 performClickSafe: ACTION_CLICK failed, trying gesture
+10:12:11.255 dispatchGesture: screen=[[212,1535][989,1738]] window=[[0,0][0,0]]
+10:12:11.256 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 1636.5)
+10:12:13.824 watchAd: scene=AD_ENDED, elapsed=10000ms/90000ms
+10:12:18.940 [watchAd-15000ms] snapshot: pkg=com.aliyun.tongyi, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+10:12:19.001 watchAd: scene=AD_ENDED, elapsed=15000ms/90000ms
+10:12:19.021 watchAd: waiting 15000ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[千问全新升级，探索更多功能, 思考研究、办公助理、定时任务、语音通话、Al智能体全新上线，开启Agent智能新体验！, 关闭, 开始探索]
+10:12:24.140 watchAd: scene=AD_ENDED, elapsed=20000ms/90000ms
+10:12:29.253 watchAd: scene=AD_ENDED, elapsed=25000ms/90000ms
+10:12:34.301 [watchAd-30000ms] snapshot: pkg=com.aliyun.tongyi, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+10:12:34.347 watchAd: scene=AD_ENDED, elapsed=30000ms/90000ms
+10:12:34.363 watchAd: checking ad end (30000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[千问全新升级，探索更多功能, 思考研究、办公助理、定时任务、语音通话、Al智能体全新上线，开启Agent智能新体验！, 关闭, 开始探索]
+10:12:39.667 watchAd: scene=AD_ENDED, elapsed=35000ms/90000ms
+10:12:39.692 watchAd: checking ad end (35000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[千问全新升级，探索更多功能, 思考研究、办公助理、定时任务、语音通话、Al智能体全新上线，开启Agent智能新体验！, 关闭, 开始探索]
+10:12:44.957 watchAd: scene=AD_ENDED, elapsed=40000ms/90000ms
+10:12:44.976 watchAd: checking ad end (40000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[10:12 8月8日周六, 丙午年六月廿六, 44%]
+10:12:59.117 [watchAd-45000ms] snapshot: pkg=com.hihonor.aod, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+10:12:59.145 watchAd: scene=AD_ENDED, elapsed=45000ms/90000ms
+10:12:59.163 watchAd: checking ad end (45000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[]
+10:17:03.756 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:17:03.776 findAdDurationHint: found pure-number countdown '17', seconds=17
+10:17:03.778 watchAd: scene=AD_PLAYING, elapsed=50000ms/90000ms
+10:17:03.840 watchAd: checking ad end (50000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[开启魔法画报, 开启魔法画报, 录音机, 计算器, 手电筒已关闭, 计时器, 扫一扫, 10]
+10:17:04.114 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:17:04.167 findAdDurationHint: found pure-number countdown '17', seconds=17
+10:17:04.488 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:17:04.616 findAdDurationHint: found pure-number countdown '17', seconds=17
+10:17:04.631 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+10:17:04.660 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:17:04.664 findAdDurationHint: found pure-number countdown '17', seconds=17
+10:17:05.003 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:17:05.129 findAdDurationHint: found pure-number countdown '17', seconds=17
+10:17:05.332 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:17:05.339 findAdDurationHint: found pure-number countdown '17', seconds=17
+10:17:05.341 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+10:17:06.395 watchAd: AI progress percent=0%, remaining=0s, hasBar=false
+10:17:15.190 watchAd: AI progress percent=0%, remaining=0s, hasBar=false
+10:17:21.144 watchAd: AI progress percent=0%, remaining=0s, hasBar=false
+10:27:28.022 watchAd: scene=AD_ENDED, elapsed=55000ms/90000ms
+10:27:28.990 watchAd: checking ad end (55000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[开启魔法画报, 开启魔法画报, 录音机, 计算器, 手电筒已关闭, 计时器, 扫一扫, 正在充电 49%]
+10:27:29.242 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:27:29.243 findAdDurationHint: found pure-number countdown '27', seconds=27
+10:27:29.244 findAdDurationHint: found pure-number countdown '49', seconds=49
+10:27:29.423 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:27:29.426 findAdDurationHint: found pure-number countdown '27', seconds=27
+10:27:29.433 findAdDurationHint: found pure-number countdown '49', seconds=49
+10:27:29.434 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+10:27:29.495 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:27:29.496 findAdDurationHint: found pure-number countdown '27', seconds=27
+10:27:29.499 findAdDurationHint: found pure-number countdown '49', seconds=49
+10:27:29.519 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:27:29.520 findAdDurationHint: found pure-number countdown '27', seconds=27
+10:27:29.522 findAdDurationHint: found pure-number countdown '49', seconds=49
+10:27:29.581 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:27:29.582 findAdDurationHint: found pure-number countdown '27', seconds=27
+10:27:29.583 findAdDurationHint: found pure-number countdown '49', seconds=49
+10:27:29.635 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:27:29.636 findAdDurationHint: found pure-number countdown '27', seconds=27
+10:27:29.638 findAdDurationHint: found pure-number countdown '49', seconds=49
+10:27:29.638 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+10:27:34.824 [watchAd-60000ms] snapshot: pkg=null, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+10:27:34.952 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:27:34.954 findAdDurationHint: found pure-number countdown '27', seconds=27
+10:27:34.956 findAdDurationHint: found pure-number countdown '49', seconds=49
+10:27:34.956 watchAd: scene=AD_PLAYING, elapsed=60000ms/90000ms
+10:27:34.981 watchAd: checking ad end (60000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[开启魔法画报, 开启魔法画报, 录音机, 计算器, 手电筒已关闭, 计时器, 扫一扫, 10]
+10:27:35.048 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:27:35.049 findAdDurationHint: found pure-number countdown '27', seconds=27
+10:27:35.051 findAdDurationHint: found pure-number countdown '49', seconds=49
+10:27:35.120 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:27:35.121 findAdDurationHint: found pure-number countdown '27', seconds=27
+10:27:35.124 findAdDurationHint: found pure-number countdown '49', seconds=49
+10:27:35.124 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+10:27:35.133 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:27:35.134 findAdDurationHint: found pure-number countdown '27', seconds=27
+10:27:35.137 findAdDurationHint: found pure-number countdown '49', seconds=49
+10:27:35.143 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:27:35.144 findAdDurationHint: found pure-number countdown '27', seconds=27
+10:27:35.146 findAdDurationHint: found pure-number countdown '49', seconds=49
+10:27:35.216 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:27:35.217 findAdDurationHint: found pure-number countdown '27', seconds=27
+10:27:35.219 findAdDurationHint: found pure-number countdown '49', seconds=49
+10:27:35.297 findAdDurationHint: found pure-number countdown '10', seconds=10
+10:27:35.299 findAdDurationHint: found pure-number countdown '27', seconds=27
+10:27:35.302 findAdDurationHint: found pure-number countdown '49', seconds=49
+10:27:35.302 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+10:27:40.396 watchAd: scene=AD_ENDED, elapsed=65000ms/90000ms
+10:27:40.408 watchAd: checking ad end (65000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[千问全新升级，探索更多功能, 思考研究、办公助理、定时任务、语音通话、Al智能体全新上线，开启Agent智能新体验！, 关闭, 开始探索]
+10:27:40.519 isAdEndedMultiSignal: YES (countdown disappeared while still on ad page)
+10:27:40.571 watchAd: multi-signal ad ended, no claim button, entering CLOSING_AD
+10:27:40.572 state: WATCHING_AD -> CLOSING_AD
+10:27:42.587 closeAd: start closing, pageType=ad, texts=[千问全新升级，探索更多功能, 思考研究、办公助理、定时任务、语音通话、Al智能体全新上线，开启Agent智能新体验！, 关闭, 开始探索]
+10:27:42.623 isFakeCloseButton: YES (position not right-top or bottom: [1075,1617][1154,1696])
+10:27:42.624 closeAd: fake close button (too large or centered), trying next strategy
+10:27:42.625 ad-close-0: click at (1140.0, 63.575), ratio=(0.95, 0.025), screen=1200x2543
+10:27:42.628 ad-close-1: click at (1152.0, 63.575), ratio=(0.96, 0.025), screen=1200x2543
+10:27:42.630 ad-close-2: click at (1128.0, 38.145), ratio=(0.94, 0.015), screen=1200x2543
+10:27:42.632 ad-close-3: click at (1164.0, 38.145), ratio=(0.97, 0.015), screen=1200x2543
+10:27:42.634 ad-close-4: click at (1152.0, 89.005), ratio=(0.96, 0.035), screen=1200x2543
+10:27:42.636 ad-close-5: click at (1116.0, 25.43), ratio=(0.93, 0.01), screen=1200x2543
+10:27:42.637 ad-close-6: click at (600.0, 127.15), ratio=(0.5, 0.05), screen=1200x2543
+10:27:42.639 ad-close-7: click at (1140.0, 2441.28), ratio=(0.95, 0.96), screen=1200x2543
+10:27:48.355 watchAd: AI progress percent=0%, remaining=0s, hasBar=false
+10:27:58.110 state: CLOSING_AD -> RETURNING
+10:28:00.123 isOnFarmPage: activeRootPkg='com.aliyun.tongyi' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:28:00.149 [return-start] snapshot: pkg=com.aliyun.tongyi, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+10:28:00.155 return: ad activity detected, pressBack instead of reopenFarmByDeepLink to preserve UC process
+10:28:05.302 isOnFarmPage: activeRootPkg='com.aliyun.tongyi' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:28:05.304 back-1: click at (60.0, 127.15), ratio=(0.05, 0.05), screen=1200x2543
+10:28:10.341 isOnFarmPage: activeRootPkg='com.aliyun.tongyi' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:28:10.345 back-2: click at (1140.0, 127.15), ratio=(0.95, 0.05), screen=1200x2543
+10:28:15.377 isOnFarmPage: activeRootPkg='com.aliyun.tongyi' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:28:15.381 back-3: click at (600.0, 2415.8499), ratio=(0.5, 0.95), screen=1200x2543
+10:28:20.536 isOnFarmPage: activeRootPkg='com.aliyun.tongyi' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:28:25.664 isOnFarmPage: activeRootPkg='com.aliyun.tongyi' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:28:25.667 state: RETURNING -> NAVIGATING
+10:28:27.685 isOnFarmPage: activeRootPkg='com.aliyun.tongyi' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:28:27.717 [navigate-start] snapshot: pkg=com.aliyun.tongyi, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+10:28:28.075 navigate: UC ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity), waiting instead of pressBack (attempt=0)
+10:28:33.116 isOnFarmPage: activeRootPkg='com.aliyun.tongyi' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:28:33.458 navigate: UC ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity), waiting instead of pressBack (attempt=1)
+10:28:38.500 isOnFarmPage: activeRootPkg='com.aliyun.tongyi' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:28:38.780 navigate: UC ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity), waiting instead of pressBack (attempt=2)
+10:28:43.903 isOnFarmPage: activeRootPkg='com.aliyun.tongyi' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:28:44.295 navigate: UC ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity), waiting instead of pressBack (attempt=3)
+10:28:49.340 isOnFarmPage: activeRootPkg='com.aliyun.tongyi' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:28:49.710 navigate: UC ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity), waiting instead of pressBack (attempt=4)
+10:28:54.800 isOnFarmPage: activeRootPkg='com.aliyun.tongyi' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:28:54.954 navigate: UC ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity), waiting instead of pressBack (attempt=5)
+10:28:59.979 isOnFarmPage: activeRootPkg='com.tencent.mm' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:29:00.276 navigate: UC ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity) stuck after 6 attempts, forcing reopenFarmByDeepLink
+10:29:00.289 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+10:29:00.290 reopenFarmByDeepLink: pressing HOME to background UC before kill
+10:29:00.292 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+10:29:00.294 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+10:29:00.612 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+10:29:03.169 state: NAVIGATING -> STOPPING
+10:29:03.173 cancelNavigation: all navigation callbacks cancelled
+10:29:03.176 state: STOPPING -> IDLE
+16:56:31.572 saveToken: saved (len=93, head='gith', tail='McKr')
+16:56:31.583 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+16:56:31.584 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260808_165631.log, localFile=debug.log (20891 bytes)
