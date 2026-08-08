@@ -4514,6 +4514,24 @@ class FarmAccessibilityService : AccessibilityService() {
                     debugLog("findClaimRewardButton: skip '领取成功' static endcard title text='$text' desc='$desc' (matched kw='$kw')")
                     continue
                 }
+                // build712 修复（debug_test_20260808_094210.log, build710, 09:41:28-09:42:08）：
+                //   穿山甲"天降福利小游戏"广告页面有"可立即领奖"提示文案(clickable=false),
+                //   和"再体验4秒可立即领奖"倒计时文案。findClaimRewardButton 用"可立即领奖"
+                //   关键词匹配命中,返回 clickable=false 的文本节点,watchAd 通过 gesture
+                //   点击坐标无效,页面不变。isAdEndedMultiSignal 重复触发→重复点击→循环
+                //   60秒,用户手动停止。
+                //   修复:如果"可立即领奖"节点 clickable=false,且页面有"再体验"开头的文案,
+                //   说明广告还在体验倒计时中(不是真正的领取按钮),跳过。
+                //   真正的领取按钮应该是 clickable=true 的节点。
+                if (kw == "可立即领奖" && !node.isClickable) {
+                    // 检查页面是否有"再体验"开头的文案(说明还在体验倒计时中)
+                    val pageTexts = collectAllText(root)
+                    val hasExperienceCountdown = pageTexts.any { it.startsWith("再体验") }
+                    if (hasExperienceCountdown) {
+                        debugLog("findClaimRewardButton: skip '可立即领奖' text (clickable=false, still in experience countdown) text='$text' desc='$desc' (matched kw='$kw')")
+                        continue
+                    }
+                }
                 Log.d(TAG, "findClaimRewardButton: found by text='$kw'")
                 return node
             }

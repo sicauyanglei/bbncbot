@@ -1,0 +1,177 @@
+=== cleared on app start (version=2.2, build=build710-1fc4a83, time=09:40:21) ===
+09:40:21.994 killPlatformApps: killed com.ucmobile.lite for UC
+09:40:21.995 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+09:40:21.997 killPlatformApps: killed com.taobao.taobao for TAOBAO
+09:40:28.976 FarmAccessibilityService connected, API=36
+09:40:30.401 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+09:40:30.403 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+09:40:30.404 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+09:40:36.385 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+09:40:36.388 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+09:40:39.040 === Automation v2 Started === platform=UC
+09:40:39.042 cancelNavigation: all navigation callbacks cancelled
+09:40:39.100 reset platform complete: UC
+09:40:39.101 state: IDLE -> NAVIGATING
+09:40:39.849 isOnFarmPage: no farm content, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页]
+09:40:40.679 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:40:40.756 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+09:40:42.763 navigate: calling navigateToFarm, platform=UC
+09:40:45.418 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+09:40:45.432 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+09:40:45.435 performClickSafe: ACTION_CLICK failed, trying gesture
+09:40:45.455 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+09:40:45.456 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+09:40:48.717 navigate: on farm page, platform=UC
+09:40:48.763 hasFarmContentLoaded: text count=20, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+09:40:48.764 hasFarmContentLoaded: realContent count=19
+09:40:48.769 navigate: hasFarmContentLoaded=false, attempt=1
+09:40:54.062 navigate: on farm page, platform=UC
+09:40:54.087 hasFarmContentLoaded: text count=32, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+09:40:54.088 hasFarmContentLoaded: realContent count=31
+09:40:54.089 navigate: hasFarmContentLoaded=true, attempt=2
+09:40:54.091 state: NAVIGATING -> COLLECTING_DIRECT
+09:40:56.398 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:40:56.417 [collectDirect-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+09:40:56.440 collectDirect: found 1 direct buttons, attempt=0
+09:40:56.442 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1159][822,1211] (attempt 1)
+09:40:56.447 performClickSafe: text='看广告领奖' desc='' bounds=[641,1159][822,1211] clickable=false
+09:40:56.449 performClickSafe: ACTION_CLICK failed, trying gesture
+09:40:56.450 dispatchGesture: screen=[[641,1159][822,1211]] window=[[0,0][0,0]]
+09:40:56.452 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1185.0)
+09:40:56.455 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+09:41:06.460 collectDirect: jump button '看广告领奖' led to ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity), entering WATCHING_AD
+09:41:06.474 state: COLLECTING_DIRECT -> WATCHING_AD
+09:41:08.522 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+09:41:08.741 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:41:08.753 [watchAd-0ms] claim-text-nodes (count=2):
+09:41:08.757 [watchAd-0ms]   text='可立即领奖' desc='' bounds=[622,975][989,1064] clickable=false
+09:41:08.759 [watchAd-0ms]   text='去体验15秒可立即领奖' desc='' bounds=[543,176][1015,235] clickable=false
+09:41:08.880 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:08.882 watchAd: scene=AD_ENDED, elapsed=0ms/90000ms
+09:41:08.927 watchAd: waiting 0ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, 天降福利小游戏, 第一关, 7s, 目标, 点击, 跳过小游戏立即前往, 点击按钮/滑动跳转落地页或下载应用]
+09:41:14.116 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:14.118 watchAd: scene=AD_ENDED, elapsed=5000ms/90000ms
+09:41:14.136 watchAd: clicking speedUp button '我要加速' to speed up ad countdown
+09:41:14.137 performClickSafe: text='我要加速' desc='' bounds=[212,1535][989,1738] clickable=false
+09:41:14.138 performClickSafe: ACTION_CLICK failed, trying gesture
+09:41:14.139 dispatchGesture: screen=[[212,1535][989,1738]] window=[[0,0][0,0]]
+09:41:14.139 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 1636.5)
+09:41:16.821 watchAd: scene=AD_ENDED, elapsed=10000ms/90000ms
+09:41:21.956 [watchAd-15000ms] snapshot: pkg=com.aliyun.tongyi, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:41:21.980 findAdInstallButton: found trap button by text='立即下载'
+09:41:21.984 watchAd: scene=TRAP_INSTALL, elapsed=15000ms/90000ms
+09:41:21.985 watchAd: install popup trap detected, attempting closeAdInstallPopup
+09:41:21.990 closeAdInstallPopup: no close button found for install popup
+09:41:21.991 watchAd: no close button for install popup, pressing back
+09:41:24.114 findAdInstallButton: found trap button by text='立即体验'
+09:41:24.120 watchAd: scene=TRAP_INSTALL, elapsed=20000ms/90000ms
+09:41:24.121 watchAd: install popup trap detected, attempting closeAdInstallPopup
+09:41:24.145 closeAdInstallPopup: no close button found for install popup
+09:41:24.148 watchAd: no close button for install popup, pressing back
+09:41:26.234 findAdInstallButton: found trap button by text='立即体验'
+09:41:26.241 watchAd: scene=TRAP_INSTALL, elapsed=25000ms/90000ms
+09:41:26.242 watchAd: install popup trap detected, attempting closeAdInstallPopup
+09:41:26.258 closeAdInstallPopup: no close button found for install popup
+09:41:26.259 watchAd: no close button for install popup, pressing back
+09:41:28.411 [watchAd-30000ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:41:28.421 [watchAd-30000ms] claim-text-nodes (count=2):
+09:41:28.422 [watchAd-30000ms]   text='可立即领奖' desc='' bounds=[641,929][1005,1021] clickable=false
+09:41:28.422 [watchAd-30000ms]   text='再体验4秒可立即领奖' desc='' bounds=[569,176][1015,235] clickable=false
+09:41:28.522 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:28.523 watchAd: scene=AD_ENDED, elapsed=30000ms/90000ms
+09:41:28.557 watchAd: checking ad end (30000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, 天降福利小游戏, 第一关, 7s, 目标, 点击, 跳过小游戏立即前往, 点击按钮/滑动跳转落地页或下载应用]
+09:41:28.660 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:28.671 isAdEndedMultiSignal: YES (claim reward button appeared)
+09:41:28.686 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:28.786 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:28.800 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+09:41:28.802 performClickSafe: text='可立即领奖' desc='' bounds=[641,929][1005,1021] clickable=false
+09:41:28.802 performClickSafe: ACTION_CLICK failed, trying gesture
+09:41:28.809 dispatchGesture: screen=[[641,929][1005,1021]] window=[[0,0][0,0]]
+09:41:28.811 dispatchGesture: not in popup, screen bounds valid, click at (823.0, 975.0)
+09:41:34.078 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:34.079 watchAd: scene=AD_ENDED, elapsed=35000ms/90000ms
+09:41:34.144 watchAd: checking ad end (35000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, 天降福利小游戏, 第一关, 7s, 目标, 点击, 跳过小游戏立即前往, 点击按钮/滑动跳转落地页或下载应用]
+09:41:34.352 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:34.366 isAdEndedMultiSignal: YES (claim reward button appeared)
+09:41:34.372 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:34.486 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:34.502 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+09:41:34.504 performClickSafe: text='可立即领奖' desc='' bounds=[641,929][1005,1021] clickable=false
+09:41:34.505 performClickSafe: ACTION_CLICK failed, trying gesture
+09:41:34.506 dispatchGesture: screen=[[641,929][1005,1021]] window=[[0,0][0,0]]
+09:41:34.506 dispatchGesture: not in popup, screen bounds valid, click at (823.0, 975.0)
+09:41:39.859 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:39.862 watchAd: scene=AD_ENDED, elapsed=40000ms/90000ms
+09:41:39.914 watchAd: checking ad end (40000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, 天降福利小游戏, 第一关, 7s, 目标, 点击, 跳过小游戏立即前往, 点击按钮/滑动跳转落地页或下载应用]
+09:41:40.110 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:40.130 isAdEndedMultiSignal: YES (claim reward button appeared)
+09:41:40.142 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:40.405 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:40.414 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+09:41:40.415 performClickSafe: text='可立即领奖' desc='' bounds=[641,929][1005,1021] clickable=false
+09:41:40.416 performClickSafe: ACTION_CLICK failed, trying gesture
+09:41:40.416 dispatchGesture: screen=[[641,929][1005,1021]] window=[[0,0][0,0]]
+09:41:40.417 dispatchGesture: not in popup, screen bounds valid, click at (823.0, 975.0)
+09:41:45.722 [watchAd-45000ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:41:45.739 [watchAd-45000ms] claim-text-nodes (count=2):
+09:41:45.742 [watchAd-45000ms]   text='可立即领奖' desc='' bounds=[641,929][1005,1021] clickable=false
+09:41:45.745 [watchAd-45000ms]   text='再体验4秒可立即领奖' desc='' bounds=[569,176][1015,235] clickable=false
+09:41:46.003 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:46.007 watchAd: scene=AD_ENDED, elapsed=45000ms/90000ms
+09:41:46.074 watchAd: checking ad end (45000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, 天降福利小游戏, 第一关, 7s, 目标, 点击, 跳过小游戏立即前往, 点击按钮/滑动跳转落地页或下载应用]
+09:41:46.285 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:46.318 isAdEndedMultiSignal: YES (claim reward button appeared)
+09:41:46.336 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:46.584 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:46.615 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+09:41:46.618 performClickSafe: text='可立即领奖' desc='' bounds=[641,929][1005,1021] clickable=false
+09:41:46.622 performClickSafe: ACTION_CLICK failed, trying gesture
+09:41:46.625 dispatchGesture: screen=[[641,929][1005,1021]] window=[[0,0][0,0]]
+09:41:46.627 dispatchGesture: not in popup, screen bounds valid, click at (823.0, 975.0)
+09:41:51.916 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:51.921 watchAd: scene=AD_ENDED, elapsed=50000ms/90000ms
+09:41:51.999 watchAd: checking ad end (50000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, 天降福利小游戏, 第一关, 7s, 目标, 点击, 跳过小游戏立即前往, 点击按钮/滑动跳转落地页或下载应用]
+09:41:52.248 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:52.285 isAdEndedMultiSignal: YES (claim reward button appeared)
+09:41:52.297 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:52.455 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:52.470 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+09:41:52.472 performClickSafe: text='可立即领奖' desc='' bounds=[641,929][1005,1021] clickable=false
+09:41:52.473 performClickSafe: ACTION_CLICK failed, trying gesture
+09:41:52.474 dispatchGesture: screen=[[641,929][1005,1021]] window=[[0,0][0,0]]
+09:41:52.475 dispatchGesture: not in popup, screen bounds valid, click at (823.0, 975.0)
+09:41:57.920 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:57.921 watchAd: scene=AD_ENDED, elapsed=55000ms/90000ms
+09:41:57.969 watchAd: checking ad end (55000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, 天降福利小游戏, 第一关, 7s, 目标, 点击, 跳过小游戏立即前往, 点击按钮/滑动跳转落地页或下载应用]
+09:41:58.204 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:58.237 isAdEndedMultiSignal: YES (claim reward button appeared)
+09:41:58.251 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:58.488 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:58.519 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+09:41:58.521 performClickSafe: text='可立即领奖' desc='' bounds=[641,929][1005,1021] clickable=false
+09:41:58.522 performClickSafe: ACTION_CLICK failed, trying gesture
+09:41:58.525 dispatchGesture: screen=[[641,929][1005,1021]] window=[[0,0][0,0]]
+09:41:58.528 dispatchGesture: not in popup, screen bounds valid, click at (823.0, 975.0)
+09:42:03.734 [watchAd-60000ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:42:03.749 [watchAd-60000ms] claim-text-nodes (count=2):
+09:42:03.752 [watchAd-60000ms]   text='可立即领奖' desc='' bounds=[641,929][1005,1021] clickable=false
+09:42:03.755 [watchAd-60000ms]   text='再体验4秒可立即领奖' desc='' bounds=[569,176][1015,235] clickable=false
+09:42:04.000 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:42:04.004 watchAd: scene=AD_ENDED, elapsed=60000ms/90000ms
+09:42:04.058 watchAd: checking ad end (60000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, 天降福利小游戏, 第一关, 7s, 目标, 点击, 跳过小游戏立即前往, 点击按钮/滑动跳转落地页或下载应用]
+09:42:04.241 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:42:04.252 isAdEndedMultiSignal: YES (claim reward button appeared)
+09:42:04.256 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:42:04.443 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:42:04.458 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+09:42:04.459 performClickSafe: text='可立即领奖' desc='' bounds=[641,929][1005,1021] clickable=false
+09:42:04.460 performClickSafe: ACTION_CLICK failed, trying gesture
+09:42:04.461 dispatchGesture: screen=[[641,929][1005,1021]] window=[[0,0][0,0]]
+09:42:04.463 dispatchGesture: not in popup, screen bounds valid, click at (823.0, 975.0)
+09:42:08.171 state: WATCHING_AD -> STOPPING
+09:42:08.178 cancelNavigation: all navigation callbacks cancelled
+09:42:08.181 state: STOPPING -> IDLE
+09:42:10.133 saveToken: saved (len=93, head='gith', tail='McKr')
+09:42:10.137 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+09:42:10.139 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260808_094210.log, localFile=debug.log (19744 bytes)

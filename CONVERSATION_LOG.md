@@ -32,7 +32,41 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build711 点击放弃奖励离开后清除adModeFlag并进入RETURNING避免误判充值页
+### commit (待提交) - fix: build712 排除体验倒计时中的"可立即领奖"提示文案避免穿山甲小游戏广告循环点击
+
+**用户需求**: "分析日志"
+
+**日志分析** (build710, debug_test_20260808_094210.log, 09:41:06-09:42:08):
+
+**build711 验证**: 本次未遇到"确认要离开吗"弹窗场景,未触发。
+
+**问题 (严重)**: 穿山甲"天降福利小游戏"广告,反复点击"可立即领奖"文案无效,循环60秒,用户手动停止
+- 09:41:06 进入穿山甲广告 TTRewardVideoActivity
+- 09:41:08 text='可立即领奖' bounds=[622,975][989,1064] clickable=false ← 提示文案,不可点击
+- 09:41:08 text='去体验15秒可立即领奖' bounds=[543,176][1015,235] clickable=false
+- 09:41:28 isAdEndedMultiSignal: YES (claim reward button appeared) ← 误判广告结束
+- 09:41:28 点击 text='可立即领奖' bounds=[641,929][1005,1021] clickable=false ← gesture 点击无效
+- 09:41:34-42:04 反复点击同一"可立即领奖"文案 8 次,都无效 ← 循环卡死
+- 09:42:08 用户手动停止
+
+**根因**: findClaimRewardButton 用"可立即领奖"关键词匹配命中 clickable=false 的文本节点
+- "可立即领奖"是广告中的提示文案(clickable=false),不是真正的领取按钮
+- 页面显示"再体验4秒可立即领奖" ← 说明还需体验4秒,广告没结束
+- isAdEndedMultiSignal 强信号3 因 findClaimRewardButton 返回非null而返回 true ← 误判
+- watchAd 通过 gesture 点击坐标无效,页面不变
+- isAdEndedMultiSignal 重复触发→重复点击→循环60秒
+
+**修复**: [FarmAccessibilityService.kt#L4517-L4534](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L4517-L4534)
+- findClaimRewardButton 中,如果"可立即领奖"节点 clickable=false
+- 且页面有"再体验"开头的文案(说明还在体验倒计时中)
+- 跳过该节点(不是真正的领取按钮,只是提示文案)
+- 真正的领取按钮应该是 clickable=true 的节点
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 1fc4a83 - fix: build711 点击放弃奖励离开后清除adModeFlag并进入RETURNING避免误判充值页
 
 **用户需求**: "分析日志"
 
