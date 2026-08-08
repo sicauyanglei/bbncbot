@@ -1,0 +1,89 @@
+=== cleared on app start (version=2.2, build=build711-7e79171, time=09:48:02) ===
+09:48:02.952 killPlatformApps: killed com.ucmobile.lite for UC
+09:48:02.953 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+09:48:02.955 killPlatformApps: killed com.taobao.taobao for TAOBAO
+09:48:02.977 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+09:48:02.979 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+09:48:02.980 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+09:48:13.110 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+09:48:13.113 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+09:48:14.968 === Automation v2 Started === platform=UC
+09:48:14.968 cancelNavigation: all navigation callbacks cancelled
+09:48:14.975 reset platform complete: UC
+09:48:14.976 state: IDLE -> NAVIGATING
+09:48:15.531 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:48:15.547 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+09:48:15.649 navigate: on farm page, platform=UC
+09:48:15.657 hasFarmContentLoaded: text count=18, sample=[后退, 智能组件, 菜单, 多窗口, 4, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+09:48:15.660 hasFarmContentLoaded: realContent count=17
+09:48:15.662 navigate: hasFarmContentLoaded=false, attempt=0
+09:48:21.313 navigate: on farm page, platform=UC
+09:48:21.324 hasFarmContentLoaded: text count=148, sample=[后退, 智能组件, 菜单, 多窗口, 4, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+09:48:21.325 hasFarmContentLoaded: realContent count=135
+09:48:21.326 navigate: hasFarmContentLoaded=true, attempt=1
+09:48:21.327 state: NAVIGATING -> COLLECTING_DIRECT
+09:48:23.873 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:48:23.889 [collectDirect-start] claim-text-nodes (count=4):
+09:48:23.890 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+09:48:23.891 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+09:48:23.892 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+09:48:23.892 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2230][694,2299] clickable=false
+09:48:23.929 collectDirect: found 1 direct buttons, attempt=0
+09:48:23.936 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1159][822,1208] (attempt 1)
+09:48:23.938 performClickSafe: text='看广告领奖' desc='' bounds=[641,1159][822,1208] clickable=false
+09:48:23.939 performClickSafe: ACTION_CLICK failed, trying gesture
+09:48:23.940 dispatchGesture: screen=[[641,1159][822,1208]] window=[[0,0][0,0]]
+09:48:23.941 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1183.5)
+09:48:23.944 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+09:48:33.951 collectDirect: jump button '看广告领奖' led to ad (act=com.qq.e.ads.PortraitADActivity), entering WATCHING_AD
+09:48:33.959 state: COLLECTING_DIRECT -> WATCHING_AD
+09:48:36.027 findAdDurationHint: found pure-number countdown '29', seconds=29
+09:48:36.031 watchAd: parsed ad duration hint=29s, min wait=31000ms, max wait=90000ms (hint+buffer), checkInterval=5000ms
+09:48:36.071 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.qq.e.ads.PortraitADActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:48:36.078 [watchAd-0ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+09:48:36.082 findFasterRewardEntryButton: found '我要更快拿奖'
+09:48:36.085 watchAd: clicking '我要更快拿奖' entry button
+09:48:36.086 performClickSafe: text='我要更快拿奖' desc='' bounds=[444,1730][756,1792] clickable=false
+09:48:36.087 performClickSafe: ACTION_CLICK failed, trying gesture
+09:48:36.089 dispatchGesture: screen=[[444,1730][756,1792]] window=[[444,1730][756,1792]]
+09:48:36.090 dispatchGesture: not in popup, screen bounds valid, click at (600.0, 1761.0)
+09:48:41.116 isFasterRewardPopupShown: YES, faster reward popup detected
+09:48:41.135 findFasterRewardAllowButton: found '继续'
+09:48:41.137 watchAd: clicking allow on faster reward confirm popup
+09:48:41.139 performClickSafe: text='继续了解详情' desc='' bounds=[277,1769][923,1887] clickable=false
+09:48:41.141 performClickSafe: ACTION_CLICK failed, trying gesture
+09:48:41.143 dispatchGesture: screen=[[277,1769][923,1887]] window=[[277,1769][923,1887]]
+09:48:41.145 dispatchGesture: not in popup, screen bounds valid, click at (600.0, 1828.0)
+09:48:46.274 watchAd: faster reward staying in new app, 5125/16000ms elapsed
+09:48:51.329 [watchAd-15000ms] snapshot: pkg=com.ucmobile.lite, act=com.qq.e.ads.PortraitADActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:48:51.341 [watchAd-15000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+09:48:51.405 watchAd: faster reward staying in new app, 10257/16000ms elapsed
+09:48:56.460 watchAd: faster reward staying in new app, 15312/16000ms elapsed
+09:49:01.514 watchAd: 16s elapsed, killing new app 'null' + activating farm
+09:49:01.516 watchAd: launching farm platform UC to foreground
+09:49:01.519 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+09:49:01.521 reopenFarmByDeepLink: pressing HOME to background UC before kill
+09:49:01.523 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+09:49:01.525 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+09:49:01.564 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+09:49:01.565 launchPlatformApp: opened UC via deep link
+09:49:01.566 watchAd: no pkg recorded, pressing back to close new app
+09:49:06.597 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+09:49:07.454 [watchAd-30000ms] snapshot: pkg=com.hihonor.android.launcher, act=null, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:49:07.499 watchAd: waiting for '恭喜获得奖励提升' popup (stage=3)
+09:49:12.539 watchAd: waiting for '恭喜获得奖励提升' popup (stage=3)
+09:49:17.566 watchAd: waiting for '恭喜获得奖励提升' popup (stage=3)
+09:49:22.602 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+09:49:22.760 [watchAd-45000ms] snapshot: pkg=com.hihonor.android.launcher, act=null, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:49:22.799 watchAd: waiting for '恭喜获得奖励提升' popup (stage=3)
+09:49:27.830 watchAd: waiting for '恭喜获得奖励提升' popup (stage=3)
+09:49:32.933 watchAd: waiting for '恭喜获得奖励提升' popup (stage=3)
+09:50:56.473 isOnFarmPage: activeRootPkg='com.hihonor.aod' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+09:50:56.553 [watchAd-60000ms] snapshot: pkg=com.hihonor.aod, act=null, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:50:56.565 watchAd: waiting for '恭喜获得奖励提升' popup (stage=3)
+09:50:58.084 state: WATCHING_AD -> STOPPING
+09:50:58.087 cancelNavigation: all navigation callbacks cancelled
+09:50:58.090 state: STOPPING -> IDLE
+09:51:01.459 saveToken: saved (len=93, head='gith', tail='McKr')
+09:51:01.465 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+09:51:01.466 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260808_095101.log, localFile=debug.log (8722 bytes)

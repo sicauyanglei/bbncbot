@@ -32,7 +32,42 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build712 排除体验倒计时中的"可立即领奖"提示文案避免穿山甲小游戏广告循环点击
+### commit (待提交) - fix: build713 排除"继续了解详情"避免误点广告CTA导致误杀UC卡死
+
+**用户需求**: "分析日志"
+
+**日志分析** (build711, debug_test_20260808_095101.log, 09:48:36-09:50:58):
+
+**build712 验证**: 本次未遇到"可立即领奖"体验倒计时场景,未触发。
+
+**问题 (严重)**: "我要更快拿奖"流程中,误点"继续了解详情"广告CTA,新App包名未记录,16秒后误杀UC,卡死
+- 09:48:36 点击"我要更快拿奖" → stage=1
+- 09:48:41 findFasterRewardAllowButton: found '继续' ← 实际匹配到"继续了解详情"(广告CTA)
+- 09:48:41 点击"继续了解详情" → stage=2
+- 09:48:46-56 faster reward staying in new app ← 但 fasterRewardAppPkg=null(没有跳转到新App)
+- 09:49:01 16s elapsed, killing new app 'null' + activating farm ← 包名是null
+- 09:49:01 forceKillApp: killing com.ucmobile.lite ← **误杀UC!**
+- 09:49:01 no pkg recorded, pressing back ← pressBack也无效
+- 09:49:06 activeRootPkg='com.hihonor.android.launcher' ← UC被杀后没重启
+- 09:49:07-50:56 waiting for '恭喜获得奖励提升' popup (stage=3) ← 一直等,卡死
+- 09:50:58 用户手动停止
+
+**根因**: findFasterRewardAllowButton 用 findNodeByText(root, "继续") 匹配
+- findNodeByText 用 contains 匹配,命中"继续了解详情"(包含"继续")
+- "继续了解详情"是广告CTA按钮,点击后在广告内打开详情页,不跳转到新App
+- fasterRewardAppPkg 未记录(null),16秒后误杀UC(ForceKillApp(com.ucmobile.lite))
+- UC被杀后deep link拉起失败,卡死在launcher等待"恭喜获得奖励提升"弹窗
+
+**修复**: [FarmAccessibilityService.kt#L2443-L2467](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L2443-L2467)
+- findFasterRewardAllowButton 中,"继续"关键词排除"继续了解详情"等长文本
+- 真正的"继续"按钮文本应该就是"继续"两个字,不应包含"了解详情"等广告文案
+- 排除条件:kw=="继续" && (nodeText.contains("了解详情") || nodeText.length > 4)
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 7e79171 - fix: build712 排除体验倒计时中的"可立即领奖"提示文案避免穿山甲小游戏广告循环点击
 
 **用户需求**: "分析日志"
 

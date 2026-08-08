@@ -2446,7 +2446,20 @@ class FarmAccessibilityService : AccessibilityService() {
         for (kw in allowKeywords) {
             val node = findNodeByText(root, kw)
             if (node != null) {
-                debugLog("findFasterRewardAllowButton: found '$kw'")
+                // build713 修复（debug_test_20260808_095101.log, build711, 09:48:41）:
+                //   "我要更快拿奖"确认弹窗中,findNodeByText(root, "继续") 用 contains
+                //   匹配命中"继续了解详情"(广告 CTA 按钮,不是确认弹窗的"继续"按钮)。
+                //   点击"继续了解详情"后在广告内打开详情页,没有跳转到新 App,
+                //   fasterRewardAppPkg 未记录(null),16秒后误杀 UC(ForceKillApp(com.ucmobile.lite)),
+                //   UC 无法重启,卡死在 launcher 等待"恭喜获得奖励提升"弹窗,用户手动停止。
+                //   修复:排除"继续了解详情"等长文本(广告 CTA,不是确认按钮)。
+                //   真正的"继续"按钮文本应该就是"继续"两个字,不应包含"了解详情"等广告文案。
+                val nodeText = node.text?.toString().orEmpty()
+                if (kw == "继续" && (nodeText.contains("了解详情") || nodeText.length > 4)) {
+                    debugLog("findFasterRewardAllowButton: skip '$nodeText' for kw='继续' (ad CTA, not confirm button)")
+                    continue
+                }
+                debugLog("findFasterRewardAllowButton: found '$kw' (text='$nodeText')")
                 return node
             }
         }
