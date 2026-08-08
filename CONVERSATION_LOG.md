@@ -32,6 +32,39 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build714 watchAd检测跳转到非农场App(千问)并退出,避免卡死误杀UC
+
+**用户需求**: "分析日志"
+
+**日志分析** (build712, debug_test_20260808_165631.log, 10:12:11-10:29:03):
+
+**build713 验证**: 本次日志 build=build712,build713 未部署。本次未遇到"我要更快拿奖"场景,未触发。
+
+**问题 (严重)**: 点击"我要加速"跳转千问App,watchAd 没检测到跳转,卡死5分钟,误杀UC
+- 10:12:11 点击"我要加速"(穿山甲广告按钮) → 10:12:18 pkg=com.aliyun.tongyi(千问App)
+- 10:12:18-10:12:59 一直在千问App里等待(scene=AD_ENDED,因 isAdActivity()=true 缓存了旧值)
+- 10:12:59 灭屏(com.hihonor.aod),卡5分钟
+- 10:17:03 亮屏,findAdDurationHint 误把锁屏"10"当倒计时 → scene=AD_PLAYING
+- 10:27:40 误判广告结束 → closeAd 在千问页点击8个位置无效
+- 10:28:00-25 pressBack 3次无效,还在千问
+- 10:29:00 forceKillApp 误杀UC(com.ucmobile.lite),应kill千问 → STOPPING
+
+**根因**: isAdActivity() 基于 currentActivityName(缓存值),跳转千问后仍返回 true
+- isNonAdPage() 因 isAdActivity()=true 而返回 false,没检测到跳转到非农场App
+- watchAd 没有"当前包名是否是农场App"的检测,一直在千问App里等待
+- 最终 navigate 流程的 forceKillApp 写死了杀UC,而非杀当前前台App(千问)
+
+**修复**: [AutomationController.kt#L4882-L4916](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L4882-L4916)
+- watchAd 主循环中(fasterRewardStage when 块之后、scene 判断之前),检测 getCurrentWindowPackage()
+- 如果当前包名不是农场App(且不是系统UI launcher/aod/systemui),说明被广告按钮带偏
+- 退出当前App:launchPlatformApp(农场, killCurrentFirst=false) 拉起农场覆盖 + forceKillApp(当前App) kill
+- 跳过任务(currentTaskIndex++),进入 OPENING_TASK_LIST 重新导航
+- fasterRewardStage=2 停留阶段已在 when 块内 return,不会走到此检测,不受影响
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build713 排除"继续了解详情"避免误点广告CTA导致误杀UC卡死
 
 **用户需求**: "分析日志"

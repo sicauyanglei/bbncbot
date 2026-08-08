@@ -4879,6 +4879,42 @@ object AutomationController {
             }
         }
 
+        // build714 修复（debug_test_20260808_165631.log, build712, 10:12:11-10:29:03）:
+        //   10:12:11 点击"我要加速" → 10:12:18 pkg=com.aliyun.tongyi（千问App）
+        //   "我要加速"是穿山甲广告的陷阱按钮,点击后跳转/打开千问App
+        //   watchAd 没有检测到跳转,一直在千问App里等待(isAdActivity()=true 因缓存了旧 Activity 名)
+        //   10:12:59 灭屏卡5分钟 → 10:27:40 误判广告结束 → closeAd 在千问页点击无效
+        //   10:28:00-25 pressBack 3次无效 → 10:29:00 forceKillApp 误杀UC(应kill千问)
+        //   根因:isAdActivity() 基于 currentActivityName(缓存值),跳转后仍返回 true,
+        //         isNonAdPage() 因此返回 false,没有检测到跳转到非农场App
+        //   修复:直接检测 getCurrentWindowPackage() 是否是农场App包名,
+        //         如果不是(且不是系统UI),说明被广告按钮带偏,退出当前App并重新激活农场App
+        //         (fasterRewardStage=2 停留阶段已在 when 块内 return,不会走到这里)
+        val currentPkg = service.getCurrentWindowPackage()
+        if (watchingAdPlatform != Platform.UNKNOWN && currentPkg != null &&
+            currentPkg !in watchingAdPlatform.config.packageNames &&
+            !currentPkg.contains("launcher", ignoreCase = true) &&
+            !currentPkg.contains("aod", ignoreCase = true) &&
+            currentPkg != "android" && currentPkg != "com.android.systemui" &&
+            currentPkg != "com.bbncbot") {
+            Log.w(TAG, "watchAd: left farm app to '$currentPkg' (ad button trap), exiting it and relaunching farm (elapsed=${elapsedMs}ms)")
+            debugLog("watchAd: current pkg='$currentPkg' is not farm app, exiting (ad button trap) and relaunching farm")
+            service.setAdMode(false)
+            // 1. 拉起农场App到前台(覆盖千问等非广告App),不杀农场App进程
+            service.launchPlatformApp(watchingAdPlatform, killCurrentFirst = false)
+            // 2. kill 非广告App(此时已在后台,killBackgroundProcesses 有效),
+            //    同时清除 currentActivityName/currentEventPkg 缓存避免 isAdActivity 误判
+            service.forceKillApp(currentPkg, pressBackFirst = false)
+            currentTaskIndex++
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) {
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
         // 误入非广告页面兜底检测
         // 场景：任务跳转到小程序/游戏页面（非广告），被误判为 deep-link ad task 进入 WATCHING_AD
         // 此时 adModeFlag=true 导致 isAdPlaying()=true，但页面实际没有广告特征
