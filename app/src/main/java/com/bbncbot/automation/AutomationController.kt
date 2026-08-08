@@ -5336,13 +5336,22 @@ object AutomationController {
         // 点击后可加速倒计时,让广告更快结束,节省等待时间。
         // 策略：在广告播放期间（elapsedMs < min wait）,检测到"点我加速"按钮时点击一次。
         // 防重入：用 adSpeedUpClicked 标记,每轮广告只点一次。
-        // build700: 用户需求"应该点击我要加速",扩展匹配"我要加速"(字节穿山甲 TTRewardVideoActivity 用此文案)。
+        // build715 回退（debug_test_20260809_064604.log, build713, 06:42:17-06:46:02）：
+        //   build700 扩展匹配"我要加速"(字节穿山甲 TTRewardVideoActivity),但日志证明该文案是陷阱CTA:
+        //   - text='我要加速' bounds=[212,1535][989,1738] clickable=false(大区域横幅,非按钮)
+        //   - 06:42:17 点击"我要加速" → 06:42:19 pkg=com.taobao.taobao(跳转淘宝)
+        //   - 06:44:14 点击"我要加速" → 06:44:16 pkg=com.taobao.taobao(再次跳转淘宝)
+        //   - 06:44:49 点击"我要加速" → 06:44:57 pkg=com.taobao.idlefish(跳转闲鱼)
+        //   build714 虽检测到跳转并退出,但每轮广告 adSpeedUpClicked 重置,每次都点→每次都跳转,
+        //   广告白看无法领奖励,还触发UC重启卡死在launcher,用户手动停止。
+        //   回退:移除"我要加速"匹配,只保留"点我加速"(KsRewardVideoActivity 真正加速按钮,clickable=true)。
+        //   不点击"我要加速",广告正常播放到 minDuration 后检测结束领奖励,避免跳转陷阱。
         if (!adSpeedUpClicked && elapsedMs < adMinDurationMs && elapsedMs >= 1000L) {
             val root = service.getRootInFarmApp()
             if (root != null) {
-                // 优先匹配"点我加速"(穿山甲 KsRewardVideoActivity),其次"我要加速"(字节穿山甲 TTRewardVideoActivity)
+                // 只匹配"点我加速"(穿山甲 KsRewardVideoActivity 真正加速按钮)
+                // "我要加速"是 TTRewardVideoActivity 的陷阱CTA(clickable=false 大横幅),点击会跳转淘宝/闲鱼
                 val speedUpNode = service.findNodeByText(root, "点我加速")
-                    ?: service.findNodeByText(root, "我要加速")
                 if (speedUpNode != null) {
                     adSpeedUpClicked = true
                     val speedUpText = speedUpNode.text?.toString().orEmpty()

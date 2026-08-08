@@ -32,6 +32,39 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build715 移除"我要加速"匹配,该文案是穿山甲陷阱CTA导致跳转淘宝/闲鱼
+
+**用户需求**: "分析日志"
+
+**日志分析** (build713, debug_test_20260809_064604.log, 06:42:17-06:46:02):
+
+**build714 验证**: ✓ watchAd 检测到跳转并退出(3次都成功)
+- 06:42:19 `current pkg='com.taobao.taobao' is not farm app, exiting (ad button trap)`
+- 06:44:16 `current pkg='com.taobao.taobao' is not farm app, exiting (ad button trap)`
+- 06:44:57 `current pkg='com.taobao.idlefish' is not farm app, exiting (ad button trap)`
+
+**问题 (严重)**: "我要加速"是穿山甲 TTRewardVideoActivity 的陷阱CTA,点击后跳转淘宝/闲鱼
+- text='我要加速' bounds=[212,1535][989,1738] clickable=false(大区域横幅,非真正按钮)
+- 06:42:17 点击"我要加速" → 06:42:19 跳转淘宝 → build714退出 → UC重启卡launcher
+- 06:44:14 点击"我要加速" → 06:44:16 跳转淘宝 → build714退出
+- 06:44:49 点击"我要加速" → 06:44:57 跳转闲鱼 → build714退出 → UC重启卡launcher → 用户手动停止
+- 根因:每轮广告 adSpeedUpClicked 重置,每次进入新广告都点"我要加速"→每次都跳转
+- 广告白看无法领奖励,还触发UC重启卡死
+
+**根因**: build700 扩展匹配"我要加速"(用户当时要求"应该点击我要加速")
+- 但日志证明"我要加速"在 TTRewardVideoActivity 里是陷阱CTA(clickable=false 大横幅)
+- 点击后跳转淘宝/闲鱼,不是加速广告倒计时
+- "点我加速"(KsRewardVideoActivity)才是真正加速按钮
+
+**修复**: [AutomationController.kt#L5333-L5354](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5333-L5354)
+- 移除"我要加速"匹配,只保留"点我加速"
+- 不点击"我要加速",广告正常播放到 minDuration 后检测结束领奖励
+- 避免跳转陷阱,避免UC重启卡死
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build714 watchAd检测跳转到非农场App(千问)并退出,避免卡死误杀UC
 
 **用户需求**: "分析日志"
