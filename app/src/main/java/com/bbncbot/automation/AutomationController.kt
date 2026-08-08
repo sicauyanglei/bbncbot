@@ -52,6 +52,12 @@ object AutomationController {
     private const val AD_DURATION_BUFFER_MS = 2000L
     /** "更快拿奖"流程：点击"允许"后新 App 打开的停留时间（毫秒） */
     private const val FASTER_REWARD_APP_STAY_MS = 16000L
+    /** build716: "我要加速"点击后跳转App的停留时间（毫秒）
+     * 用户需求："点击我要加速后,需要等待指定的时间后回到芭芭农场广告点击时的页面领取"
+     * - 点击"我要加速"会跳转到淘宝/闲鱼等App(穿山甲TTRewardVideoActivity的CTA)
+     * - 需要在跳转的App里停留10秒,然后回到广告页面才能领取奖励
+     * - 不能关闭芭芭农场重新打开,只能在原来点击"我要加速"时的页面领取 */
+    private const val SPEED_UP_JUMP_STAY_MS = 10000L
     /**
      * 广告深链跳转进入其他 App（如快手）后的等待时间（毫秒）
      * - 用户要求：打开快手等其它app任务，等其它app打开后等2秒，把主界面激活到前台，同时kill掉打开的app
@@ -264,6 +270,19 @@ object AutomationController {
     /** build675: "点我加速"按钮已点击（穿山甲激励视频加速按钮,每轮广告只点一次） */
     @Volatile
     private var adSpeedUpClicked: Boolean = false
+    /** build716: "我要加速"跳转状态机
+     * - 0=未跳转（正常广告观看）
+     * - 1=已点击"我要加速"并跳转到其他App,停留中
+     * - 2=停留结束已pressBack回广告页,继续领奖
+     * 每次进入 WATCHING_AD 时重置为 0 */
+    @Volatile
+    private var adSpeedUpJumpStage: Int = 0
+    /** build716: "我要加速"跳转的目标App包名（用于判断是否还在跳转App中） */
+    @Volatile
+    private var adSpeedUpJumpPkg: String? = null
+    /** build716: 点击"我要加速"跳转时的时间戳（用于计算停留时间） */
+    @Volatile
+    private var adSpeedUpJumpTimeMs: Long = 0L
 
     /** build696: "去体验N秒可立即领奖"CTA 已点击（体验类广告,每轮广告只点一次） */
     @Volatile
@@ -4601,6 +4620,10 @@ object AutomationController {
             adCountdownStallHandled = false
             // build675: 重置"点我加速"按钮点击标记
             adSpeedUpClicked = false
+            // build716: 重置"我要加速"跳转状态机
+            adSpeedUpJumpStage = 0
+            adSpeedUpJumpPkg = null
+            adSpeedUpJumpTimeMs = 0L
             // build696: 重置"去体验N秒可立即领奖"CTA 点击标记
             adExperienceClicked = false
             // build678: 重置"点击商品,领取奖励"广告商品点击标记
@@ -4879,6 +4902,71 @@ object AutomationController {
             }
         }
 
+        // build716: "我要加速"跳转停留阶段处理
+        // 用户需求："点击我要加速后,需要等待指定的时间后回到芭芭农场广告点击时的页面领取,
+        //           不是关闭芭芭农场重新打开,只有在原来点击我要加速时的页面才能领取奖励"
+        // - 点击"我要加速"会跳转到淘宝/闲鱼等App(穿山甲TTRewardVideoActivity的CTA)
+        // - 需要在跳转的App里停留10秒,然后pressBack回到广告页面继续领奖
+        // - 不能关闭芭芭农场重新打开(会丢失广告会话,无法领奖励)
+        if (adSpeedUpJumpStage == 1) {
+            val currentPkg = service.getCurrentWindowPackage()
+            // 首次进入此阶段时记录跳转目标App包名
+            if (adSpeedUpJumpPkg == null && currentPkg != null &&
+                currentPkg !in watchingAdPlatform.config.packageNames &&
+                !currentPkg.contains("launcher", ignoreCase = true) &&
+                !currentPkg.contains("aod", ignoreCase = true) &&
+                currentPkg != "android" && currentPkg != "com.android.systemui" &&
+                currentPkg != "com.bbncbot") {
+                adSpeedUpJumpPkg = currentPkg
+                adSpeedUpJumpTimeMs = System.currentTimeMillis()
+                Log.i(TAG, "watchAd: '我要加速' jumped to '$currentPkg', staying ${SPEED_UP_JUMP_STAY_MS}ms then pressBack to ad page")
+                debugLog("watchAd: '我要加速' jumped to app '$currentPkg', staying 10s")
+            }
+            // 停留期间检测陷阱页(充值/交易/异常页),若命中则立即放弃跳转
+            if (service.isRechargePage() || service.isOnAbnormalPage()) {
+                Log.w(TAG, "watchAd: '我要加速' stay hit trap page, aborting jump and exiting task")
+                debugLog("watchAd: speedUp jump stay hit trap page, killing jumped app immediately")
+                service.setAdMode(false)
+                val jumpedPkg = adSpeedUpJumpPkg
+                if (jumpedPkg != null) {
+                    service.forceKillApp(jumpedPkg, pressBackFirst = false)
+                } else {
+                    service.pressBack()
+                }
+                adSpeedUpJumpStage = 2
+                currentTaskIndex++
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) {
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    }
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+            // 计算停留时间
+            val stayedMs = if (adSpeedUpJumpTimeMs > 0) {
+                System.currentTimeMillis() - adSpeedUpJumpTimeMs
+            } else 0L
+            if (stayedMs >= SPEED_UP_JUMP_STAY_MS) {
+                // 停留满10秒,pressBack回到广告页面(不kill、不重开UC,保留广告会话)
+                Log.i(TAG, "watchAd: '我要加速' stayed ${stayedMs}ms, pressing back to return to ad page")
+                debugLog("watchAd: 10s elapsed, pressBack to return to ad page (not relaunching farm)")
+                service.pressBack()
+                adSpeedUpJumpStage = 2
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            } else {
+                // 还未满10秒,继续等待
+                debugLog("watchAd: '我要加速' staying in jumped app, ${stayedMs}/${SPEED_UP_JUMP_STAY_MS}ms elapsed")
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                }, adEndCheckIntervalMs)
+                return
+            }
+        }
+
         // build714 修复（debug_test_20260808_165631.log, build712, 10:12:11-10:29:03）:
         //   10:12:11 点击"我要加速" → 10:12:18 pkg=com.aliyun.tongyi（千问App）
         //   "我要加速"是穿山甲广告的陷阱按钮,点击后跳转/打开千问App
@@ -4890,8 +4978,11 @@ object AutomationController {
         //   修复:直接检测 getCurrentWindowPackage() 是否是农场App包名,
         //         如果不是(且不是系统UI),说明被广告按钮带偏,退出当前App并重新激活农场App
         //         (fasterRewardStage=2 停留阶段已在 when 块内 return,不会走到这里)
+        //         (adSpeedUpJumpStage=1 停留阶段已在上方处理并 return,不会走到这里)
+        //   build716 调整:此检测现在只处理"非我要加速跳转"的其他意外跳转(如千问误点CTA)
         val currentPkg = service.getCurrentWindowPackage()
         if (watchingAdPlatform != Platform.UNKNOWN && currentPkg != null &&
+            adSpeedUpJumpStage != 1 &&  // 放行"我要加速"跳转停留阶段
             currentPkg !in watchingAdPlatform.config.packageNames &&
             !currentPkg.contains("launcher", ignoreCase = true) &&
             !currentPkg.contains("aod", ignoreCase = true) &&
@@ -5336,28 +5427,30 @@ object AutomationController {
         // 点击后可加速倒计时,让广告更快结束,节省等待时间。
         // 策略：在广告播放期间（elapsedMs < min wait）,检测到"点我加速"按钮时点击一次。
         // 防重入：用 adSpeedUpClicked 标记,每轮广告只点一次。
-        // build715 回退（debug_test_20260809_064604.log, build713, 06:42:17-06:46:02）：
-        //   build700 扩展匹配"我要加速"(字节穿山甲 TTRewardVideoActivity),但日志证明该文案是陷阱CTA:
-        //   - text='我要加速' bounds=[212,1535][989,1738] clickable=false(大区域横幅,非按钮)
-        //   - 06:42:17 点击"我要加速" → 06:42:19 pkg=com.taobao.taobao(跳转淘宝)
-        //   - 06:44:14 点击"我要加速" → 06:44:16 pkg=com.taobao.taobao(再次跳转淘宝)
-        //   - 06:44:49 点击"我要加速" → 06:44:57 pkg=com.taobao.idlefish(跳转闲鱼)
-        //   build714 虽检测到跳转并退出,但每轮广告 adSpeedUpClicked 重置,每次都点→每次都跳转,
-        //   广告白看无法领奖励,还触发UC重启卡死在launcher,用户手动停止。
-        //   回退:移除"我要加速"匹配,只保留"点我加速"(KsRewardVideoActivity 真正加速按钮,clickable=true)。
-        //   不点击"我要加速",广告正常播放到 minDuration 后检测结束领奖励,避免跳转陷阱。
+        // build700: 用户需求"应该点击我要加速",扩展匹配"我要加速"(字节穿山甲 TTRewardVideoActivity 用此文案)。
+        // build715 回退:曾因"我要加速"跳转淘宝/闲鱼而移除匹配,但用户澄清"我要加速也需要点击,
+        //   需要等待指定的时间后回到芭芭农场广告点击时的页面领取,不是关闭重新打开"。
+        // build716 恢复+完善:恢复"我要加速"匹配,点击后进入跳转停留状态机(adSpeedUpJumpStage),
+        //   在跳转App停留10秒后pressBack回广告页继续领奖(不关闭重开UC,保留广告会话)。
         if (!adSpeedUpClicked && elapsedMs < adMinDurationMs && elapsedMs >= 1000L) {
             val root = service.getRootInFarmApp()
             if (root != null) {
-                // 只匹配"点我加速"(穿山甲 KsRewardVideoActivity 真正加速按钮)
-                // "我要加速"是 TTRewardVideoActivity 的陷阱CTA(clickable=false 大横幅),点击会跳转淘宝/闲鱼
+                // 优先匹配"点我加速"(穿山甲 KsRewardVideoActivity 真正加速按钮,不跳转)
+                // 其次匹配"我要加速"(字节穿山甲 TTRewardVideoActivity CTA,会跳转淘宝/闲鱼,需停留后返回)
                 val speedUpNode = service.findNodeByText(root, "点我加速")
+                    ?: service.findNodeByText(root, "我要加速")
                 if (speedUpNode != null) {
                     adSpeedUpClicked = true
                     val speedUpText = speedUpNode.text?.toString().orEmpty()
                     Log.i(TAG, "watchAd: found speedUp button '$speedUpText', clicking to speed up ad (elapsed=${elapsedMs}ms)")
                     debugLog("watchAd: clicking speedUp button '$speedUpText' to speed up ad countdown")
                     service.performClickSafe(speedUpNode)
+                    // build716: 如果点击的是"我要加速",进入跳转停留状态机
+                    // (点击"点我加速"不跳转,无需进入状态机)
+                    if (speedUpText == "我要加速") {
+                        adSpeedUpJumpStage = 1
+                        debugLog("watchAd: '我要加速' clicked, entering jump stay state (will stay 10s then pressBack to ad page)")
+                    }
                     handler.postDelayed({
                         if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
                     }, INTERVAL_CLICK_MS)
