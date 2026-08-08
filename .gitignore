@@ -16,6 +16,8 @@ debug.keystore
 .trae/
 # 例外：项目规则文件需要提交到版本库，让远端会话也能加载规则
 !.trae/rules/
+# GitHub PAT 本地存储，绝不进入版本库（Push Protection 会拦截明文 PAT）
+.trae/rules/.github_token
 
 # OS
 .DS_Store
