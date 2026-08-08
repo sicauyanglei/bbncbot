@@ -32,7 +32,44 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build710 RETURNING在广告Activity中时pressBack而非forceKillApp(UC)避免卡死
+### commit (待提交) - fix: build711 点击放弃奖励离开后清除adModeFlag并进入RETURNING避免误判充值页
+
+**用户需求**: "分析日志"
+
+**日志分析** (build709, debug_test_20260808_092128.log, 09:20:57-09:21:25):
+
+**build703 验证** (点击商品后2s关闭): ✓
+- 09:20:57 点击商品 → 09:20:59 `closing ad window 2s after product click (sinceClick=2213ms)`
+
+**build704 验证** (确认要离开弹窗): ✓
+- 09:21:01 `watchAd: 确认要离开吗弹窗, clicking 放弃奖励离开`
+- 09:21:01 点击"放弃奖励离开"成功
+
+**问题 (严重)**: 点击"放弃奖励离开"后回到农场主页,adModeFlag未清除,误判为充值页,卡死
+- 09:21:01 点击"放弃奖励离开"成功 → 广告关闭,回到农场主页
+- 09:21:04 `isRechargePage: YES` ← **误判!** 农场主页被误判为充值页
+- 09:21:04 `scene=TRAP_RECHARGE` ← 误判
+- 09:21:04 `clickCloseOnRechargePage: found close button by text='关闭'` ← 在农场主页误点"关闭"
+- 09:21:06-22 `scene=AD_ENDED` 但 `adPlaying=true` 标记未清除,卡在 watchAd 等待
+- 09:21:25 用户手动停止
+
+**根因**: 点击"放弃奖励离开"后,未清除 adModeFlag 就继续 runWatchingAd 轮询
+- 下一轮 runWatchingAd 时,页面已回到农场主页,但 adModeFlag=true
+- isOnFarmPage() 第695行 `if (adModeFlag) { return false }` → 返回 false
+- isRechargePage() 因 isOnFarmPage()=false 而继续检查
+- 农场主页文本(含"下单得")被误判为充值页 → scene=TRAP_RECHARGE
+- clickCloseOnRechargePage 在农场主页误点"关闭"按钮,卡死
+
+**修复**: [AutomationController.kt#L5275-L5295](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt#L5275-L5295)
+- 点击"放弃奖励离开"后,立即清除 adModeFlag(setAdMode(false))
+- 计入 collectedCount(肥料已在点击商品时获取)
+- 进入 RETURNING 流程,不再继续 runWatchingAd 轮询
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 5f00c83 - fix: build710 RETURNING在广告Activity中时pressBack而非forceKillApp(UC)避免卡死
 
 **用户需求**: "分析日志"
 

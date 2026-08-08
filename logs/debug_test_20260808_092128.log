@@ -1,0 +1,119 @@
+=== cleared on app start (version=2.2, build=build709-5f00c83, time=09:05:29) ===
+09:05:29.589 killPlatformApps: killed com.ucmobile.lite for UC
+09:05:29.590 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+09:05:29.591 killPlatformApps: killed com.taobao.taobao for TAOBAO
+09:05:29.605 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+09:05:29.610 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+09:05:29.610 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+09:05:39.304 saveToken: saved (len=93, head='gith', tail='McKr')
+09:05:39.307 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+09:05:39.309 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260808_090539.log, localFile=debug.log (740 bytes)
+09:05:40.905 uploadFile resp: code=201, url=logs/debug_test_20260808_090539.log, errBody=
+09:05:40.906 uploaded: logs/debug_test_20260808_090539.log (897 bytes)
+09:05:40.907 upload: success, remotePath=logs/debug_test_20260808_090539.log
+09:05:40.907 upload done: 1 files uploaded (tag=test), errors=[]
+09:20:30.698 === Automation v2 Started === platform=UC
+09:20:30.707 cancelNavigation: all navigation callbacks cancelled
+09:20:30.709 reset platform complete: UC
+09:20:30.709 state: IDLE -> NAVIGATING
+09:20:30.728 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+09:20:30.735 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+09:20:30.756 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+09:20:30.760 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+09:20:30.767 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+09:20:30.775 [navigate-start] snapshot: pkg=null, act=com.bbncbot.MainActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:20:30.784 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+09:20:30.791 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+09:20:30.803 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+09:20:30.821 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+09:20:30.832 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+09:20:30.833 navigate: farm app not in foreground (platform=UC, attempt=0), calling reopenFarmByDeepLink
+09:20:30.834 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+09:20:30.835 reopenFarmByDeepLink: pressing HOME to background UC before kill
+09:20:30.836 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+09:20:30.837 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+09:20:30.851 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+09:20:35.305 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+09:20:35.308 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+09:20:35.866 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+09:20:35.867 navigate: still not in farm app after relaunch, calling navigateToFarm to push navigation
+09:20:35.951 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+09:20:35.965 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+09:20:35.982 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+09:20:36.000 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+09:20:37.534 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+09:20:37.537 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+09:20:37.538 performClickSafe: ACTION_CLICK failed, trying gesture
+09:20:37.538 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+09:20:37.539 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+09:20:41.424 navigate: on farm page, platform=UC
+09:20:41.444 hasFarmContentLoaded: text count=34, sample=[后退, 智能组件, 菜单, 多窗口, 14, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+09:20:41.446 hasFarmContentLoaded: realContent count=34
+09:20:41.450 navigate: hasFarmContentLoaded=true, attempt=1
+09:20:41.452 state: NAVIGATING -> COLLECTING_DIRECT
+09:20:45.104 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:20:45.143 [collectDirect-start] claim-text-nodes (count=4):
+09:20:45.146 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+09:20:45.148 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+09:20:45.150 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+09:20:45.151 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+09:20:45.186 collectDirect: found 1 direct buttons, attempt=0
+09:20:45.187 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1159][822,1211] (attempt 1)
+09:20:45.188 performClickSafe: text='看广告领奖' desc='' bounds=[641,1159][822,1211] clickable=false
+09:20:45.191 performClickSafe: ACTION_CLICK failed, trying gesture
+09:20:45.193 dispatchGesture: screen=[[641,1159][822,1211]] window=[[0,0][0,0]]
+09:20:45.195 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1185.0)
+09:20:45.198 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+09:20:55.202 collectDirect: jump button '看广告领奖' led to ad (act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity), entering WATCHING_AD
+09:20:55.204 state: COLLECTING_DIRECT -> WATCHING_AD
+09:20:57.247 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+09:20:57.267 isAdContentShown: YES, matched ad signal in [点击商品，领取奖励, 广告]
+09:20:57.370 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:20:57.379 [watchAd-0ms] claim-text-nodes (count=1):
+09:20:57.380 [watchAd-0ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+09:20:57.472 watchAd: scene=AD_ENDED, elapsed=0ms/90000ms
+09:20:57.481 findAdProductNode: found clickable product node bounds=[26,854][586,1653]
+09:20:57.482 watchAd: 点击商品 ad detected, clicking product bounds=[26,854][586,1653] (count=1)
+09:20:57.483 performClickSafe: text='' desc='夏季polo衫定制企 正品保证 公益宝贝 ¥ 18' bounds=[26,854][586,1653] clickable=true
+09:20:57.488 performClickSafe: ACTION_CLICK success at depth=0
+09:20:59.565 isAdContentShown: YES, matched ad signal in [淘宝精选, 无法播放媒体。 DIY来图定制照片魔 正品保证 七天退换 ¥ 6, O1CN01mfu8c91USpoQvlV7K_!!2204167872517-0-alimamacc.jpg_310x310xzq90.jpg_, 无法播放媒体。, DIY来图定制照片魔, 正品保证, 七天退换, ¥6]
+09:20:59.585 [watchAd-2000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:20:59.592 [watchAd-2000ms] claim-text-nodes (count=1):
+09:20:59.593 [watchAd-2000ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+09:20:59.684 watchAd: scene=AD_ENDED, elapsed=2000ms/90000ms
+09:20:59.688 watchAd: closing ad window 2s after product click (sinceClick=2213ms)
+09:20:59.711 findTopCornerIcon: found right icon at [1082,62][1128,108] (screen=1200x2543)
+09:20:59.712 findAdCloseButton: found top-right close icon
+09:20:59.712 watchAd: clicking close button on ad (text='null')
+09:20:59.712 performClickSafe: text='' desc='' bounds=[1082,62][1128,108] clickable=true
+09:20:59.755 performClickSafe: ACTION_CLICK success at depth=0
+09:21:01.782 [watchAd-4000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.sdk.ui.dialog.a, onFarm=false, adActivity=false, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:21:01.787 [watchAd-4000ms] claim-text-nodes (count=1):
+09:21:01.788 [watchAd-4000ms]   text='点击商家后立即领奖' desc='' bounds=[303,1042][897,1130] clickable=false
+09:21:01.817 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:21:01.818 watchAd: scene=AD_ENDED, elapsed=4000ms/90000ms
+09:21:01.822 watchAd: 确认要离开吗弹窗, clicking 放弃奖励离开
+09:21:01.823 performClickSafe: text='放弃奖励离开' desc='' bounds=[225,1495][975,1659] clickable=true
+09:21:01.847 performClickSafe: ACTION_CLICK success at depth=0
+09:21:04.367 isAdContentShown: YES, matched ad signal in [后退, 智能组件, 菜单, 多窗口, 14, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收]
+09:21:04.382 isRechargePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 14]
+09:21:04.385 watchAd: scene=TRAP_RECHARGE, elapsed=6000ms/90000ms
+09:21:04.388 watchAd: recharge page trap detected, clicking close on recharge page
+09:21:04.431 clickCloseOnRechargePage: found close button by text='关闭', clicking
+09:21:04.432 performClickSafe: text='关闭' desc='' bounds=[1084,756][1185,858] clickable=false
+09:21:04.433 performClickSafe: ACTION_CLICK failed, trying gesture
+09:21:04.434 dispatchGesture: screen=[[1084,756][1185,858]] window=[[0,0][0,0]]
+09:21:04.434 dispatchGesture: not in popup, screen bounds valid, click at (1134.5, 807.0)
+09:21:06.833 watchAd: scene=AD_ENDED, elapsed=11000ms/90000ms
+09:21:12.034 [watchAd-16000ms] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=false, adActivity=false, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:21:12.052 [watchAd-16000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+09:21:12.264 watchAd: scene=AD_ENDED, elapsed=16000ms/90000ms
+09:21:12.379 watchAd: waiting 16000ms/30000ms (min), pageType=unknown, adActivity=false, adPlaying=true, adContent=false, texts=[后退, 智能组件, 菜单, 多窗口, 14, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收]
+09:21:17.494 watchAd: scene=AD_ENDED, elapsed=21000ms/90000ms
+09:21:22.802 watchAd: scene=AD_ENDED, elapsed=26000ms/90000ms
+09:21:25.834 state: WATCHING_AD -> STOPPING
+09:21:25.838 cancelNavigation: all navigation callbacks cancelled
+09:21:25.839 state: STOPPING -> IDLE
+09:21:28.302 saveToken: saved (len=93, head='gith', tail='McKr')
+09:21:28.305 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+09:21:28.307 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260808_092128.log, localFile=debug.log (11973 bytes)

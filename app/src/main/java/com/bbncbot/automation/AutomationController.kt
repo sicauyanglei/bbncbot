@@ -5272,14 +5272,25 @@ object AutomationController {
         //   用户需求："点击商品后,右上角点击关闭任务就完成了"
         //   修复:检测到"确认要离开吗"弹窗时,点击"放弃奖励离开"立即退出,不再干等。
         //   (商品奖励已在点击商品时触发,放弃奖励离开只是确认退出广告)
+        // build711 修复（debug_test_20260808_092128.log, build709, 09:21:01-09:21:25）：
+        //   点击"放弃奖励离开"后,广告关闭回到农场主页。但 adModeFlag 仍为 true,
+        //   下一轮 runWatchingAd 时 isOnFarmPage() 因 adModeFlag=true 返回 false,
+        //   isRechargePage() 因 isOnFarmPage()=false 而继续检查,
+        //   农场主页文本(含"下单得")被误判为充值页 → scene=TRAP_RECHARGE,
+        //   clickCloseOnRechargePage 在农场主页误点"关闭"按钮,卡死,用户手动停止。
+        //   修复:点击"放弃奖励离开"后,立即清除 adModeFlag 并进入 RETURNING 流程,
+        //   不再继续 runWatchingAd 轮询(广告已关闭,无需继续等待)。
         val leaveConfirmBtn = service.findLeaveConfirmAbandonButton()
         if (leaveConfirmBtn != null) {
             Log.i(TAG, "watchAd: leave confirm dialog detected, clicking abandon reward to exit (elapsed=${elapsedMs}ms)")
-            debugLog("watchAd: 确认要离开吗弹窗, clicking 放弃奖励离开")
+            debugLog("watchAd: 确认要离开吗弹窗, clicking 放弃奖励离开, clearing adMode and entering RETURNING")
             service.performClickSafe(leaveConfirmBtn)
-            handler.postDelayed({
-                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + INTERVAL_CLICK_MS)
-            }, INTERVAL_CLICK_MS)
+            // 立即清除广告模式标志(广告已通过放弃奖励离开关闭)
+            service.setAdMode(false)
+            collectedCount++
+            Log.i(TAG, "=== FERTILIZER COLLECTED! (total: $collectedCount) ===")
+            moveTo(AutomationState.RETURNING)
+            handler.postDelayed({ runReturning(0) }, INTERVAL_CLICK_MS)
             return
         }
 
