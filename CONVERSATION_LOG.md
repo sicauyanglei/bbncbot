@@ -32,29 +32,34 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build716 恢复"我要加速"点击,跳转停留10秒后pressBack回广告页领奖(不重开UC)
+### commit (待提交) - fix: build716 恢复"我要加速"点击,跳转停留10秒后切芭芭农场到前台(不重启)领奖
 
 **用户需求**: "我要加速，也需要点击，你需要等待指定的时间后回到芭芭农场广告点击时的页面领取，不是关闭芭芭农场重新打开，只有在原来店里我要加速时的页面才能领取奖励"
+
+**用户补充**: "我们切换app后，芭芭农场app只是切换到后台，不是关闭，等待多少秒后，我们需要把芭芭农场切到前台，是切到前台，不是重新打开"
 
 **日志分析** (build713, debug_test_20260809_064604.log):
 - build715 错误回退:移除了"我要加速"匹配,导致广告无法通过跳转加速
 - 用户澄清:"我要加速"确实需要点击,点击后跳转淘宝/闲鱼是正常流程
-- 关键:不能关闭芭芭农场重新打开(会丢失广告会话),必须pressBack回到原广告页领奖
+- 关键:不能关闭芭芭农场重新打开(会丢失广告会话),必须把后台的芭芭农场切到前台
+- 切前台用 moveTaskToFront,不是 launchPlatformApp(会重启)、不是 pressBack(可能无效)
 
-**修复**: [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt)
-1. 恢复"我要加速"匹配(L5440-L5441),优先"点我加速"(不跳转),其次"我要加速"(跳转)
-2. 新增"我要加速"跳转状态机(L273-L285):
-   - adSpeedUpJumpStage: 0=未跳转 / 1=已跳转停留中 / 2=已完成返回
-   - adSpeedUpJumpPkg: 跳转目标App包名
-   - adSpeedUpJumpTimeMs: 跳转时间戳
-3. 新增常量 SPEED_UP_JUMP_STAY_MS = 10000L(停留10秒)
-4. 点击"我要加速"后设置 stage=1(L5450-L5453)
-5. watchAd主循环新增 stage=1 停留处理(L4905-L4968):
-   - 首次记录跳转目标App包名和时间戳
-   - 停留期间检测陷阱页(充值/交易),命中则放弃跳转退出任务
-   - 停留满10秒后 pressBack 回广告页(不kill、不重开UC),设stage=2
-   - 停留期间每5秒轮询一次
-6. build714的"非农场App退出"检测放行stage=1(L4985),只处理其他意外跳转
+**修复**:
+1. [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt)
+   - 恢复"我要加速"匹配,优先"点我加速"(不跳转),其次"我要加速"(跳转)
+   - 新增"我要加速"跳转状态机 adSpeedUpJumpStage(0/1/2) + adSpeedUpJumpPkg + adSpeedUpJumpTimeMs
+   - 新增常量 SPEED_UP_JUMP_STAY_MS = 10000L(停留10秒)
+   - 点击"我要加速"后设 stage=1,记录跳转目标App
+   - stage=1 停留处理:首次记录包名时间戳,停留期间检测陷阱页(充值/交易),满10秒切前台
+   - 停留满10秒后调用 bringFarmAppToFront(切前台,不重启、不pressBack,保留广告会话)
+   - build714的"非农场App退出"检测放行stage=1
+2. [FarmAccessibilityService.kt#bringFarmAppToFront](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt#L6187-L6223)
+   - 新增方法:用 ActivityManager.moveTaskToFront 把后台芭芭农场任务切到前台
+   - 查找芭芭农场App的 taskId,用 MOVE_TASK_WITH_HOME flag 切前台
+   - 不重启、不丢失广告会话,回到原广告页面继续领奖
+   - 失败时 fallback 到 pressBack
+3. [AndroidManifest.xml](file:///workspace/app/src/main/AndroidManifest.xml#L18)
+   - 新增 REORDER_TASKS 权限(moveTaskToFront 需要)
 
 **编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
 

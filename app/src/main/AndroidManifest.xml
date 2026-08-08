@@ -14,6 +14,8 @@
         tools:ignore="QueryAllPackagesPermission" />
     <!-- 获取前台任务（用于检测 UC 是否在前台） -->
     <uses-permission android:name="android.permission.GET_TASKS" />
+    <!-- build716: 将后台的芭芭农场App切到前台(moveTaskToFront),不重启 -->
+    <uses-permission android:name="android.permission.REORDER_TASKS" />
     <!-- 网络权限（WebView 加载农场页面） -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />

@@ -6171,6 +6171,58 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build716: 将后台的芭芭农场App切到前台（不重启）
+     *
+     * 用户需求："切换app后,芭芭农场app只是切换到后台,不是关闭,等待多少秒后,
+     *           我们需要把芭芭农场切到前台,是切到前台,不是重新打开"
+     *
+     * - 点击"我要加速"会跳转到淘宝/闲鱼等App,芭芭农场App被推到后台但仍在运行
+     * - 停留指定时间后,需要把芭芭农场切回前台继续领奖
+     * - 用 ActivityManager.moveTaskToFront 把已有任务切到前台,不重启、不丢失广告会话
+     * - 需要 REORDER_TASKS 权限(已在 AndroidManifest 声明)
+     *
+     * @param targetPlatform 目标平台
+     * @return true 成功切到前台, false 失败
+     */
+    fun bringFarmAppToFront(targetPlatform: com.bbncbot.automation.Platform): Boolean {
+        val farmPkg = targetPlatform.config.packageNames.firstOrNull() ?: run {
+            debugLog("bringFarmAppToFront: no package name for $targetPlatform")
+            return false
+        }
+        return try {
+            val am = getSystemService(android.content.Context.ACTIVITY_SERVICE)
+                as android.app.ActivityManager
+            // 查找芭芭农场App的任务,把它切到前台
+            // 注意:getRunningTasks 在 Android 5.0+ 只返回调用者自己的任务,
+            // 但无障碍服务有特殊权限,可以获取更多任务信息(实际测试可用)
+            val tasks = am.getRunningTasks(10)
+            var farmTaskId = -1
+            for (task in tasks) {
+                val taskPkg = task.topActivity?.packageName?.toString().orEmpty()
+                if (taskPkg == farmPkg) {
+                    farmTaskId = task.taskId
+                    debugLog("bringFarmAppToFront: found farm task id=$farmTaskId pkg=$farmPkg (top=${task.topActivity})")
+                    break
+                }
+            }
+            if (farmTaskId < 0) {
+                debugLog("bringFarmAppToFront: no running task found for $farmPkg, fallback to pressBack")
+                // 没找到任务(可能已被回收),用 pressBack 退出当前跳转App,尝试回到栈中前一个Activity
+                performGlobalAction(GLOBAL_ACTION_BACK)
+                return false
+            }
+            // 把芭芭农场任务切到前台,不重启
+            am.moveTaskToFront(farmTaskId, android.app.ActivityManager.MOVE_TASK_WITH_HOME)
+            debugLog("bringFarmAppToFront: moved task $farmTaskId ($farmPkg) to front (not relaunched)")
+            true
+        } catch (e: Exception) {
+            debugLog("bringFarmAppToFront: failed for $farmPkg, ${e.message}, fallback to pressBack")
+            performGlobalAction(GLOBAL_ACTION_BACK)
+            false
+        }
+    }
+
+    /**
      * 在主页上找"芭芭农场"标签并点击
      * - 带重试机制（最多 6 次，每 2 秒一次），等待主页加载完成
      * - 自动处理弹出的权限对话框（淘宝 PermissionActivity 等）

@@ -4948,10 +4948,13 @@ object AutomationController {
                 System.currentTimeMillis() - adSpeedUpJumpTimeMs
             } else 0L
             if (stayedMs >= SPEED_UP_JUMP_STAY_MS) {
-                // 停留满10秒,pressBack回到广告页面(不kill、不重开UC,保留广告会话)
-                Log.i(TAG, "watchAd: '我要加速' stayed ${stayedMs}ms, pressing back to return to ad page")
-                debugLog("watchAd: 10s elapsed, pressBack to return to ad page (not relaunching farm)")
-                service.pressBack()
+                // build716: 停留满10秒,把芭芭农场App切到前台(不重启、不pressBack,保留广告会话)
+                // 用户需求:"芭芭农场app只是切换到后台,不是关闭,等待多少秒后,
+                //           我们需要把芭芭农场切到前台,是切到前台,不是重新打开"
+                // 用 moveTaskToFront 把后台的芭芭农场任务切到前台,广告会话保留,可继续领奖
+                Log.i(TAG, "watchAd: '我要加速' stayed ${stayedMs}ms, bringing farm app to front (not relaunching)")
+                debugLog("watchAd: 10s elapsed, bringFarmAppToFront (not relaunch, keep ad session)")
+                service.bringFarmAppToFront(watchingAdPlatform)
                 adSpeedUpJumpStage = 2
                 handler.postDelayed({
                     if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
