@@ -288,6 +288,10 @@ object AutomationController {
     @Volatile
     private var adExperienceClicked: Boolean = false
 
+    // build719: 互动广告"上滑或点击查看"提示已点击标记(每轮广告重置)
+    @Volatile
+    private var adSwipeHintClicked: Boolean = false
+
     /** 本次广告观看的农场平台（强杀深链 App 后重新启动此平台回到农场） */
     @Volatile
     private var watchingAdPlatform: Platform = Platform.UNKNOWN
@@ -4626,6 +4630,8 @@ object AutomationController {
             adSpeedUpJumpTimeMs = 0L
             // build696: 重置"去体验N秒可立即领奖"CTA 点击标记
             adExperienceClicked = false
+            // build719: 重置"上滑或点击查看"互动提示点击标记
+            adSwipeHintClicked = false
             // build678: 重置"点击商品,领取奖励"广告商品点击标记
             // (checkTaskListOpened 中也有此广告处理,但 watchAd 从 processTask 进入时未重置)
             adProductClicked = false
@@ -5304,6 +5310,28 @@ object AutomationController {
         // 导致 scene 误判 AD_ENDED,bot 干等 53 秒直到用户手动停止。
         //
         // 用户需求："点击商品，领取奖励，这只是一个提示，不需要点击，通过点击商品去获取奖励"
+        // build719 修复（debug_test_20260809_092433.log, build719, 09:23:18-09:24:30）：
+        //   穿山甲 TTRewardVideoActivity 互动体验广告,页面含"上滑或点击查看"提示,
+        //   需要用户互动(上滑或点击)才能继续播放/结束。bot 不互动 → scene=AD_PLAYING
+        //   干等60秒直到用户手动停止。
+        //   修复:检测到"上滑或点击查看"提示且超过15秒时,点击屏幕中部(广告内容区域)
+        //   触发广告继续播放。用 adSwipeHintClicked 标记每轮广告只点一次。
+        if (!adSwipeHintClicked && elapsedMs >= 15000L) {
+            val root = service.getRootInFarmApp()
+            if (root != null) {
+                val pageTexts = service.collectAllText(root)
+                if (pageTexts.any { it.contains("上滑") || it.contains("点击查看") }) {
+                    debugLog("watchAd: interactive ad '上滑或点击查看' detected (elapsed=${elapsedMs}ms), clicking center to continue")
+                    adSwipeHintClicked = true
+                    // 点击屏幕中部(广告内容区域)触发继续
+                    service.dispatchGestureClick(600f, 1200f)
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                    }, INTERVAL_CLICK_MS)
+                    return
+                }
+            }
+        }
         // 策略（复用 checkTaskListOpened 中的 adProductClicked 标记）：
         // - 阶段1：isClickProductAd() 且未点击商品时,找商品节点(findAdProductNode)并点击
         // - 阶段2：已点击商品后等 5s（让奖励触发），找关闭按钮或 pressBack 关闭广告

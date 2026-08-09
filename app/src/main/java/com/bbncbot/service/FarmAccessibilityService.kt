@@ -4210,6 +4210,14 @@ class FarmAccessibilityService : AccessibilityService() {
     fun isAdLandingPage(): Boolean {
         val root = rootInActiveWindowSafe() ?: return false
         val allText = collectAllText(root)
+        // build719 修复（debug_test_20260809_092828.log, build719, 09:27:49）：
+        //   穿山甲 TTRewardVideoActivity 激励视频广告刚进入(elapsed=0ms),
+        //   页面有"领取红包"按钮(clickable=false),isAdLandingPage matchCount=2
+        //   误判为广告主落地页 → TRAP_LANDING → pressBack退出 → 卡在com.byazt.jz.ew。
+        //   修复:在激励视频广告Activity内不判定为落地页。
+        //   落地页是广告SDK跳转到的外部浏览器/应用页面,不是广告SDK内部的Activity。
+        //   广告Activity内的endcard(下载类结束页)由isAdEndedMultiSignal/findClaimRewardButton处理。
+        if (isAdActivity()) return false
         // 农场页核心文案：若存在则肯定不是落地页
         // （注意："任务完成"也在农场核心文案里，避免误判完成页）
         val hasFarmCore = allText.any { text ->

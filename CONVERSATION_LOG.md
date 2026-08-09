@@ -32,6 +32,39 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build719 修复isAdLandingPage误判广告Activity为落地页+互动广告"上滑或点击查看"干等60秒
+
+**用户需求**: "分析日志"
+
+**日志分析** (build719=build718代码, 两份日志):
+
+**问题1** (debug_test_20260809_092433.log, 09:23:18-09:24:30):
+- 穿山甲 TTRewardVideoActivity 互动体验广告
+- 页面含"上滑或点击查看"提示,需要用户互动才能继续播放/结束
+- build718修复验证✓: scene=AD_PLAYING(不再误判AD_ENDED)
+- 但bot不互动 → scene=AD_PLAYING干等60秒直到用户手动停止
+- texts=[穿山甲, 上滑或点击查看, 钟, 团, 平时懒得下楼买东西, 平, 时]
+
+**问题2** (debug_test_20260809_092828.log, 09:27:49-09:28:26):
+- 穿山甲 TTRewardVideoActivity 激励视频广告刚进入(elapsed=0ms)
+- 页面有4个"领取红包"按钮(clickable=false)
+- isAdLandingPage matchCount=2 → 误判为广告主落地页 → TRAP_LANDING
+- pressBack退出 → 卡在com.byazt.jz.ew Activity → NAVIGATING反复waiting → 用户手动停止
+
+**修复**:
+1. [FarmAccessibilityService.kt](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt) L4220:
+   - isAdLandingPage()增加 `if (isAdActivity()) return false`
+   - 在激励视频广告Activity内不判定为落地页(落地页是广告SDK跳转到的外部浏览器/应用页面)
+   - 广告Activity内的endcard由isAdEndedMultiSignal/findClaimRewardButton处理
+2. [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt) L5313-5334:
+   - 新增adSwipeHintClicked标记(每轮广告重置,L4634)
+   - 检测到"上滑或点击查看"提示且elapsed>=15秒时,点击屏幕中部(600,1200)触发广告继续
+   - 避免互动广告干等60秒
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build718 修复"去体验"广告干等90秒+closeAd误触"确定要退出吗"弹窗死循环10分钟
 
 **用户需求**: "分析日志"
