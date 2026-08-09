@@ -1855,6 +1855,18 @@ class FarmAccessibilityService : AccessibilityService() {
         if (isAdPlaying() || isAdContentShown()) {
             val hasCountdown = findAdDurationHint() > 0
             if (hasCountdown) return PageScene.AD_PLAYING
+            // build718 修复（debug_test_20260809_091652.log, build717, 09:05:29-09:07:07）：
+            //   字节穿山甲 TTRewardVideoActivity 体验类广告,页面含"去体验15秒可立即领奖"CTA。
+            //   findAdDurationHint 因含"可立即领奖"跳过倒计时检测返回0,
+            //   导致 scene=AD_ENDED,watchAd 干等90秒后 closeAd 误触"确定要退出吗"弹窗死循环。
+            //   修复:页面含"去体验"CTA时,广告还在播放(需体验才能领奖),scene=AD_PLAYING。
+            val root = rootInActiveWindowSafe()
+            if (root != null) {
+                val pageTexts = collectAllText(root)
+                if (pageTexts.any { it.startsWith("去体验") }) {
+                    return PageScene.AD_PLAYING
+                }
+            }
             // 在广告页但无倒计时，可能是广告已结束等待用户操作
             return PageScene.AD_ENDED
         }
@@ -4556,6 +4568,19 @@ class FarmAccessibilityService : AccessibilityService() {
                         debugLog("findClaimRewardButton: skip '可立即领奖' text (clickable=false, still in experience countdown) text='$text' desc='$desc' (matched kw='$kw')")
                         continue
                     }
+                }
+                // build718 修复（debug_test_20260809_091652.log, build717, 09:08:00-09:16:50）：
+                //   字节穿山甲广告 closeAd 点击坐标误触,触发"体验几秒就能领奖～确定要退出吗？"
+                //   退出确认弹窗(desc='title')。findClaimRewardButton 用"确定"关键词匹配命中
+                //   "确定要退出吗？"提示文字,返回该节点 → isAdEndedMultiSignal 误判广告结束
+                //   → CLOSING_AD → closeAd 找不到关闭按钮点坐标 → RETURNING → pressBack
+                //   → 又触发"确定要退出吗"弹窗 → NAVIGATING → isAdEndedMultiSignal 又 YES
+                //   → 死循环 10 分钟,用户手动停止。
+                //   修复:对"确定"关键词排除退出确认弹窗的提示文字(含"退出吗"/"离开吗"),
+                //   这些是退出确认弹窗的标题,不是领取奖励按钮。
+                if (kw == "确定" && (text.contains("退出吗") || text.contains("离开吗"))) {
+                    debugLog("findClaimRewardButton: skip exit confirm dialog text='$text' desc='$desc' (matched kw='$kw')")
+                    continue
                 }
                 Log.d(TAG, "findClaimRewardButton: found by text='$kw'")
                 return node

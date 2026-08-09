@@ -32,6 +32,39 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build718 修复"去体验"广告干等90秒+closeAd误触"确定要退出吗"弹窗死循环10分钟
+
+**用户需求**: "分析日志"
+
+**日志分析** (build717, debug_test_20260809_091652.log, 09:05:27-09:16:50):
+
+**问题1（根因）**: "去体验15秒可立即领奖"广告被误判 AD_ENDED,干等90秒
+- 字节穿山甲 TTRewardVideoActivity 体验类广告
+- texts含"去体验15秒可立即领奖"CTA
+- findAdDurationHint 因含"可立即领奖"跳过倒计时检测返回0
+- identifyCurrentScene L1855-1859: 在广告Activity但无倒计时 → AD_ENDED
+- watchAd 一直 scene=AD_ENDED,干等90秒(09:05:29→09:07:07)
+
+**问题2（死循环）**: closeAd误触"确定要退出吗"弹窗,循环10分钟
+- 09:07:07 closeAd 点击坐标(ad-close-0~7)误触 → 触发"体验几秒就能领奖～确定要退出吗？"弹窗
+- findClaimRewardButton "确定"关键词匹配"确定要退出吗"提示文字 → 返回该节点
+- isAdEndedMultiSignal 误判广告结束 → CLOSING_AD → closeAd点坐标 → RETURNING → pressBack
+- → 又触发"确定要退出吗"弹窗 → NAVIGATING → isAdEndedMultiSignal又YES → 死循环
+- 09:07:30→09:16:50 循环10分钟,用户手动停止
+
+**修复**: [FarmAccessibilityService.kt](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt)
+1. identifyCurrentScene 修复(L1858-L1869):
+   - 页面含"去体验"CTA时,广告还在播放(需体验才能领奖),scene=AD_PLAYING
+   - 避免误判 AD_ENDED 导致干等90秒
+2. findClaimRewardButton 修复(L4560-L4572):
+   - 对"确定"关键词排除退出确认弹窗提示文字(含"退出吗"/"离开吗")
+   - 避免匹配"确定要退出吗？"导致 isAdEndedMultiSignal 误判广告结束
+   - 打断死循环
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build717 isClickProductAd扩展检测"点击广告拿奖励",避免干等90秒+closeAd误触跳转京东
 
 **用户需求**: "分析日志"
