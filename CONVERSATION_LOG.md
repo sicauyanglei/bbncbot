@@ -32,6 +32,43 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build717 isClickProductAd扩展检测"点击广告拿奖励",避免干等90秒+closeAd误触跳转京东
+
+**用户需求**: "分析日志"
+
+**日志分析** (build717, debug_test_20260809_083541.log, 08:32:33-08:35:39):
+
+**问题1（核心）**: 广告"点击广告拿奖励"未被识别,干等90秒
+- 08:32:33 进入腾讯广告 PortraitADActivity
+- texts=[点击广告，即可获得奖励, 点击广告拿奖励, 京东全球购, 香港好物节, 点击打开或下载第三方应用]
+- isClickProductAd() 只检测"点击商品",没检测"点击广告拿奖励" → 返回 false
+- watchAd 一直 scene=AD_ENDED,干等90秒(08:32:36→08:34:20)
+
+**问题2**: closeAd 误触跳转京东
+- 08:34:22 closeAd 点击多个坐标(ad-close-0~7),误触广告内容区域
+- 08:34:44 pkg=com.jingdong.app.mall(跳转京东了)
+
+**问题3**: 京东首页被误判充值页
+- 08:35:19 isRechargePage: YES, sample=[推荐, 推荐, 家品8折, 医药, 医药]
+
+**根因**: isClickProductAd() 只检测"点击商品",没检测"点击广告拿奖励"
+- 如果识别出这种广告类型并主动点击广告内容,就不会干等90秒
+- 也不会在 closeAd 时误触跳转京东
+
+**修复**: [FarmAccessibilityService.kt](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt)
+1. isClickProductAd() 扩展检测(L3685-L3693):
+   - 新增"点击广告拿奖励"/"点击广告，即可获得奖励"/"点击广告拿"匹配
+   - 识别腾讯PortraitADActivity的"点击广告拿奖励"类型广告
+2. findAdProductNode() 排除提示文字(L3778-L3779):
+   - 排除含"点击广告"的节点(提示文案,不是商品)
+   - 避免误点提示文字
+
+**修复后流程**: watchAd 识别"点击广告拿奖励" → findAdProductNode 找可点击广告区域 → 点击 → 2秒后关闭 → 弹出"确认要离开吗" → 点击"放弃奖励离开" → 完成
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build716 恢复"我要加速"点击,跳转停留10秒后切芭芭农场到前台(不重启)领奖
 
 **用户需求**: "我要加速，也需要点击，你需要等待指定的时间后回到芭芭农场广告点击时的页面领取，不是关闭芭芭农场重新打开，只有在原来店里我要加速时的页面才能领取奖励"

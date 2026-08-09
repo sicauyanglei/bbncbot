@@ -3666,20 +3666,30 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * 检测当前广告页是否为"点击商品，领取奖励"类型激励视频
+     * 检测当前广告页是否为"点击商品/点击广告拿奖励"类型激励视频
      *
-     * 场景（debug_test_20260719_153945.log, build558）：
+     * 场景1（debug_test_20260719_153945.log, build558）：
      * - UC 集肥料点击后弹激励视频（穿山甲/汇川）
      * - 顶部出现"点击商品，领取奖励"提示文字（clickable=false）
      * - 用户必须主动点击广告中的商品（图片/卡片）才能触发奖励
      * - 不点击商品的话广告结束不发肥料
      *
-     * @return true 表示当前是"点击商品,领取奖励"广告
+     * 场景2（debug_test_20260809_083541.log, build717）：
+     * - 腾讯广告 PortraitADActivity
+     * - 顶部出现"点击广告，即可获得奖励"/"点击广告拿奖励"提示文字
+     * - 页面含"点击打开或下载第三方应用"CTA按钮
+     * - 原只检测"点击商品",这种广告干等90秒未识别,closeAd误触跳转京东
+     *
+     * @return true 表示当前是"点击商品/点击广告拿奖励"广告
      */
     fun isClickProductAd(): Boolean {
         val root = rootInActiveWindowSafe() ?: return false
         val allText = collectAllText(root)
-        return allText.any { it.contains("点击商品") }
+        // build717: 扩展检测"点击广告拿奖励"类型广告(腾讯PortraitADActivity)
+        return allText.any {
+            it.contains("点击商品") || it.contains("点击广告拿奖励") ||
+            it.contains("点击广告，即可获得奖励") || it.contains("点击广告拿")
+        }
     }
 
     /**
@@ -3765,6 +3775,8 @@ class FarmAccessibilityService : AccessibilityService() {
                 }
                 // 排除提示文字本身
                 if (combined.contains("点击商品")) return
+                // build717: 排除"点击广告拿奖励"等提示文字(腾讯PortraitADActivity)
+                if (combined.contains("点击广告")) return
                 // bounds 合法性
                 val rect = android.graphics.Rect()
                 node.getBoundsInScreen(rect)
