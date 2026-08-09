@@ -32,6 +32,42 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build720 修复"领取成功"弹窗循环点击45秒,奖励已领取后直接关闭广告退出
+
+**用户需求**: "分析日志"
+
+**日志分析** (build720=build719代码, debug_test_20260809_094239.log, 09:42:06-09:42:37):
+
+**build719修复验证** ✓:
+- isAdLandingPage不再误判广告Activity为落地页(无TRAP_LANDING)
+- "去体验"CTA正确识别scene=AD_PLAYING
+
+**新问题**: "领取成功"弹窗循环点击45秒
+- 09:42:06 广告播放完毕,显示"领取成功"弹窗(clickable=false)
+- 09:42:07 isAdEndedMultiSignal=YES(claim reward button appeared)
+  - findClaimRewardButton找到"领取成功"的可点击父节点(text='',bounds=[722,202][982,264])
+  - watchAd点击该节点,弹窗不消失(已领取,点击无效)
+- 09:42:12→09:42:34 每5秒重复点击同一节点,循环45秒
+- 09:42:37 用户手动停止
+
+**根因**: isAdEndedMultiSignal中强信号3(findClaimRewardButton)在强信号4("领取成功"文本检测)之前执行
+- findClaimRewardButton匹配到"领取成功"的可点击父节点(text='')
+- "领取成功"文本节点skip检查只看node自身text,不看子节点text
+- 导致findClaimRewardButton返回可点击父节点,重复点击无法关闭弹窗
+
+**修复**:
+1. [FarmAccessibilityService.kt](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt) L1706-1756:
+   - isAdEndedMultiSignal:将"领取成功"等已领取标志文字检测(原强信号4)提到findClaimRewardButton(原强信号3)之前
+   - 如果"领取成功"已显示,直接返回true(广告已结束),不调用findClaimRewardButton
+2. [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt) L5740-5758:
+   - watchAd adEnded处理:先检测"领取成功"等已领取标志
+   - 如果已领取,直接进入CLOSING_AD关闭广告,不再调用findClaimRewardButton点击
+   - 避免误点"领取成功"可点击父节点导致循环
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build719 修复isAdLandingPage误判广告Activity为落地页+互动广告"上滑或点击查看"干等60秒
 
 **用户需求**: "分析日志"

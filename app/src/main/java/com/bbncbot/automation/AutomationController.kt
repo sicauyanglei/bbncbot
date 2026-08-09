@@ -5737,6 +5737,25 @@ object AutomationController {
         // 多信号检测到广告结束（倒计时消失等弱信号），但仍在广告 Activity
         // 尝试找领取奖励按钮，找到则点击，否则进入关闭流程
         if (adEnded) {
+            // build720 修复：如果"领取成功"等已领取标志已显示,奖励已发放,
+            // 不需要再点领取按钮(会误点"领取成功"的可点击父节点导致循环),
+            // 直接进入 CLOSING_AD 关闭广告退出。
+            val root = service.getRootInFarmApp()
+            val alreadyClaimed = root != null && run {
+                val texts = service.collectAllText(root)
+                texts.any {
+                    it.contains("领取成功") || it.contains("奖励已到账") ||
+                    it.contains("奖励已发放") || it.contains("已领取奖励") ||
+                    it.contains("肥料已到账") || it.contains("肥料已发放")
+                }
+            }
+            if (alreadyClaimed) {
+                Log.i(TAG, "watchAd: ad ended, reward already claimed (领取成功), entering CLOSING_AD")
+                debugLog("watchAd: ad ended, reward already claimed, skip claim button, entering CLOSING_AD")
+                moveTo(AutomationState.CLOSING_AD)
+                handler.postDelayed({ runClosingAd(strategy = 0) }, INTERVAL_CLICK_MS)
+                return
+            }
             val claimBtn = service.findClaimRewardButton()
             if (claimBtn != null) {
                 Log.i(TAG, "watchAd: multi-signal ad ended, claim button found, clicking")

@@ -1703,23 +1703,12 @@ class FarmAccessibilityService : AccessibilityService() {
                 return true
             }
         }
-        // 强信号3：领取奖励按钮出现（广告结束后的领取入口）
-        val claimBtn = findClaimRewardButton()
-        if (claimBtn != null) {
-            debugLog("isAdEndedMultiSignal: YES (claim reward button appeared)")
-            return true
-        }
-        // build580 修复（debug_test_20260721_152904.log, build580, UC 平台 line 178-200）：
-        // UC 集肥料点击"去完成"→ 弹腾讯优量汇 PortraitADActivity 广告,广告结束后页面显示
-        // "恭喜获取奖励"+右侧关闭按钮（图像×,无障碍树抓不到 text 节点）。原信号 1/2/3 都不触发：
-        // - 信号1：isTaskCompletePage 在广告 Activity 中返回 false（build579 修复）
-        // - 信号2：仍在广告 Activity（PortraitADActivity）,adActivity=true
-        // - 信号3：claim-text-nodes: NONE（关闭按钮是图像,无"领取奖励"文字）
-        // 导致 watchAd 一直 waiting min duration,最后 processTask unknown page → AI 误判 WAIT → 跳过任务。
-        //
-        // 修复：加信号4——检测到"恭喜获得/获取奖励/奖励已到账/领取成功"等广告结束标志文字时,
-        // 判定广告结束。这些文字说明广告已播完、奖励已发放,只需要点关闭按钮退出即可。
-        // 注意：遍历所有 windows 收集文本（覆盖独立弹窗窗口）,避免漏检。
+        // build720 修复（debug_test_20260809_094239.log, build720, 09:42:07-09:42:34）：
+        //   穿山甲 TTRewardVideoActivity 广告结束后显示"领取成功"弹窗(clickable=false),
+        //   findClaimRewardButton 找到"领取成功"的可点击父节点(text='') → 强信号3返回true
+        //   → watchAd 每5秒点击同一节点,弹窗不消失,循环45秒直到用户手动停止。
+        //   修复:将"领取成功"等已领取标志文字检测提到 findClaimRewardButton 之前。
+        //   如果"领取成功"已显示,说明奖励已发放,不需要再点领取按钮,只需关闭广告退出。
         val allTexts = mutableListOf<List<String>>()
         try {
             val allWindows = windows
@@ -1747,6 +1736,13 @@ class FarmAccessibilityService : AccessibilityService() {
                     return true
                 }
             }
+        }
+        // 强信号3：领取奖励按钮出现（广告结束后的领取入口）
+        // build720: 移到"领取成功"文本检测之后,避免"领取成功"已显示时仍点击其可点击父节点
+        val claimBtn = findClaimRewardButton()
+        if (claimBtn != null) {
+            debugLog("isAdEndedMultiSignal: YES (claim reward button appeared)")
+            return true
         }
         // 弱信号：倒计时消失（上一轮有倒计时，本轮没有，且仍在广告页）
         // 需配合仍在广告页才认定，单独倒计时消失可能是页面刷新
