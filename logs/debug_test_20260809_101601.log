@@ -1,0 +1,277 @@
+=== cleared on app start (version=2.2, build=build720-a0cf75f, time=09:40:41) ===
+09:40:41.189 killPlatformApps: killed com.ucmobile.lite for UC
+09:40:41.190 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+09:40:41.192 killPlatformApps: killed com.taobao.taobao for TAOBAO
+09:40:41.218 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+09:40:41.220 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+09:40:41.221 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+09:40:53.628 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+09:40:53.633 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+09:40:56.000 === Automation v2 Started === platform=UC
+09:40:56.008 cancelNavigation: all navigation callbacks cancelled
+09:40:56.014 reset platform complete: UC
+09:40:56.015 state: IDLE -> NAVIGATING
+09:40:56.561 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:40:56.587 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+09:40:56.654 navigate: on farm page, platform=UC
+09:40:56.669 hasFarmContentLoaded: text count=24, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+09:40:56.670 hasFarmContentLoaded: realContent count=24
+09:40:56.671 navigate: hasFarmContentLoaded=false, attempt=0
+09:41:03.212 navigate: on farm page, platform=UC
+09:41:03.228 hasFarmContentLoaded: text count=147, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+09:41:03.231 hasFarmContentLoaded: realContent count=138
+09:41:03.232 navigate: hasFarmContentLoaded=true, attempt=1
+09:41:03.233 state: NAVIGATING -> COLLECTING_DIRECT
+09:41:05.663 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:41:05.684 [collectDirect-start] claim-text-nodes (count=4):
+09:41:05.686 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+09:41:05.687 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+09:41:05.690 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+09:41:05.693 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2230][694,2299] clickable=false
+09:41:05.717 collectDirect: found 1 direct buttons, attempt=0
+09:41:05.717 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1159][822,1211] (attempt 1)
+09:41:05.718 performClickSafe: text='看广告领奖' desc='' bounds=[641,1159][822,1211] clickable=false
+09:41:05.719 performClickSafe: ACTION_CLICK failed, trying gesture
+09:41:05.719 dispatchGesture: screen=[[641,1159][822,1211]] window=[[0,0][0,0]]
+09:41:05.723 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1185.0)
+09:41:05.728 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+09:41:15.735 collectDirect: jump button '看广告领奖' led to ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity), entering WATCHING_AD
+09:41:15.739 state: COLLECTING_DIRECT -> WATCHING_AD
+09:41:17.785 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+09:41:18.205 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:41:18.222 [watchAd-0ms] claim-text-nodes (count=3):
+09:41:18.226 [watchAd-0ms]   text='去体验45秒可立即领奖' desc='' bounds=[0,121][0,121] clickable=false
+09:41:18.229 [watchAd-0ms]   text='去体验15秒可立即领奖' desc='' bounds=[501,170][969,235] clickable=false
+09:41:18.232 [watchAd-0ms]   text='去领取' desc='' bounds=[880,2200][1113,2256] clickable=false
+09:41:18.486 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:18.497 watchAd: scene=AD_PLAYING, elapsed=0ms/90000ms
+09:41:18.546 isAdContentShown: YES, matched ad signal in [去体验45秒可立即领奖, 反馈, 去体验15秒可立即领奖, | 跳过, 点击进入直播, 广告, 直播限时补贴, 可叠加]
+09:41:18.553 watchAd: waiting 0ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[去体验45秒可立即领奖, 反馈, 去体验15秒可立即领奖, | 跳过, 点击进入直播, 广告, 直播限时补贴, 可叠加]
+09:41:23.923 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:23.929 watchAd: scene=AD_PLAYING, elapsed=5000ms/90000ms
+09:41:29.211 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:29.216 watchAd: scene=AD_PLAYING, elapsed=10000ms/90000ms
+09:41:34.329 [watchAd-15000ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:41:34.340 [watchAd-15000ms] claim-text-nodes (count=2):
+09:41:34.341 [watchAd-15000ms]   text='去体验45秒可立即领奖' desc='' bounds=[0,121][0,121] clickable=false
+09:41:34.342 [watchAd-15000ms]   text='去领取' desc='' bounds=[880,2200][1113,2256] clickable=false
+09:41:34.454 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:34.460 watchAd: scene=AD_PLAYING, elapsed=15000ms/90000ms
+09:41:34.492 watchAd: waiting 15000ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[去体验45秒可立即领奖, 反馈, 17s, | 跳过, 点击进入直播, 广告, 直播限时补贴, 可叠加]
+09:41:39.727 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:39.744 watchAd: scene=AD_PLAYING, elapsed=20000ms/90000ms
+09:41:44.946 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:44.954 watchAd: scene=AD_PLAYING, elapsed=25000ms/90000ms
+09:41:50.083 [watchAd-30000ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:41:50.089 [watchAd-30000ms] claim-text-nodes (count=2):
+09:41:50.092 [watchAd-30000ms]   text='去体验45秒可立即领奖' desc='' bounds=[0,121][0,121] clickable=false
+09:41:50.093 [watchAd-30000ms]   text='去领取' desc='' bounds=[880,2200][1113,2256] clickable=false
+09:41:50.251 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:50.261 watchAd: scene=AD_PLAYING, elapsed=30000ms/90000ms
+09:41:50.314 watchAd: checking ad end (30000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[去体验45秒可立即领奖, 反馈, 2s, | 跳过, 点击进入直播, 广告, 直播限时补贴, 可叠加]
+09:41:50.444 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:50.520 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:50.525 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+09:41:50.545 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:50.618 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:50.727 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+09:41:50.744 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+09:41:55.913 findAdDurationHint: found pure-number countdown '12', seconds=12
+09:41:55.920 watchAd: scene=AD_PLAYING, elapsed=35000ms/90000ms
+09:41:55.951 isAdContentShown: YES, matched ad signal in [| | 跳过, 反馈, 奖励已领取, | 跳过, 点击进入直播, 广告, 直播限时补贴, 可叠加]
+09:41:55.956 watchAd: checking ad end (35000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[| | 跳过, 反馈, 奖励已领取, | 跳过, 点击进入直播, 广告, 直播限时补贴, 可叠加]
+09:41:56.034 findAdDurationHint: found pure-number countdown '12', seconds=12
+09:41:56.080 findAdDurationHint: found pure-number countdown '12', seconds=12
+09:41:56.083 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+09:41:56.094 findAdDurationHint: found pure-number countdown '12', seconds=12
+09:41:56.158 findAdDurationHint: found pure-number countdown '12', seconds=12
+09:41:56.211 findAdDurationHint: found pure-number countdown '12', seconds=12
+09:41:56.213 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+09:42:01.426 findAdDurationHint: found pure-number countdown '12', seconds=12
+09:42:01.431 watchAd: scene=AD_PLAYING, elapsed=40000ms/90000ms
+09:42:01.483 isAdContentShown: YES, matched ad signal in [| | 跳过, 反馈, 奖励已领取, | 跳过, 点击进入直播, 广告, 直播限时补贴, 可叠加]
+09:42:01.497 watchAd: checking ad end (40000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[| | 跳过, 反馈, 奖励已领取, | 跳过, 点击进入直播, 广告, 直播限时补贴, 可叠加]
+09:42:01.635 findAdDurationHint: found pure-number countdown '12', seconds=12
+09:42:01.717 findAdDurationHint: found pure-number countdown '12', seconds=12
+09:42:01.718 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+09:42:01.731 findAdDurationHint: found pure-number countdown '12', seconds=12
+09:42:01.748 findAdDurationHint: found pure-number countdown '12', seconds=12
+09:42:01.828 findAdDurationHint: found pure-number countdown '12', seconds=12
+09:42:01.921 findAdDurationHint: found pure-number countdown '12', seconds=12
+09:42:01.922 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+09:42:06.985 [watchAd-45000ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:42:06.994 [watchAd-45000ms] claim-text-nodes (count=1):
+09:42:06.995 [watchAd-45000ms]   text='领取成功' desc='' bounds=[798,202][982,264] clickable=false
+09:42:07.084 watchAd: scene=REWARD_POPUP, elapsed=45000ms/90000ms
+09:42:07.111 watchAd: checking ad end (45000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[反馈, 领取成功, 跳过, 【二裂酵母精华水乳】缓解敏感肌层层呵护肌肤滋润补水精华乳保湿干, owRqq2tTah1YfCP2fiaUUQDiAKzLQgBkU1CDoI~tplv-qgppglrh0x-noop, 广告, PzOySbHs_m_fa40100487c9720b02224e8849d999cd_sx_564064_www1024-1024, 【二裂酵母精华水乳】缓解敏感肌层层呵护肌肤滋润补水精华乳保湿干]
+09:42:07.181 isAdEndedMultiSignal: YES (claim reward button appeared)
+09:42:07.223 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+09:42:07.224 performClickSafe: text='' desc='' bounds=[722,202][982,264] clickable=true
+09:42:07.229 performClickSafe: ACTION_CLICK success at depth=0
+09:42:09.676 watchAd: AI progress percent=0%, remaining=0s, hasBar=false
+09:42:12.349 watchAd: scene=REWARD_POPUP, elapsed=50000ms/90000ms
+09:42:12.380 watchAd: checking ad end (50000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[反馈, 领取成功, 跳过, 【二裂酵母精华水乳】缓解敏感肌层层呵护肌肤滋润补水精华乳保湿干, owRqq2tTah1YfCP2fiaUUQDiAKzLQgBkU1CDoI~tplv-qgppglrh0x-noop, 广告, PzOySbHs_m_fa40100487c9720b02224e8849d999cd_sx_564064_www1024-1024, 【二裂酵母精华水乳】缓解敏感肌层层呵护肌肤滋润补水精华乳保湿干]
+09:42:12.449 isAdEndedMultiSignal: YES (claim reward button appeared)
+09:42:12.541 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+09:42:12.544 performClickSafe: text='' desc='' bounds=[722,202][982,264] clickable=true
+09:42:12.552 performClickSafe: ACTION_CLICK success at depth=0
+09:42:17.689 watchAd: scene=REWARD_POPUP, elapsed=55000ms/90000ms
+09:42:17.740 watchAd: checking ad end (55000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[反馈, 领取成功, 跳过, 【二裂酵母精华水乳】缓解敏感肌层层呵护肌肤滋润补水精华乳保湿干, owRqq2tTah1YfCP2fiaUUQDiAKzLQgBkU1CDoI~tplv-qgppglrh0x-noop, 广告, PzOySbHs_m_fa40100487c9720b02224e8849d999cd_sx_564064_www1024-1024, 【二裂酵母精华水乳】缓解敏感肌层层呵护肌肤滋润补水精华乳保湿干]
+09:42:17.848 isAdEndedMultiSignal: YES (claim reward button appeared)
+09:42:17.947 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+09:42:17.948 performClickSafe: text='' desc='' bounds=[722,202][982,264] clickable=true
+09:42:17.955 performClickSafe: ACTION_CLICK success at depth=0
+09:42:23.011 [watchAd-60000ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+09:42:23.024 [watchAd-60000ms] claim-text-nodes (count=1):
+09:42:23.027 [watchAd-60000ms]   text='领取成功' desc='' bounds=[798,202][982,264] clickable=false
+09:42:23.147 watchAd: scene=REWARD_POPUP, elapsed=60000ms/90000ms
+09:42:23.186 watchAd: checking ad end (60000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[反馈, 领取成功, 跳过, 【二裂酵母精华水乳】缓解敏感肌层层呵护肌肤滋润补水精华乳保湿干, owRqq2tTah1YfCP2fiaUUQDiAKzLQgBkU1CDoI~tplv-qgppglrh0x-noop, 广告, PzOySbHs_m_fa40100487c9720b02224e8849d999cd_sx_564064_www1024-1024, 【二裂酵母精华水乳】缓解敏感肌层层呵护肌肤滋润补水精华乳保湿干]
+09:42:23.299 isAdEndedMultiSignal: YES (claim reward button appeared)
+09:42:23.419 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+09:42:23.421 performClickSafe: text='' desc='' bounds=[722,202][982,264] clickable=true
+09:42:23.432 performClickSafe: ACTION_CLICK success at depth=0
+09:42:28.556 watchAd: scene=REWARD_POPUP, elapsed=65000ms/90000ms
+09:42:28.591 watchAd: checking ad end (65000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[反馈, 领取成功, 跳过, 【二裂酵母精华水乳】缓解敏感肌层层呵护肌肤滋润补水精华乳保湿干, owRqq2tTah1YfCP2fiaUUQDiAKzLQgBkU1CDoI~tplv-qgppglrh0x-noop, 广告, PzOySbHs_m_fa40100487c9720b02224e8849d999cd_sx_564064_www1024-1024, 【二裂酵母精华水乳】缓解敏感肌层层呵护肌肤滋润补水精华乳保湿干]
+09:42:28.677 isAdEndedMultiSignal: YES (claim reward button appeared)
+09:42:28.784 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+09:42:28.787 performClickSafe: text='' desc='' bounds=[722,202][982,264] clickable=true
+09:42:28.794 performClickSafe: ACTION_CLICK success at depth=0
+09:42:33.930 watchAd: scene=REWARD_POPUP, elapsed=70000ms/90000ms
+09:42:33.958 watchAd: checking ad end (70000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[反馈, 领取成功, 跳过, 【二裂酵母精华水乳】缓解敏感肌层层呵护肌肤滋润补水精华乳保湿干, owRqq2tTah1YfCP2fiaUUQDiAKzLQgBkU1CDoI~tplv-qgppglrh0x-noop, 广告, PzOySbHs_m_fa40100487c9720b02224e8849d999cd_sx_564064_www1024-1024, 【二裂酵母精华水乳】缓解敏感肌层层呵护肌肤滋润补水精华乳保湿干]
+09:42:34.036 isAdEndedMultiSignal: YES (claim reward button appeared)
+09:42:34.153 watchAd: multi-signal ad ended (countdown disappeared), clicking claim button
+09:42:34.155 performClickSafe: text='' desc='' bounds=[722,202][982,264] clickable=true
+09:42:34.162 performClickSafe: ACTION_CLICK success at depth=0
+09:42:37.062 state: WATCHING_AD -> STOPPING
+09:42:37.067 cancelNavigation: all navigation callbacks cancelled
+09:42:37.069 state: STOPPING -> IDLE
+09:42:39.245 saveToken: saved (len=93, head='gith', tail='McKr')
+09:42:39.247 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+09:42:39.249 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260809_094239.log, localFile=debug.log (17999 bytes)
+09:42:40.634 uploadFile resp: code=201, url=logs/debug_test_20260809_094239.log, errBody=
+09:42:40.636 uploaded: logs/debug_test_20260809_094239.log (18158 bytes)
+09:42:40.638 upload: success, remotePath=logs/debug_test_20260809_094239.log
+09:42:40.640 upload done: 1 files uploaded (tag=test), errors=[]
+10:14:12.841 === Automation v2 Started === platform=UC
+10:14:12.849 cancelNavigation: all navigation callbacks cancelled
+10:14:12.853 reset platform complete: UC
+10:14:12.854 state: IDLE -> NAVIGATING
+10:14:12.868 isOnFarmPage: activeRootPkg='com.tencent.mm' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:14:12.975 [navigate-start] snapshot: pkg=com.tencent.mm, act=com.bbncbot.MainActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+10:14:13.020 isFarmAppInForeground: activity=com.bbncbot.mainactivity is bbncbot itself, NOT treat as farm app
+10:14:13.021 navigate: farm app not in foreground (platform=UC, attempt=0), calling reopenFarmByDeepLink
+10:14:13.029 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+10:14:13.031 reopenFarmByDeepLink: pressing HOME to background UC before kill
+10:14:13.034 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+10:14:13.036 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+10:14:13.096 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+10:14:18.117 navigate: still not in farm app after relaunch, calling navigateToFarm to push navigation
+10:14:18.810 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:14:19.671 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:14:19.673 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:14:19.673 navigate stepTab: 芭芭农场 not found (retry=0), pressing back to go home
+10:14:22.704 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:14:22.706 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:14:24.069 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:14:24.731 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:14:24.733 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:14:24.734 navigate stepTab: 芭芭农场 not found (retry=2), pressing back to go home
+10:14:27.774 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:14:27.776 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:14:29.320 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:14:29.831 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:14:29.833 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:14:29.834 navigate stepTab: 芭芭农场 not found (retry=4), pressing back to go home
+10:14:32.879 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:14:32.881 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:14:34.619 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:14:34.926 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:14:34.928 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:14:36.972 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:14:36.976 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:14:39.017 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:14:39.019 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:14:39.020 navigate stepTab: abort on UC (taobao-only gesture fallback skipped)
+10:14:39.889 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:14:40.240 navigate: farm app still not in foreground after relaunch (attempt=1), waiting for next retry
+10:14:45.278 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:14:45.595 navigate: farm app still not in foreground after relaunch (attempt=2), waiting for next retry
+10:14:50.656 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:14:50.931 navigate: farm app not in foreground (platform=UC, attempt=3), calling reopenFarmByDeepLink
+10:14:50.935 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+10:14:50.937 reopenFarmByDeepLink: pressing HOME to background UC before kill
+10:14:50.941 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+10:14:50.943 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+10:14:50.963 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+10:14:56.001 navigate: still not in farm app after relaunch, calling navigateToFarm to push navigation
+10:14:56.027 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:14:57.539 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:14:57.541 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:14:57.542 navigate stepTab: 芭芭农场 not found (retry=0), pressing back to go home
+10:15:00.583 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:00.585 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:01.216 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:15:02.637 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:02.638 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:02.639 navigate stepTab: 芭芭农场 not found (retry=2), pressing back to go home
+10:15:05.685 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:05.687 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:06.490 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:15:07.742 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:07.744 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:07.745 navigate stepTab: 芭芭农场 not found (retry=4), pressing back to go home
+10:15:10.789 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:10.792 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:11.805 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:15:12.826 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:12.829 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:14.858 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:14.860 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:16.886 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:16.888 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:16.888 navigate stepTab: abort on UC (taobao-only gesture fallback skipped)
+10:15:17.093 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:15:17.436 navigate: farm app still not in foreground after relaunch (attempt=4), waiting for next retry
+10:15:22.479 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:15:22.848 navigate: farm app still not in foreground after relaunch (attempt=5), waiting for next retry
+10:15:28.264 isOnFarmPage: activeRootPkg='com.hihonor.hiboard' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:15:28.620 navigate: farm app not in foreground (platform=UC, attempt=6), calling reopenFarmByDeepLink
+10:15:28.626 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+10:15:28.628 reopenFarmByDeepLink: pressing HOME to background UC before kill
+10:15:28.632 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+10:15:28.636 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+10:15:28.661 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+10:15:33.680 navigate: still not in farm app after relaunch, calling navigateToFarm to push navigation
+10:15:33.694 isOnFarmPage: activeRootPkg='com.hihonor.hiboard' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:15:35.211 navigate stepTab: 芭芭农场 not found (retry=0), pressing back to go home
+10:15:38.852 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:38.853 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:38.906 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:15:40.890 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:40.892 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:40.893 navigate stepTab: 芭芭农场 not found (retry=2), pressing back to go home
+10:15:43.923 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:43.925 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:44.083 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:15:45.956 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:45.958 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:45.958 navigate stepTab: 芭芭农场 not found (retry=4), pressing back to go home
+10:15:48.986 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:48.988 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:49.303 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:15:51.015 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:51.016 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:53.040 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:53.042 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:54.461 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:15:55.092 navigate stepTab: exactDesc node too large [4800,0][1200,2241], skipping
+10:15:55.095 navigate stepTab: text node too large [4800,0][1200,2241], skipping
+10:15:55.096 navigate stepTab: abort on UC (taobao-only gesture fallback skipped)
+10:15:59.616 isOnFarmPage: activeRootPkg='com.tencent.mm' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+10:15:59.709 navigate: farm app still not in foreground after relaunch (attempt=7), waiting for next retry
+10:15:59.711 state: NAVIGATING -> STOPPING
+10:15:59.713 cancelNavigation: all navigation callbacks cancelled
+10:15:59.714 state: STOPPING -> IDLE
+10:16:01.354 saveToken: saved (len=93, head='gith', tail='McKr')
+10:16:01.357 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+10:16:01.358 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260809_101601.log, localFile=debug.log (30402 bytes)
