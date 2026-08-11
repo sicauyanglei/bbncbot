@@ -1924,6 +1924,17 @@ object AutomationController {
     private var adProductClickCount: Int = 0
 
     /**
+     * "点击商品,领取奖励"广告中 findAdProductNode 找不到可点击节点的连续失败次数
+     *
+     * build722 修复（debug_test_20260811_081229.log, build721, 08:11:59-08:12:25）：
+     * 腾讯广告 PortraitADActivity,商品节点在 WebView 内不可访问(clickable=false),
+     * findAdProductNode 一直返回 null,每 2s 重试无超时,干等 20s 用户手动停止。
+     * 修复:连续失败超过 5 次(约10s)后,改用 dispatchGestureClick 点击屏幕中部
+     * (广告内容区域)触发奖励,避免无限重试。
+     */
+    private var adProductNodeFindFailCount: Int = 0
+
+    /**
      * "点击商品,领取奖励"广告中商品点击的时间戳
      *
      * 用于在点击商品后等待一段时间(5s)再关闭广告,让广告主落地页加载/奖励触发
@@ -1991,7 +2002,19 @@ object AutomationController {
                     } else {
                         // 找不到可点击商品节点:可能是页面还没渲染,或商品是 WebView 内不可访问节点
                         // 等待 2s 后重试(不立即放弃,广告可能还在加载商品卡)
-                        debugLog("checkTaskListOpened: 点击商品 ad detected but no clickable product node, retrying in 2s")
+                        // build722 修复：连续失败超过 5 次(约10s)后,改用 dispatchGestureClick
+                        //   点击屏幕中部触发奖励,避免无限重试(与 watchAd 同步修复)。
+                        adProductNodeFindFailCount++
+                        if (adProductNodeFindFailCount >= 5) {
+                            Log.w(TAG, "checkTaskListOpened: 点击商品 ad no clickable product node after ${adProductNodeFindFailCount} retries, clicking center to trigger reward")
+                            debugLog("checkTaskListOpened: 点击商品 ad no clickable product node after ${adProductNodeFindFailCount} retries, clicking center (600,1200) to trigger reward")
+                            service.dispatchGestureClick(600f, 1200f)
+                            adProductNodeFindFailCount = 0
+                            adProductClicked = true
+                            adProductClickTimeMs = now
+                        } else {
+                            debugLog("checkTaskListOpened: 点击商品 ad detected but no clickable product node, retrying in 2s (failCount=${adProductNodeFindFailCount})")
+                        }
                     }
                 } else {
                     // 阶段2:已点击商品,等待 5s 让奖励触发后关闭广告
@@ -4653,6 +4676,8 @@ object AutomationController {
             adProductClickTimeMs = 0L
             // build702: 重置商品点击次数计数
             adProductClickCount = 0
+            // build722: 重置 findAdProductNode 失败计数
+            adProductNodeFindFailCount = 0
             // 按平台广告策略加载默认时长与检测间隔（UC/支付宝/淘宝差异化）
             val platformCfg = service.currentPlatformConfig()
             adEndCheckIntervalMs = platformCfg.adEndCheckIntervalMs
@@ -5382,7 +5407,24 @@ object AutomationController {
                     adProductClickCount++
                 } else {
                     // 找不到可点击商品节点：可能是页面还没渲染,等 2s 后重试
-                    debugLog("watchAd: 点击商品 ad detected but no clickable product node, retrying in 2s (elapsed=${elapsedMs}ms)")
+                    // build722 修复（debug_test_20260811_081229.log, build721, 08:11:59-08:12:25）：
+                    //   腾讯广告 PortraitADActivity 商品节点在 WebView 内不可访问,
+                    //   findAdProductNode 一直返回 null,每 2s 重试无超时,干等 20s 用户手动停止。
+                    //   修复:连续失败超过 5 次(约10s)后,改用 dispatchGestureClick 点击屏幕中部
+                    //   (广告内容区域)触发奖励,避免无限重试。
+                    adProductNodeFindFailCount++
+                    if (adProductNodeFindFailCount >= 5) {
+                        Log.w(TAG, "watchAd: 点击商品 ad no clickable product node after ${adProductNodeFindFailCount} retries, clicking center to trigger reward (elapsed=${elapsedMs}ms)")
+                        debugLog("watchAd: 点击商品 ad no clickable product node after ${adProductNodeFindFailCount} retries (elapsed=${elapsedMs}ms), clicking center (600,1200) to trigger reward")
+                        service.dispatchGestureClick(600f, 1200f)
+                        adProductNodeFindFailCount = 0  // 重置,避免下次立即再点
+                        // 标记为已点击,进入阶段2等待 2s 后关闭广告
+                        adProductClicked = true
+                        adProductClickTimeMs = now
+                        adProductClickCount++
+                    } else {
+                        debugLog("watchAd: 点击商品 ad detected but no clickable product node, retrying in 2s (elapsed=${elapsedMs}ms, failCount=${adProductNodeFindFailCount})")
+                    }
                 }
             } else {
                 // 阶段2：已点击商品,等待 2s 让奖励触发后关闭广告

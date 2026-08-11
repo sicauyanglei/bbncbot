@@ -32,6 +32,50 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build722 修复腾讯广告PortraitADActivity"点击广告拿奖励"scene误判AD_ENDED干等20秒
+
+**用户需求**: "下载最新日志" → 下载 debug_test_20260811_081229.log 后"分析日志"
+
+**日志分析** (build722=build721代码, debug_test_20260811_081229.log, 08:11:29-08:12:25):
+
+**build721修复验证** ✓（本日志未触发 navigate !isFarmAppInForeground 分支,但 UC 全程未卡死桌面）。
+
+**新问题**: 腾讯广告 PortraitADActivity "点击广告拿奖励" scene=AD_ENDED 干等 20 秒
+- 08:11:49 点击'看广告领奖' → 跳转腾讯广告 PortraitADActivity（非淘宝,build694 修复点未触发）
+- 08:11:59 collectDirect 正确识别为广告 → WATCHING_AD ✓
+- 08:12:01 watchAd: scene=AD_ENDED, elapsed=0ms ← 一开始就 AD_ENDED!
+  - isAdPlaying()=true（在广告 Activity）
+  - findAdDurationHint()=0（无倒计时）
+  - 页面不含"去体验"CTA（build718 修复点未触发）
+  - → scene=AD_ENDED（identifyCurrentScene L1880）
+- 08:12:01-08:12:25 isClickProductAd=true（页面含"点击广告拿奖励"等文字）
+  - findAdProductNode()=null（商品节点在 WebView 内不可访问,clickable=false）
+  - "点击商品 ad detected but no clickable product node, retrying in 2s" 循环
+  - 每 2s 重试,elapsed 0→20000ms,无超时兜底
+- 08:12:25 用户手动停止（WATCHING_AD -> STOPPING）
+
+**根因**:
+1. identifyCurrentScene L1867：广告 Activity 内无倒计时时直接返回 AD_ENDED。
+   build718 只修复了"去体验"CTA,未覆盖"点击商品"/"点击广告拿奖励"CTA。
+   这类广告需点击商品/广告才能领奖,广告还在播放,应 scene=AD_PLAYING。
+2. watchAd isClickProductAd 分支 L5396：findAdProductNode 找不到节点时每 2s 重试,
+   无超时上限。腾讯广告商品在 WebView 内不可访问(clickable=false),永远找不到 → 干等。
+
+**修复**:
+1. [FarmAccessibilityService.kt](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt) L1872-1877:
+   - identifyCurrentScene 在广告 Activity 无倒计时时,增加"点击商品"/"点击广告拿奖励"等
+     isClickProductAd 文字检测,命中则 scene=AD_PLAYING（与 build718 "去体验"修复一致）。
+2. [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt):
+   - 新增 adProductNodeFindFailCount 计数器（L1935,声明 + L4668 watchAd 初始化重置）
+   - watchAd L5396-5416：findAdProductNode 连续失败 >= 5 次(约10s)后,改用
+     dispatchGestureClick(600,1200) 点击屏幕中部触发奖励,标记 adProductClicked=true
+     进入阶段2等 2s 后关闭广告,避免无限重试。
+   - checkTaskListOpened L2002-2018：同步修复（与 watchAd 一致）。
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build721 修复navigate杀UC后Honor后台限制导致UC重启失败卡死桌面
 
 **用户需求**: "分析日志"

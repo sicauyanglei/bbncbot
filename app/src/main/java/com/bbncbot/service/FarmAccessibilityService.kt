@@ -1862,6 +1862,19 @@ class FarmAccessibilityService : AccessibilityService() {
                 if (pageTexts.any { it.startsWith("去体验") }) {
                     return PageScene.AD_PLAYING
                 }
+                // build722 修复（debug_test_20260811_081229.log, build721, 08:11:59-08:12:25）：
+                //   腾讯广告 PortraitADActivity,页面含"点击广告拿奖励"/"点击商品"CTA,
+                //   需点击商品/广告才能拿奖励。无倒计时 → scene=AD_ENDED,watchAd isClickProductAd
+                //   分支 findAdProductNode 找不到可点击节点(WebView 内不可访问),每 2s 重试无超时,
+                //   干等 20s 用户手动停止。
+                //   修复:页面含"点击商品"/"点击广告拿奖励"等 isClickProductAd 文字时,广告还在播放
+                //   (需点击商品/广告才能领奖),scene=AD_PLAYING。与 build718 "去体验"修复一致。
+                if (pageTexts.any {
+                        it.contains("点击商品") || it.contains("点击广告拿奖励") ||
+                        it.contains("点击广告，即可获得奖励") || it.contains("点击广告拿")
+                    }) {
+                    return PageScene.AD_PLAYING
+                }
             }
             // 在广告页但无倒计时，可能是广告已结束等待用户操作
             return PageScene.AD_ENDED
