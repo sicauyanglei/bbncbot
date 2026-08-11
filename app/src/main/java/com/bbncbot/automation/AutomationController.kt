@@ -1038,7 +1038,22 @@ object AutomationController {
                 // attempt==0：首次拉起；attempt % 3 == 0：每 3 轮（15s）重试一次拉起
                 Log.i(TAG, "navigate: farm app not in foreground (platform=${service.currentPlatform}), actively relaunching (attempt=$attempt)")
                 debugLog("navigate: farm app not in foreground (platform=${service.currentPlatform}, attempt=$attempt), calling reopenFarmByDeepLink")
-                service.reopenFarmByDeepLink()
+                // build721 修复（debug_test_20260811_080219.log, build720, 08:01:57-08:02:17）：
+                //   08:01:25 点击'看广告领奖' → 跳转淘宝 TMSActivity
+                //   08:01:35 collectDirect build694 修复✓: forceKillApp(taobao)+launchPlatformApp(killCurrentFirst=false) 回 UC 农场
+                //   08:01:55 AI 视觉超时回退 task list 时又检测到淘宝 TMSActivity → NAVIGATING
+                //   08:01:57 farm app not in foreground → reopenFarmByDeepLink() 默认 killCurrentFirst=true
+                //   08:01:57.741 killing com.ucmobile.lite ← 杀 UC!
+                //   08:01:57.799 opened deeplink for UC
+                //   08:02:03 activeRootPkg='com.hihonor.android.launcher' ← UC 没起来,卡在桌面!
+                //   08:02:04-08:02:17 navigate stepTab 找'芭芭农场'全节点 too large(桌面节点),重试5次失败 → STOPPING
+                // 根因：UC 被杀后 Honor 后台启动限制导致 deep link 重启失败,卡死在桌面。
+                //   与 build692 修复 collectDirect 时发现的问题一致（"UC 被杀后重启可能因 Honor
+                //   后台限制失败,卡死在桌面"）,但 navigate 此处仍用默认 killCurrentFirst=true。
+                // 修复：传 killCurrentFirst=false,不杀 UC,直接用 deep link 拉起 UC 农场页。
+                //   UC 进程未被 kill,deep link 可正常拉起到前台,避免 Honor 限制。
+                //   即使 UC 进程已被系统回收(非 kill),deep link 冷启动也不受 Honor 限制影响。
+                service.reopenFarmByDeepLink(killCurrentFirst = false)
                 // 延迟调用 navigateToFarm：等 App 启动后通过 AccessibilityEvent 识别平台，
                 // 再调用 navigateToFarm 导航到芭芭农场 H5 页（reopenFarmByDeepLink 只启动 App 主页，
                 // 不会自动进入农场页，必须靠 navigateToFarm 完成后续导航）。
