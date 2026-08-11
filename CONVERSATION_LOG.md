@@ -32,6 +32,42 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build723 修复watchAd scene=AD_ENDED时仍按adMinDurationMs等待导致20分钟无日志+诊断盲区
+
+**用户需求**: "分析日志"（下载 debug_test_20260811_085303.log 后分析）
+
+**日志分析** (build723=build722代码, debug_test_20260811_085303.log, 08:31:24-08:53:00, 约21分36秒):
+
+**build722 修复验证** ✓（第一个广告穿山甲"去体验9秒"正确处理 scene=AD_PLAYING → REWARD_POPUP → CLOSING_AD → RETURNING → PROCESSING_TASK,全程未卡死）。
+**build721 修复验证** ✓（return: ad activity detected, pressBack instead of reopenFarmByDeepLink,UC 保活成功）。
+
+**新问题**: watchAd 第二个广告(快手 KsRewardVideoActivity 互动广告) scene=AD_ENDED 后 20 分钟无日志
+- 08:33:39 processTask 进入第二个广告 → WATCHING_AD（快手 KsRewardVideoActivity）
+- 08:33:42 scene=TRAP_INTERACTIVE(摇一摇), elapsed=0ms, download button not found, waiting
+- 08:33:47 scene=AD_ENDED, elapsed=5000ms ← 广告已结束(无倒计时)
+- 08:33:47-08:52:57 (20分钟!) 无任何 watchAd debugLog
+- 08:52:57.530 findAdDurationHint: found countdown '10秒'（疑似广告页面恢复或新广告）
+- 08:52:57.552 watchAd: scene=AD_PLAYING, elapsed=10000ms（elapsed 被重置,说明 08:52:47 左右有新的 runWatchingAd(0L) 调用,来源不明）
+- 08:53:00 用户手动停止
+
+**根因1(诊断盲区)**:
+watchAd L5697 "最短等待时间未到" 分支,elapsedMs(5000) < adMinDurationMs(12000) 时进入此分支,
+但诊断日志条件 `elapsedMs % 15000L < adEndCheckIntervalMs` 在 elapsed=5000/10000 时不满足
+(5000 < 5000 = false),且 Log.d 不上传到 debug.log,导致大量轮询无日志,看起来像卡死。
+
+**根因2(逻辑缺陷)**:
+scene=AD_ENDED 说明广告已结束(无倒计时+在广告Activity),但仍按 adMinDurationMs 等待。
+广告已结束时应尽快进入广告结束检测(isAdEndedMultiSignal)并关闭,不需要等满 min duration。
+
+**修复**: [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt) L5697:
+- 条件改为 `elapsedMs < adMinDurationMs && scene != PageScene.AD_ENDED`
+  scene=AD_ENDED 时跳过 min wait,直接进入广告结束检测
+- 诊断日志改为每次都输出(移除 `% 15s` 条件),确保 runWatchingAd 调度可追踪
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build722 修复腾讯广告PortraitADActivity"点击广告拿奖励"scene误判AD_ENDED干等20秒
 
 **用户需求**: "下载最新日志" → 下载 debug_test_20260811_081229.log 后"分析日志"

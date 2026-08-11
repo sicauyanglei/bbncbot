@@ -5694,17 +5694,25 @@ object AutomationController {
 
         // 最短等待时间未到，继续等待
         // 用户要求：太快退出可能获取不到肥料，必须等够页面提示的规定时间+缓冲
-        if (elapsedMs < adMinDurationMs) {
-            // 诊断日志：每 15 秒记录一次广告页面状态，帮助定位"广告是否真的在播放"
-            if (elapsedMs % 15000L < adEndCheckIntervalMs) {
-                val adPageType = service.getPageType()
-                val adActivity = service.isAdActivity()
-                val adPlaying = service.isAdPlaying()
-                val adContent = service.isAdContentShown()
-                val adTexts = service.collectAllTextSnapshot(maxCount = 8)
-                debugLog("watchAd: waiting ${elapsedMs}ms/${adMinDurationMs}ms (min), pageType=$adPageType, adActivity=$adActivity, adPlaying=$adPlaying, adContent=$adContent, texts=$adTexts")
-            }
-            Log.d(TAG, "watchAd: waiting (${elapsedMs}ms/${adMinDurationMs}ms)")
+        // build723 修复（debug_test_20260811_085303.log, build722, 08:33:42-08:52:57）：
+        //   08:33:42 快手 KsRewardVideoActivity 互动广告(摇一摇), scene=TRAP_INTERACTIVE, elapsed=0ms
+        //   08:33:47 scene=AD_ENDED, elapsed=5000ms ← 广告已结束(无倒计时)
+        //   08:33:47-08:52:57 (20分钟!) 无任何 watchAd debugLog,最终用户手动停止
+        //   根因1(诊断盲区): elapsedMs < adMinDurationMs(12000ms) 时走此分支,但诊断日志条件
+        //     `elapsedMs % 15000L < adEndCheckIntervalMs` 在 elapsed=5000/10000 时不满足(5000<5000=false),
+        //     且 Log.d 不上传到 debug.log,导致大量轮询无日志,看起来像卡死。
+        //   根因2(逻辑缺陷): scene=AD_ENDED 说明广告已结束,但仍按 adMinDurationMs 等待,
+        //     不合理。广告已结束时应尽快进入广告结束检测(isAdEndedMultiSignal)并关闭。
+        //   修复1: 诊断日志改为每次都输出(移除 % 15s 条件),确保 runWatchingAd 调度可追踪。
+        //   修复2: scene=AD_ENDED 时跳过 min wait,直接进入广告结束检测。
+        if (elapsedMs < adMinDurationMs && scene != PageScene.AD_ENDED) {
+            // 诊断日志：每次都记录广告页面状态（build723: 移除 % 15s 条件,避免诊断盲区）
+            val adPageType = service.getPageType()
+            val adActivity = service.isAdActivity()
+            val adPlaying = service.isAdPlaying()
+            val adContent = service.isAdContentShown()
+            val adTexts = service.collectAllTextSnapshot(maxCount = 8)
+            debugLog("watchAd: waiting ${elapsedMs}ms/${adMinDurationMs}ms (min), pageType=$adPageType, adActivity=$adActivity, adPlaying=$adPlaying, adContent=$adContent, texts=$adTexts")
             handler.postDelayed({
                 if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
             }, adEndCheckIntervalMs)
