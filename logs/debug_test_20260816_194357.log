@@ -1,0 +1,149 @@
+=== cleared on app start (version=2.2, build=build732-05b8ac6, time=19:41:49) ===
+19:41:49.662 killPlatformApps: killed com.ucmobile.lite for UC
+19:41:49.665 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+19:41:49.668 killPlatformApps: killed com.taobao.taobao for TAOBAO
+19:41:49.688 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+19:41:49.690 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:41:49.691 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+19:42:00.760 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:42:00.764 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+19:42:02.525 === Automation v2 Started === platform=UC
+19:42:02.526 cancelNavigation: all navigation callbacks cancelled
+19:42:02.551 reset platform complete: UC
+19:42:02.552 state: IDLE -> NAVIGATING
+19:42:02.886 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:42:02.895 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:42:02.942 navigate: on farm page, platform=UC
+19:42:02.951 hasFarmContentLoaded: text count=13, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+19:42:02.953 hasFarmContentLoaded: realContent count=13
+19:42:02.956 navigate: hasFarmContentLoaded=false, attempt=0
+19:42:09.272 navigate: on farm page, platform=UC
+19:42:09.289 hasFarmContentLoaded: text count=148, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+19:42:09.290 hasFarmContentLoaded: realContent count=136
+19:42:09.290 navigate: hasFarmContentLoaded=true, attempt=1
+19:42:09.291 state: NAVIGATING -> COLLECTING_DIRECT
+19:42:11.570 isTaskCompletePage: YES, matched=[已完成], sample=[后退, 智能组件, 菜单, 多窗口, 15]
+19:42:11.585 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+19:42:11.602 [collectDirect-start] claim-text-nodes (count=4):
+19:42:11.604 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+19:42:11.605 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+19:42:11.606 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+19:42:11.607 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+19:42:11.626 collectDirect: found 1 direct buttons, attempt=0
+19:42:11.627 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1149][822,1201] (attempt 1)
+19:42:11.628 performClickSafe: text='看广告领奖' desc='' bounds=[641,1149][822,1201] clickable=false
+19:42:11.629 performClickSafe: ACTION_CLICK failed, trying gesture
+19:42:11.629 dispatchGesture: screen=[[641,1149][822,1201]] window=[[0,0][0,0]]
+19:42:11.632 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1175.0)
+19:42:11.634 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+19:42:21.637 collectDirect: jump button '看广告领奖' led to ad (act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity), entering WATCHING_AD
+19:42:21.647 state: COLLECTING_DIRECT -> WATCHING_AD
+19:42:23.879 findAdDurationHint: found countdown '10秒', seconds=10
+19:42:23.907 watchAd: parsed ad duration hint=10s, min wait=12000ms, max wait=90000ms (hint+buffer), checkInterval=5000ms
+19:42:24.008 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:42:24.023 [watchAd-0ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:42:24.095 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:42:24.099 watchAd: scene=TRAP_RECHARGE, elapsed=0ms/90000ms
+19:42:24.102 watchAd: recharge page trap detected, clicking close on recharge page
+19:42:24.177 clickCloseOnRechargePage: no close button found
+19:42:24.179 watchAd: no close on recharge, pressing back
+19:42:26.252 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:42:26.253 watchAd: scene=TRAP_RECHARGE, elapsed=5000ms/90000ms
+19:42:26.254 watchAd: recharge page trap detected, clicking close on recharge page
+19:42:26.288 clickCloseOnRechargePage: no close button found
+19:42:26.289 watchAd: no close on recharge, pressing back
+19:42:28.353 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:42:28.356 watchAd: scene=TRAP_RECHARGE, elapsed=10000ms/90000ms
+19:42:28.358 watchAd: recharge page trap detected, clicking close on recharge page
+19:42:28.417 clickCloseOnRechargePage: no close button found
+19:42:28.420 watchAd: no close on recharge, pressing back
+19:42:30.514 [watchAd-15000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:42:30.531 [watchAd-15000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:42:30.600 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:42:30.603 watchAd: scene=TRAP_RECHARGE, elapsed=15000ms/90000ms
+19:42:30.605 watchAd: recharge page trap detected, clicking close on recharge page
+19:42:30.654 clickCloseOnRechargePage: no close button found
+19:42:30.655 watchAd: no close on recharge, pressing back
+19:42:32.732 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:42:32.735 watchAd: scene=TRAP_RECHARGE, elapsed=20000ms/90000ms
+19:42:32.736 watchAd: 充值陷阱pressBack 4次无效(elapsed=20000ms), forceKillApp杀宿主+重开农场兜底
+19:42:32.737 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+19:42:32.741 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+19:42:32.748 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:42:32.749 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching UC
+19:42:32.783 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+19:42:32.784 state: WATCHING_AD -> NAVIGATING
+19:42:38.315 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:42:38.332 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:42:38.447 navigate: on farm page, platform=UC
+19:42:38.463 hasFarmContentLoaded: text count=12, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+19:42:38.465 hasFarmContentLoaded: realContent count=12
+19:42:38.466 navigate: hasFarmContentLoaded=false, attempt=0
+19:42:44.898 navigate: on farm page, platform=UC
+19:42:44.927 hasFarmContentLoaded: text count=148, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+19:42:44.928 hasFarmContentLoaded: realContent count=136
+19:42:44.929 navigate: hasFarmContentLoaded=true, attempt=1
+19:42:44.930 state: NAVIGATING -> COLLECTING_DIRECT
+19:42:47.513 isTaskCompletePage: YES, matched=[已完成], sample=[后退, 智能组件, 菜单, 多窗口, 15]
+19:42:47.546 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+19:42:47.584 [collectDirect-start] claim-text-nodes (count=4):
+19:42:47.588 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+19:42:47.590 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+19:42:47.592 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+19:42:47.594 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+19:42:47.609 collectDirect: found 1 direct buttons, attempt=0
+19:42:47.610 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1159][822,1211] (attempt 1)
+19:42:47.611 performClickSafe: text='看广告领奖' desc='' bounds=[641,1159][822,1211] clickable=false
+19:42:47.611 performClickSafe: ACTION_CLICK failed, trying gesture
+19:42:47.612 dispatchGesture: screen=[[641,1159][822,1211]] window=[[0,0][0,0]]
+19:42:47.612 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1185.0)
+19:42:47.614 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+19:42:57.616 collectDirect: jump button '看广告领奖' led to ad (act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity), entering WATCHING_AD
+19:42:57.618 state: COLLECTING_DIRECT -> WATCHING_AD
+19:42:59.865 findAdDurationHint: found countdown '10秒', seconds=10
+19:42:59.891 watchAd: parsed ad duration hint=10s, min wait=12000ms, max wait=90000ms (hint+buffer), checkInterval=5000ms
+19:42:59.997 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:43:00.035 [watchAd-0ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:43:00.164 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:43:00.168 watchAd: scene=TRAP_INTERACTIVE, elapsed=0ms/90000ms
+19:43:00.193 watchAd: interactive ad detected but download button not found (elapsed=0ms), waiting
+19:43:05.322 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:43:05.325 watchAd: scene=TRAP_INTERACTIVE, elapsed=5000ms/90000ms
+19:43:05.375 watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=5000ms/90000ms)
+19:43:10.499 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:43:10.502 watchAd: scene=TRAP_INTERACTIVE, elapsed=10000ms/90000ms
+19:43:10.534 watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=10000ms/90000ms)
+19:43:15.721 [watchAd-15000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:43:15.736 [watchAd-15000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:43:15.812 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:43:15.815 watchAd: scene=TRAP_INTERACTIVE, elapsed=15000ms/90000ms
+19:43:15.840 watchAd: interactive ad no download button, min wait elapsed (15000ms/12000ms), fall through to ad-end check
+19:43:15.907 findAdDurationHint: found countdown '10秒', seconds=10
+19:43:15.924 watchAd: countdown stuck at 10s (static text), reward video ad pressBack ineffective, entering CLOSING_AD
+19:43:15.925 state: WATCHING_AD -> CLOSING_AD
+19:43:17.949 closeAd: start closing, pageType=ad, texts=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看, 10秒, 可直接拿奖励, 京东, 京东品牌直降，火爆促销，实打实优惠！, 点击跳转拿奖励]
+19:43:18.014 performClickSafe: text='跳过' desc='' bounds=[1019,162][1109,224] clickable=true
+19:43:18.063 performClickSafe: ACTION_CLICK success at depth=0
+19:43:23.503 ad-close-0: click at (1140.0, 63.575), ratio=(0.95, 0.025), screen=1200x2543
+19:43:23.521 ad-close-1: click at (1152.0, 63.575), ratio=(0.96, 0.025), screen=1200x2543
+19:43:23.671 ad-close-2: click at (1128.0, 38.145), ratio=(0.94, 0.015), screen=1200x2543
+19:43:23.680 ad-close-3: click at (1164.0, 38.145), ratio=(0.97, 0.015), screen=1200x2543
+19:43:23.682 ad-close-4: click at (1152.0, 89.005), ratio=(0.96, 0.035), screen=1200x2543
+19:43:23.690 ad-close-5: click at (1116.0, 25.43), ratio=(0.93, 0.01), screen=1200x2543
+19:43:23.694 ad-close-6: click at (600.0, 127.15), ratio=(0.5, 0.05), screen=1200x2543
+19:43:23.701 ad-close-7: click at (1140.0, 2441.28), ratio=(0.95, 0.96), screen=1200x2543
+19:43:33.993 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:43:34.009 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:43:34.011 findClaimRewardButton: scene not allowed for claim (scene=TRAP_INTERACTIVE), skip
+19:43:39.024 state: CLOSING_AD -> RETURNING
+19:43:41.140 [return-start] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:43:41.158 [return-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:43:41.160 return: ad activity detected, pressBack instead of reopenFarmByDeepLink to preserve UC process
+19:43:46.219 back-1: click at (60.0, 127.15), ratio=(0.05, 0.05), screen=1200x2543
+19:43:51.264 back-2: click at (1140.0, 127.15), ratio=(0.95, 0.05), screen=1200x2543
+19:43:55.030 state: RETURNING -> STOPPING
+19:43:55.032 cancelNavigation: all navigation callbacks cancelled
+19:43:55.032 state: STOPPING -> IDLE
+19:43:57.385 saveToken: saved (len=93, head='gith', tail='McKr')
+19:43:57.389 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+19:43:57.391 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260816_194357.log, localFile=debug.log (15062 bytes)
