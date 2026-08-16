@@ -5547,6 +5547,46 @@ object AutomationController {
             debugLog("watchAd: huichuanMerchantPending=true, skipping isClickProductAd auto-close, waiting for ad to end naturally (elapsed=${elapsedMs}ms/${adMaxDurationMs}ms)")
         }
 
+        // build729 修复（用户需求："遇到奖励已发放，右边的关闭图标，需要点击关闭，就获得奖励了"）：
+        //   广告页面出现"奖励已发放"等已领奖标志时,奖励已到账,
+        //   立即点击右上角关闭图标退出广告即可获得奖励。
+        //   无需等满最短观看时间(adMinDurationMs),也无需再走领取按钮/放弃奖励流程。
+        //   (汇川广告"返回点击商家"回广告后,奖励计时结束显示"奖励已发放",
+        //    原逻辑要等满30s min duration 才检测,白等20s+)
+        // 关键词与 isAdEndedMultiSignal 的 adEndedKeywords 保持一致(取无歧义子集,
+        //   排除"恭喜获得"/"获取奖励"/"获得肥料"等易误判落地页营销文案的泛化词)。
+        // 守卫:仍处于广告Activity/广告播放中才触发(避免农场页/落地页文案误判)。
+        if (service.isAdActivity() || service.isAdPlaying()) {
+            val grantedRoot = service.getRootInFarmApp()
+            val rewardGranted = grantedRoot != null && run {
+                val grantedTexts = service.collectAllText(grantedRoot)
+                grantedTexts.any {
+                    it.contains("奖励已发放") || it.contains("奖励已到账") ||
+                    it.contains("领取成功") || it.contains("已领取奖励") ||
+                    it.contains("肥料已到账") || it.contains("肥料已发放") ||
+                    it.contains("恭喜获取奖励") || it.contains("恭喜获得奖励")
+                }
+            }
+            if (rewardGranted) {
+                Log.i(TAG, "watchAd: reward granted text detected (奖励已发放), clicking right close icon to claim reward (elapsed=${elapsedMs}ms)")
+                debugLog("watchAd: 检测到'奖励已发放'(奖励已到账), 立即点击右上角关闭图标退出广告获得奖励 (elapsed=${elapsedMs}ms)")
+                val closeIcon = service.findAdCloseButton(service.currentPlatformConfig().adCloseButtonTexts, enforceSceneWhitelist = false)
+                if (closeIcon != null) {
+                    debugLog("watchAd: clicking right close icon to close ad and secure reward")
+                    service.performClickSafe(closeIcon)
+                } else {
+                    debugLog("watchAd: close icon not found, pressing back to close ad")
+                    service.pressBack()
+                }
+                service.setAdMode(false)
+                collectedCount++
+                Log.i(TAG, "=== FERTILIZER COLLECTED! (total: $collectedCount) ===")
+                moveTo(AutomationState.RETURNING)
+                handler.postDelayed({ runReturning(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+        }
+
         // build678 修复（debug_test_20260801_144605.log, build677, 14:45:39-14:45:58）：
         // 点击商品广告后弹出"番茄畅听下载确认"系统对话框(act=android.app.AlertDialog)：
         // texts=[您已下载的"番茄畅听"未下载完成（文件大小98.24 M），要继续下载吗, 取消, 确认]

@@ -32,7 +32,33 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build728 修复汇川广告"放弃奖励离开"丢奖励(2s关闭过早+build727死循环)
+### commit (待提交) - feat: build729 检测"奖励已发放"立即点击右上角关闭图标领取奖励
+
+**用户需求**: "遇到奖励已发放，右边的关闭图标，需要点击关闭，就获得奖励了"
+
+**问题**: 广告页面出现"奖励已发放"等已领奖标志时,奖励已到账,
+点击右上角关闭图标退出即获得奖励。但原逻辑:
+- watchAd L5832 最短等待分支 `elapsedMs < adMinDurationMs(30s) && scene != AD_ENDED` 先返回,
+  "奖励已发放"关键词检测(isAdEndedMultiSignal)在 min wait 之后才执行 → 白等20s+。
+- build728 汇川"返回点击商家"回广告后,奖励计时结束显示"奖励已发放",
+  也要等满30s min duration 才检测,浪费时间。
+
+**修复** [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt) L5550-5588:
+- runWatchingAd 新增分支(位于 min-wait 检查之前):
+  检测到"奖励已发放/奖励已到账/领取成功/已领取奖励/肥料已到账/肥料已发放/恭喜获取奖励/恭喜获得奖励"
+  且仍在广告中(isAdActivity||isAdPlaying)时:
+  1. 立即 findAdCloseButton(enforceSceneWhitelist=false) 找右上角关闭图标并点击
+     (找不到则 pressBack 兜底)
+  2. setAdMode(false) + collectedCount++ + 进 RETURNING
+- 关键词取 isAdEndedMultiSignal adEndedKeywords 的无歧义子集
+  (排除"恭喜获得"/"获取奖励"/"获得肥料"等易误判落地页营销文案的泛化词)
+- 守卫:仍处于广告Activity/广告播放中才触发,避免农场页/落地页文案误判
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 6252367 - fix: build728 修复汇川广告"放弃奖励离开"丢奖励(2s关闭过早+build727死循环)
 
 **用户需求**: "放弃奖励离开，是等待的时间不够吗"
 
