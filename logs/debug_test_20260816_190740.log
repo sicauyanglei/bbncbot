@@ -1,0 +1,545 @@
+=== cleared on app start (version=2.2, build=build730-0c58ffc, time=19:01:13) ===
+19:01:13.856 killPlatformApps: killed com.ucmobile.lite for UC
+19:01:13.858 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+19:01:13.859 killPlatformApps: killed com.taobao.taobao for TAOBAO
+19:01:13.882 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+19:01:13.884 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:01:13.885 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+19:01:18.638 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:01:18.638 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+19:01:19.663 === Automation v2 Started === platform=UNKNOWN
+19:01:19.666 cancelNavigation: all navigation callbacks cancelled
+19:01:19.668 state: IDLE -> NAVIGATING
+19:01:19.726 refreshPlatform: detected platform=UC from pkg=com.ucmobile.lite
+19:01:19.759 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:01:19.791 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:01:19.858 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:01:19.883 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:01:19.975 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:01:20.015 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=android.widget.LinearLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:01:20.026 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:01:20.058 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:01:20.158 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:01:20.242 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:01:20.394 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:01:20.512 navigate: calling navigateToFarm, platform=UC
+19:01:22.125 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+19:01:22.126 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+19:01:22.130 performClickSafe: ACTION_CLICK failed, trying gesture
+19:01:22.146 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+19:01:22.147 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+19:01:27.064 navigate: on farm page, platform=UC
+19:01:27.096 hasFarmContentLoaded: text count=148, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+19:01:27.099 hasFarmContentLoaded: realContent count=136
+19:01:27.101 navigate: hasFarmContentLoaded=true, attempt=1
+19:01:27.105 state: NAVIGATING -> COLLECTING_DIRECT
+19:01:29.645 isTaskCompletePage: YES, matched=[已完成], sample=[后退, 智能组件, 菜单, 多窗口, 15]
+19:01:29.685 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+19:01:29.706 [collectDirect-start] claim-text-nodes (count=4):
+19:01:29.707 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+19:01:29.708 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+19:01:29.708 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+19:01:29.709 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+19:01:29.727 collectDirect: found 1 direct buttons, attempt=0
+19:01:29.728 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1156][822,1208] (attempt 1)
+19:01:29.729 performClickSafe: text='看广告领奖' desc='' bounds=[641,1156][822,1208] clickable=false
+19:01:29.730 performClickSafe: ACTION_CLICK failed, trying gesture
+19:01:29.730 dispatchGesture: screen=[[641,1156][822,1208]] window=[[0,0][0,0]]
+19:01:29.731 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1182.0)
+19:01:29.741 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+19:01:39.746 collectDirect: jump button '看广告领奖' led to ad (act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity), entering WATCHING_AD
+19:01:39.751 state: COLLECTING_DIRECT -> WATCHING_AD
+19:01:41.800 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+19:01:41.832 isAdContentShown: YES, matched ad signal in [点击商品，领取奖励, 广告]
+19:01:42.003 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:01:42.019 [watchAd-0ms] claim-text-nodes (count=1):
+19:01:42.022 [watchAd-0ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+19:01:42.212 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:01:42.216 watchAd: scene=AD_PLAYING, elapsed=0ms/90000ms
+19:01:42.234 findAdProductNode: found clickable product node bounds=[26,854][586,1653]
+19:01:42.235 watchAd: 点击商品 ad detected, clicking product bounds=[26,854][586,1653] (count=1)
+19:01:42.236 performClickSafe: text='' desc='三诺动态血糖仪i6精 正品保证 ¥ 255' bounds=[26,854][586,1653] clickable=true
+19:01:42.244 performClickSafe: ACTION_CLICK success at depth=0
+19:01:44.364 isAdContentShown: YES, matched ad signal in [淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:01:44.401 [watchAd-2000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:01:44.413 [watchAd-2000ms] claim-text-nodes (count=1):
+19:01:44.415 [watchAd-2000ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+19:01:44.578 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:01:44.583 watchAd: scene=AD_PLAYING, elapsed=2000ms/90000ms
+19:01:44.591 watchAd: closing ad window 2s after product click (sinceClick=2368ms)
+19:01:44.635 findTopCornerIcon: found right icon at [1082,62][1128,108] (screen=1200x2543)
+19:01:44.638 findAdCloseButton: found top-right close icon
+19:01:44.640 watchAd: clicking close button on ad (text='null')
+19:01:44.641 performClickSafe: text='' desc='' bounds=[1082,62][1128,108] clickable=true
+19:01:44.725 performClickSafe: ACTION_CLICK success at depth=0
+19:01:46.772 [watchAd-4000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.sdk.ui.dialog.a, onFarm=false, adActivity=false, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:01:46.786 [watchAd-4000ms] claim-text-nodes (count=1):
+19:01:46.789 [watchAd-4000ms]   text='点击商家后立即领奖' desc='' bounds=[303,1042][897,1130] clickable=false
+19:01:46.878 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+19:01:46.887 watchAd: scene=AD_ENDED, elapsed=4000ms/90000ms
+19:01:46.914 watchAd: 确认要离开吗弹窗含'点击商家后立即领奖'(奖励未触发), clicking 返回点击商家 回广告等自然结束(不自动关闭)
+19:01:46.918 performClickSafe: text='返回点击商家' desc='' bounds=[225,1292][975,1456] clickable=true
+19:01:46.956 performClickSafe: ACTION_CLICK success at depth=0
+19:01:52.250 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:01:52.255 watchAd: scene=AD_PLAYING, elapsed=9000ms/90000ms
+19:01:52.325 isAdContentShown: YES, matched ad signal in [淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:01:52.339 watchAd: waiting 9000ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:01:57.529 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:01:57.534 watchAd: scene=AD_PLAYING, elapsed=14000ms/90000ms
+19:01:57.606 isAdContentShown: YES, matched ad signal in [淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:01:57.618 watchAd: waiting 14000ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:02.650 isAdContentShown: YES, matched ad signal in [淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:02.690 [watchAd-19000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:02:02.706 [watchAd-19000ms] claim-text-nodes (count=1):
+19:02:02.709 [watchAd-19000ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+19:02:02.914 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:02.919 watchAd: scene=AD_PLAYING, elapsed=19000ms/90000ms
+19:02:02.932 watchAd: huichuanMerchantPending=true, skipping isClickProductAd auto-close, waiting for ad to end naturally (elapsed=19000ms/90000ms)
+19:02:02.982 isAdContentShown: YES, matched ad signal in [淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:02.995 watchAd: waiting 19000ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:08.185 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:08.190 watchAd: scene=AD_PLAYING, elapsed=24000ms/90000ms
+19:02:08.272 isAdContentShown: YES, matched ad signal in [淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:08.289 watchAd: waiting 24000ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:13.474 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:13.479 watchAd: scene=AD_PLAYING, elapsed=29000ms/90000ms
+19:02:13.556 isAdContentShown: YES, matched ad signal in [淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:13.569 watchAd: waiting 29000ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:18.595 [watchAd-34000ms] snapshot: pkg=com.hihonor.aod, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:02:18.639 watchAd: scene=AD_ENDED, elapsed=34000ms/90000ms
+19:02:18.648 watchAd: huichuanMerchantPending=true, skipping isClickProductAd auto-close, waiting for ad to end naturally (elapsed=34000ms/90000ms)
+19:02:18.674 watchAd: checking ad end (34000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[19:02 8月16日周日, 丙午年七月初四, 30%]
+19:02:23.401 watchAd: AI progress percent=0%, remaining=0s, hasBar=false
+19:02:23.893 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:23.895 watchAd: scene=AD_PLAYING, elapsed=39000ms/90000ms
+19:02:23.922 isAdContentShown: YES, matched ad signal in [淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:23.926 watchAd: checking ad end (39000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:24.020 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:24.094 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:24.096 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+19:02:24.107 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:24.185 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:24.259 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:24.260 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+19:02:29.352 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:29.354 watchAd: scene=AD_PLAYING, elapsed=44000ms/90000ms
+19:02:29.387 isAdContentShown: YES, matched ad signal in [淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:29.392 watchAd: checking ad end (44000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:29.539 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:29.669 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:29.671 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+19:02:29.681 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:29.692 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:29.787 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:29.871 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:29.873 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+19:02:34.890 isAdContentShown: YES, matched ad signal in [淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:34.903 [watchAd-49000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:02:34.908 [watchAd-49000ms] claim-text-nodes (count=1):
+19:02:34.908 [watchAd-49000ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+19:02:35.041 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:35.043 watchAd: scene=AD_PLAYING, elapsed=49000ms/90000ms
+19:02:35.049 watchAd: huichuanMerchantPending=true, skipping isClickProductAd auto-close, waiting for ad to end naturally (elapsed=49000ms/90000ms)
+19:02:35.065 isAdContentShown: YES, matched ad signal in [淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:35.069 watchAd: checking ad end (49000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:35.167 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:35.252 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:35.254 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+19:02:35.265 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:35.277 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:35.348 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:35.409 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:35.411 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+19:02:40.629 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:40.633 watchAd: scene=AD_PLAYING, elapsed=54000ms/90000ms
+19:02:40.685 isAdContentShown: YES, matched ad signal in [淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:40.696 watchAd: checking ad end (54000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:40.876 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:40.989 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:40.992 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+19:02:41.009 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:41.030 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:41.183 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:41.300 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:41.306 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+19:02:46.474 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:46.478 watchAd: scene=AD_PLAYING, elapsed=59000ms/90000ms
+19:02:46.526 isAdContentShown: YES, matched ad signal in [淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:46.533 watchAd: checking ad end (59000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:02:46.733 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:46.902 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:46.907 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+19:02:46.931 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:46.951 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:47.096 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:47.288 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:02:47.291 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+19:02:47.750 watchAd: AI progress percent=0%, remaining=0s, hasBar=false
+19:03:34.599 [watchAd-64000ms] snapshot: pkg=null, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:03:34.669 watchAd: scene=AD_ENDED, elapsed=64000ms/90000ms
+19:03:34.700 watchAd: huichuanMerchantPending=true, skipping isClickProductAd auto-close, waiting for ad to end naturally (elapsed=64000ms/90000ms)
+19:03:34.724 watchAd: checking ad end (64000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[]
+19:03:34.800 isAdEndedMultiSignal: YES (countdown disappeared while still on ad page)
+19:03:34.830 watchAd: multi-signal ad ended, no claim button, entering CLOSING_AD
+19:03:34.831 state: WATCHING_AD -> CLOSING_AD
+19:03:36.998 closeAd: start closing, pageType=ad, texts=[淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255, O1CN01zSUNj31rTVne5BLaV_!!2143185632-0-alimamacc.jpg_310x310xzq90.jpg_, 修正血压测量仪家用高 正品保证 ¥ 158]
+19:03:37.036 findTopCornerIcon: found right icon at [1082,62][1128,108] (screen=1200x2543)
+19:03:37.037 findAdCloseButton: found top-right close icon
+19:03:37.038 performClickSafe: text='' desc='' bounds=[1082,62][1128,108] clickable=true
+19:03:37.097 performClickSafe: ACTION_CLICK success at depth=0
+19:03:42.138 ad-close-0: click at (1140.0, 63.575), ratio=(0.95, 0.025), screen=1200x2543
+19:03:42.141 ad-close-1: click at (1152.0, 63.575), ratio=(0.96, 0.025), screen=1200x2543
+19:03:42.144 ad-close-2: click at (1128.0, 38.145), ratio=(0.94, 0.015), screen=1200x2543
+19:03:42.147 ad-close-3: click at (1164.0, 38.145), ratio=(0.97, 0.015), screen=1200x2543
+19:03:42.149 ad-close-4: click at (1152.0, 89.005), ratio=(0.96, 0.035), screen=1200x2543
+19:03:42.151 ad-close-5: click at (1116.0, 25.43), ratio=(0.93, 0.01), screen=1200x2543
+19:03:42.153 ad-close-6: click at (600.0, 127.15), ratio=(0.5, 0.05), screen=1200x2543
+19:03:42.154 ad-close-7: click at (1140.0, 2441.28), ratio=(0.95, 0.96), screen=1200x2543
+19:03:52.420 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:03:52.519 findAdDurationHint: found pure-number countdown '55', seconds=55
+19:03:52.522 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+19:03:57.537 state: CLOSING_AD -> RETURNING
+19:03:59.592 isAdContentShown: YES, matched ad signal in [淘宝精选, 鱼跃动态血糖仪5pr 正品保证 ¥ 399, O1CN01izv1Ma2GZLArwNFbY_!!2107759029-0-alimamacc.jpg_310x310xzq90.jpg_, 鱼跃动态血糖仪5pr, 正品保证, 正品保证, ¥399, 三诺动态血糖仪i6精 正品保证 ¥ 255]
+19:03:59.617 [return-start] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:03:59.627 [return-start] claim-text-nodes (count=1):
+19:03:59.629 [return-start]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+19:03:59.631 return: ad activity detected, pressBack instead of reopenFarmByDeepLink to preserve UC process
+19:04:04.669 back-1: click at (60.0, 127.15), ratio=(0.05, 0.05), screen=1200x2543
+19:04:09.766 back-2: click at (1140.0, 127.15), ratio=(0.95, 0.05), screen=1200x2543
+19:04:14.845 back-3: click at (600.0, 2415.8499), ratio=(0.5, 0.95), screen=1200x2543
+19:04:24.944 state: RETURNING -> NAVIGATING
+19:04:27.008 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:04:27.016 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:04:27.164 findAdDurationHint: found pure-number countdown '8', seconds=8
+19:04:27.165 findAdDurationHint: found pure-number countdown '8', seconds=8
+19:04:27.178 isAdEndedMultiSignal: YES (ad ended text detected: '奖励已发放')
+19:04:27.180 navigate: ad ended detected (multi-signal), entering CLOSING_AD to close ad page
+19:04:27.181 state: NAVIGATING -> CLOSING_AD
+19:04:29.199 closeAd: start closing, pageType=ad, texts=[登录, 请补全本机号码后登录, 8, 190, 8, 8314, 本机号码一键登录, * 为了更好地保障您的合法权益，请您阅读并同意以下协议《淘宝平台服务协议》《隐私权政策》《法律声明》《支付宝及客户端服务协议》《运营商协议》，未注册手机号将自动为您创建账号。, *, 为了更好地保障您的合法权益，请您阅读并同意以下协议]
+19:04:29.242 findTopCornerIcon: found right icon at [1082,62][1128,108] (screen=1200x2543)
+19:04:29.244 findAdCloseButton: found top-right close icon
+19:04:29.244 performClickSafe: text='' desc='' bounds=[1082,62][1128,108] clickable=true
+19:04:29.264 performClickSafe: ACTION_CLICK success at depth=0
+19:04:35.699 ad-close-0: click at (1140.0, 63.575), ratio=(0.95, 0.025), screen=1200x2543
+19:04:35.704 ad-close-1: click at (1152.0, 63.575), ratio=(0.96, 0.025), screen=1200x2543
+19:04:35.706 ad-close-2: click at (1128.0, 38.145), ratio=(0.94, 0.015), screen=1200x2543
+19:04:35.710 ad-close-3: click at (1164.0, 38.145), ratio=(0.97, 0.015), screen=1200x2543
+19:04:35.723 ad-close-4: click at (1152.0, 89.005), ratio=(0.96, 0.035), screen=1200x2543
+19:04:35.726 ad-close-5: click at (1116.0, 25.43), ratio=(0.93, 0.01), screen=1200x2543
+19:04:35.731 ad-close-6: click at (600.0, 127.15), ratio=(0.5, 0.05), screen=1200x2543
+19:04:35.733 ad-close-7: click at (1140.0, 2441.28), ratio=(0.95, 0.96), screen=1200x2543
+19:04:51.722 state: CLOSING_AD -> RETURNING
+19:04:53.756 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+19:04:53.839 isNonAdTaskPage: YES, matched non-ad task in [关注, 关注店铺, 领淘金币, 直播中, 妇炎洁官方旗舰店, 17件新品, 仁和匠心个护旗舰店, 妇炎洁官方旗舰店]
+19:04:53.912 [return-start] snapshot: pkg=com.taobao.taobao, act=com.uc.browser.InnerUCMobile, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+19:04:53.939 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:04:53.940 reopenFarmByDeepLink: pressing HOME to background UC before kill
+19:04:53.943 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+19:04:53.947 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+19:04:53.988 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+19:04:54.093 state: RETURNING -> NAVIGATING
+19:04:59.158 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+19:04:59.447 [navigate-start] snapshot: pkg=com.hihonor.android.launcher, act=null, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:04:59.583 navigate: farm app not in foreground (platform=UC, attempt=0), calling reopenFarmByDeepLink
+19:04:59.586 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:04:59.586 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching UC
+19:04:59.612 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+19:05:06.312 navigate: on farm page, platform=UC
+19:05:06.330 hasFarmContentLoaded: text count=148, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+19:05:06.332 hasFarmContentLoaded: realContent count=136
+19:05:06.332 navigate: hasFarmContentLoaded=true, attempt=1
+19:05:06.333 state: NAVIGATING -> COLLECTING_DIRECT
+19:05:08.433 isTaskCompletePage: YES, matched=[已完成], sample=[后退, 智能组件, 菜单, 多窗口, 15]
+19:05:08.442 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+19:05:08.446 [collectDirect-start] claim-text-nodes (count=4):
+19:05:08.447 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+19:05:08.447 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+19:05:08.447 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+19:05:08.448 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+19:05:08.453 collectDirect: found 1 direct buttons, attempt=0
+19:05:08.455 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1159][822,1211] (attempt 1)
+19:05:08.455 performClickSafe: text='看广告领奖' desc='' bounds=[641,1159][822,1211] clickable=false
+19:05:08.456 performClickSafe: ACTION_CLICK failed, trying gesture
+19:05:08.456 dispatchGesture: screen=[[641,1159][822,1211]] window=[[0,0][0,0]]
+19:05:08.456 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1185.0)
+19:05:08.457 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+19:05:18.459 collectDirect: jump button '看广告领奖' led to ad (act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity), entering WATCHING_AD
+19:05:18.461 state: COLLECTING_DIRECT -> WATCHING_AD
+19:05:20.471 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+19:05:20.491 [watchAd-0ms] snapshot: pkg=com.taobao.taobao, act=com.taobao.tao.welcome.Welcome, onFarm=false, adActivity=false, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:05:20.500 watchAd: current pkg='com.taobao.taobao' is not farm app, exiting (ad button trap) and relaunching farm
+19:05:20.504 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:05:20.505 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching UC
+19:05:20.529 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+19:05:20.530 launchPlatformApp: opened UC via deep link
+19:05:20.532 forceKillApp: killing com.taobao.taobao (pressBackFirst=false)
+19:05:20.539 forceKillApp: killBackgroundProcesses(com.taobao.taobao) called, cleared currentActivityName/currentEventPkg
+19:05:25.549 state: WATCHING_AD -> OPENING_TASK_LIST
+19:05:27.571 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+19:05:27.862 [openTaskList-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:05:27.867 openTaskList: resetting currentTaskIndex to 0 for new round (was 1, taskButtons.size=0)
+19:05:27.876 openTaskList: [UC闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+19:05:27.877 openTaskList: [UC闭环] heuristic text search (attempt=0)
+19:05:27.882 findCollectFertilizerButton: root is null!
+19:05:27.884 openTaskList: [UC闭环] not on farm page (no entry button and not on farm), re-navigating instead of coordinate fallback
+19:05:27.885 state: OPENING_TASK_LIST -> NAVIGATING
+19:05:29.914 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+19:05:32.597 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+19:05:32.669 [navigate-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:05:32.849 isAdLandingPage: YES, matchCount=12 (advertiser landing page)
+19:05:32.877 navigate: farm app not in foreground (platform=UC, attempt=0), calling reopenFarmByDeepLink
+19:05:32.880 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:05:32.880 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching UC
+19:05:32.922 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+19:05:38.745 navigate: on farm page, platform=UC
+19:05:38.771 hasFarmContentLoaded: text count=149, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+19:05:38.772 hasFarmContentLoaded: realContent count=137
+19:05:38.775 navigate: hasFarmContentLoaded=true, attempt=1
+19:05:38.776 state: NAVIGATING -> COLLECTING_DIRECT
+19:05:41.257 isTaskCompletePage: YES, matched=[已完成], sample=[后退, 智能组件, 菜单, 多窗口, 15]
+19:05:41.273 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+19:05:41.287 [collectDirect-start] claim-text-nodes (count=4):
+19:05:41.290 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+19:05:41.290 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+19:05:41.291 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+19:05:41.291 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+19:05:41.305 collectDirect: found 1 direct buttons, attempt=0
+19:05:41.305 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1156][822,1208] (attempt 1)
+19:05:41.306 performClickSafe: text='看广告领奖' desc='' bounds=[641,1156][822,1208] clickable=false
+19:05:41.307 performClickSafe: ACTION_CLICK failed, trying gesture
+19:05:41.307 dispatchGesture: screen=[[641,1156][822,1208]] window=[[0,0][0,0]]
+19:05:41.308 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1182.0)
+19:05:41.312 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+19:05:51.314 collectDirect: jump button '看广告领奖' led to ad (act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity), entering WATCHING_AD
+19:05:51.326 state: COLLECTING_DIRECT -> WATCHING_AD
+19:05:53.570 findAdDurationHint: found countdown '10秒', seconds=10
+19:05:53.585 watchAd: parsed ad duration hint=10s, min wait=12000ms, max wait=90000ms (hint+buffer), checkInterval=5000ms
+19:05:53.686 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:05:53.702 [watchAd-0ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:05:53.771 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:05:53.774 watchAd: scene=TRAP_RECHARGE, elapsed=0ms/90000ms
+19:05:53.776 watchAd: recharge page trap detected, clicking close on recharge page
+19:05:53.819 clickCloseOnRechargePage: no close button found
+19:05:53.822 watchAd: no close on recharge, pressing back
+19:05:55.883 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:05:55.885 watchAd: scene=TRAP_RECHARGE, elapsed=5000ms/90000ms
+19:05:55.887 watchAd: recharge page trap detected, clicking close on recharge page
+19:05:55.918 clickCloseOnRechargePage: no close button found
+19:05:55.920 watchAd: no close on recharge, pressing back
+19:05:57.984 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:05:57.988 watchAd: scene=TRAP_RECHARGE, elapsed=10000ms/90000ms
+19:05:57.990 watchAd: recharge page trap detected, clicking close on recharge page
+19:05:58.037 clickCloseOnRechargePage: no close button found
+19:05:58.039 watchAd: no close on recharge, pressing back
+19:06:00.148 [watchAd-15000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:06:00.165 [watchAd-15000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:06:00.233 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:00.237 watchAd: scene=TRAP_RECHARGE, elapsed=15000ms/90000ms
+19:06:00.239 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:00.284 clickCloseOnRechargePage: no close button found
+19:06:00.286 watchAd: no close on recharge, pressing back
+19:06:02.362 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:02.370 watchAd: scene=TRAP_RECHARGE, elapsed=20000ms/90000ms
+19:06:02.373 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:02.408 clickCloseOnRechargePage: no close button found
+19:06:02.411 watchAd: no close on recharge, pressing back
+19:06:04.473 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:04.475 watchAd: scene=TRAP_RECHARGE, elapsed=25000ms/90000ms
+19:06:04.475 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:04.500 clickCloseOnRechargePage: no close button found
+19:06:04.507 watchAd: no close on recharge, pressing back
+19:06:06.587 [watchAd-30000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:06:06.604 [watchAd-30000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:06:06.660 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:06.663 watchAd: scene=TRAP_RECHARGE, elapsed=30000ms/90000ms
+19:06:06.664 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:06.694 clickCloseOnRechargePage: no close button found
+19:06:06.695 watchAd: no close on recharge, pressing back
+19:06:08.770 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:08.774 watchAd: scene=TRAP_RECHARGE, elapsed=35000ms/90000ms
+19:06:08.777 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:08.816 clickCloseOnRechargePage: no close button found
+19:06:08.820 watchAd: no close on recharge, pressing back
+19:06:10.870 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:10.876 watchAd: scene=TRAP_RECHARGE, elapsed=40000ms/90000ms
+19:06:10.878 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:10.910 clickCloseOnRechargePage: no close button found
+19:06:10.912 watchAd: no close on recharge, pressing back
+19:06:13.001 [watchAd-45000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:06:13.021 [watchAd-45000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:06:13.086 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:13.089 watchAd: scene=TRAP_RECHARGE, elapsed=45000ms/90000ms
+19:06:13.092 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:13.135 clickCloseOnRechargePage: no close button found
+19:06:13.136 watchAd: no close on recharge, pressing back
+19:06:15.165 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:15.170 watchAd: scene=TRAP_RECHARGE, elapsed=50000ms/90000ms
+19:06:15.172 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:15.218 clickCloseOnRechargePage: no close button found
+19:06:15.221 watchAd: no close on recharge, pressing back
+19:06:17.299 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:17.303 watchAd: scene=TRAP_RECHARGE, elapsed=55000ms/90000ms
+19:06:17.307 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:17.353 clickCloseOnRechargePage: no close button found
+19:06:17.355 watchAd: no close on recharge, pressing back
+19:06:19.412 [watchAd-60000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:06:19.432 [watchAd-60000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:06:19.477 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:19.479 watchAd: scene=TRAP_RECHARGE, elapsed=60000ms/90000ms
+19:06:19.480 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:19.517 clickCloseOnRechargePage: no close button found
+19:06:19.519 watchAd: no close on recharge, pressing back
+19:06:21.591 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:21.594 watchAd: scene=TRAP_RECHARGE, elapsed=65000ms/90000ms
+19:06:21.595 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:21.630 clickCloseOnRechargePage: no close button found
+19:06:21.632 watchAd: no close on recharge, pressing back
+19:06:23.703 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:23.705 watchAd: scene=TRAP_RECHARGE, elapsed=70000ms/90000ms
+19:06:23.707 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:23.747 clickCloseOnRechargePage: no close button found
+19:06:23.750 watchAd: no close on recharge, pressing back
+19:06:25.852 [watchAd-75000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:06:25.870 [watchAd-75000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:06:25.936 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:25.939 watchAd: scene=TRAP_RECHARGE, elapsed=75000ms/90000ms
+19:06:25.940 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:25.969 clickCloseOnRechargePage: no close button found
+19:06:25.971 watchAd: no close on recharge, pressing back
+19:06:28.034 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:28.037 watchAd: scene=TRAP_RECHARGE, elapsed=80000ms/90000ms
+19:06:28.039 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:28.069 clickCloseOnRechargePage: no close button found
+19:06:28.071 watchAd: no close on recharge, pressing back
+19:06:30.135 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:30.139 watchAd: scene=TRAP_RECHARGE, elapsed=85000ms/90000ms
+19:06:30.142 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:30.182 clickCloseOnRechargePage: no close button found
+19:06:30.187 watchAd: no close on recharge, pressing back
+19:06:32.299 [watchAd-90000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:06:32.317 [watchAd-90000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:06:32.397 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:32.401 watchAd: scene=TRAP_RECHARGE, elapsed=90000ms/90000ms
+19:06:32.403 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:32.440 clickCloseOnRechargePage: no close button found
+19:06:32.443 watchAd: no close on recharge, pressing back
+19:06:34.495 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:34.497 watchAd: scene=TRAP_RECHARGE, elapsed=95000ms/90000ms
+19:06:34.498 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:34.528 clickCloseOnRechargePage: no close button found
+19:06:34.531 watchAd: no close on recharge, pressing back
+19:06:36.610 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:36.613 watchAd: scene=TRAP_RECHARGE, elapsed=100000ms/90000ms
+19:06:36.614 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:36.634 clickCloseOnRechargePage: no close button found
+19:06:36.638 watchAd: no close on recharge, pressing back
+19:06:38.725 [watchAd-105000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:06:38.741 [watchAd-105000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:06:38.808 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:38.812 watchAd: scene=TRAP_RECHARGE, elapsed=105000ms/90000ms
+19:06:38.815 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:38.853 clickCloseOnRechargePage: no close button found
+19:06:38.856 watchAd: no close on recharge, pressing back
+19:06:40.927 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:40.930 watchAd: scene=TRAP_RECHARGE, elapsed=110000ms/90000ms
+19:06:40.932 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:40.975 clickCloseOnRechargePage: no close button found
+19:06:40.976 watchAd: no close on recharge, pressing back
+19:06:42.987 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:42.988 watchAd: scene=TRAP_RECHARGE, elapsed=115000ms/90000ms
+19:06:42.988 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:43.004 clickCloseOnRechargePage: no close button found
+19:06:43.005 watchAd: no close on recharge, pressing back
+19:06:45.104 [watchAd-120000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:06:45.122 [watchAd-120000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:06:45.181 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:45.184 watchAd: scene=TRAP_RECHARGE, elapsed=120000ms/90000ms
+19:06:45.185 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:45.233 clickCloseOnRechargePage: no close button found
+19:06:45.235 watchAd: no close on recharge, pressing back
+19:06:47.264 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:47.267 watchAd: scene=TRAP_RECHARGE, elapsed=125000ms/90000ms
+19:06:47.270 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:47.319 clickCloseOnRechargePage: no close button found
+19:06:47.322 watchAd: no close on recharge, pressing back
+19:06:49.401 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:49.404 watchAd: scene=TRAP_RECHARGE, elapsed=130000ms/90000ms
+19:06:49.406 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:49.453 clickCloseOnRechargePage: no close button found
+19:06:49.456 watchAd: no close on recharge, pressing back
+19:06:51.566 [watchAd-135000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:06:51.583 [watchAd-135000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:06:51.649 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:51.652 watchAd: scene=TRAP_RECHARGE, elapsed=135000ms/90000ms
+19:06:51.656 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:51.701 clickCloseOnRechargePage: no close button found
+19:06:51.703 watchAd: no close on recharge, pressing back
+19:06:53.766 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:53.771 watchAd: scene=TRAP_RECHARGE, elapsed=140000ms/90000ms
+19:06:53.774 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:53.834 clickCloseOnRechargePage: no close button found
+19:06:53.837 watchAd: no close on recharge, pressing back
+19:06:55.915 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:55.918 watchAd: scene=TRAP_RECHARGE, elapsed=145000ms/90000ms
+19:06:55.926 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:55.962 clickCloseOnRechargePage: no close button found
+19:06:55.963 watchAd: no close on recharge, pressing back
+19:06:58.061 [watchAd-150000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:06:58.078 [watchAd-150000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:06:58.142 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:06:58.144 watchAd: scene=TRAP_RECHARGE, elapsed=150000ms/90000ms
+19:06:58.145 watchAd: recharge page trap detected, clicking close on recharge page
+19:06:58.201 clickCloseOnRechargePage: no close button found
+19:06:58.204 watchAd: no close on recharge, pressing back
+19:07:00.261 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:07:00.264 watchAd: scene=TRAP_RECHARGE, elapsed=155000ms/90000ms
+19:07:00.267 watchAd: recharge page trap detected, clicking close on recharge page
+19:07:00.302 clickCloseOnRechargePage: no close button found
+19:07:00.306 watchAd: no close on recharge, pressing back
+19:07:02.377 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:07:02.381 watchAd: scene=TRAP_RECHARGE, elapsed=160000ms/90000ms
+19:07:02.384 watchAd: recharge page trap detected, clicking close on recharge page
+19:07:02.434 clickCloseOnRechargePage: no close button found
+19:07:02.437 watchAd: no close on recharge, pressing back
+19:07:04.537 [watchAd-165000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:07:04.556 [watchAd-165000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:07:04.628 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:07:04.632 watchAd: scene=TRAP_RECHARGE, elapsed=165000ms/90000ms
+19:07:04.635 watchAd: recharge page trap detected, clicking close on recharge page
+19:07:04.685 clickCloseOnRechargePage: no close button found
+19:07:04.689 watchAd: no close on recharge, pressing back
+19:07:06.755 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:07:06.758 watchAd: scene=TRAP_RECHARGE, elapsed=170000ms/90000ms
+19:07:06.761 watchAd: recharge page trap detected, clicking close on recharge page
+19:07:06.802 clickCloseOnRechargePage: no close button found
+19:07:06.807 watchAd: no close on recharge, pressing back
+19:07:08.867 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:07:08.869 watchAd: scene=TRAP_RECHARGE, elapsed=175000ms/90000ms
+19:07:08.872 watchAd: recharge page trap detected, clicking close on recharge page
+19:07:08.902 clickCloseOnRechargePage: no close button found
+19:07:08.903 watchAd: no close on recharge, pressing back
+19:07:10.957 [watchAd-180000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:07:10.966 [watchAd-180000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:07:10.985 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:07:10.986 watchAd: scene=TRAP_RECHARGE, elapsed=180000ms/90000ms
+19:07:10.987 watchAd: recharge page trap detected, clicking close on recharge page
+19:07:11.000 clickCloseOnRechargePage: no close button found
+19:07:11.001 watchAd: no close on recharge, pressing back
+19:07:13.065 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:07:13.068 watchAd: scene=TRAP_RECHARGE, elapsed=185000ms/90000ms
+19:07:13.070 watchAd: recharge page trap detected, clicking close on recharge page
+19:07:13.114 clickCloseOnRechargePage: no close button found
+19:07:13.116 watchAd: no close on recharge, pressing back
+19:07:15.181 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+19:07:15.186 watchAd: scene=TRAP_RECHARGE, elapsed=190000ms/90000ms
+19:07:15.190 watchAd: recharge page trap detected, clicking close on recharge page
+19:07:15.219 clickCloseOnRechargePage: no close button found
+19:07:15.222 watchAd: no close on recharge, pressing back
+19:07:15.596 state: WATCHING_AD -> STOPPING
+19:07:15.600 cancelNavigation: all navigation callbacks cancelled
+19:07:15.602 state: STOPPING -> IDLE
+19:07:35.971 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:07:35.972 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+19:07:40.140 saveToken: saved (len=93, head='gith', tail='McKr')
+19:07:40.144 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+19:07:40.145 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260816_190740.log, localFile=debug.log (59684 bytes)
