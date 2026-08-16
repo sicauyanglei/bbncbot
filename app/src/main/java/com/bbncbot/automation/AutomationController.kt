@@ -1941,6 +1941,18 @@ object AutomationController {
      */
     private var adProductClickTimeMs: Long = 0L
 
+    /**
+     * build728: 汇川广告"点击商家后立即领奖"返回后,跳过自动关闭,等广告自然结束
+     *
+     * 汇川 HCRewardVideoActivity "点击商品，领取奖励"广告:
+     * 点击商品2s后关闭广告→弹出"确认要离开吗"+"点击商家后立即领奖"(奖励未触发)。
+     * 点击"返回点击商家"回广告后,若重置adProductClicked会死循环(再点商品→2s关闭→弹窗→返回)。
+     * 改为设此flag=true,isClickProductAd块被跳过(条件加了!huichuanMerchantPending),
+     * 不再2s自动关闭,等广告自然结束(isAdEndedMultiSignal检测"领取成功",或90s超时进CLOSING_AD)。
+     * 新广告开始时重置为false。
+     */
+    private var huichuanMerchantPending: Boolean = false
+
     private fun checkTaskListOpened(service: FarmAccessibilityService, openingAttempt: Int) {
         if (state != AutomationState.OPENING_TASK_LIST) return
 
@@ -4678,6 +4690,8 @@ object AutomationController {
             adProductClickCount = 0
             // build722: 重置 findAdProductNode 失败计数
             adProductNodeFindFailCount = 0
+            // build728: 重置汇川广告"点击商家后立即领奖"返回标记
+            huichuanMerchantPending = false
             // 按平台广告策略加载默认时长与检测间隔（UC/支付宝/淘宝差异化）
             val platformCfg = service.currentPlatformConfig()
             adEndCheckIntervalMs = platformCfg.adEndCheckIntervalMs
@@ -5444,7 +5458,9 @@ object AutomationController {
         // - 阶段1：isClickProductAd() 且未点击商品时,找商品节点(findAdProductNode)并点击
         // - 阶段2：已点击商品后等 5s（让奖励触发），找关闭按钮或 pressBack 关闭广告
         // - 重置标记,继续轮询（若仍在广告页,会重新尝试点击商品）
-        if (service.isClickProductAd()) {
+        // build728: huichuanMerchantPending=true时跳过此块(汇川"点击商家后立即领奖"返回后
+        //   不自动关闭,等广告自然结束,避免2s关闭→弹窗→返回→再点商品→死循环)
+        if (service.isClickProductAd() && !huichuanMerchantPending) {
             val now = System.currentTimeMillis()
             // build702 修复（debug_test_20260803_080115.log, build701, 08:01:09-08:01:14）：
             //   关闭广告后出现"确认要离开吗？"弹窗,30秒后弹窗消失回到广告页,
@@ -5525,6 +5541,12 @@ object AutomationController {
             return
         }
 
+        // build728: huichuanMerchantPending=true时,isClickProductAd块被跳过
+        // 汇川广告"点击商家后立即领奖"返回后,不自动关闭,等广告自然结束
+        if (huichuanMerchantPending && elapsedMs % 15000L < adEndCheckIntervalMs) {
+            debugLog("watchAd: huichuanMerchantPending=true, skipping isClickProductAd auto-close, waiting for ad to end naturally (elapsed=${elapsedMs}ms/${adMaxDurationMs}ms)")
+        }
+
         // build678 修复（debug_test_20260801_144605.log, build677, 14:45:39-14:45:58）：
         // 点击商品广告后弹出"番茄畅听下载确认"系统对话框(act=android.app.AlertDialog)：
         // texts=[您已下载的"番茄畅听"未下载完成（文件大小98.24 M），要继续下载吗, 取消, 确认]
@@ -5565,6 +5587,40 @@ object AutomationController {
         //   不再继续 runWatchingAd 轮询(广告已关闭,无需继续等待)。
         val leaveConfirmBtn = service.findLeaveConfirmAbandonButton()
         if (leaveConfirmBtn != null) {
+            // build727→build728 修复（debug_test_20260816_181940.log, build726, 18:18:13-18:18:20）：
+            //   汇川广告(HCRewardVideoActivity)"点击商品，领取奖励"流程:
+            //   18:18:15 点击商品 → 18:18:17(2s后)关闭广告 → 弹出"确认要离开吗"弹窗
+            //   弹窗内容: [点击商家后立即领奖, 确认要离开吗？, 返回点击商家, 放弃奖励离开]
+            //   原逻辑(build704): 点击"放弃奖励离开"退出,假设"商品奖励已在点击商品时触发"。
+            //   实际(日志证据): "已领取"文本bounds在广告前后完全一致,任务进度未变,奖励未发放!
+            //   "点击商家后立即领奖"明确说明奖励未触发,2s等待不够。
+            //
+            //   build727初版修复(有缺陷): 点击"返回点击商家"回广告,重置adProductClicked=false。
+            //   缺陷: 重置后下轮又进入阶段1点击商品→2s关闭→弹窗→返回→点击商品→死循环到90s超时。
+            //
+            //   build728 正确修复: 点击"返回点击商家"回广告,不重置adProductClicked(保持true),
+            //   设huichuanMerchantPending=true。下轮isClickProductAd块被跳过(条件加了!huichuanMerchantPending),
+            //   不再2s自动关闭,等广告自然结束(isAdEndedMultiSignal检测"领取成功",或90s超时进CLOSING_AD)。
+            val root = service.getRootInFarmApp()
+            val hasClickMerchantHint = root != null && run {
+                val texts = service.collectAllText(root)
+                texts.any { it.contains("点击商家后立即领奖") || it.contains("点击商家") }
+            }
+            if (hasClickMerchantHint) {
+                val returnBtn = root?.let { service.findNodeByText(it, "返回点击商家") }
+                if (returnBtn != null) {
+                    Log.i(TAG, "watchAd: leave confirm dialog with '点击商家后立即领奖', clicking '返回点击商家' to continue (elapsed=${elapsedMs}ms)")
+                    debugLog("watchAd: 确认要离开吗弹窗含'点击商家后立即领奖'(奖励未触发), clicking 返回点击商家 回广告等自然结束(不自动关闭)")
+                    service.performClickSafe(returnBtn)
+                    // build728: 不重置adProductClicked(保持true),设huichuanMerchantPending=true
+                    // 下轮isClickProductAd块被跳过,不再2s自动关闭,等广告自然结束
+                    huichuanMerchantPending = true
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                    }, adEndCheckIntervalMs)
+                    return
+                }
+            }
             Log.i(TAG, "watchAd: leave confirm dialog detected, clicking abandon reward to exit (elapsed=${elapsedMs}ms)")
             debugLog("watchAd: 确认要离开吗弹窗, clicking 放弃奖励离开, clearing adMode and entering RETURNING")
             service.performClickSafe(leaveConfirmBtn)

@@ -32,7 +32,37 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### 2026-08-16 分析 - debug_test_20260816_181940.log 无需修复,流程正常
+### commit (待提交) - fix: build728 修复汇川广告"放弃奖励离开"丢奖励(2s关闭过早+build727死循环)
+
+**用户需求**: "放弃奖励离开，是等待的时间不够吗"
+
+**根因分析** (debug_test_20260816_181940.log, build726, 18:18:13-18:18:22):
+- 汇川广告 HCRewardVideoActivity "点击商品，领取奖励"流程:
+  - 18:18:15.543 点击商品(adProductClicked=true)
+  - 18:18:17.851 **2s后自动关闭广告**(sinceClick=2320ms) → 弹出"确认要离开吗"+"点击商家后立即领奖"
+  - 18:18:20.094 点击"放弃奖励离开" → 奖励丢失
+- **"点击商家后立即领奖"明确说明奖励未触发**,需要点击商家(非商品),2s等待不够。
+- **日志铁证**: "已领取"文本bounds=[894,933][1123,1031]在广告前(18:17:46)和广告后(18:18:22)完全一致,
+  任务进度未变,奖励未发放。三个连续广告(18:18/18:18/18:19)全部"放弃奖励离开",奖励从未触发。
+- build727初版修复有缺陷: 点击"返回点击商家"回广告后重置adProductClicked=false,
+  导致下轮又点击商品→2s关闭→弹窗→返回→点击商品→**死循环**到90s超时。
+
+**修复** [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt):
+1. 新增 `huichuanMerchantPending` 标志(L1954)
+2. 新广告开始时重置(L4694)
+3. `isClickProductAd` 条件加 `&& !huichuanMerchantPending`(L5463):
+   huichuanMerchantPending=true时跳过整个isClickProductAd块(不自动关闭)
+4. "点击商家后立即领奖"弹窗处理(L5587-5601):
+   点击"返回点击商家",**不重置adProductClicked**(保持true),设huichuanMerchantPending=true。
+   下轮isClickProductAd块被跳过,不再2s自动关闭,等广告自然结束
+   (isAdEndedMultiSignal检测"领取成功",或90s超时进CLOSING_AD)
+5. 跳过时输出诊断日志(L5546),便于追踪等待状态
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### 2026-08-16 分析 - debug_test_20260816_181940.log ~~无需修复~~(build728修正)
 
 **用户需求**: "分析日志"（debug_test_20260816_181940.log, build727-338adca=build726代码）
 
