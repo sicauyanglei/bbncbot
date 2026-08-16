@@ -3836,8 +3836,17 @@ class FarmAccessibilityService : AccessibilityService() {
      */
     fun findBackIcon(): AccessibilityNodeInfo? {
         val root = rootInActiveWindowSafe() ?: return null
+        // build733 修复（debug_test_20260816_193200.log, build731, 19:30:05.856 等）：
+        //   原关键词 "back" 用 contains 匹配,命中 "tree-pet-panel-pet-background-"
+        //   （"background" 含 "back"）→ 误点宠物面板节点(屏幕中心 615,1210),可能触发无关UI。
+        //   修复: "back" 改为精确匹配(text/desc 等于 "back"),中文关键词保持 contains。
+        val exactBack = findNodeByTextExact(root, "back")
+        if (exactBack != null) {
+            debugLog("findBackIcon: found by text='back' (exact)")
+            return exactBack
+        }
         // 先找文字匹配
-        val keywords = listOf("返回", "返回首页", "back")
+        val keywords = listOf("返回", "返回首页")
         for (kw in keywords) {
             val node = findNodeByText(root, kw)
             if (node != null) {
@@ -5786,6 +5795,35 @@ class FarmAccessibilityService : AccessibilityService() {
     /** 递归查找包含指定文本的节点（返回可点击的自身或父节点） */
     fun findNodeByText(root: AccessibilityNodeInfo, keyword: String): AccessibilityNodeInfo? {
         return findNodeByTextInternal(root, keyword)
+    }
+
+    /**
+     * build733: 精确匹配 text/contentDescription 等于 keyword 的节点（忽略大小写）
+     *
+     * 与 [findNodeByText] 的 contains 匹配不同,用于 "back" 等短英文词,
+     * 避免 contains 误命中 "background" 等长单词。
+     */
+    fun findNodeByTextExact(root: AccessibilityNodeInfo, keyword: String): AccessibilityNodeInfo? {
+        return findNodeByTextExactInternal(root, keyword)
+    }
+
+    private fun findNodeByTextExactInternal(node: AccessibilityNodeInfo, keyword: String): AccessibilityNodeInfo? {
+        val text = node.text?.toString()?.trim().orEmpty()
+        val desc = node.contentDescription?.toString()?.trim().orEmpty()
+        val selfMatched = (text.isNotEmpty() && text.equals(keyword, ignoreCase = true)) ||
+            (desc.isNotEmpty() && desc.equals(keyword, ignoreCase = true))
+        if (selfMatched && node.isClickable) {
+            return node
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val matched = findNodeByTextExactInternal(child, keyword)
+            if (matched != null) return matched
+        }
+        if (selfMatched) {
+            return findClickableSelfOrParentInternal(node)
+        }
+        return null
     }
 
     /**

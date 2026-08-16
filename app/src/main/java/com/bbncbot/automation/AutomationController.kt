@@ -364,6 +364,17 @@ object AutomationController {
     @Volatile
     private var currentTaskFailCount: Int = 0
 
+    /**
+     * build733: 本次任务按钮点击后是否离开过农场页
+     *
+     * true=点击后检测到不在农场页(进了广告/浏览页等);
+     * false=点击后从未离开农场页(点击无效果,广告未拉出)。
+     * 用于 checkTaskResult 区分"真任务完成"与"农场页含'已完成'文案的误判"。
+     * runProcessingTask 开始处理新任务时重置为 false。
+     */
+    @Volatile
+    private var taskClickLeftFarm: Boolean = false
+
     /** 单个任务最大失败次数，超过则跳过该任务 */
     private const val MAX_TASK_FAILS = 2
 
@@ -2217,6 +2228,11 @@ object AutomationController {
         if (state != AutomationState.PROCESSING_TASK) return
         val service = getService() ?: run { stop(); return }
 
+        // build733: 重置"本次点击后是否离开过农场页"标记(新一轮任务点击开始)
+        if (attempt == 0) {
+            taskClickLeftFarm = false
+        }
+
         // 兜底：从 direct 弹窗进入浏览后若节点失效被踢回 PROCESSING_TASK，
         // 不应继续处理仅含浏览节点的 taskButtons，应回 COLLECTING_DIRECT 重新找 direct 按钮
         if (browseFromDirectPopup) {
@@ -3678,6 +3694,11 @@ object AutomationController {
 
         logPageSnapshot(service, "checkTaskResult")
 
+        // build733: 点击后检测到不在农场页 → 标记离开过农场(区分真完成 vs 农场页误判)
+        if (!service.isOnFarmPage()) {
+            taskClickLeftFarm = true
+        }
+
         // build668 修复（debug_test_20260731_210558.log, build666）：
         // 点击 task #1 "签到"后页面变"已领取"+"明天领肥料"（签到 = 当天点击领取,已领成功）,
         // 但 processTask 未识别,继续重试点击 task #1（实际签到已成功）,还误判 isRechargePage
@@ -3735,6 +3756,44 @@ object AutomationController {
                 val desc = btn.contentDescription?.toString().orEmpty()
                 val btnText = if (text.isNotEmpty()) text else desc
                 btnText.contains("点击领取") || btnText.contains("立即领取")
+            }
+            // build733 修复（debug_test_20260816_193200.log, build731, 19:29:54-19:31:55）：
+            //   本轮会话广告SDK无填充: "看广告领奖"直领按钮点5次 + task#2"看视频得巨额肥料"去完成点5次,
+            //   共10次点击全部无效果(从未离开农场页,无广告Activity)。但农场页本身含"已完成"文案
+            //   → isTaskCompletePage YES → 误判"任务完成" → advanceTaskIndex 重放(remainingReplays=9),
+            //   每轮约25s无效循环(退出时 findBackIcon 还误点宠物面板),直到用户手动停止。
+            //   修复: 判定"完成"前,若仍在农场页且本次点击后从未离开过农场(taskClickLeftFarm=false),
+            //   且无"点击领取"按钮/肥料到账弹窗 → 判定点击无效果(广告未拉出),走重试/跳过逻辑,
+            //   不再误判完成、不触发退出点击。
+            if (service.isOnFarmPage() && !taskClickLeftFarm &&
+                directClaimBtn == null && !service.isFertilizerGrantedPage()) {
+                if (attempt < MAX_TASK_ATTEMPTS) {
+                    Log.w(TAG, "processTask: task click no-effect (still on farm, never left, ad not loaded), retry attempt=$attempt")
+                    debugLog("processTask: 任务点击无效果(未离开农场页,广告未拉出), 重试点击 attempt=$attempt")
+                    val buttons = service.findGoCompleteButtons()
+                    if (buttons.isNotEmpty() && currentTaskIndex < buttons.size) {
+                        taskButtons = buttons
+                        service.performClickSafe(buttons[currentTaskIndex])
+                    } else {
+                        Log.w(TAG, "processTask: task buttons changed, reopening task list")
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                        return
+                    }
+                    handler.postDelayed({
+                        if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt + 1)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                    return
+                }
+                Log.w(TAG, "processTask: task click no-effect after $MAX_TASK_ATTEMPTS attempts, skipping task")
+                debugLog("processTask: 任务点击连续${MAX_TASK_ATTEMPTS}次无效果(广告未拉出), 跳过该任务")
+                taskReplayRemaining = 0
+                currentTaskIndex++
+                noProgressRounds++
+                handler.postDelayed({
+                    if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
+                }, INTERVAL_CLICK_MS)
+                return
             }
             if (directClaimBtn != null) {
                 val claimText = directClaimBtn.text?.toString().orEmpty()

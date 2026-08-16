@@ -32,7 +32,44 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build732 快手广告扭一扭页误判充值陷阱pressBack死循环190s+空过渡态误判广告结束
+### commit (待提交) - fix: build733 广告SDK无填充时点击无效果被误判完成循环+findBackIcon误点宠物面板
+
+**用户需求**: "分析日志"（debug_test_20260816_193200.log, build731-c67ca3e）
+
+**核心发现**: 本轮会话**一个广告都没打开**（环境性问题: 广告SDK无填充）
+- 19:28:37-19:29:47 "看广告领奖"直领按钮点5次,每次10s后仍在农场页(无广告Activity)
+- 19:29:54-19:31:55 task#2"看视频得巨额肥料(1/10)"去完成点5次,同样无效果
+- 共10次点击全部无效果,坐标正确((1005,1285)是按钮中心),是SDK侧无广告可拉
+
+**问题1(bug,已修)**: 无效果点击被误判为"任务完成"循环重放
+- 农场页本身含"已完成"文案 → isTaskCompletePage YES
+- → 误判完成 → advanceTaskIndex 重放(remainingReplays=9) → 每轮约25s无效循环
+- remainingReplays 9→3 直到用户手动停止(共浪费约2分钟)
+
+**问题2(bug,已修)**: findBackIcon 误点宠物面板
+- "back" 关键词 contains 匹配命中 "tree-pet-panel-pet-**back**ground-"
+- 每轮退出时点击屏幕中心(615,1210)的宠物面板节点,可能触发无关UI
+
+**修复**:
+1. [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt):
+   - 新增 taskClickLeftFarm 标志(L367-376): runProcessingTask(attempt=0)重置false,
+     checkTaskResult 检测到不在农场页时置true
+   - isTaskCompletePage 分支加无效果守卫(L3755-3792): 仍在农场页且从未离开过农场,
+     且无"点击领取"按钮/肥料到账弹窗 → 判定点击无效果:
+     重试点击(≤MAX_TASK_ATTEMPTS=3次) → 仍无效果则 taskReplayRemaining=0 跳过任务
+2. [FarmAccessibilityService.kt](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt):
+   - findBackIcon(L3837-3864): "back"改为精确匹配(新增 findNodeByTextExact L5800-5827),
+     中文"返回/返回首页"保持 contains
+   - 效果: 不会再误点 tree-pet-panel-pet-background- 节点
+
+**收益**: 广告无填充时,单任务最多浪费 3次点击(约30s)后跳过,不再9次重放约4分钟;
+不再误点宠物面板。
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 05b8ac6 - fix: build732 快手广告扭一扭页误判充值陷阱pressBack死循环190s+空过渡态误判广告结束
 
 **用户需求**: "分析日志"（debug_test_20260816_190740.log, **build730**-0c58ffc）
 
