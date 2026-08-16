@@ -4730,6 +4730,42 @@ object AutomationController {
                 }
                 1 -> {
                     // 阶段1：已点入口按钮，等待"15秒更快拿奖"确认弹窗出现，然后点"允许"
+                    // build724 修复（debug_test_20260816_152759.log, build723, 15:12:19-15:16:15）：
+                    //   15:11:58 点击'我要更快拿奖' → stage=1 等待确认弹窗
+                    //   15:12:19 isFasterRewardPopupShown=YES,但 findFasterRewardAllowButton 找不到
+                    //     (skip '继续了解详情'),retrying
+                    //   15:12:28 isTaskCompletePage=YES(任务已完成!) 但 stage=1 不检查,继续等
+                    //   15:12:28.567 stage=1 timeout(25s),fasterRewardStage=4,回到正常广告等待
+                    //   15:12:33 页面已变化,isTaskCompletePage=false,isRechargePage 误判=YES
+                    //     → scene=TRAP_RECHARGE,点击"关闭"(实际点农场页元素),页面状态混乱
+                    //   15:12:36-15:16:15 scene=AD_ENDED 干等 90s 超时才 CLOSING_AD
+                    //   根因:stage=1 等待期间任务可能已完成(确认弹窗未出现但奖励已发放),
+                    //     应立即退出,不应继续等确认弹窗或回到正常广告等待。
+                    //   修复:stage=1 每次轮询先检查 isTaskCompletePage,已完成则直接退出。
+                    if (service.isTaskCompletePage()) {
+                        Log.i(TAG, "watchAd: task complete detected during faster reward stage=1 wait, exiting")
+                        debugLog("watchAd: task complete during stage=1 (确认弹窗未出现但任务已完成), exiting via close/back icon")
+                        val closeBtn = service.findAdCloseButton(service.currentPlatformConfig().adCloseButtonTexts)
+                        val backIcon = service.findBackIcon()
+                        when {
+                            closeBtn != null -> { debugLog("watchAd: clicking close icon"); service.performClickSafe(closeBtn) }
+                            backIcon != null -> { debugLog("watchAd: clicking back icon"); service.performClickSafe(backIcon) }
+                            else -> { debugLog("watchAd: pressing back"); service.pressBack() }
+                        }
+                        service.setAdMode(false)
+                        collectedCount++
+                        advanceTaskIndex()
+                        handler.postDelayed({
+                            if (!service.isOnFarmPage()) service.pressBack()
+                            handler.postDelayed({
+                                if (state == AutomationState.WATCHING_AD) {
+                                    moveTo(AutomationState.OPENING_TASK_LIST)
+                                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                                }
+                            }, INTERVAL_CLICK_MS)
+                        }, INTERVAL_PAGE_LOAD_MS)
+                        return
+                    }
                     if (service.isFasterRewardPopupShown()) {
                         val allowBtn = service.findFasterRewardAllowButton()
                         if (allowBtn != null) {
@@ -4746,7 +4782,26 @@ object AutomationController {
                             return
                         } else {
                             // 弹窗出现但"允许"按钮未渲染，短暂等待后重试
-                            debugLog("watchAd: faster reward popup shown but allow button not found, retrying")
+                            // build724 修复（debug_test_20260816_152759.log, build723, 15:17:33-15:18:18）：
+                            //   15:17:33 isFasterRewardPopupShown=YES,findFasterRewardAllowButton skip
+                            //     '继续了解详情'(广告CTA),返回 null → "retrying" 分支
+                            //   15:17:33-15:18:18 (45秒) 无限重试,无超时,直到 90s max 超时才 abort
+                            //   根因:弹窗出现但无"允许"按钮时(只有"继续了解详情"广告CTA),
+                            //     retry 分支没有 count++ 和超时检查,无限重试直到 WATCHING_AD 超时。
+                            //   修复:复用 fasterRewardStage1WaitCount,超过 4 次重试(约8s)仍无允许按钮,
+                            //     放弃 faster reward 流程(stage=4),回到正常广告等待。
+                            fasterRewardStage1WaitCount++
+                            if (fasterRewardStage1WaitCount > 4) {
+                                Log.w(TAG, "watchAd: faster reward popup shown but no allow button after ${fasterRewardStage1WaitCount * 2}s, aborting faster reward flow")
+                                debugLog("watchAd: stage=1 timeout (popup shown but no allow button after ${fasterRewardStage1WaitCount * 2}s), aborting faster reward (广告CTA无允许按钮,回到正常广告等待)")
+                                fasterRewardStage = 4
+                                fasterRewardStage1WaitCount = 0
+                                handler.postDelayed({
+                                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                                }, adEndCheckIntervalMs)
+                                return
+                            }
+                            debugLog("watchAd: faster reward popup shown but allow button not found, retrying (wait=$fasterRewardStage1WaitCount)")
                             handler.postDelayed({
                                 if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
                             }, INTERVAL_CLICK_MS)

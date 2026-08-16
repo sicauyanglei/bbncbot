@@ -32,6 +32,50 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build724 修复faster reward stage=1弹窗出现但无允许按钮时无限重试+任务完成未退出
+
+**用户需求**: "分析日志"（debug_test_20260816_152759.log, build=build723-1d54f90 注意:1d54f90是build722的commit,用户未装上build723的APK）
+
+**日志分析** (debug_test_20260816_152759.log, 15:08:12-15:18:32, 约10分钟):
+
+**问题1（第一个广告 15:11:56-15:16:15, 持续4分19秒）**:
+- 15:11:58 点击'我要更快拿奖' → stage=1 等待确认弹窗
+- 15:12:19 isFasterRewardPopupShown=YES,但 findFasterRewardAllowButton 找不到
+  (skip '继续了解详情',广告CTA不是确认按钮) → "retrying" 分支
+- 15:12:28 isTaskCompletePage=YES(任务已完成!) 但 stage=1 不检查,继续等
+- 15:12:28.567 stage=1 timeout(25s),fasterRewardStage=4,回到正常广告等待
+- 15:12:33 页面已变化,isTaskCompletePage=false,isRechargePage 误判=YES
+  → scene=TRAP_RECHARGE,点击"关闭"(实际点农场页元素),页面状态混乱
+- 15:12:36-15:16:15 scene=AD_ENDED 干等 90s 超时才 CLOSING_AD
+  (15:13:10-15:15:57 有2分47秒 gap,手机息屏 pkg=com.hihonor.aod)
+
+**问题2（第二个广告 15:17:05-15:18:24, 持续1分19秒）**:
+- 15:17:07 点击'我要更快拿奖' → stage=1 等待确认弹窗
+- 15:17:33-15:18:18 (45秒) isFasterRewardPopupShown=YES 但 findFasterRewardAllowButton
+  skip '继续了解详情' → "retrying" 分支无限重试,无超时
+  (fasterRewardStage1WaitCount 只在 !isFasterRewardPopupShown 分支才 count++)
+- 15:18:18 stage=1 timeout(25s)才 abort,但 elapsed=135000ms 已超 max=90000ms
+- 15:18:24 scene=AD_ENDED elapsed=140000ms,直接 CLOSING_AD
+
+**根因1**: stage=1 等待期间任务可能已完成(确认弹窗未出现但奖励已发放),
+  但 stage=1 不检查 isTaskCompletePage,继续等确认弹窗,错过退出时机。
+  timeout 后页面已变化,isRechargePage 误判,点击"关闭"导致页面混乱,干等90s。
+
+**根因2**: 弹窗出现但 findFasterRewardAllowButton 返回 null 时(只有"继续了解详情"广告CTA),
+  retry 分支没有 count++ 和超时检查,无限重试直到 WATCHING_AD 90s 超时。
+
+**修复**: [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt):
+1. stage=1 开头增加 isTaskCompletePage 检查(L4745):任务已完成时直接退出
+   (close/back icon + advanceTaskIndex),不继续等确认弹窗
+2. stage=1 retry 分支增加超时(L4793):复用 fasterRewardStage1WaitCount,
+   超过 4 次重试(约8s)仍无允许按钮,放弃 faster reward(stage=4)
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+**注意**: 推送策略改为 fetch+rebase（不再 --force）,避免覆盖用户通过 API 上传的日志 commit。
+
+---
+
 ### commit (待提交) - fix: build723 修复watchAd scene=AD_ENDED时仍按adMinDurationMs等待导致20分钟无日志+诊断盲区
 
 **用户需求**: "分析日志"（下载 debug_test_20260811_085303.log 后分析）
