@@ -32,7 +32,46 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build730 修复汇川商家商品页被误判TRAP_RECHARGE导致pressBack死循环
+### commit (待提交) - fix: build731 汇川"返回点击商家"后需再点商家等奖励(纯等待90s无效)
+
+**用户需求**: "分析日志"（debug_test_20260816_185130.log, build729-ba3371b）
+
+**build728/729 验证** ✓：
+- 18:49:43 "确认要离开吗弹窗含'点击商家后立即领奖'(第1次)" → 正确点"返回点击商家"回广告
+- 18:49:59-18:51:27 huichuanMerchantPending=true 生效,isClickProductAd 自动关闭被跳过
+
+**新问题**: 返回广告后**纯等待 90 秒,"奖励已发放"从未出现**
+- 返回后页面=淘宝精选商品列表(scene=AD_PLAYING),页面内容 90s 纹丝不动
+- AI progress=0% hasBar=false(无倒计时),90s 超时进 CLOSING_AD,1.3s 后用户手动停止
+- **结论: build728"跳过isClickProductAd纯等待"设计错误**。
+  "点击商家后立即领奖"语义=返回后需**再点击商家**,奖励才发放。
+
+**修复** [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt):
+1. isClickProductAd 块条件恢复为 `if (service.isClickProductAd())`(去掉 !huichuanMerchantPending)
+2. 弹窗处理(build731):
+   - 第1次弹窗(!huichuanMerchantPending): 点"返回点击商家",
+     **重置adProductClicked=false**(阶段1会再点商品=点击商家),设huichuanMerchantPending=true
+   - 第2次弹窗(huichuanMerchantPending=true): 已点商家仍未领奖,
+     "放弃奖励离开"退出(**防死循环**)
+3. 阶段2 huichuanMerchantPending 分支(L5599-5620):
+   - detectRewardGrantedText → claimRewardViaCloseIcon 点右上角关闭图标领奖
+   - 15s 无奖励文案 → 点关闭退出(再弹窗走第2次分支退出)
+4. claimRewardViaCloseIcon 清 huichuanMerchantPending(L4678)
+5. 保留 build730 守卫(详情页形态 TRAP scene 跳过防御等待)+build729 通用奖励检测
+
+**新流程**:
+```
+点商品 → 2s关闭 → 第1次弹窗"点击商家后立即领奖" → 返回点击商家
+→ 回广告(列表页) → 阶段1再点商品(=点击商家) → 等待"奖励已发放"(最多15s)
+  ├─ 出现 → 点右上角关闭图标 → 奖励到手 ✓
+  └─ 15s超时 → 点关闭 → 第2次弹窗 → 放弃奖励离开退出(防死循环)
+```
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 0c58ffc - fix: build730 修复汇川商家商品页被误判TRAP_RECHARGE导致pressBack死循环
 
 **用户需求**: "分析日志"（debug_test_20260816_184008.log, build728-6252367）
 
