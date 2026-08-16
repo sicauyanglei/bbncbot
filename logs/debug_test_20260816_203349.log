@@ -1,0 +1,430 @@
+=== cleared on app start (version=2.2, build=build733-518e2a8, time=20:31:05) ===
+20:31:05.845 killPlatformApps: killed com.ucmobile.lite for UC
+20:31:05.847 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+20:31:05.849 killPlatformApps: killed com.taobao.taobao for TAOBAO
+20:31:05.952 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+20:31:05.955 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:31:05.955 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+20:31:12.509 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:31:12.511 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+20:31:14.635 === Automation v2 Started === platform=UC
+20:31:14.635 cancelNavigation: all navigation callbacks cancelled
+20:31:14.659 reset platform complete: UC
+20:31:14.659 state: IDLE -> NAVIGATING
+20:31:14.992 isOnFarmPage: no farm content, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收]
+20:31:16.137 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:31:16.155 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:31:16.985 navigate: calling navigateToFarm, platform=UC
+20:31:18.618 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+20:31:18.619 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+20:31:18.620 performClickSafe: ACTION_CLICK failed, trying gesture
+20:31:18.624 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+20:31:18.624 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+20:31:23.457 navigate: on farm page, platform=UC
+20:31:23.496 hasFarmContentLoaded: text count=143, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+20:31:23.496 hasFarmContentLoaded: realContent count=131
+20:31:23.497 navigate: hasFarmContentLoaded=true, attempt=1
+20:31:23.498 state: NAVIGATING -> COLLECTING_DIRECT
+20:31:26.091 isTaskCompletePage: YES, matched=[已完成], sample=[后退, 智能组件, 菜单, 多窗口, 15]
+20:31:26.120 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+20:31:26.140 [collectDirect-start] claim-text-nodes (count=4):
+20:31:26.141 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+20:31:26.141 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+20:31:26.142 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,1824][222,1968] clickable=false
+20:31:26.142 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,1824][694,1892] clickable=false
+20:31:26.160 collectDirect: found 1 direct buttons, attempt=0
+20:31:26.161 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1146][822,1198] (attempt 1)
+20:31:26.165 performClickSafe: text='看广告领奖' desc='' bounds=[641,1146][822,1198] clickable=false
+20:31:26.167 performClickSafe: ACTION_CLICK failed, trying gesture
+20:31:26.168 dispatchGesture: screen=[[641,1146][822,1198]] window=[[0,0][0,0]]
+20:31:26.169 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1172.0)
+20:31:26.171 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+20:31:36.174 collectDirect: jump button '看广告领奖' led to ad (act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity), entering WATCHING_AD
+20:31:36.178 state: COLLECTING_DIRECT -> WATCHING_AD
+20:31:38.349 findAdDurationHint: found countdown '10秒', seconds=10
+20:31:38.362 watchAd: parsed ad duration hint=10s, min wait=12000ms, max wait=90000ms (hint+buffer), checkInterval=5000ms
+20:31:38.445 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:31:38.463 [watchAd-0ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:31:38.528 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+20:31:38.531 watchAd: scene=TRAP_RECHARGE, elapsed=0ms/90000ms
+20:31:38.533 watchAd: recharge page trap detected, clicking close on recharge page
+20:31:38.554 clickCloseOnRechargePage: no close button found
+20:31:38.554 watchAd: no close on recharge, pressing back
+20:31:40.624 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+20:31:40.626 watchAd: scene=TRAP_RECHARGE, elapsed=5000ms/90000ms
+20:31:40.627 watchAd: recharge page trap detected, clicking close on recharge page
+20:31:40.663 clickCloseOnRechargePage: no close button found
+20:31:40.664 watchAd: no close on recharge, pressing back
+20:31:42.721 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+20:31:42.723 watchAd: scene=TRAP_RECHARGE, elapsed=10000ms/90000ms
+20:31:42.724 watchAd: recharge page trap detected, clicking close on recharge page
+20:31:42.765 clickCloseOnRechargePage: no close button found
+20:31:42.766 watchAd: no close on recharge, pressing back
+20:31:44.867 [watchAd-15000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:31:44.889 [watchAd-15000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:31:44.950 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+20:31:44.951 watchAd: scene=TRAP_RECHARGE, elapsed=15000ms/90000ms
+20:31:44.952 watchAd: recharge page trap detected, clicking close on recharge page
+20:31:44.988 clickCloseOnRechargePage: no close button found
+20:31:44.989 watchAd: no close on recharge, pressing back
+20:31:47.051 isRechargePage: YES, sample=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看]
+20:31:47.054 watchAd: scene=TRAP_RECHARGE, elapsed=20000ms/90000ms
+20:31:47.057 watchAd: 充值陷阱pressBack 4次无效(elapsed=20000ms), forceKillApp杀宿主+重开农场兜底
+20:31:47.060 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+20:31:47.064 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+20:31:47.070 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+20:31:47.072 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching UC
+20:31:47.108 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+20:31:47.111 state: WATCHING_AD -> NAVIGATING
+20:31:53.119 isTaskCompletePage: YES, matched=[已完成], sample=[后退, 智能组件, 菜单, 多窗口, 15]
+20:31:53.132 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+20:31:53.149 [navigate-start] claim-text-nodes (count=4):
+20:31:53.150 [navigate-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+20:31:53.150 [navigate-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+20:31:53.151 [navigate-start]   text='去支付宝农场领肥料' desc='' bounds=[78,1824][222,1968] clickable=false
+20:31:53.151 [navigate-start]   text='去支付宝农场领肥料' desc='' bounds=[255,1824][694,1892] clickable=false
+20:31:53.204 navigate: on farm page, platform=UC
+20:31:53.217 hasFarmContentLoaded: text count=137, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+20:31:53.218 hasFarmContentLoaded: realContent count=125
+20:31:53.218 navigate: hasFarmContentLoaded=true, attempt=0
+20:31:53.219 state: NAVIGATING -> COLLECTING_DIRECT
+20:31:55.682 isTaskCompletePage: YES, matched=[已完成], sample=[后退, 智能组件, 菜单, 多窗口, 15]
+20:31:55.693 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+20:31:55.709 [collectDirect-start] claim-text-nodes (count=4):
+20:31:55.710 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+20:31:55.711 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+20:31:55.712 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,1824][222,1968] clickable=false
+20:31:55.713 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,1824][694,1892] clickable=false
+20:31:55.733 collectDirect: found 0 direct buttons, attempt=0
+20:31:55.769 collectDirect: dump all text/desc nodes (count=137) for '点击领取' diagnosis:
+20:31:55.771 collectDirect:   text='' desc='后退' bounds=[0,2507][240,2664] clickable=true
+20:31:55.773 collectDirect:   text='' desc='智能组件' bounds=[240,2507][480,2664] clickable=true
+20:31:55.775 collectDirect:   text='' desc='菜单' bounds=[480,2507][720,2664] clickable=true
+20:31:55.776 collectDirect:   text='' desc='多窗口' bounds=[720,2507][960,2664] clickable=true
+20:31:55.777 collectDirect:   text='15' desc='' bounds=[810,2546][869,2625] clickable=false
+20:31:55.778 collectDirect:   text='' desc='首页' bounds=[960,2507][1200,2664] clickable=true
+20:31:55.779 collectDirect:   text='UC芭芭农场' desc='' bounds=[0,298][1205,2509] clickable=false
+20:31:55.780 collectDirect:   text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+20:31:55.780 collectDirect:   text='一分钱领一箱水果' desc='' bounds=[193,517][1008,733] clickable=false
+20:31:55.781 collectDirect:   text='和淘宝,支付宝农场共种一棵树' desc='' bounds=[363,743][877,822] clickable=false
+20:31:55.781 collectDirect:   text='任务超多,肥料超多,够施219次' desc='' bounds=[363,822][877,900] clickable=false
+20:31:55.782 collectDirect:   text='芭芭农场赚肥料,用UC就够了' desc='' bounds=[363,903][854,979] clickable=false
+20:31:55.782 collectDirect:   text='和淘宝,支付宝农场共种一棵树' desc='' bounds=[363,982][877,1061] clickable=false
+20:31:55.783 collectDirect:   text='BQA34+PvvSwEAAAAAElFTkSuQmCC' desc='' bounds=[36,455][137,556] clickable=false
+20:31:55.783 collectDirect:   text='肥料' desc='' bounds=[962,1519][1011,1568] clickable=false
+20:31:55.783 collectDirect:   text='+1000' desc='' bounds=[1008,1522][1103,1565] clickable=false
+20:31:55.784 collectDirect:   text='看视频' desc='' bounds=[979,1650][1080,1693] clickable=false
+20:31:55.785 collectDirect:   text='(0/10)' desc='' bounds=[989,1689][1070,1729] clickable=false
+20:31:55.787 collectDirect:   text='领¥108元红包' desc='' bounds=[45,2308][275,2384] clickable=false
+20:31:55.788 collectDirect:   text='集肥料' desc='' bounds=[949,2380][1129,2509] clickable=false
+20:31:55.788 collectDirect:   text='扩展资源位' desc='' bounds=[415,1002][563,1149] clickable=false
+20:31:55.789 collectDirect:   text='600' desc='' bounds=[458,1074][520,1120] clickable=false
+20:31:55.789 collectDirect:   text='逛蚂蚁庄园' desc='' bounds=[399,1152][579,1205] clickable=false
+20:31:55.792 collectDirect:   text='扩展资源位' desc='' bounds=[900,1113][1051,1260] clickable=false
+20:31:55.792 collectDirect:   text='684' desc='' bounds=[943,1185][1008,1231] clickable=false
+20:31:55.793 collectDirect:   text='头条极速版' desc='' bounds=[884,1264][1067,1316] clickable=false
+20:31:55.793 collectDirect:   text='关闭' desc='' bounds=[1084,756][1185,858] clickable=false
+20:31:55.794 collectDirect:   text='签到肥料' desc='' bounds=[78,920][209,1034] clickable=false
+20:31:55.794 collectDirect:   text='签到肥料' desc='' bounds=[94,930][193,1028] clickable=false
+20:31:55.794 collectDirect:   text='+500' desc='' bounds=[78,995][209,1047] clickable=false
+20:31:55.795 collectDirect:   text='今天' desc='' bounds=[121,1061][196,1106] clickable=false
+20:31:55.795 collectDirect:   text='签到肥料' desc='' bounds=[239,920][370,1034] clickable=false
+20:31:55.795 collectDirect:   text='签到肥料' desc='' bounds=[255,930][353,1028] clickable=false
+20:31:55.796 collectDirect:   text='+500' desc='' bounds=[239,995][370,1047] clickable=false
+20:31:55.796 collectDirect:   text='第' desc='' bounds=[258,1061][298,1106] clickable=false
+20:31:55.796 collectDirect:   text='2' desc='' bounds=[291,1061][317,1106] clickable=false
+20:31:55.796 collectDirect:   text='天' desc='' bounds=[311,1061][350,1106] clickable=false
+20:31:55.797 collectDirect:   text='签到肥料' desc='' bounds=[399,920][530,1034] clickable=false
+20:31:55.797 collectDirect:   text='签到肥料' desc='' bounds=[415,930][514,1028] clickable=false
+20:31:55.797 collectDirect:   text='最高1万' desc='' bounds=[399,995][530,1047] clickable=false
+20:31:55.798 collectDirect:   text='第' desc='' bounds=[415,1061][455,1106] clickable=false
+20:31:55.798 collectDirect:   text='3' desc='' bounds=[451,1061][478,1106] clickable=false
+20:31:55.798 collectDirect:   text='天' desc='' bounds=[471,1061][514,1106] clickable=false
+20:31:55.799 collectDirect:   text='签到肥料' desc='' bounds=[556,920][691,1034] clickable=false
+20:31:55.799 collectDirect:   text='签到肥料' desc='' bounds=[573,930][674,1028] clickable=false
+20:31:55.799 collectDirect:   text='+500' desc='' bounds=[556,995][691,1047] clickable=false
+20:31:55.799 collectDirect:   text='第' desc='' bounds=[576,1061][615,1106] clickable=false
+20:31:55.800 collectDirect:   text='4' desc='' bounds=[612,1061][638,1106] clickable=false
+20:31:55.800 collectDirect:   text='天' desc='' bounds=[632,1061][671,1106] clickable=false
+20:31:55.800 collectDirect:   text='签到肥料' desc='' bounds=[733,920][864,1034] clickable=false
+20:31:55.801 collectDirect:   text='签到肥料' desc='' bounds=[749,930][848,1028] clickable=false
+20:31:55.801 collectDirect:   text='最高2万' desc='' bounds=[733,995][864,1047] clickable=false
+20:31:55.801 collectDirect:   text='第' desc='' bounds=[749,1061][789,1106] clickable=false
+20:31:55.803 collectDirect:   text='7' desc='' bounds=[786,1061][812,1106] clickable=false
+20:31:55.805 collectDirect:   text='天' desc='' bounds=[805,1061][844,1106] clickable=false
+20:31:55.805 collectDirect:   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+20:31:55.806 collectDirect:   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+20:31:55.806 collectDirect:   text='看视频得巨额肥料' desc='' bounds=[78,1215][222,1359] clickable=false
+20:31:55.807 collectDirect:   text='看视频得巨额肥料' desc='' bounds=[255,1215][645,1283] clickable=false
+20:31:55.807 collectDirect:   text='(1/10)' desc='' bounds=[641,1218][782,1280] clickable=false
+20:31:55.808 collectDirect:   text='助力果树光速升级↑' desc='' bounds=[255,1290][635,1349] clickable=false
+20:31:55.808 collectDirect:   text='肥料' desc='' bounds=[632,1293][684,1346] clickable=false
+20:31:55.809 collectDirect:   text='+1100' desc='' bounds=[677,1293][808,1346] clickable=false
+20:31:55.809 collectDirect:   text='去完成' desc='' bounds=[890,1234][1120,1336] clickable=false
+20:31:55.810 collectDirect:   text='桌面组件访问' desc='' bounds=[78,1414][222,1562] clickable=false
+20:31:55.810 collectDirect:   text='桌面组件访问' desc='' bounds=[255,1418][550,1486] clickable=false
+20:31:55.810 collectDirect:   text='30天领1万肥料，本次' desc='' bounds=[255,1493][668,1552] clickable=false
+20:31:55.811 collectDirect:   text='肥料' desc='' bounds=[661,1496][713,1549] clickable=false
+20:31:55.811 collectDirect:   text='+400' desc='' bounds=[710,1496][815,1549] clickable=false
+20:31:55.812 collectDirect:   text='去访问' desc='' bounds=[890,1437][1120,1539] clickable=false
+20:31:55.812 collectDirect:   text='去头条极速版逛逛' desc='' bounds=[78,1621][222,1765] clickable=false
+20:31:55.812 collectDirect:   text='去头条极速版逛逛' desc='' bounds=[255,1621][645,1689] clickable=false
+20:31:55.813 collectDirect:   text='本次可得' desc='' bounds=[255,1696][429,1755] clickable=false
+20:31:55.813 collectDirect:   text='肥料' desc='' bounds=[422,1699][474,1752] clickable=false
+20:31:55.813 collectDirect:   text='+684' desc='' bounds=[471,1699][576,1752] clickable=false
+20:31:55.814 collectDirect:   text='去完成' desc='' bounds=[890,1640][1120,1742] clickable=false
+20:31:55.814 collectDirect:   text='去支付宝农场领肥料' desc='' bounds=[78,1824][222,1968] clickable=false
+20:31:55.814 collectDirect:   text='去支付宝农场领肥料' desc='' bounds=[255,1824][694,1892] clickable=false
+20:31:55.815 collectDirect:   text='逛逛可得' desc='' bounds=[255,1899][429,1958] clickable=false
+20:31:55.815 collectDirect:   text='肥料' desc='' bounds=[422,1902][474,1955] clickable=false
+20:31:55.815 collectDirect:   text='+600' desc='' bounds=[471,1902][576,1955] clickable=false
+20:31:55.816 collectDirect:   text='去完成' desc='' bounds=[890,1843][1120,1945] clickable=false
+20:31:55.816 collectDirect:   text='去支付宝逛蚂蚁庄园' desc='' bounds=[78,2027][222,2171] clickable=false
+20:31:55.816 collectDirect:   text='去支付宝逛蚂蚁庄园' desc='' bounds=[255,2027][694,2095] clickable=false
+20:31:55.816 collectDirect:   text='去支付宝逛蚂蚁庄园' desc='' bounds=[255,2033][694,2092] clickable=false
+20:31:55.817 collectDirect:   text='本次可得' desc='' bounds=[255,2102][429,2161] clickable=false
+20:31:55.817 collectDirect:   text='肥料' desc='' bounds=[422,2105][474,2158] clickable=false
+20:31:55.818 collectDirect:   text='+600' desc='' bounds=[471,2105][576,2158] clickable=false
+20:31:55.818 collectDirect:   text='去完成' desc='' bounds=[890,2046][1120,2148] clickable=false
+20:31:55.818 collectDirect:   text='逛淘宝点任意商品' desc='' bounds=[78,2230][222,2374] clickable=false
+20:31:55.822 collectDirect:   text='逛淘宝点任意商品' desc='' bounds=[255,2230][645,2299] clickable=false
+20:31:55.822 collectDirect:   text='(1/3)' desc='' bounds=[641,2233][753,2295] clickable=false
+20:31:55.823 collectDirect:   text='(1/3)' desc='' bounds=[641,2233][753,2295] clickable=false
+20:31:55.823 collectDirect:   text='点击轻松赚肥料' desc='' bounds=[255,2305][553,2364] clickable=false
+20:31:55.824 collectDirect:   text='肥料' desc='' bounds=[546,2308][599,2361] clickable=false
+20:31:55.825 collectDirect:   text='+1800' desc='' bounds=[596,2308][727,2361] clickable=false
+20:31:55.826 collectDirect:   text='去完成' desc='' bounds=[890,2249][1120,2351] clickable=false
+20:31:55.826 collectDirect:   text='看视频得大额肥料' desc='' bounds=[78,2433][222,2509] clickable=false
+20:31:55.826 collectDirect:   text='看视频得大额肥料' desc='' bounds=[255,2433][645,2502] clickable=false
+20:31:55.827 collectDirect:   text='(2/10)' desc='' bounds=[641,2436][782,2498] clickable=false
+20:31:55.828 collectDirect:   text='助力果树光速升级↑' desc='' bounds=[255,2508][635,2509] clickable=false
+20:31:55.828 collectDirect:   text='肥料' desc='' bounds=[632,2511][684,2509] clickable=false
+20:31:55.828 collectDirect:   text='+1900' desc='' bounds=[677,2511][808,2509] clickable=false
+20:31:55.829 collectDirect:   text='去完成' desc='' bounds=[890,2452][1120,2509] clickable=false
+20:31:55.829 collectDirect:   text='去美团刷视频赚20元' desc='' bounds=[255,2636][700,2509] clickable=false
+20:31:55.829 collectDirect:   text='本次可得' desc='' bounds=[255,2711][429,2509] clickable=false
+20:31:55.830 collectDirect:   text='本次可得' desc='' bounds=[255,2714][429,2509] clickable=false
+20:31:55.830 collectDirect:   text='+398' desc='' bounds=[471,2714][576,2509] clickable=false
+20:31:55.830 collectDirect:   text='去完成' desc='' bounds=[890,2656][1120,2509] clickable=false
+20:31:55.831 collectDirect:   text='去中国移动领话费' desc='' bounds=[255,2839][645,2509] clickable=false
+20:31:55.831 collectDirect:   text='本次可得' desc='' bounds=[255,2918][429,2509] clickable=false
+20:31:55.831 collectDirect:   text='+300' desc='' bounds=[471,2918][576,2509] clickable=false
+20:31:55.831 collectDirect:   text='去完成' desc='' bounds=[890,2859][1120,2509] clickable=false
+20:31:55.832 collectDirect:   text='去蚂蚁森林收能量' desc='' bounds=[255,3042][645,2509] clickable=false
+20:31:55.832 collectDirect:   text='本次可得' desc='' bounds=[255,3117][429,2509] clickable=false
+20:31:55.832 collectDirect:   text='+50' desc='' bounds=[471,3121][550,2509] clickable=false
+20:31:55.833 collectDirect:   text='去完成' desc='' bounds=[890,3062][1120,2509] clickable=false
+20:31:55.833 collectDirect:   text='去美团领免费水果' desc='' bounds=[255,3245][645,2509] clickable=false
+20:31:55.833 collectDirect:   text='本次可得' desc='' bounds=[255,3320][429,2509] clickable=false
+20:31:55.834 collectDirect:   text='+188' desc='' bounds=[471,3324][576,2509] clickable=false
+20:31:55.834 collectDirect:   text='去完成' desc='' bounds=[890,3265][1120,2509] clickable=false
+20:31:55.834 collectDirect:   text='去淘宝农场逛逛' desc='' bounds=[255,3448][596,2509] clickable=false
+20:31:55.835 collectDirect:   text='本次可得' desc='' bounds=[255,3523][429,2509] clickable=false
+20:31:55.836 collectDirect:   text='+188' desc='' bounds=[471,3527][576,2509] clickable=false
+20:31:55.837 collectDirect:   text='去完成' desc='' bounds=[890,3468][1120,2509] clickable=false
+20:31:55.838 collectDirect:   text='看一本你喜欢的小说' desc='' bounds=[255,3651][694,2509] clickable=false
+20:31:55.839 collectDirect:   text='阅读15秒得肥料' desc='' bounds=[255,3726][560,2509] clickable=false
+20:31:55.841 collectDirect:   text='+200' desc='' bounds=[602,3730][707,2509] clickable=false
+20:31:55.841 collectDirect:   text='去完成' desc='' bounds=[890,3671][1120,2509] clickable=false
+20:31:55.842 collectDirect:   text='打开千问并发起对话' desc='' bounds=[255,3854][694,2509] clickable=false
+20:31:55.842 collectDirect:   text='超好用的AI大模型' desc='' bounds=[255,3929][592,2509] clickable=false
+20:31:55.842 collectDirect:   text='+1200' desc='' bounds=[635,3933][766,2509] clickable=false
+20:31:55.843 collectDirect:   text='已完成' desc='' bounds=[890,3874][1120,2509] clickable=false
+20:31:55.843 collectDirect:   text='前往手机支付宝-芭芭农场' desc='' bounds=[330,4080][815,2509] clickable=false
+20:31:55.843 collectDirect:   text='继续领更多肥料' desc='' bounds=[330,4142][815,2509] clickable=false
+20:31:55.844 collectDirect:   text='前往' desc='' bounds=[851,4090][1080,2509] clickable=false
+20:31:55.844 collectDirect:   text='HOOK DIV' desc='' bounds=[-3275,298][-3222,-2957] clickable=true
+20:31:55.859 collectDirect: no direct buttons found, trying AI vision to locate '点击跳转拿奖励' button (dailyClaimed=true)
+20:32:10.906 collectDirect: AI vision timed out after 15000ms, fallback to task list
+20:32:11.466 isTaskCompletePage: YES, matched=[已完成], sample=[后退, 智能组件, 菜单, 多窗口, 15]
+20:32:11.482 [openTaskList-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+20:32:11.499 [openTaskList-start] claim-text-nodes (count=4):
+20:32:11.500 [openTaskList-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+20:32:11.501 [openTaskList-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+20:32:11.501 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[78,1824][222,1968] clickable=false
+20:32:11.502 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[255,1824][694,1892] clickable=false
+20:32:11.519 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[78,920][209,1034])
+20:32:11.520 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.521 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[94,930][193,1028])
+20:32:11.522 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.523 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[239,920][370,1034])
+20:32:11.523 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.524 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[255,930][353,1028])
+20:32:11.524 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.525 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[399,920][530,1034])
+20:32:11.526 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.527 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[415,930][514,1028])
+20:32:11.532 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.535 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[556,920][691,1034])
+20:32:11.535 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.537 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[573,930][674,1028])
+20:32:11.537 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.538 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[733,920][864,1034])
+20:32:11.539 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.540 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[749,930][848,1028])
+20:32:11.541 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.542 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1234][1120,1336])
+20:32:11.547 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1640][1120,1742])
+20:32:11.549 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1843][1120,1945])
+20:32:11.550 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2046][1120,2148])
+20:32:11.550 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2249][1120,2351])
+20:32:11.551 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2452][1120,2509])
+20:32:11.553 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,2656][1120,2509])
+20:32:11.553 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,2859][1120,2509])
+20:32:11.554 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3062][1120,2509])
+20:32:11.555 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3265][1120,2509])
+20:32:11.555 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3468][1120,2509])
+20:32:11.556 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3671][1120,2509])
+20:32:11.557 openTaskList: [UC闭环] 6 goComplete buttons already visible, task list open, processing directly
+20:32:11.587 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[78,920][209,1034])
+20:32:11.588 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.589 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[94,930][193,1028])
+20:32:11.590 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.590 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[239,920][370,1034])
+20:32:11.591 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.591 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[255,930][353,1028])
+20:32:11.592 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.592 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[399,920][530,1034])
+20:32:11.594 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.596 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[415,930][514,1028])
+20:32:11.598 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.599 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[556,920][691,1034])
+20:32:11.599 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.601 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[573,930][674,1028])
+20:32:11.602 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.602 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[733,920][864,1034])
+20:32:11.603 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.604 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[749,930][848,1028])
+20:32:11.605 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+20:32:11.605 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1234][1120,1336])
+20:32:11.606 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1640][1120,1742])
+20:32:11.607 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1843][1120,1945])
+20:32:11.607 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2046][1120,2148])
+20:32:11.608 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2249][1120,2351])
+20:32:11.608 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2452][1120,2509])
+20:32:11.609 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,2656][1120,2509])
+20:32:11.611 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,2859][1120,2509])
+20:32:11.613 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3062][1120,2509])
+20:32:11.614 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3265][1120,2509])
+20:32:11.615 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3468][1120,2509])
+20:32:11.616 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3671][1120,2509])
+20:32:11.616 openTaskList: 6 goComplete buttons already visible, processing directly (attempt=0)
+20:32:11.617 taskButton[0]: text='去完成', desc='', bounds=[890,1234][1120,1336], clickable=false
+20:32:11.617 taskButton[1]: text='去完成', desc='', bounds=[890,1640][1120,1742], clickable=false
+20:32:11.618 taskButton[2]: text='去完成', desc='', bounds=[890,1843][1120,1945], clickable=false
+20:32:11.619 taskButton[3]: text='去完成', desc='', bounds=[890,2046][1120,2148], clickable=false
+20:32:11.620 taskButton[4]: text='去完成', desc='', bounds=[890,2249][1120,2351], clickable=false
+20:32:11.620 taskButton[5]: text='去完成', desc='', bounds=[890,2452][1120,2509], clickable=false
+20:32:11.620 openTaskList: resetting currentTaskIndex to 0 (was 0)
+20:32:11.621 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (1/10) 助力果树光速升级↑ 肥料 +1100 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:11.622 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (1/10) 助力果树光速升级↑ 肥料 +1100 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:11.623 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (1/10) 助力果树光速升级↑ 肥料 +1100 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:11.624 sortTaskButtons: idx=0 task='看视频得巨额肥料 看视频得巨额肥料 助力果树光速升级↑ 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+20:32:11.624 collectTaskContextText: result='去头条极速版逛逛 去头条极速版逛逛 本次可得 肥料 +684 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:11.625 collectTaskContextText: result='去头条极速版逛逛 去头条极速版逛逛 本次可得 肥料 +684 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:11.628 collectTaskContextText: result='去头条极速版逛逛 去头条极速版逛逛 本次可得 肥料 +684 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:11.629 sortTaskButtons: idx=1 task='去头条极速版逛逛 去头条极速版逛逛 本次可得 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+20:32:11.630 collectTaskContextText: result='去支付宝农场领肥料 去支付宝农场领肥料 逛逛可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:11.631 collectTaskContextText: result='去支付宝农场领肥料 去支付宝农场领肥料 逛逛可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:11.632 collectTaskContextText: result='去支付宝农场领肥料 去支付宝农场领肥料 逛逛可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:11.633 sortTaskButtons: idx=2 task='去支付宝农场领肥料 去支付宝农场领肥料 逛逛可得 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+20:32:11.633 collectTaskContextText: result='去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 本次可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:11.635 collectTaskContextText: result='去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 本次可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:11.636 collectTaskContextText: result='去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 本次可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:11.636 sortTaskButtons: idx=3 task='去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 本次可得 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+20:32:11.636 collectTaskContextText: result='逛淘宝点任意商品 逛淘宝点任意商品 (1/3) (1/3) 点击轻松赚肥料 肥料 +1800 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=187
+20:32:11.637 collectTaskContextText: result='逛淘宝点任意商品 逛淘宝点任意商品 (1/3) (1/3) 点击轻松赚肥料 肥料 +1800 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=187
+20:32:11.638 collectTaskContextText: result='逛淘宝点任意商品 逛淘宝点任意商品 (1/3) (1/3) 点击轻松赚肥料 肥料 +1800 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=187
+20:32:11.638 sortTaskButtons: idx=4 task='逛淘宝点任意商品 逛淘宝点任意商品 点击轻松赚肥料 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+20:32:11.638 collectTaskContextText: result='看视频得大额肥料 看视频得大额肥料 (2/10) 助力果树光速升级↑ 肥料 +1900 去完成 ', buttonText='去完成', btnHeight=57, containerHeight=99
+20:32:11.639 collectTaskContextText: result='看视频得大额肥料 看视频得大额肥料 (2/10) 助力果树光速升级↑ 肥料 +1900 去完成 ', buttonText='去完成', btnHeight=57, containerHeight=99
+20:32:11.640 collectTaskContextText: result='看视频得大额肥料 看视频得大额肥料 (2/10) 助力果树光速升级↑ 肥料 +1900 去完成 ', buttonText='去完成', btnHeight=57, containerHeight=99
+20:32:11.640 sortTaskButtons: idx=5 task='看视频得大额肥料 看视频得大额肥料 助力果树光速升级↑ 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+20:32:11.645 state: OPENING_TASK_LIST -> PROCESSING_TASK
+20:32:15.473 isTaskCompletePage: YES, matched=[已完成], sample=[后退, 智能组件, 菜单, 多窗口, 15]
+20:32:15.498 [processTask-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+20:32:15.515 [processTask-start] claim-text-nodes (count=4):
+20:32:15.517 [processTask-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+20:32:15.518 [processTask-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+20:32:15.519 [processTask-start]   text='去支付宝农场领肥料' desc='' bounds=[78,1824][222,1968] clickable=false
+20:32:15.521 [processTask-start]   text='去支付宝农场领肥料' desc='' bounds=[255,1824][694,1892] clickable=false
+20:32:15.590 processTask: current task #1/6, text='去完成', bounds=[890,1234][1120,1336], attempt=0
+20:32:15.594 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (1/10) 助力果树光速升级↑ 肥料 +1100 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:15.597 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (1/10) 助力果树光速升级↑ 肥料 +1100 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:15.601 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (1/10) 助力果树光速升级↑ 肥料 +1100 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:15.604 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (1/10) 助力果树光速升级↑ 肥料 +1100 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+20:32:15.608 isBrowseTask: buttonText='去完成', context='看视频得巨额肥料 看视频得巨额肥料 (1/10) 助力果树光速升级↑ 肥料 +1100 去完成 ', isBrowse=false
+20:32:15.616 parseTaskCount: completed=1, total=10, remaining=9
+20:32:15.619 processTask: multi-click task detected, remainingReplays=9
+20:32:15.621 performClickSafe: text='去完成' desc='' bounds=[890,1234][1120,1336] clickable=false
+20:32:15.624 performClickSafe: ACTION_CLICK failed, trying gesture
+20:32:15.627 dispatchGesture: screen=[[890,1234][1120,1336]] window=[[0,0][0,0]]
+20:32:15.629 dispatchGesture: not in popup, screen bounds valid, click at (1005.0, 1285.0)
+20:32:20.946 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:32:20.960 [checkTaskResult] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:32:21.092 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+20:32:21.096 findFertilizerClaimButton: no fertilizer text, skip
+20:32:21.159 processTask: ad detected, entering WATCHING_AD
+20:32:21.161 state: PROCESSING_TASK -> WATCHING_AD
+20:32:23.339 findAdDurationHint: found countdown '10秒', seconds=10
+20:32:23.349 watchAd: parsed ad duration hint=10s, min wait=12000ms, max wait=90000ms (hint+buffer), checkInterval=5000ms
+20:32:23.454 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:32:23.470 [watchAd-0ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:32:23.570 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+20:32:23.573 watchAd: scene=TRAP_INTERACTIVE, elapsed=0ms/90000ms
+20:32:23.621 watchAd: interactive ad detected but download button not found (elapsed=0ms), waiting
+20:32:28.963 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+20:32:28.966 watchAd: scene=TRAP_INTERACTIVE, elapsed=5000ms/90000ms
+20:32:28.995 watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=5000ms/90000ms)
+20:32:34.121 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+20:32:34.124 watchAd: scene=TRAP_INTERACTIVE, elapsed=10000ms/90000ms
+20:32:34.175 watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=10000ms/90000ms)
+20:32:39.277 [watchAd-15000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:32:39.297 [watchAd-15000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:32:39.411 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+20:32:39.413 watchAd: scene=TRAP_INTERACTIVE, elapsed=15000ms/90000ms
+20:32:39.462 watchAd: interactive ad no download button, min wait elapsed (15000ms/12000ms), fall through to ad-end check
+20:32:39.567 findAdDurationHint: found countdown '10秒', seconds=10
+20:32:39.584 watchAd: countdown stuck at 10s (static text), reward video ad pressBack ineffective, entering CLOSING_AD
+20:32:39.586 state: WATCHING_AD -> CLOSING_AD
+20:32:41.626 closeAd: start closing, pageType=ad, texts=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看, 10秒, 可直接拿奖励, 京东, 京东品牌直降，火爆促销，实打实优惠！, 点击跳转拿奖励]
+20:32:41.688 performClickSafe: text='跳过' desc='' bounds=[1019,162][1109,224] clickable=true
+20:32:41.725 performClickSafe: ACTION_CLICK success at depth=0
+20:32:47.014 ad-close-0: click at (1140.0, 63.575), ratio=(0.95, 0.025), screen=1200x2543
+20:32:47.021 ad-close-1: click at (1152.0, 63.575), ratio=(0.96, 0.025), screen=1200x2543
+20:32:47.028 ad-close-2: click at (1128.0, 38.145), ratio=(0.94, 0.015), screen=1200x2543
+20:32:47.035 ad-close-3: click at (1164.0, 38.145), ratio=(0.97, 0.015), screen=1200x2543
+20:32:47.044 ad-close-4: click at (1152.0, 89.005), ratio=(0.96, 0.035), screen=1200x2543
+20:32:47.048 ad-close-5: click at (1116.0, 25.43), ratio=(0.93, 0.01), screen=1200x2543
+20:32:47.054 ad-close-6: click at (600.0, 127.15), ratio=(0.5, 0.05), screen=1200x2543
+20:32:47.061 ad-close-7: click at (1140.0, 2441.28), ratio=(0.95, 0.96), screen=1200x2543
+20:32:57.219 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+20:32:57.280 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+20:32:57.282 findClaimRewardButton: scene not allowed for claim (scene=TRAP_INTERACTIVE), skip
+20:33:02.307 state: CLOSING_AD -> RETURNING
+20:33:04.485 [return-start] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:33:04.503 [return-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+20:33:04.506 return: ad activity detected, pressBack instead of reopenFarmByDeepLink to preserve UC process
+20:33:09.541 back-1: click at (60.0, 127.15), ratio=(0.05, 0.05), screen=1200x2543
+20:33:14.588 isOnFarmPage: activeRootPkg='com.jingdong.app.mall' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:33:14.590 back-2: click at (1140.0, 127.15), ratio=(0.95, 0.05), screen=1200x2543
+20:33:19.779 isOnFarmPage: activeRootPkg='com.jingdong.app.mall' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:33:19.781 back-3: click at (600.0, 2415.8499), ratio=(0.5, 0.95), screen=1200x2543
+20:33:25.098 isProductDetailPage: YES (hasAddToCart=true, hasBuyNow=true)
+20:33:25.101 isOnAbnormalPage: YES, product detail page detected by content
+20:33:25.103 return: abnormal/trading page detected, pressing back
+20:33:30.273 isOnFarmPage: activeRootPkg='com.jingdong.app.mall' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:33:30.276 state: RETURNING -> NAVIGATING
+20:33:32.303 isOnFarmPage: activeRootPkg='com.jingdong.app.mall' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:33:32.354 [navigate-start] snapshot: pkg=com.jingdong.app.mall, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+20:33:32.697 navigate: UC ad (act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity), waiting instead of pressBack (attempt=0)
+20:33:37.723 isOnFarmPage: activeRootPkg='com.jingdong.app.mall' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:33:38.060 navigate: UC ad (act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity), waiting instead of pressBack (attempt=1)
+20:33:43.100 isOnFarmPage: activeRootPkg='com.jingdong.app.mall' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+20:33:43.373 navigate: UC ad (act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity), waiting instead of pressBack (attempt=2)
+20:33:46.928 state: NAVIGATING -> STOPPING
+20:33:46.936 cancelNavigation: all navigation callbacks cancelled
+20:33:46.938 state: STOPPING -> IDLE
+20:33:48.998 saveToken: saved (len=93, head='gith', tail='McKr')
+20:33:49.002 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+20:33:49.004 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260816_203349.log, localFile=debug.log (50077 bytes)
