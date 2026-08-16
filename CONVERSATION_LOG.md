@@ -32,7 +32,42 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build731 汇川"返回点击商家"后需再点商家等奖励(纯等待90s无效)
+### commit (待提交) - fix: build732 快手广告扭一扭页误判充值陷阱pressBack死循环190s+空过渡态误判广告结束
+
+**用户需求**: "分析日志"（debug_test_20260816_190740.log, **build730**-0c58ffc）
+
+**注意**: 本日志测试的是 build730(build731 的 APK 当时未构建完),汇川广告部分重演 build729 纯等待问题,build731 已修复该问题待验证。
+
+**发现1(好消息)**: 奖励最终发放了
+- 19:01:42 汇川广告(55s倒计时)→点商品→2s关闭→弹窗→"返回点击商家"回广告→纯等待
+- 19:04:27.178 `isAdEndedMultiSignal: YES (ad ended text detected: '奖励已发放')` — **奖励已发放文案出现**(等了2分45秒)
+- 但 19:03:34 已因误判提前退出 WATCHING_AD(见发现3),奖励文案在 NAVIGATING 时才被检测到
+
+**发现2(bug,已修)**: 快手广告"扭一扭"互动页误判 TRAP_RECHARGE,pressBack 死循环 190 秒
+- 19:05:51 第二个广告(快手 KsRewardVideoActivity)"扭一扭或点击跳转详情页或第三方应用"互动页
+- isRechargePage 匹配页面转化按钮文案 → scene=TRAP_RECHARGE
+- clickCloseOnRechargePage 无关闭按钮 → pressBack 每5s循环,广告 Activity 拦截 back 退不出去
+- **elapsed=190000ms/90000ms 超时仍不停**(TRAP_RECHARGE 分支在超时检查之前 return,无超时保护)
+- 19:07:15 用户手动停止
+
+**发现3(bug,已修)**: 47秒轮询间隙后空过渡态误判"倒计时消失"
+- 19:02:47.750 → 19:03:34.599 有 47s 轮询间隙(手机息屏 pkg=com.hihonor.aod,handler 被冻结)
+- 恢复后 texts=[](过渡态),findAdDurationHint=0 → "countdown disappeared"弱信号误判 AD_ENDED
+- 提前进 CLOSING_AD 点关闭图标
+
+**修复**:
+1. [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt) TRAP_RECHARGE 分支(L5286-5311):
+   - 新增 trapRechargeBackCount 计数器(L1969,新广告开始重置 L4758)
+   - pressBack 连续 4 次(约20s)无效或 elapsed≥adMaxDurationMs 时:
+     forceKillApp 杀宿主 + reopenFarmByDeepLink 重开农场 + NAVIGATING(最可靠退出手段)
+2. [FarmAccessibilityService.kt](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt) isAdEndedMultiSignal 弱信号(L1747-1761):
+   - 当前页面文本 <2 个(空过渡态)时不判定"倒计时消失",等下一轮页面恢复
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit c67ca3e - fix: build731 汇川"返回点击商家"后需再点商家等奖励(纯等待90s无效)
 
 **用户需求**: "分析日志"（debug_test_20260816_185130.log, build729-ba3371b）
 

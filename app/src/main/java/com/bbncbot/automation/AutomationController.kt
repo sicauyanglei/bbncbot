@@ -1958,6 +1958,16 @@ object AutomationController {
      */
     private var huichuanMerchantPending: Boolean = false
 
+    /**
+     * build732: WATCHING_AD 中 TRAP_RECHARGE 分支 pressBack 连续无效计数
+     *
+     * 快手广告(KsRewardVideoActivity)"扭一扭"互动页被 isRechargePage 误判为充值陷阱时,
+     * clickCloseOnRechargePage 找不到关闭按钮 → pressBack,但广告 Activity 拦截 back 键退不出去,
+     * 每5s循环(190740日志 elapsed=190s仍不停,原分支无超时保护)。
+     * 连续 4 次(约20s)无效后 forceKillApp 杀宿主 + 重开农场兜底。新广告开始时重置。
+     */
+    private var trapRechargeBackCount: Int = 0
+
     private fun checkTaskListOpened(service: FarmAccessibilityService, openingAttempt: Int) {
         if (state != AutomationState.OPENING_TASK_LIST) return
 
@@ -4744,6 +4754,8 @@ object AutomationController {
             adProductNodeFindFailCount = 0
             // build728: 重置汇川广告"点击商家后立即领奖"返回标记
             huichuanMerchantPending = false
+            // build732: 重置充值陷阱 pressBack 无效计数
+            trapRechargeBackCount = 0
             // 按平台广告策略加载默认时长与检测间隔（UC/支付宝/淘宝差异化）
             val platformCfg = service.currentPlatformConfig()
             adEndCheckIntervalMs = platformCfg.adEndCheckIntervalMs
@@ -5263,13 +5275,35 @@ object AutomationController {
         when (scene) {
             // 陷阱1：充值/付费页（最高优先级，违反禁止交易原则，可能造成金钱损失）
             // 策略：优先点关闭按钮，否则按返回退出，继续轮询（不退出任务，可能是广告内弹窗）
+            // build732 修复（debug_test_20260816_190740.log, build730, 19:05:51-19:07:15）：
+            //   快手广告(KsRewardVideoActivity)"扭一扭或点击跳转详情页"互动页
+            //   isRechargePage 匹配页面转化按钮文案→误判 TRAP_RECHARGE,
+            //   clickCloseOnRechargePage 找不到关闭按钮→pressBack 每5s循环,
+            //   广告 Activity 拦截 back 键退不出去,elapsed=190s 超时也不停(分支无超时保护),
+            //   直到用户手动停止。
+            //   修复: pressBack 连续 4 次(约20s)无效或 elapsed 超时时,
+            //   forceKillApp 杀宿主 App + reopenFarmByDeepLink 重开农场(最可靠的退出手段)。
             PageScene.TRAP_RECHARGE -> {
+                if (trapRechargeBackCount >= 4 || elapsedMs >= adMaxDurationMs) {
+                    Log.w(TAG, "watchAd: recharge trap back x$trapRechargeBackCount ineffective (elapsed=${elapsedMs}ms), force killing host app and relaunching farm")
+                    debugLog("watchAd: 充值陷阱pressBack ${trapRechargeBackCount}次无效(elapsed=${elapsedMs}ms), forceKillApp杀宿主+重开农场兜底")
+                    service.setAdMode(false)
+                    val farmPkgs = service.currentPlatformConfig().packageNames
+                    for (pkg in farmPkgs) {
+                        service.forceKillApp(pkg, pressBackFirst = false)
+                    }
+                    service.reopenFarmByDeepLink(killCurrentFirst = false)
+                    moveTo(AutomationState.NAVIGATING)
+                    handler.postDelayed({ runNavigating(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+                    return
+                }
                 Log.w(TAG, "watchAd: recharge page detected (scene=$scene), exiting immediately (trap defense)")
                 debugLog("watchAd: recharge page trap detected, clicking close on recharge page")
                 val closed = service.clickCloseOnRechargePage()
                 if (!closed) {
                     debugLog("watchAd: no close on recharge, pressing back")
                     service.pressBack()
+                    trapRechargeBackCount++
                 }
                 handler.postDelayed({
                     if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)

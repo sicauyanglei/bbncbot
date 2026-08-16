@@ -1748,7 +1748,13 @@ class FarmAccessibilityService : AccessibilityService() {
         // 需配合仍在广告页才认定，单独倒计时消失可能是页面刷新
         if (prevHadCountdown) {
             val currentCountdown = findAdDurationHint()
-            if (currentCountdown == 0 && (isAdActivity() || isAdContentShown())) {
+            // build732 修复（debug_test_20260816_190740.log, build730, 19:02:47→19:03:34）：
+            //   息屏/卡顿 47s 后恢复,页面处于过渡态(texts=[]),findAdDurationHint 返回 0
+            //   (无文本 ≠ 倒计时消失),弱信号误判 AD_ENDED → 提前 CLOSING_AD。
+            //   修复: 当前页面文本 <2 个(过渡态)时不判定倒计时消失,等下一轮页面恢复。
+            val rootNow = rootInActiveWindowSafe()
+            val textCountNow = if (rootNow != null) collectAllText(rootNow).size else 0
+            if (currentCountdown == 0 && textCountNow >= 2 && (isAdActivity() || isAdContentShown())) {
                 debugLog("isAdEndedMultiSignal: YES (countdown disappeared while still on ad page)")
                 return true
             }
