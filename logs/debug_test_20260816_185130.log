@@ -1,0 +1,178 @@
+=== cleared on app start (version=2.2, build=build729-ba3371b, time=18:49:09) ===
+18:49:09.882 killPlatformApps: killed com.ucmobile.lite for UC
+18:49:09.883 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+18:49:09.885 killPlatformApps: killed com.taobao.taobao for TAOBAO
+18:49:09.911 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+18:49:09.915 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+18:49:09.915 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+18:49:15.693 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+18:49:15.695 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+18:49:17.243 === Automation v2 Started === platform=UC
+18:49:17.244 cancelNavigation: all navigation callbacks cancelled
+18:49:17.250 reset platform complete: UC
+18:49:17.252 state: IDLE -> NAVIGATING
+18:49:17.631 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+18:49:17.639 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+18:49:17.691 navigate: on farm page, platform=UC
+18:49:17.702 hasFarmContentLoaded: text count=13, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+18:49:17.703 hasFarmContentLoaded: realContent count=13
+18:49:17.703 navigate: hasFarmContentLoaded=false, attempt=0
+18:49:23.603 navigate: on farm page, platform=UC
+18:49:23.615 hasFarmContentLoaded: text count=148, sample=[后退, 智能组件, 菜单, 多窗口, 15, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+18:49:23.616 hasFarmContentLoaded: realContent count=136
+18:49:23.617 navigate: hasFarmContentLoaded=true, attempt=1
+18:49:23.618 state: NAVIGATING -> COLLECTING_DIRECT
+18:49:25.979 isTaskCompletePage: YES, matched=[已完成], sample=[后退, 智能组件, 菜单, 多窗口, 15]
+18:49:26.000 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+18:49:26.040 [collectDirect-start] claim-text-nodes (count=4):
+18:49:26.042 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+18:49:26.044 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+18:49:26.045 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+18:49:26.046 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+18:49:26.071 collectDirect: found 1 direct buttons, attempt=0
+18:49:26.072 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1159][822,1208] (attempt 1)
+18:49:26.072 performClickSafe: text='看广告领奖' desc='' bounds=[641,1159][822,1208] clickable=false
+18:49:26.073 performClickSafe: ACTION_CLICK failed, trying gesture
+18:49:26.073 dispatchGesture: screen=[[641,1159][822,1208]] window=[[0,0][0,0]]
+18:49:26.074 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1183.5)
+18:49:26.081 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+18:49:36.084 collectDirect: jump button '看广告领奖' led to ad (act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity), entering WATCHING_AD
+18:49:36.089 state: COLLECTING_DIRECT -> WATCHING_AD
+18:49:38.145 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+18:49:38.160 isAdContentShown: YES, matched ad signal in [点击商品，领取奖励, 广告]
+18:49:38.430 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+18:49:38.451 [watchAd-0ms] claim-text-nodes (count=1):
+18:49:38.454 [watchAd-0ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+18:49:38.678 watchAd: scene=AD_PLAYING, elapsed=0ms/90000ms
+18:49:38.690 findAdProductNode: found clickable product node bounds=[26,854][586,1653]
+18:49:38.691 watchAd: 点击商品 ad detected, clicking product bounds=[26,854][586,1653] (count=1)
+18:49:38.692 performClickSafe: text='' desc='洞洞板衣柜家用卧室落 包邮 公益宝贝 七天退换 ¥ 275' bounds=[26,854][586,1653] clickable=true
+18:49:38.697 performClickSafe: ACTION_CLICK success at depth=0
+18:49:40.777 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:49:40.791 [watchAd-2000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+18:49:40.796 [watchAd-2000ms] claim-text-nodes (count=1):
+18:49:40.797 [watchAd-2000ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+18:49:40.928 watchAd: scene=AD_PLAYING, elapsed=2000ms/90000ms
+18:49:40.936 watchAd: closing ad window 2s after product click (sinceClick=2252ms)
+18:49:40.958 findTopCornerIcon: found right icon at [1082,62][1128,108] (screen=1200x2543)
+18:49:40.959 findAdCloseButton: found top-right close icon
+18:49:40.960 watchAd: clicking close button on ad (text='null')
+18:49:40.960 performClickSafe: text='' desc='' bounds=[1082,62][1128,108] clickable=true
+18:49:41.001 performClickSafe: ACTION_CLICK success at depth=0
+18:49:43.038 [watchAd-4000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.sdk.ui.dialog.a, onFarm=false, adActivity=false, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+18:49:43.047 [watchAd-4000ms] claim-text-nodes (count=1):
+18:49:43.049 [watchAd-4000ms]   text='点击商家后立即领奖' desc='' bounds=[303,1042][897,1130] clickable=false
+18:49:43.103 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+18:49:43.108 watchAd: scene=AD_ENDED, elapsed=4000ms/90000ms
+18:49:43.127 watchAd: 确认要离开吗弹窗含'点击商家后立即领奖'(奖励未触发), clicking 返回点击商家 回广告等自然结束(不自动关闭)
+18:49:43.129 performClickSafe: text='返回点击商家' desc='' bounds=[225,1292][975,1456] clickable=true
+18:49:43.165 performClickSafe: ACTION_CLICK success at depth=0
+18:49:48.561 watchAd: scene=AD_PLAYING, elapsed=9000ms/90000ms
+18:49:48.615 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:49:48.624 watchAd: waiting 9000ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:49:53.785 watchAd: scene=AD_PLAYING, elapsed=14000ms/90000ms
+18:49:53.820 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:49:53.825 watchAd: waiting 14000ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:49:58.855 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:49:58.894 [watchAd-19000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+18:49:58.904 [watchAd-19000ms] claim-text-nodes (count=1):
+18:49:58.906 [watchAd-19000ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+18:49:59.071 watchAd: scene=AD_PLAYING, elapsed=19000ms/90000ms
+18:49:59.089 watchAd: huichuanMerchantPending=true, skipping isClickProductAd auto-close, waiting for ad to end naturally (elapsed=19000ms/90000ms)
+18:49:59.123 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:49:59.128 watchAd: waiting 19000ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:04.389 watchAd: scene=AD_PLAYING, elapsed=24000ms/90000ms
+18:50:04.440 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:04.447 watchAd: waiting 24000ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:09.693 watchAd: scene=AD_PLAYING, elapsed=29000ms/90000ms
+18:50:09.736 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:09.742 watchAd: waiting 29000ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:14.772 [watchAd-34000ms] snapshot: pkg=com.hihonor.aod, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+18:50:14.820 watchAd: scene=AD_ENDED, elapsed=34000ms/90000ms
+18:50:14.829 watchAd: huichuanMerchantPending=true, skipping isClickProductAd auto-close, waiting for ad to end naturally (elapsed=34000ms/90000ms)
+18:50:14.845 watchAd: checking ad end (34000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[18:50 8月16日周日, 丙午年七月初四, 33%]
+18:50:21.901 watchAd: scene=AD_ENDED, elapsed=39000ms/90000ms
+18:50:22.586 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:22.594 watchAd: checking ad end (39000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:22.975 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:50:23.192 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:50:24.767 watchAd: AI progress percent=0%, remaining=0s, hasBar=false
+18:50:28.444 watchAd: scene=AD_PLAYING, elapsed=44000ms/90000ms
+18:50:28.472 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:28.478 watchAd: checking ad end (44000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:28.646 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:50:28.813 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:50:33.823 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:33.844 [watchAd-49000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+18:50:33.848 [watchAd-49000ms] claim-text-nodes (count=1):
+18:50:33.849 [watchAd-49000ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+18:50:33.957 watchAd: scene=AD_PLAYING, elapsed=49000ms/90000ms
+18:50:33.969 watchAd: huichuanMerchantPending=true, skipping isClickProductAd auto-close, waiting for ad to end naturally (elapsed=49000ms/90000ms)
+18:50:33.997 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:34.002 watchAd: checking ad end (49000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:34.196 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:50:34.415 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:50:39.641 watchAd: scene=AD_PLAYING, elapsed=54000ms/90000ms
+18:50:39.702 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:39.710 watchAd: checking ad end (54000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:40.089 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:50:40.447 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:50:45.635 watchAd: scene=AD_PLAYING, elapsed=59000ms/90000ms
+18:50:45.712 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:45.717 watchAd: checking ad end (59000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:45.996 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:50:46.353 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:50:46.674 watchAd: AI progress percent=0%, remaining=0s, hasBar=false
+18:50:51.378 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:51.421 [watchAd-64000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+18:50:51.437 [watchAd-64000ms] claim-text-nodes (count=1):
+18:50:51.439 [watchAd-64000ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+18:50:51.602 watchAd: scene=AD_PLAYING, elapsed=64000ms/90000ms
+18:50:51.616 watchAd: huichuanMerchantPending=true, skipping isClickProductAd auto-close, waiting for ad to end naturally (elapsed=64000ms/90000ms)
+18:50:51.647 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:51.656 watchAd: checking ad end (64000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:52.128 findClaimRewardButton: scene not allowed for claim (scene=AD_ENDED), skip
+18:50:57.705 watchAd: scene=AD_PLAYING, elapsed=69000ms/90000ms
+18:50:57.735 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:57.737 watchAd: checking ad end (69000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:50:57.911 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:50:58.100 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:51:03.249 watchAd: scene=AD_PLAYING, elapsed=74000ms/90000ms
+18:51:03.287 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:51:03.294 watchAd: checking ad end (74000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:51:03.579 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:51:03.813 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:51:08.604 watchAd: AI progress percent=0%, remaining=0s, hasBar=false
+18:51:08.855 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:51:08.894 [watchAd-79000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+18:51:08.909 [watchAd-79000ms] claim-text-nodes (count=1):
+18:51:08.913 [watchAd-79000ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+18:51:09.096 watchAd: scene=AD_PLAYING, elapsed=79000ms/90000ms
+18:51:09.109 watchAd: huichuanMerchantPending=true, skipping isClickProductAd auto-close, waiting for ad to end naturally (elapsed=79000ms/90000ms)
+18:51:09.141 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:51:09.147 watchAd: checking ad end (79000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:51:09.506 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:51:09.896 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:51:15.069 watchAd: scene=AD_PLAYING, elapsed=84000ms/90000ms
+18:51:15.097 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:51:15.102 watchAd: checking ad end (84000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:51:15.405 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:51:15.844 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:51:21.052 watchAd: scene=AD_PLAYING, elapsed=89000ms/90000ms
+18:51:21.082 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:51:21.089 watchAd: checking ad end (89000ms/90000ms), pageType=ad, adActivity=true, adPlaying=true, adContent=true, texts=[淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:51:21.461 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:51:21.802 findClaimRewardButton: scene not allowed for claim (scene=AD_PLAYING), skip
+18:51:27.123 isAdContentShown: YES, matched ad signal in [淘宝精选, 货架衣柜家用卧室出租 包邮 正品保证 公益宝贝 七天退换 ¥ 309.22, O1CN01MvMWm51Qshs6DoX0H_!!4611686018427382944-0-item_pic.jpg_310x310xzq90.jpg_, 货架衣柜家用卧室出租, 包邮, 正品保证, 公益宝贝, 公益宝贝]
+18:51:27.141 [watchAd-94000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+18:51:27.158 [watchAd-94000ms] claim-text-nodes (count=1):
+18:51:27.159 [watchAd-94000ms]   text='点击商品，领取奖励' desc='' bounds=[628,59][1033,111] clickable=false
+18:51:27.286 watchAd: scene=AD_PLAYING, elapsed=94000ms/90000ms
+18:51:27.293 watchAd: huichuanMerchantPending=true, skipping isClickProductAd auto-close, waiting for ad to end naturally (elapsed=94000ms/90000ms)
+18:51:27.305 state: WATCHING_AD -> CLOSING_AD
+18:51:28.588 state: CLOSING_AD -> STOPPING
+18:51:28.589 cancelNavigation: all navigation callbacks cancelled
+18:51:28.590 state: STOPPING -> IDLE
+18:51:30.560 saveToken: saved (len=93, head='gith', tail='McKr')
+18:51:30.564 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+18:51:30.565 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260816_185130.log, localFile=debug.log (27480 bytes)
