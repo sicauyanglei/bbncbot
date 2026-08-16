@@ -6543,6 +6543,28 @@ object AutomationController {
             return
         }
 
+        // build734 修复（debug_test_20260816_194357.log, build732, 19:43:15-19:43:55）：
+        //   快手"扭一扭"互动广告 end-card 对所有温和退出手段免疫:
+        //   CLOSING_AD 点'跳过'成功但页面不关(19:43:18), 8个坐标关闭点击无效,
+        //   RETURNING pressBack 无效(无'确认要离开吗'弹窗), back-1/back-2 坐标点击无效。
+        //   直到用户手动停止(19:43:55)。
+        //   而本日志首个广告 TRAP_RECHARGE 兜底(19:42:32)证明:
+        //   forceKillApp(宿主)+reopenFarmByDeepLink 是最可靠退出手段,杀后重开成功回农场。
+        //   修复: RETURNING 中 attempt>=3(温和退出已试 pressBack+2坐标,约15s)且仍在广告Activity
+        //   → forceKillApp + 重开农场 + NAVIGATING(与 build732 TRAP_RECHARGE 兜底同款)。
+        if (attempt >= 3 && service.isAdActivity()) {
+            Log.w(TAG, "return: still in ad activity after $attempt gentle attempts, force killing host app and relaunching farm")
+            debugLog("return: 广告Activity温和退出${attempt}次无效, forceKillApp杀宿主+重开农场兜底")
+            val farmPkgs = service.currentPlatformConfig().packageNames
+            for (pkg in farmPkgs) {
+                service.forceKillApp(pkg, pressBackFirst = false)
+            }
+            service.reopenFarmByDeepLink(killCurrentFirst = false)
+            moveTo(AutomationState.NAVIGATING)
+            handler.postDelayed({ runNavigating(0) }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
         // 尝试次数超限
         if (attempt >= MAX_RETURN_ATTEMPTS) {
             Log.w(TAG, "return: failed after $attempt attempts, re-navigating")

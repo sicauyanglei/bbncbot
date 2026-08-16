@@ -32,7 +32,35 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build733 广告SDK无填充时点击无效果被误判完成循环+findBackIcon误点宠物面板
+### commit (待提交) - fix: build734 快手扭一扭end-card广告免疫所有温和退出,RETURNING加forceKill兜底
+
+**用户需求**: "分析日志"（debug_test_20260816_194357.log, build732-05b8ac6）
+
+**build732 修复验证 ✓ 全部生效**:
+1. TRAP_RECHARGE forceKill兜底(19:42:24-19:42:32): 第一个快手扭一扭广告误判充值陷阱,
+   pressBack 4次无效后 forceKillApp杀宿主+reopenFarmByDeepLink 重开农场 **成功**
+   (19:42:38回农场继续任务,共耗时约20s,不再像build730卡190s)
+2. 空过渡态防误判: 本次无息屏场景,未触发(保留)
+
+**TRAP_INTERACTIVE 分支验证 ✓**: 第二个快手广告正确识别为互动广告,
+   等待15s后"countdown stuck at 10s"检测正确识别静态文案→进CLOSING_AD
+
+**残留问题(bug,已修)**: 快手扭一扭 end-card 对**所有温和退出手段免疫**
+- 19:43:18 CLOSING_AD 点'跳过'按钮 ACTION_CLICK **success** 但页面不关
+- 19:43:23 8个坐标关闭点击全部无效
+- 19:43:41-19:43:51 RETURNING: pressBack无效(无'确认要离开吗'弹窗),back-1/back-2坐标点击无效
+- 19:43:55 用户手动停止(全程40s未退出广告)
+
+**修复** [AutomationController.kt runReturning L6546-6566](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt):
+- RETURNING 中 attempt>=3(已试pressBack+2坐标,约15s)且仍在广告Activity
+  → forceKillApp杀宿主 + reopenFarmByDeepLink重开农场 + NAVIGATING
+  (与build732 TRAP_RECHARGE兜底同款,本日志已验证该手段100%有效)
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 518e2a8 - fix: build733 广告SDK无填充时点击无效果被误判完成循环+findBackIcon误点宠物面板
 
 **用户需求**: "分析日志"（debug_test_20260816_193200.log, build731-c67ca3e）
 
