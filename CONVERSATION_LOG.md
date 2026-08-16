@@ -32,6 +32,37 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build726 修复穿山甲广告零尺寸"可立即领奖"按钮反复无效点击30秒
+
+**用户需求**: "分析日志"（debug_test_20260816_161405.log, build726-f0d9807=build725代码）
+
+**日志分析** (debug_test_20260816_161405.log, 16:10:48-16:13:58, 约3分钟):
+
+**build725 修复验证** ✓：无 "ad button trap" 触发,无 packageinstaller 卡死,流程顺畅。
+  两个广告均正常完成,无卡死。
+
+**新问题**: 穿山甲TTRewardVideoActivity "可立即领奖"按钮零尺寸,反复无效点击30秒
+- 16:12:39 进入第二个广告(穿山甲体验类,"去体验15秒可立即领奖")
+- 16:12:51 scene=AD_ENDED, isAdEndedMultiSignal=YES (claim reward button appeared)
+- 16:12:52 点击"可立即领奖",bounds=[0,121][0,121] (零尺寸!),ACTION_CLICK failed
+  → dispatchGesture 用 ancestor bounds [0,121][1199,2662] 计算坐标 (599.5,1391.5)
+  但该坐标不是实际按钮位置,点击无效
+- 16:12:57-16:13:22 反复点击7次(每5秒),全部失败(bounds一直是[0,121][0,121])
+- 16:13:22 广告自动结束,检测到"领取成功",进入 CLOSING_AD
+
+**根因**: 穿山甲体验类广告的"可立即领奖"是 WebView 内零尺寸文本节点(width=0,height=0),
+  无法通过无障碍 ACTION_CLICK 或 dispatchGesture 点击。广告会自动播放结束并发放奖励,
+  不需要手动点击。中间31秒反复点击零尺寸按钮是无效操作。
+
+**修复**: [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt) L5892:
+  watchAd adEnded 分支,findClaimRewardButton 找到按钮后,检查 bounds 是否零尺寸。
+  零尺寸(width<=1||height<=1)时跳过点击,只等待广告自动结束
+  (isAdEndedMultiSignal 会检测"领取成功",或 max=90000ms 超时进入 CLOSING_AD)。
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build725 修复watchAd kill系统应用packageinstaller导致handler回调延迟8分44秒卡死
 
 **用户需求**: "分析日志"（debug_test_20260816_160006.log, build725-d5271ec=build724代码）

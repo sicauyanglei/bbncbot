@@ -5891,6 +5891,25 @@ object AutomationController {
             }
             val claimBtn = service.findClaimRewardButton()
             if (claimBtn != null) {
+                // build726 修复（debug_test_20260816_161405.log, build725, 16:12:51-16:13:22）：
+                //   穿山甲TTRewardVideoActivity "可立即领奖"按钮 bounds=[0,121][0,121] (零尺寸退化节点),
+                //   performClickSafe ACTION_CLICK failed,dispatchGesture 用 ancestor bounds 计算坐标
+                //   (599.5,1391.5) 也不是实际按钮位置,点击无效。16:12:52-16:13:22 反复点击7次全失败,
+                //   16:13:22 广告自动结束检测到"领取成功"才 CLOSING_AD。中间31秒无效点击浪费时间。
+                //   根因:穿山甲体验类广告的"可立即领奖"是 WebView 内零尺寸文本节点,无法通过无障碍点击。
+                //   修复:检测到零尺寸按钮(width<=1||height<=1)时跳过点击,只等待广告自动结束
+                //   (isAdEndedMultiSignal 会检测"领取成功",或 max=90000ms 超时进入 CLOSING_AD)。
+                val rect = android.graphics.Rect()
+                claimBtn.getBoundsInScreen(rect)
+                val isZeroSize = rect.width() <= 1 || rect.height() <= 1
+                if (isZeroSize) {
+                    Log.w(TAG, "watchAd: claim button is zero-size (bounds=$rect), skip click, waiting for ad auto-end")
+                    debugLog("watchAd: claim button zero-size (bounds=$rect), skip click (穿山甲零尺寸节点无法点击,等待广告自动结束)")
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                    }, adEndCheckIntervalMs)
+                    return
+                }
                 Log.i(TAG, "watchAd: multi-signal ad ended, claim button found, clicking")
                 debugLog("watchAd: multi-signal ad ended (countdown disappeared), clicking claim button")
                 service.performClickSafe(claimBtn)
