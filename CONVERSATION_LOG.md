@@ -32,7 +32,46 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - feat: build729 检测"奖励已发放"立即点击右上角关闭图标领取奖励
+### commit (待提交) - fix: build730 修复汇川商家商品页被误判TRAP_RECHARGE导致pressBack死循环
+
+**用户需求**: "分析日志"（debug_test_20260816_184008.log, build728-6252367）
+
+**build728 修复验证** ✓：
+- 18:39:35.650 "确认要离开吗弹窗含'点击商家后立即领奖'(奖励未触发), clicking 返回点击商家
+  回广告等自然结束(不自动关闭)" — 正确点了"返回点击商家"而非"放弃奖励离开",
+  huichuanMerchantPending=true 生效,isClickProductAd 自动关闭被跳过。
+
+**新问题**: 返回广告后,商家商品详情页被误判 TRAP_RECHARGE,pressBack 死循环 25s+
+- 18:39:31 findAdProductNode 5次找不到商品节点(build722 fallback: 点中心(600,1200))
+- 18:39:33 2s后点右上角关闭图标 → 弹"确认要离开吗"+"点击商家后立即领奖"
+- 18:39:35 build728 点"返回点击商家"回广告 ✓
+- 18:39:40 广告 WebView 显示商家商品详情页(店铺/客服/加购/立即购买)
+  → isRechargePage 匹配"立即购买" → scene=TRAP_RECHARGE
+- 18:39:40-18:40:05 clickCloseOnRechargePage 无关闭按钮 → pressBack 每5s循环,
+  页面无变化(pressBack 被 WebView 拦截),25s+ 直到用户手动停止,**奖励未领**
+- 根因: huichuanMerchantPending=true 时商家商品页是预期状态(有意返回等待奖励计时),
+  陷阱防御在 build729"奖励已发放"检测**之前**执行,永远轮不到领奖逻辑;
+  pressBack 还可能打断奖励计时。
+
+**修复** [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt):
+1. 提取 `detectRewardGrantedText()`/`claimRewardViaCloseIcon()` 辅助函数(L4647-4690),
+   build729 分支重构为调用辅助函数(逻辑不变)
+2. when(scene) 前新增 huichuanMerchantPending 守卫(L5224-5254):
+   huichuanMerchantPending=true 且仍处于广告Activity 且 scene 为陷阱类
+   (TRAP_RECHARGE/TRAP_ABNORMAL/TRAP_LANDING/TRAP_MINIPROGRAM)时:
+   - 检测到"奖励已发放" → claimRewardViaCloseIcon 点右上角关闭图标领奖
+   - 超时(adMaxDurationMs) → CLOSING_AD 多策略兜底关闭
+   - 否则每5s轮询耐心等待,不触发陷阱防御
+
+**完整流程**（用户确认的正确路径）:
+点击商品 → 关闭 → "点击商家后立即领奖"弹窗 → 返回点击商家 → 商家商品页耐心等待
+→ "奖励已发放"出现 → 点右上角关闭图标 → 奖励到手回农场
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit ba3371b - feat: build729 检测"奖励已发放"立即点击右上角关闭图标领取奖励
 
 **用户需求**: "遇到奖励已发放，右边的关闭图标，需要点击关闭，就获得奖励了"
 

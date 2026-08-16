@@ -4645,6 +4645,51 @@ object AutomationController {
     // ============== 阶段4: 看广告 ==============
 
     /**
+     * build729/build730: 检测广告页面是否出现"奖励已发放"等已领奖标志
+     *
+     * 用户需求："遇到奖励已发放，右边的关闭图标，需要点击关闭，就获得奖励了"
+     * 奖励到账标志出现说明奖励已发放,点击右上角关闭图标退出即获得奖励。
+     *
+     * 关键词与 isAdEndedMultiSignal 的 adEndedKeywords 保持一致(取无歧义子集,
+     * 排除"恭喜获得"/"获取奖励"/"获得肥料"等易误判落地页营销文案的泛化词)。
+     */
+    private fun detectRewardGrantedText(service: FarmAccessibilityService): Boolean {
+        val root = service.getRootInFarmApp() ?: return false
+        val texts = service.collectAllText(root)
+        return texts.any {
+            it.contains("奖励已发放") || it.contains("奖励已到账") ||
+            it.contains("领取成功") || it.contains("已领取奖励") ||
+            it.contains("肥料已到账") || it.contains("肥料已发放") ||
+            it.contains("恭喜获取奖励") || it.contains("恭喜获得奖励")
+        }
+    }
+
+    /**
+     * build729/build730: 点击右上角关闭图标退出广告,领取已发放的奖励
+     *
+     * 检测到"奖励已发放"等已领奖标志后调用:
+     * 1. findAdCloseButton 找右上角关闭图标并点击(找不到则 pressBack 兜底)
+     * 2. setAdMode(false) + collectedCount++ + 进 RETURNING 回农场
+     */
+    private fun claimRewardViaCloseIcon(service: FarmAccessibilityService, elapsedMs: Long) {
+        Log.i(TAG, "watchAd: reward granted text detected (奖励已发放), clicking right close icon to claim reward (elapsed=${elapsedMs}ms)")
+        debugLog("watchAd: 检测到'奖励已发放'(奖励已到账), 立即点击右上角关闭图标退出广告获得奖励 (elapsed=${elapsedMs}ms)")
+        val closeIcon = service.findAdCloseButton(service.currentPlatformConfig().adCloseButtonTexts, enforceSceneWhitelist = false)
+        if (closeIcon != null) {
+            debugLog("watchAd: clicking right close icon to close ad and secure reward")
+            service.performClickSafe(closeIcon)
+        } else {
+            debugLog("watchAd: close icon not found, pressing back to close ad")
+            service.pressBack()
+        }
+        service.setAdMode(false)
+        collectedCount++
+        Log.i(TAG, "=== FERTILIZER COLLECTED! (total: $collectedCount) ===")
+        moveTo(AutomationState.RETURNING)
+        handler.postDelayed({ runReturning(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+    }
+
+    /**
      * 看广告阶段：等待广告播放完成
      * - 进入时解析广告页面时长提示（如"观看15秒"），动态设置最短等待时间
      * - 最短等待 adMinDurationMs（默认30秒，或页面提示时长+缓冲）
@@ -5175,6 +5220,39 @@ object AutomationController {
         // 4. 与 findClaimRewardButton/findAdCloseButton 的场景白名单形成闭环防护
         val scene = service.identifyCurrentScene()
         debugLog("watchAd: scene=$scene, elapsed=${elapsedMs}ms/${adMaxDurationMs}ms")
+
+        // build730 修复（debug_test_20260816_184008.log, build728, 18:39:35-18:40:05）：
+        //   汇川广告"返回点击商家"回广告后,广告 WebView 显示商家商品详情页
+        //   (isProductDetailPage=YES: 加购/立即购买按钮),isRechargePage 匹配"立即购买"
+        //   → scene=TRAP_RECHARGE,clickCloseOnRechargePage 无关闭按钮 → pressBack 循环 25s+,
+        //   页面无变化(pressBack 被 WebView 拦截),直到用户手动停止,奖励未领。
+        //   根因: huichuanMerchantPending=true 时商家商品页是预期状态(有意返回等待奖励计时结束),
+        //   不应触发陷阱防御(pressBack 可能打断奖励计时,且永远退不出去)。
+        //   修复: huichuanMerchantPending=true 且仍处于广告Activity时,陷阱类场景
+        //   (TRAP_RECHARGE/TRAP_ABNORMAL/TRAP_LANDING/TRAP_MINIPROGRAM)跳过防御,
+        //   在商家页耐心等待"奖励已发放"(build729: 检测到后点击右上角关闭图标领奖)。
+        //   超时(adMaxDurationMs)兜底进 CLOSING_AD 多策略关闭。
+        if (huichuanMerchantPending && service.isAdActivity() && (
+            scene == PageScene.TRAP_RECHARGE || scene == PageScene.TRAP_ABNORMAL ||
+            scene == PageScene.TRAP_LANDING || scene == PageScene.TRAP_MINIPROGRAM)) {
+            if (detectRewardGrantedText(service)) {
+                claimRewardViaCloseIcon(service, elapsedMs)
+                return
+            }
+            if (elapsedMs >= adMaxDurationMs) {
+                Log.w(TAG, "watchAd: huichuanMerchantPending timeout (${elapsedMs}ms/${adMaxDurationMs}ms), force closing")
+                debugLog("watchAd: 商家页等待'奖励已发放'超时(${elapsedMs}ms), 进入CLOSING_AD兜底关闭")
+                moveTo(AutomationState.CLOSING_AD)
+                handler.postDelayed({ runClosingAd(strategy = 0) }, INTERVAL_CLICK_MS)
+                return
+            }
+            debugLog("watchAd: huichuanMerchantPending=true, scene=$scene is merchant page inside ad (expected), skip trap defense, waiting for 奖励已发放 (elapsed=${elapsedMs}ms/${adMaxDurationMs}ms)")
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+            }, adEndCheckIntervalMs)
+            return
+        }
+
         when (scene) {
             // 陷阱1：充值/付费页（最高优先级，违反禁止交易原则，可能造成金钱损失）
             // 策略：优先点关闭按钮，否则按返回退出，继续轮询（不退出任务，可能是广告内弹窗）
@@ -5553,36 +5631,12 @@ object AutomationController {
         //   无需等满最短观看时间(adMinDurationMs),也无需再走领取按钮/放弃奖励流程。
         //   (汇川广告"返回点击商家"回广告后,奖励计时结束显示"奖励已发放",
         //    原逻辑要等满30s min duration 才检测,白等20s+)
-        // 关键词与 isAdEndedMultiSignal 的 adEndedKeywords 保持一致(取无歧义子集,
-        //   排除"恭喜获得"/"获取奖励"/"获得肥料"等易误判落地页营销文案的泛化词)。
         // 守卫:仍处于广告Activity/广告播放中才触发(避免农场页/落地页文案误判)。
+        // build730: 检测与领奖逻辑提取为 detectRewardGrantedText()/claimRewardViaCloseIcon()
+        //   供下方 huichuanMerchantPending 守卫块复用。
         if (service.isAdActivity() || service.isAdPlaying()) {
-            val grantedRoot = service.getRootInFarmApp()
-            val rewardGranted = grantedRoot != null && run {
-                val grantedTexts = service.collectAllText(grantedRoot)
-                grantedTexts.any {
-                    it.contains("奖励已发放") || it.contains("奖励已到账") ||
-                    it.contains("领取成功") || it.contains("已领取奖励") ||
-                    it.contains("肥料已到账") || it.contains("肥料已发放") ||
-                    it.contains("恭喜获取奖励") || it.contains("恭喜获得奖励")
-                }
-            }
-            if (rewardGranted) {
-                Log.i(TAG, "watchAd: reward granted text detected (奖励已发放), clicking right close icon to claim reward (elapsed=${elapsedMs}ms)")
-                debugLog("watchAd: 检测到'奖励已发放'(奖励已到账), 立即点击右上角关闭图标退出广告获得奖励 (elapsed=${elapsedMs}ms)")
-                val closeIcon = service.findAdCloseButton(service.currentPlatformConfig().adCloseButtonTexts, enforceSceneWhitelist = false)
-                if (closeIcon != null) {
-                    debugLog("watchAd: clicking right close icon to close ad and secure reward")
-                    service.performClickSafe(closeIcon)
-                } else {
-                    debugLog("watchAd: close icon not found, pressing back to close ad")
-                    service.pressBack()
-                }
-                service.setAdMode(false)
-                collectedCount++
-                Log.i(TAG, "=== FERTILIZER COLLECTED! (total: $collectedCount) ===")
-                moveTo(AutomationState.RETURNING)
-                handler.postDelayed({ runReturning(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+            if (detectRewardGrantedText(service)) {
+                claimRewardViaCloseIcon(service, elapsedMs)
                 return
             }
         }
