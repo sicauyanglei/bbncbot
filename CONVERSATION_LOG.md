@@ -32,6 +32,46 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit (待提交) - fix: build725 修复watchAd kill系统应用packageinstaller导致handler回调延迟8分44秒卡死
+
+**用户需求**: "分析日志"（debug_test_20260816_160006.log, build725-d5271ec=build724代码）
+
+**日志分析** (debug_test_20260816_160006.log, 15:41:07-16:00:04, 约19分钟):
+
+**build724 修复验证** ✓：15:44:39 stage=1 timeout (25s) 正常触发 aborting faster reward，
+  超时计数器正常工作（弹窗未出现走 !isFasterRewardPopupShown 分支 count++）。
+
+**新问题**: watchAd kill 系统应用 packageinstaller 导致 handler 回调延迟 8分44秒
+- 15:44:12 进入腾讯广告 PortraitADActivity（pkg=com.android.packageinstaller, 广告寄宿在系统安装器task中）
+- 15:44:14 点击'我要更快拿奖' → stage=1 等待确认弹窗
+- 15:44:39 stage=1 timeout(25s), aborting faster reward, 回到正常广告等待
+- 15:44:44 watchAd: current pkg='com.android.packageinstaller' is not farm app, exiting (ad button trap)
+- 15:44:44.927 reopenFarmByDeepLink: skip kill, directly relaunching UC
+- 15:44:45.019 forceKillApp: killing com.android.packageinstaller (pressBackFirst=false)
+- 15:44:45.142 forceKillApp: killBackgroundProcesses(packageinstaller) called
+- **15:44:45.142-15:53:29 (8分44秒!) 无任何日志,handler.postDelayed 回调延迟执行**
+- 15:53:29 终于执行 WATCHING_AD -> OPENING_TASK_LIST
+
+**根因**: killBackgroundProcesses 对系统应用(packageinstaller)无效或导致系统状态异常,
+  广告Activity寄宿在系统应用task中,kill系统应用风险高,导致 handler 回调延迟8分44秒。
+  （第二个广告15:55:36-15:58:27也有2分51秒gap,疑似手机息屏导致,非代码问题）
+
+**修复**: [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt) L5109:
+  watchAd "ad button trap" 分支,对 com.android.* 系统应用包名,不 kill,只 pressBack 退出广告Activity。
+  ```kotlin
+  val isSystemPkg = currentPkg.startsWith("com.android.") || currentPkg.startsWith("android")
+  if (isSystemPkg) {
+      debugLog("watchAd: system pkg '$currentPkg' detected, pressBack instead of kill (avoid system instability)")
+      service.pressBack()
+  } else {
+      service.forceKillApp(currentPkg, pressBackFirst = false)
+  }
+  ```
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
 ### commit (待提交) - fix: build724 修复faster reward stage=1弹窗出现但无允许按钮时无限重试+任务完成未退出
 
 **用户需求**: "分析日志"（debug_test_20260816_152759.log, build=build723-1d54f90 注意:1d54f90是build722的commit,用户未装上build723的APK）

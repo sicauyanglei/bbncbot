@@ -5099,7 +5099,20 @@ object AutomationController {
             service.launchPlatformApp(watchingAdPlatform, killCurrentFirst = false)
             // 2. kill 非广告App(此时已在后台,killBackgroundProcesses 有效),
             //    同时清除 currentActivityName/currentEventPkg 缓存避免 isAdActivity 误判
-            service.forceKillApp(currentPkg, pressBackFirst = false)
+            // build725 修复（debug_test_20260816_160006.log, build724, 15:44:44-15:53:29）：
+            //   15:44:44 pkg=com.android.packageinstaller (腾讯广告PortraitADActivity寄宿在系统安装器task中)
+            //   15:44:45 forceKillApp(packageinstaller) 后,UC deep link 拉起,但系统状态异常,
+            //   handler.postDelayed 回调延迟 8分44秒才执行,卡死直到 15:53:29。
+            //   根因:killBackgroundProcesses 对系统应用(packageinstaller)无效或导致系统状态异常,
+            //   广告Activity寄宿在系统应用task中,kill系统应用风险高。
+            //   修复:对 com.android.* 系统应用包名,不 kill,只 pressBack 退出广告Activity。
+            val isSystemPkg = currentPkg.startsWith("com.android.") || currentPkg.startsWith("android")
+            if (isSystemPkg) {
+                debugLog("watchAd: system pkg '$currentPkg' detected, pressBack instead of kill (avoid system instability)")
+                service.pressBack()
+            } else {
+                service.forceKillApp(currentPkg, pressBackFirst = false)
+            }
             currentTaskIndex++
             handler.postDelayed({
                 if (state == AutomationState.WATCHING_AD) {
