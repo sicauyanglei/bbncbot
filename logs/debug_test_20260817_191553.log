@@ -1,0 +1,166 @@
+=== cleared on app start (version=2.2, build=build733-518e2a8, time=19:14:33) ===
+19:14:33.762 killPlatformApps: killed com.ucmobile.lite for UC
+19:14:33.763 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+19:14:33.764 killPlatformApps: killed com.taobao.taobao for TAOBAO
+19:14:42.197 FarmAccessibilityService connected, API=36
+19:14:42.895 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+19:14:42.897 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:14:42.898 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+19:14:46.939 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:14:46.939 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+19:14:48.254 === Automation v2 Started === platform=UC
+19:14:48.255 cancelNavigation: all navigation callbacks cancelled
+19:14:48.288 reset platform complete: UC
+19:14:48.289 state: IDLE -> NAVIGATING
+19:14:48.545 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:14:48.592 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:14:48.692 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:14:48.727 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:14:48.785 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:14:48.834 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=android.widget.LinearLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:14:48.841 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:14:48.883 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:14:48.911 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:14:48.962 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:14:49.197 isOnFarmPage: activity=android.widget.linearlayout not in farm keywords, not on farm page
+19:14:49.364 navigate: calling navigateToFarm, platform=UC
+19:14:51.432 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+19:14:51.432 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+19:14:51.439 performClickSafe: ACTION_CLICK failed, trying gesture
+19:14:51.448 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+19:14:51.453 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+19:14:56.874 navigate: on farm page, platform=UC
+19:14:57.020 hasFarmContentLoaded: text count=137, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+19:14:57.024 hasFarmContentLoaded: realContent count=127
+19:14:57.026 navigate: hasFarmContentLoaded=true, attempt=1
+19:14:57.027 state: NAVIGATING -> COLLECTING_DIRECT
+19:15:00.701 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:15:00.749 [collectDirect-start] claim-text-nodes (count=2):
+19:15:00.750 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,1824][222,1968] clickable=false
+19:15:00.763 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,1824][694,1892] clickable=false
+19:15:00.952 collectDirect: found 2 direct buttons, attempt=0
+19:15:00.955 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1146][822,1198] (attempt 1)
+19:15:00.955 performClickSafe: text='看广告领奖' desc='' bounds=[641,1146][822,1198] clickable=false
+19:15:00.956 performClickSafe: ACTION_CLICK failed, trying gesture
+19:15:00.960 dispatchGesture: screen=[[641,1146][822,1198]] window=[[0,0][0,0]]
+19:15:00.961 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1172.0)
+19:15:00.973 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+19:15:10.977 collectDirect: jump button '看广告领奖' led to ad (act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity), entering WATCHING_AD
+19:15:10.987 state: COLLECTING_DIRECT -> WATCHING_AD
+19:15:13.038 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+19:15:13.088 isAdContentShown: YES, matched ad signal in [点击跳转后停留
+15秒立即获奖, 千问, 千问APP,让每一次上妆都完美服帖, 立即点击领取, 千问, 查看详情, 千问, 千问APP,让每一次上妆都完美服帖]
+19:15:13.143 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:15:13.158 [watchAd-0ms] claim-text-nodes (count=1):
+19:15:13.160 [watchAd-0ms]   text='立即点击领取' desc='' bounds=[166,1657][1033,1821] clickable=false
+19:15:13.365 findAdInstallButton: found trap button by text='查看详情'
+19:15:13.382 watchAd: scene=TRAP_INSTALL, elapsed=0ms/90000ms
+19:15:13.385 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:13.445 closeAdInstallPopup: no close button found for install popup
+19:15:13.447 watchAd: no close button for install popup, pressing back
+19:15:15.667 findAdInstallButton: found trap button by text='查看详情'
+19:15:15.697 watchAd: scene=TRAP_INSTALL, elapsed=5000ms/90000ms
+19:15:15.699 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:15.750 closeAdInstallPopup: no close button found for install popup
+19:15:15.752 watchAd: no close button for install popup, pressing back
+19:15:17.978 findAdInstallButton: found trap button by text='查看详情'
+19:15:17.996 watchAd: scene=TRAP_INSTALL, elapsed=10000ms/90000ms
+19:15:17.998 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:18.028 closeAdInstallPopup: no close button found for install popup
+19:15:18.030 watchAd: no close button for install popup, pressing back
+19:15:20.106 isAdContentShown: YES, matched ad signal in [点击跳转后停留
+15秒立即获奖, 千问, 千问APP,让每一次上妆都完美服帖, 立即点击领取, 千问, 查看详情, 千问, 千问APP,让每一次上妆都完美服帖]
+19:15:20.156 [watchAd-15000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:15:20.171 [watchAd-15000ms] claim-text-nodes (count=1):
+19:15:20.173 [watchAd-15000ms]   text='立即点击领取' desc='' bounds=[166,1657][1033,1821] clickable=false
+19:15:20.350 findAdInstallButton: found trap button by text='查看详情'
+19:15:20.377 watchAd: scene=TRAP_INSTALL, elapsed=15000ms/90000ms
+19:15:20.379 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:20.413 closeAdInstallPopup: no close button found for install popup
+19:15:20.415 watchAd: no close button for install popup, pressing back
+19:15:22.641 findAdInstallButton: found trap button by text='查看详情'
+19:15:22.659 watchAd: scene=TRAP_INSTALL, elapsed=20000ms/90000ms
+19:15:22.661 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:22.692 closeAdInstallPopup: no close button found for install popup
+19:15:22.695 watchAd: no close button for install popup, pressing back
+19:15:24.918 findAdInstallButton: found trap button by text='查看详情'
+19:15:24.941 watchAd: scene=TRAP_INSTALL, elapsed=25000ms/90000ms
+19:15:24.943 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:24.980 closeAdInstallPopup: no close button found for install popup
+19:15:24.982 watchAd: no close button for install popup, pressing back
+19:15:27.051 isAdContentShown: YES, matched ad signal in [点击跳转后停留
+15秒立即获奖, 千问, 千问APP,让每一次上妆都完美服帖, 立即点击领取, 千问, 查看详情, 千问, 千问APP,让每一次上妆都完美服帖]
+19:15:27.100 [watchAd-30000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:15:27.116 [watchAd-30000ms] claim-text-nodes (count=1):
+19:15:27.118 [watchAd-30000ms]   text='立即点击领取' desc='' bounds=[166,1657][1033,1821] clickable=false
+19:15:27.312 findAdInstallButton: found trap button by text='查看详情'
+19:15:27.337 watchAd: scene=TRAP_INSTALL, elapsed=30000ms/90000ms
+19:15:27.339 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:27.364 closeAdInstallPopup: no close button found for install popup
+19:15:27.367 watchAd: no close button for install popup, pressing back
+19:15:29.554 findAdInstallButton: found trap button by text='查看详情'
+19:15:29.572 watchAd: scene=TRAP_INSTALL, elapsed=35000ms/90000ms
+19:15:29.574 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:29.633 closeAdInstallPopup: no close button found for install popup
+19:15:29.635 watchAd: no close button for install popup, pressing back
+19:15:32.001 findAdInstallButton: found trap button by text='查看详情'
+19:15:32.021 watchAd: scene=TRAP_INSTALL, elapsed=40000ms/90000ms
+19:15:32.023 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:32.066 closeAdInstallPopup: no close button found for install popup
+19:15:32.068 watchAd: no close button for install popup, pressing back
+19:15:34.148 isAdContentShown: YES, matched ad signal in [点击跳转后停留
+15秒立即获奖, 千问, 千问APP,让每一次上妆都完美服帖, 立即点击领取, 千问, 查看详情, 千问, 千问APP,让每一次上妆都完美服帖]
+19:15:34.198 [watchAd-45000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:15:34.212 [watchAd-45000ms] claim-text-nodes (count=1):
+19:15:34.215 [watchAd-45000ms]   text='立即点击领取' desc='' bounds=[166,1657][1033,1821] clickable=false
+19:15:34.413 findAdInstallButton: found trap button by text='查看详情'
+19:15:34.436 watchAd: scene=TRAP_INSTALL, elapsed=45000ms/90000ms
+19:15:34.437 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:34.484 closeAdInstallPopup: no close button found for install popup
+19:15:34.486 watchAd: no close button for install popup, pressing back
+19:15:36.702 findAdInstallButton: found trap button by text='查看详情'
+19:15:36.740 watchAd: scene=TRAP_INSTALL, elapsed=50000ms/90000ms
+19:15:36.746 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:36.790 closeAdInstallPopup: no close button found for install popup
+19:15:36.795 watchAd: no close button for install popup, pressing back
+19:15:39.028 findAdInstallButton: found trap button by text='查看详情'
+19:15:39.078 watchAd: scene=TRAP_INSTALL, elapsed=55000ms/90000ms
+19:15:39.081 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:39.111 closeAdInstallPopup: no close button found for install popup
+19:15:39.113 watchAd: no close button for install popup, pressing back
+19:15:41.371 isAdContentShown: YES, matched ad signal in [点击跳转后停留
+15秒立即获奖, 千问, 千问APP,让每一次上妆都完美服帖, 立即点击领取, 千问, 查看详情, 千问, 千问APP,让每一次上妆都完美服帖]
+19:15:41.421 [watchAd-60000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:15:41.439 [watchAd-60000ms] claim-text-nodes (count=1):
+19:15:41.441 [watchAd-60000ms]   text='立即点击领取' desc='' bounds=[166,1657][1033,1821] clickable=false
+19:15:41.603 findAdInstallButton: found trap button by text='查看详情'
+19:15:41.631 watchAd: scene=TRAP_INSTALL, elapsed=60000ms/90000ms
+19:15:41.635 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:41.679 closeAdInstallPopup: no close button found for install popup
+19:15:41.681 watchAd: no close button for install popup, pressing back
+19:15:44.027 findAdInstallButton: found trap button by text='查看详情'
+19:15:44.060 watchAd: scene=TRAP_INSTALL, elapsed=65000ms/90000ms
+19:15:44.062 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:44.089 closeAdInstallPopup: no close button found for install popup
+19:15:44.091 watchAd: no close button for install popup, pressing back
+19:15:46.311 findAdInstallButton: found trap button by text='查看详情'
+19:15:46.351 watchAd: scene=TRAP_INSTALL, elapsed=70000ms/90000ms
+19:15:46.357 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:46.406 closeAdInstallPopup: no close button found for install popup
+19:15:46.408 watchAd: no close button for install popup, pressing back
+19:15:48.487 isAdContentShown: YES, matched ad signal in [点击跳转后停留
+15秒立即获奖, 千问, 千问APP,让每一次上妆都完美服帖, 立即点击领取, 千问, 查看详情, 千问, 千问APP,让每一次上妆都完美服帖]
+19:15:48.536 [watchAd-75000ms] snapshot: pkg=com.ucmobile.lite, act=com.noah.adn.huichuan.view.rewardvideo.HCRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:15:48.550 [watchAd-75000ms] claim-text-nodes (count=1):
+19:15:48.553 [watchAd-75000ms]   text='立即点击领取' desc='' bounds=[166,1657][1033,1821] clickable=false
+19:15:48.728 findAdInstallButton: found trap button by text='查看详情'
+19:15:48.759 watchAd: scene=TRAP_INSTALL, elapsed=75000ms/90000ms
+19:15:48.762 watchAd: install popup trap detected, attempting closeAdInstallPopup
+19:15:48.816 closeAdInstallPopup: no close button found for install popup
+19:15:48.820 watchAd: no close button for install popup, pressing back
+19:15:49.059 state: WATCHING_AD -> STOPPING
+19:15:49.062 cancelNavigation: all navigation callbacks cancelled
+19:15:49.066 state: STOPPING -> IDLE
+19:15:52.996 saveToken: saved (len=93, head='gith', tail='McKr')
+19:15:53.001 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+19:15:53.008 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260817_191553.log, localFile=debug.log (15138 bytes)
