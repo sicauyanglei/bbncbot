@@ -1,0 +1,404 @@
+=== cleared on app start (version=2.2, build=build735-da9740a, time=19:38:33) ===
+19:38:33.313 killPlatformApps: killed com.ucmobile.lite for UC
+19:38:33.314 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+19:38:33.315 killPlatformApps: killed com.taobao.taobao for TAOBAO
+19:38:33.341 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+19:38:33.343 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:38:33.344 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+19:38:40.339 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:38:40.342 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+19:38:45.103 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:38:45.105 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+19:38:46.364 === Automation v2 Started === platform=UC
+19:38:46.366 cancelNavigation: all navigation callbacks cancelled
+19:38:46.384 reset platform complete: UC
+19:38:46.388 state: IDLE -> NAVIGATING
+19:38:46.988 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:38:47.030 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:38:47.101 navigate: on farm page, platform=UC
+19:38:47.119 hasFarmContentLoaded: text count=13, sample=[后退, 智能组件, 菜单, 多窗口, 5, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+19:38:47.121 hasFarmContentLoaded: realContent count=12
+19:38:47.122 navigate: hasFarmContentLoaded=false, attempt=0
+19:38:52.604 navigate: on farm page, platform=UC
+19:38:52.640 hasFarmContentLoaded: text count=137, sample=[后退, 智能组件, 菜单, 多窗口, 5, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+19:38:52.642 hasFarmContentLoaded: realContent count=127
+19:38:52.643 navigate: hasFarmContentLoaded=true, attempt=1
+19:38:52.643 state: NAVIGATING -> COLLECTING_DIRECT
+19:38:54.970 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:38:54.986 [collectDirect-start] claim-text-nodes (count=2):
+19:38:54.987 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+19:38:54.988 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+19:38:55.004 collectDirect: found 2 direct buttons, attempt=0
+19:38:55.005 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1149][822,1201] (attempt 1)
+19:38:55.006 performClickSafe: text='看广告领奖' desc='' bounds=[641,1149][822,1201] clickable=false
+19:38:55.007 performClickSafe: ACTION_CLICK failed, trying gesture
+19:38:55.007 dispatchGesture: screen=[[641,1149][822,1201]] window=[[0,0][0,0]]
+19:38:55.008 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1175.0)
+19:38:55.015 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+19:39:05.018 collectDirect: jump button '看广告领奖' led to ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity), entering WATCHING_AD
+19:39:05.023 state: COLLECTING_DIRECT -> WATCHING_AD
+19:39:07.078 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+19:39:07.282 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:39:07.294 [watchAd-0ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:39:07.494 findAdDurationHint: found countdown '28s', seconds=28
+19:39:07.497 findAdDurationHint: found countdown '15秒', seconds=15
+19:39:07.505 watchAd: scene=AD_PLAYING, elapsed=0ms/90000ms
+19:39:07.522 watchAd: 检测到'奖励已发放'(奖励已到账), 立即点击右上角关闭图标退出广告获得奖励 (elapsed=0ms)
+19:39:07.552 watchAd: clicking right close icon to close ad and secure reward
+19:39:07.554 performClickSafe: text='｜跳过' desc='' bounds=[1011,163][1156,222] clickable=false
+19:39:07.555 performClickSafe: ACTION_CLICK failed, trying gesture
+19:39:07.557 dispatchGesture: screen=[[1011,163][1156,222]] window=[[0,0][0,0]]
+19:39:07.558 dispatchGesture: not in popup, screen bounds valid, click at (1083.5, 192.5)
+19:39:07.561 state: WATCHING_AD -> RETURNING
+19:39:12.605 isAdContentShown: YES, matched ad signal in [ad_content, image, main_content, reward_content, image, 温馨提示, interact_dialog_tip, 体验几秒就能领奖～
+确定要退出吗？]
+19:39:12.622 [return-start] snapshot: pkg=com.ucmobile.lite, act=com.byazt.jz.ew, onFarm=false, adActivity=true, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:39:12.630 [return-start] claim-text-nodes (count=1):
+19:39:12.632 [return-start]   text='去领取奖励' desc='continue_button' bounds=[206,1541][993,1698] clickable=true
+19:39:12.634 return: ad activity detected, pressBack instead of reopenFarmByDeepLink to preserve UC process
+19:39:17.656 back-1: click at (60.0, 127.15), ratio=(0.05, 0.05), screen=1200x2543
+19:39:22.684 back-2: click at (1140.0, 127.15), ratio=(0.95, 0.05), screen=1200x2543
+19:39:27.714 return: 广告Activity温和退出3次无效, forceKillApp杀宿主+重开农场兜底
+19:39:27.718 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+19:39:27.723 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+19:39:27.732 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:39:27.740 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching UC
+19:39:27.785 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+19:39:27.793 state: RETURNING -> NAVIGATING
+19:39:34.542 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:39:34.583 [navigate-start] claim-text-nodes (count=2):
+19:39:34.585 [navigate-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+19:39:34.587 [navigate-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+19:39:34.703 navigate: on farm page, platform=UC
+19:39:34.723 hasFarmContentLoaded: text count=134, sample=[后退, 智能组件, 菜单, 多窗口, 6, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+19:39:34.726 hasFarmContentLoaded: realContent count=124
+19:39:34.728 navigate: hasFarmContentLoaded=true, attempt=0
+19:39:34.729 state: NAVIGATING -> COLLECTING_DIRECT
+19:39:37.270 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:39:37.305 [collectDirect-start] claim-text-nodes (count=2):
+19:39:37.306 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+19:39:37.307 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+19:39:37.321 collectDirect: found 2 direct buttons, attempt=0
+19:39:37.322 collectDirect: skip button[0] text='看广告领奖' bounds=[641,1149][822,1201] (same as last clicked, click had no effect)
+19:39:37.322 collectDirect: clicking button[1] text='签到' desc='' bounds=[894,933][1123,1031] (attempt 1)
+19:39:37.324 performClickSafe: text='签到' desc='' bounds=[894,933][1123,1031] clickable=false
+19:39:37.325 performClickSafe: ACTION_CLICK failed, trying gesture
+19:39:37.326 dispatchGesture: screen=[[894,933][1123,1031]] window=[[0,0][0,0]]
+19:39:37.326 dispatchGesture: not in popup, screen bounds valid, click at (1008.5, 982.0)
+19:39:43.106 collectDirect: claim button found, clicking (retry left=3)
+19:39:43.110 performClickSafe: text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+19:39:43.112 performClickSafe: ACTION_CLICK failed, trying gesture
+19:39:43.114 dispatchGesture: screen=[[894,933][1123,1031]] window=[[0,0][0,0]]
+19:39:43.114 dispatchGesture: not in popup, screen bounds valid, click at (1008.5, 982.0)
+19:39:45.844 findBrowseEntryInPopup: not found
+19:39:45.860 collectDirect: found 1 direct buttons, attempt=1
+19:39:45.861 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1146][822,1198] (attempt 2)
+19:39:45.862 performClickSafe: text='看广告领奖' desc='' bounds=[641,1146][822,1198] clickable=false
+19:39:45.863 performClickSafe: ACTION_CLICK failed, trying gesture
+19:39:45.863 dispatchGesture: screen=[[641,1146][822,1198]] window=[[0,0][0,0]]
+19:39:45.864 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1172.0)
+19:39:45.865 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+19:39:55.869 collectDirect: jump button '看广告领奖' led to ad (act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity), entering WATCHING_AD
+19:39:55.874 state: COLLECTING_DIRECT -> WATCHING_AD
+19:39:58.138 findAdDurationHint: found countdown '10秒', seconds=10
+19:39:58.160 watchAd: parsed ad duration hint=10s, min wait=12000ms, max wait=90000ms (hint+buffer), checkInterval=5000ms
+19:39:58.269 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:39:58.286 [watchAd-0ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:39:58.400 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:39:58.403 watchAd: scene=TRAP_INTERACTIVE, elapsed=0ms/90000ms
+19:39:58.454 watchAd: interactive ad detected but download button not found (elapsed=0ms), waiting
+19:40:03.539 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:40:03.541 watchAd: scene=TRAP_INTERACTIVE, elapsed=5000ms/90000ms
+19:40:03.560 watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=5000ms/90000ms)
+19:40:08.687 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:40:08.691 watchAd: scene=TRAP_INTERACTIVE, elapsed=10000ms/90000ms
+19:40:08.738 watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=10000ms/90000ms)
+19:40:13.849 [watchAd-15000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:40:13.865 [watchAd-15000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:40:13.982 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:40:13.985 watchAd: scene=TRAP_INTERACTIVE, elapsed=15000ms/90000ms
+19:40:14.033 watchAd: interactive ad no download button, min wait elapsed (15000ms/12000ms), fall through to ad-end check
+19:40:14.132 findAdDurationHint: found countdown '10秒', seconds=10
+19:40:14.154 watchAd: countdown stuck at 10s (static text), reward video ad pressBack ineffective, entering CLOSING_AD
+19:40:14.157 state: WATCHING_AD -> CLOSING_AD
+19:40:16.177 closeAd: start closing, pageType=ad, texts=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看, 10秒, 可直接拿奖励, 灵光, 灵光app太棒啦！快来使用, 点击跳转拿奖励]
+19:40:16.269 performClickSafe: text='跳过' desc='' bounds=[1019,162][1109,224] clickable=true
+19:40:16.333 performClickSafe: ACTION_CLICK success at depth=0
+19:40:21.623 ad-close-0: click at (1140.0, 63.575), ratio=(0.95, 0.025), screen=1200x2543
+19:40:21.630 ad-close-1: click at (1152.0, 63.575), ratio=(0.96, 0.025), screen=1200x2543
+19:40:21.642 ad-close-2: click at (1128.0, 38.145), ratio=(0.94, 0.015), screen=1200x2543
+19:40:21.647 ad-close-3: click at (1164.0, 38.145), ratio=(0.97, 0.015), screen=1200x2543
+19:40:21.651 ad-close-4: click at (1152.0, 89.005), ratio=(0.96, 0.035), screen=1200x2543
+19:40:21.655 ad-close-5: click at (1116.0, 25.43), ratio=(0.93, 0.01), screen=1200x2543
+19:40:21.658 ad-close-6: click at (600.0, 127.15), ratio=(0.5, 0.05), screen=1200x2543
+19:40:21.661 ad-close-7: click at (1140.0, 2441.28), ratio=(0.95, 0.96), screen=1200x2543
+19:40:31.793 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:40:31.816 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:40:31.819 findClaimRewardButton: scene not allowed for claim (scene=TRAP_INTERACTIVE), skip
+19:40:36.852 state: CLOSING_AD -> RETURNING
+19:40:39.029 [return-start] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:40:39.046 [return-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:40:39.049 return: ad activity detected, pressBack instead of reopenFarmByDeepLink to preserve UC process
+19:40:44.110 back-1: click at (60.0, 127.15), ratio=(0.05, 0.05), screen=1200x2543
+19:40:49.169 back-2: click at (1140.0, 127.15), ratio=(0.95, 0.05), screen=1200x2543
+19:40:54.229 return: 广告Activity温和退出3次无效, forceKillApp杀宿主+重开农场兜底
+19:40:54.233 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+19:40:54.239 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+19:40:54.249 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:40:54.251 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching UC
+19:40:54.286 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+19:40:54.287 state: RETURNING -> NAVIGATING
+19:41:01.141 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:41:01.157 [navigate-start] claim-text-nodes (count=4):
+19:41:01.159 [navigate-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+19:41:01.160 [navigate-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+19:41:01.161 [navigate-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+19:41:01.162 [navigate-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+19:41:01.280 navigate: on farm page, platform=UC
+19:41:01.308 hasFarmContentLoaded: text count=134, sample=[后退, 智能组件, 菜单, 多窗口, 7, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+19:41:01.310 hasFarmContentLoaded: realContent count=124
+19:41:01.311 navigate: hasFarmContentLoaded=true, attempt=0
+19:41:01.311 state: NAVIGATING -> COLLECTING_DIRECT
+19:41:03.885 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:41:03.904 [collectDirect-start] claim-text-nodes (count=4):
+19:41:03.907 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+19:41:03.908 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+19:41:03.908 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+19:41:03.909 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+19:41:03.938 collectDirect: found 1 direct buttons, attempt=0
+19:41:03.938 collectDirect: skip button[0] text='看广告领奖' bounds=[641,1146][822,1198] (same as last clicked, click had no effect)
+19:41:03.939 collectDirect: all 1 buttons match last clicked, give up direct collect
+19:41:03.939 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+19:41:06.541 [openTaskList-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:41:06.569 [openTaskList-start] claim-text-nodes (count=4):
+19:41:06.570 [openTaskList-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+19:41:06.571 [openTaskList-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+19:41:06.572 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+19:41:06.572 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+19:41:06.603 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[78,920][209,1034])
+19:41:06.604 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.604 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[94,930][193,1028])
+19:41:06.605 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.605 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[239,920][370,1034])
+19:41:06.606 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.606 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[255,930][353,1028])
+19:41:06.607 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.607 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[399,920][530,1034])
+19:41:06.608 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.608 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[415,930][514,1028])
+19:41:06.611 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.612 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[556,920][691,1034])
+19:41:06.614 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.615 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[573,930][674,1028])
+19:41:06.616 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.618 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[733,920][864,1034])
+19:41:06.619 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.620 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[749,930][848,1028])
+19:41:06.620 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.621 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1234][1120,1336])
+19:41:06.622 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1640][1120,1742])
+19:41:06.622 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1843][1120,1945])
+19:41:06.623 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2046][1120,2148])
+19:41:06.624 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2249][1120,2351])
+19:41:06.624 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2452][1120,2509])
+19:41:06.625 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,2656][1120,2509])
+19:41:06.625 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,2859][1120,2509])
+19:41:06.629 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3062][1120,2509])
+19:41:06.630 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3265][1120,2509])
+19:41:06.631 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3468][1120,2509])
+19:41:06.632 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3671][1120,2509])
+19:41:06.633 openTaskList: [UC闭环] 6 goComplete buttons already visible, task list open, processing directly
+19:41:06.650 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[78,920][209,1034])
+19:41:06.651 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.652 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[94,930][193,1028])
+19:41:06.653 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.654 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[239,920][370,1034])
+19:41:06.655 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.655 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[255,930][353,1028])
+19:41:06.656 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.657 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[399,920][530,1034])
+19:41:06.658 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.658 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[415,930][514,1028])
+19:41:06.663 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.665 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[556,920][691,1034])
+19:41:06.666 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.667 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[573,930][674,1028])
+19:41:06.668 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.669 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[733,920][864,1034])
+19:41:06.670 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.671 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[749,930][848,1028])
+19:41:06.671 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+19:41:06.672 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1234][1120,1336])
+19:41:06.672 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1640][1120,1742])
+19:41:06.673 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1843][1120,1945])
+19:41:06.673 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2046][1120,2148])
+19:41:06.674 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2249][1120,2351])
+19:41:06.674 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2452][1120,2509])
+19:41:06.683 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,2656][1120,2509])
+19:41:06.685 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,2859][1120,2509])
+19:41:06.686 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3062][1120,2509])
+19:41:06.686 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3265][1120,2509])
+19:41:06.687 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3468][1120,2509])
+19:41:06.688 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3671][1120,2509])
+19:41:06.689 openTaskList: 6 goComplete buttons already visible, processing directly (attempt=0)
+19:41:06.690 taskButton[0]: text='去完成', desc='', bounds=[890,1234][1120,1336], clickable=false
+19:41:06.693 taskButton[1]: text='去完成', desc='', bounds=[890,1640][1120,1742], clickable=false
+19:41:06.697 taskButton[2]: text='去完成', desc='', bounds=[890,1843][1120,1945], clickable=false
+19:41:06.699 taskButton[3]: text='去完成', desc='', bounds=[890,2046][1120,2148], clickable=false
+19:41:06.700 taskButton[4]: text='去完成', desc='', bounds=[890,2249][1120,2351], clickable=false
+19:41:06.701 taskButton[5]: text='去完成', desc='', bounds=[890,2452][1120,2509], clickable=false
+19:41:06.701 openTaskList: resetting currentTaskIndex to 0 (was 0)
+19:41:06.703 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1000 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:06.704 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1000 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:06.706 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1000 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:06.706 sortTaskButtons: idx=0 task='看视频得巨额肥料 看视频得巨额肥料 助力果树光速升级↑ 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:41:06.707 collectTaskContextText: result='去头条极速版逛逛 去头条极速版逛逛 本次可得 肥料 +684 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:06.708 collectTaskContextText: result='去头条极速版逛逛 去头条极速版逛逛 本次可得 肥料 +684 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:06.713 collectTaskContextText: result='去头条极速版逛逛 去头条极速版逛逛 本次可得 肥料 +684 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:06.714 sortTaskButtons: idx=1 task='去头条极速版逛逛 去头条极速版逛逛 本次可得 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:41:06.716 collectTaskContextText: result='点击任意广告得肥料 点击任意广告得肥料 (0/5) 点即领,轻松得 肥料 +500 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:06.717 collectTaskContextText: result='点击任意广告得肥料 点击任意广告得肥料 (0/5) 点即领,轻松得 肥料 +500 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:06.718 collectTaskContextText: result='点击任意广告得肥料 点击任意广告得肥料 (0/5) 点即领,轻松得 肥料 +500 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:06.719 sortTaskButtons: idx=2 task='点击任意广告得肥料 点击任意广告得肥料 点即领,轻松得 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:41:06.720 collectTaskContextText: result='去支付宝农场领肥料 去支付宝农场领肥料 逛逛可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:06.721 collectTaskContextText: result='去支付宝农场领肥料 去支付宝农场领肥料 逛逛可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:06.722 collectTaskContextText: result='去支付宝农场领肥料 去支付宝农场领肥料 逛逛可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:06.722 sortTaskButtons: idx=3 task='去支付宝农场领肥料 去支付宝农场领肥料 逛逛可得 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:41:06.723 collectTaskContextText: result='去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 本次可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=187
+19:41:06.724 collectTaskContextText: result='去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 本次可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=187
+19:41:06.725 collectTaskContextText: result='去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 本次可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=187
+19:41:06.731 sortTaskButtons: idx=4 task='去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 本次可得 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:41:06.732 collectTaskContextText: result='看视频得大额肥料 看视频得大额肥料 (0/10) 助力果树光速升级↑ 肥料 +1000 去完成 ', buttonText='去完成', btnHeight=57, containerHeight=99
+19:41:06.733 collectTaskContextText: result='看视频得大额肥料 看视频得大额肥料 (0/10) 助力果树光速升级↑ 肥料 +1000 去完成 ', buttonText='去完成', btnHeight=57, containerHeight=99
+19:41:06.734 collectTaskContextText: result='看视频得大额肥料 看视频得大额肥料 (0/10) 助力果树光速升级↑ 肥料 +1000 去完成 ', buttonText='去完成', btnHeight=57, containerHeight=99
+19:41:06.735 sortTaskButtons: idx=5 task='看视频得大额肥料 看视频得大额肥料 助力果树光速升级↑ 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+19:41:06.736 state: OPENING_TASK_LIST -> PROCESSING_TASK
+19:41:09.333 [processTask-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:41:09.367 [processTask-start] claim-text-nodes (count=4):
+19:41:09.369 [processTask-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+19:41:09.370 [processTask-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+19:41:09.374 [processTask-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+19:41:09.379 [processTask-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+19:41:09.425 processTask: current task #1/6, text='去完成', bounds=[890,1234][1120,1336], attempt=0
+19:41:09.428 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1000 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:09.431 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1000 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:09.434 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1000 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:09.436 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1000 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+19:41:09.438 isBrowseTask: buttonText='去完成', context='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1000 去完成 ', isBrowse=false
+19:41:09.439 parseTaskCount: completed=0, total=10, remaining=10
+19:41:09.441 processTask: multi-click task detected, remainingReplays=10
+19:41:09.444 performClickSafe: text='去完成' desc='' bounds=[890,1234][1120,1336] clickable=false
+19:41:09.446 performClickSafe: ACTION_CLICK failed, trying gesture
+19:41:09.447 dispatchGesture: screen=[[890,1234][1120,1336]] window=[[0,0][0,0]]
+19:41:09.449 dispatchGesture: not in popup, screen bounds valid, click at (1005.0, 1285.0)
+19:41:14.621 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:41:14.633 [checkTaskResult] claim-text-nodes (count=3):
+19:41:14.635 [checkTaskResult]   text='可立即领奖' desc='' bounds=[350,893][848,1018] clickable=false
+19:41:14.637 [checkTaskResult]   text='我要立即领奖' desc='' bounds=[379,1562][818,1653] clickable=false
+19:41:14.640 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[560,166][1031,225] clickable=false
+19:41:14.817 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+19:41:14.824 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+19:41:14.873 processTask: ad detected, entering WATCHING_AD
+19:41:14.875 state: PROCESSING_TASK -> WATCHING_AD
+19:41:16.956 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+19:41:16.959 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+19:41:17.006 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:41:17.023 [watchAd-0ms] claim-text-nodes (count=3):
+19:41:17.026 [watchAd-0ms]   text='可立即领奖' desc='' bounds=[350,893][848,1018] clickable=false
+19:41:17.029 [watchAd-0ms]   text='我要立即领奖' desc='' bounds=[379,1562][818,1653] clickable=false
+19:41:17.031 [watchAd-0ms]   text='去体验15秒可立即领奖' desc='' bounds=[560,166][1031,225] clickable=false
+19:41:17.125 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+19:41:17.135 watchAd: scene=AD_PLAYING, elapsed=0ms/90000ms
+19:41:17.165 watchAd: waiting 0ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, tos-cn-i-0813_89e6b99333ab4448ad4550682995eab7~c5_168x168, 人 仁和匠心化妆品旗舰店, 618 提前购仁和淡斑五件套！美白淡斑补水一步到位，直播间专属低价, 上滑或点击, 跳转至详情页或第三方应用, 任选商品加入购物车, 可立即领奖]
+19:41:22.317 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+19:41:22.328 watchAd: scene=AD_PLAYING, elapsed=5000ms/90000ms
+19:41:22.381 watchAd: waiting 5000ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, tos-cn-i-0813_89e6b99333ab4448ad4550682995eab7~c5_168x168, 人 仁和匠心化妆品旗舰店, 618 提前购仁和淡斑五件套！美白淡斑补水一步到位，直播间专属低价, 上滑或点击, 跳转至详情页或第三方应用, 任选商品加入购物车, 可立即领奖]
+19:41:27.571 watchAd: scene=REWARD_POPUP, elapsed=10000ms/90000ms
+19:41:27.593 watchAd: 检测到'奖励已发放'(奖励已到账), 立即点击右上角关闭图标退出广告获得奖励 (elapsed=10000ms)
+19:41:27.616 watchAd: clicking right close icon to close ad and secure reward
+19:41:27.619 performClickSafe: text='net::ERR_CONNECTION_CLOSED' desc='' bounds=[22,1074][1175,1142] clickable=false
+19:41:27.621 performClickSafe: ACTION_CLICK failed, trying gesture
+19:41:27.624 dispatchGesture: screen=[[22,1074][1175,1142]] window=[[0,0][0,0]]
+19:41:27.627 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 1108.0)
+19:41:27.632 state: WATCHING_AD -> RETURNING
+19:41:32.704 [return-start] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:41:32.717 [return-start] claim-text-nodes (count=1):
+19:41:32.719 [return-start]   text='领取成功' desc='' bounds=[798,202][982,264] clickable=false
+19:41:32.721 return: ad activity detected, pressBack instead of reopenFarmByDeepLink to preserve UC process
+19:41:37.750 back-1: click at (60.0, 127.15), ratio=(0.05, 0.05), screen=1200x2543
+19:41:42.814 back-2: click at (1140.0, 127.15), ratio=(0.95, 0.05), screen=1200x2543
+19:41:47.846 return: 广告Activity温和退出3次无效, forceKillApp杀宿主+重开农场兜底
+19:41:47.850 forceKillApp: killing com.ucmobile.lite (pressBackFirst=false)
+19:41:47.854 forceKillApp: killBackgroundProcesses(com.ucmobile.lite) called, cleared currentActivityName/currentEventPkg
+19:41:47.862 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+19:41:47.865 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching UC
+19:41:47.900 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+19:41:47.982 state: RETURNING -> NAVIGATING
+19:41:54.104 isTaskCompletePage: YES, matched=[任务完成, 1000肥料已发放], sample=[后退, 智能组件, 菜单, 多窗口, 8]
+19:41:54.119 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+19:41:54.141 [navigate-start] claim-text-nodes (count=4):
+19:41:54.142 [navigate-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+19:41:54.143 [navigate-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+19:41:54.144 [navigate-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+19:41:54.145 [navigate-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+19:41:54.253 navigate: on farm page, platform=UC
+19:41:54.273 hasFarmContentLoaded: text count=135, sample=[后退, 智能组件, 菜单, 多窗口, 8, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+19:41:54.276 hasFarmContentLoaded: realContent count=125
+19:41:54.281 navigate: hasFarmContentLoaded=true, attempt=0
+19:41:54.284 state: NAVIGATING -> COLLECTING_DIRECT
+19:41:57.050 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:41:57.068 [collectDirect-start] claim-text-nodes (count=4):
+19:41:57.069 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+19:41:57.070 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+19:41:57.070 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2027][222,2171] clickable=false
+19:41:57.070 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2027][694,2095] clickable=false
+19:41:57.084 collectDirect: found 1 direct buttons, attempt=0
+19:41:57.084 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1159][822,1211] (attempt 1)
+19:41:57.085 performClickSafe: text='看广告领奖' desc='' bounds=[641,1159][822,1211] clickable=false
+19:41:57.086 performClickSafe: ACTION_CLICK failed, trying gesture
+19:41:57.086 dispatchGesture: screen=[[641,1159][822,1211]] window=[[0,0][0,0]]
+19:41:57.086 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1185.0)
+19:41:57.087 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+19:42:07.090 collectDirect: jump button '看广告领奖' led to ad (act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity), entering WATCHING_AD
+19:42:07.095 state: COLLECTING_DIRECT -> WATCHING_AD
+19:42:09.315 findAdDurationHint: found countdown '10秒', seconds=10
+19:42:09.341 watchAd: parsed ad duration hint=10s, min wait=12000ms, max wait=90000ms (hint+buffer), checkInterval=5000ms
+19:42:09.444 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:42:09.460 [watchAd-0ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:42:09.544 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:42:09.547 watchAd: scene=TRAP_INTERACTIVE, elapsed=0ms/90000ms
+19:42:09.577 watchAd: interactive ad detected but download button not found (elapsed=0ms), waiting
+19:42:14.676 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:42:14.680 watchAd: scene=TRAP_INTERACTIVE, elapsed=5000ms/90000ms
+19:42:14.703 watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=5000ms/90000ms)
+19:42:19.818 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:42:19.821 watchAd: scene=TRAP_INTERACTIVE, elapsed=10000ms/90000ms
+19:42:19.853 watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=10000ms/90000ms)
+19:42:24.963 [watchAd-15000ms] snapshot: pkg=com.ucmobile.lite, act=com.kwad.sdk.api.proxy.app.KsRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+19:42:24.979 [watchAd-15000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+19:42:25.094 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:42:25.097 watchAd: scene=TRAP_INTERACTIVE, elapsed=15000ms/90000ms
+19:42:25.130 watchAd: interactive ad no download button, min wait elapsed (15000ms/12000ms), fall through to ad-end check
+19:42:25.235 findAdDurationHint: found countdown '10秒', seconds=10
+19:42:25.261 watchAd: countdown stuck at 10s (static text), reward video ad pressBack ineffective, entering CLOSING_AD
+19:42:25.264 state: WATCHING_AD -> CLOSING_AD
+19:42:27.309 closeAd: start closing, pageType=ad, texts=[扭一扭或点击跳转详情页或第三方应用, shake_title, rotate_view_container, rotate_view, 看, 10秒, 可直接拿奖励, 灵光, 灵光app太棒啦！快来使用, 点击跳转拿奖励]
+19:42:27.419 performClickSafe: text='跳过' desc='' bounds=[1019,162][1109,224] clickable=true
+19:42:27.464 performClickSafe: ACTION_CLICK success at depth=0
+19:42:32.750 ad-close-0: click at (1140.0, 63.575), ratio=(0.95, 0.025), screen=1200x2543
+19:42:32.755 ad-close-1: click at (1152.0, 63.575), ratio=(0.96, 0.025), screen=1200x2543
+19:42:32.760 ad-close-2: click at (1128.0, 38.145), ratio=(0.94, 0.015), screen=1200x2543
+19:42:32.765 ad-close-3: click at (1164.0, 38.145), ratio=(0.97, 0.015), screen=1200x2543
+19:42:32.773 ad-close-4: click at (1152.0, 89.005), ratio=(0.96, 0.035), screen=1200x2543
+19:42:32.777 ad-close-5: click at (1116.0, 25.43), ratio=(0.93, 0.01), screen=1200x2543
+19:42:32.781 ad-close-6: click at (600.0, 127.15), ratio=(0.5, 0.05), screen=1200x2543
+19:42:32.785 ad-close-7: click at (1140.0, 2441.28), ratio=(0.95, 0.96), screen=1200x2543
+19:42:42.890 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:42:42.924 isInteractiveAdPage: YES (strong interactive signal: 摇一摇/扭一扭)
+19:42:42.927 findClaimRewardButton: scene not allowed for claim (scene=TRAP_INTERACTIVE), skip
+19:42:47.830 state: CLOSING_AD -> STOPPING
+19:42:47.832 cancelNavigation: all navigation callbacks cancelled
+19:42:47.833 state: STOPPING -> IDLE
+19:42:49.719 saveToken: saved (len=93, head='gith', tail='McKr')
+19:42:49.722 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+19:42:49.728 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260817_194249.log, localFile=debug.log (47959 bytes)
