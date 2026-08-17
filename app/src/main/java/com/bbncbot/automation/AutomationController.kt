@@ -1979,6 +1979,15 @@ object AutomationController {
      */
     private var trapRechargeBackCount: Int = 0
 
+    /**
+     * build735: WATCHING_AD 中 TRAP_INSTALL 分支 pressBack 连续无效计数
+     *
+     * 汇川"点击跳转后停留"广告(千问APP)整页无关闭按钮,closeAdInstallPopup 失败 → pressBack,
+     * 但广告 Activity 拦截 back 键退不出去,每5s循环(191553日志 36s 无效果直到用户手动停止,
+     * 分支无超时保护)。连续 4 次(约20s)无效后 forceKillApp 杀宿主 + 重开农场兜底(同 build732)。
+     */
+    private var trapInstallBackCount: Int = 0
+
     private fun checkTaskListOpened(service: FarmAccessibilityService, openingAttempt: Int) {
         if (state != AutomationState.OPENING_TASK_LIST) return
 
@@ -4815,6 +4824,8 @@ object AutomationController {
             huichuanMerchantPending = false
             // build732: 重置充值陷阱 pressBack 无效计数
             trapRechargeBackCount = 0
+            // build735: 重置安装陷阱 pressBack 无效计数
+            trapInstallBackCount = 0
             // 按平台广告策略加载默认时长与检测间隔（UC/支付宝/淘宝差异化）
             val platformCfg = service.currentPlatformConfig()
             adEndCheckIntervalMs = platformCfg.adEndCheckIntervalMs
@@ -5310,9 +5321,19 @@ object AutomationController {
         //   (TRAP_RECHARGE/TRAP_ABNORMAL/TRAP_LANDING/TRAP_MINIPROGRAM)跳过防御,
         //   在商家页耐心等待"奖励已发放"(build729: 检测到后点击右上角关闭图标领奖)。
         //   超时(adMaxDurationMs)兜底进 CLOSING_AD 多策略关闭。
-        if (huichuanMerchantPending && service.isAdActivity() && (
-            scene == PageScene.TRAP_RECHARGE || scene == PageScene.TRAP_ABNORMAL ||
-            scene == PageScene.TRAP_LANDING || scene == PageScene.TRAP_MINIPROGRAM)) {
+        // build735 扩展（debug_test_20260817_191553.log, build733）:
+        //   1. TRAP_INSTALL 加入跳过列表: 汇川"点击跳转后停留"变体点击转化按钮后落地页
+        //      含"查看详情"等文案→误判 TRAP_INSTALL→pressBack 循环,打断落地页停留计时。
+        //   2. 覆盖落地页无提示文案场景(isClickProductAd=false 且 scene=AD_PLAYING/UNKNOWN/AD_ENDED):
+        //      点击跳转后落地页不再含"点击跳转后停留"提示,原守卫不命中,点击商品块也不命中,
+        //      奖励等待丢失。落地页在广告Activity内无倒计时无CTA时 classify 为 AD_ENDED,
+        //      必须一并覆盖,否则误走 AD_ENDED 关闭流程放弃奖励。统一在本守卫等"奖励已发放"。
+        val trapLikeScene = scene == PageScene.TRAP_RECHARGE || scene == PageScene.TRAP_ABNORMAL ||
+            scene == PageScene.TRAP_LANDING || scene == PageScene.TRAP_MINIPROGRAM ||
+            scene == PageScene.TRAP_INSTALL
+        if (huichuanMerchantPending && service.isAdActivity() && (trapLikeScene ||
+            (!service.isClickProductAd() && (scene == PageScene.AD_PLAYING || scene == PageScene.UNKNOWN ||
+             scene == PageScene.AD_ENDED)))) {
             if (detectRewardGrantedText(service)) {
                 claimRewardViaCloseIcon(service, elapsedMs)
                 return
@@ -5534,6 +5555,26 @@ object AutomationController {
             // 陷阱5：诱导弹窗（页面上有"立即下载"等按钮，可能是广告播放中弹出的诱导遮罩）
             // 策略：优先点"关闭/暂不/拒绝"关闭弹窗，绝不点诱导按钮，继续轮询
             PageScene.TRAP_INSTALL -> {
+                // build735 修复（debug_test_20260817_191553.log, build733, 19:15:13-19:15:49）:
+                //   汇川"点击跳转后停留15秒立即获奖"广告(千问APP)整页无关闭按钮,
+                //   closeAdInstallPopup 失败 → pressBack 每5s循环,广告 Activity 拦截 back 键
+                //   退不出去,36s+无效果直到用户手动停止(本分支原无超时保护)。
+                //   pressBack 连续 4 次(约20s)无效或 elapsed 超时时,
+                //   forceKillApp 杀宿主 + reopenFarmByDeepLink 重开农场兜底
+                //   (同 build732 TRAP_RECHARGE 修复,该日志已验证此手段 100% 有效)。
+                if (trapInstallBackCount >= 4 || elapsedMs >= adMaxDurationMs) {
+                    Log.w(TAG, "watchAd: install trap back x$trapInstallBackCount ineffective (elapsed=${elapsedMs}ms), force killing host app and relaunching farm")
+                    debugLog("watchAd: 安装陷阱pressBack ${trapInstallBackCount}次无效(elapsed=${elapsedMs}ms), forceKillApp杀宿主+重开农场兜底")
+                    service.setAdMode(false)
+                    val farmPkgs = service.currentPlatformConfig().packageNames
+                    for (pkg in farmPkgs) {
+                        service.forceKillApp(pkg, pressBackFirst = false)
+                    }
+                    service.reopenFarmByDeepLink(killCurrentFirst = false)
+                    moveTo(AutomationState.NAVIGATING)
+                    handler.postDelayed({ runNavigating(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+                    return
+                }
                 Log.w(TAG, "watchAd: install popup detected (scene=$scene), trying to close it (trap defense)")
                 debugLog("watchAd: install popup trap detected, attempting closeAdInstallPopup")
                 val closed = service.closeAdInstallPopup()
@@ -5541,6 +5582,7 @@ object AutomationController {
                     // 找不到关闭类按钮，可能弹窗本身就是全屏落地页 → 按返回退出
                     debugLog("watchAd: no close button for install popup, pressing back")
                     service.pressBack()
+                    trapInstallBackCount++
                 }
                 handler.postDelayed({
                     if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
@@ -5671,6 +5713,16 @@ object AutomationController {
                     adProductClicked = true
                     adProductClickTimeMs = now
                     adProductClickCount++
+                    // build735（debug_test_20260817_191553.log, build733）:
+                    //   汇川"点击跳转后停留N秒立即获奖"变体: 点击转化按钮后跳转落地页,
+                    //   停留15秒奖励才发放。阶段2原逻辑2s后关闭广告会放弃奖励,
+                    //   设 huichuanMerchantPending=true 改为等待"奖励已发放"
+                    //   (跳转后落地页无CTA文案,由上方守卫块接管等待)。
+                    if (service.isClickJumpStayAd()) {
+                        huichuanMerchantPending = true
+                        Log.i(TAG, "watchAd: click-jump-stay ad detected, set huichuanMerchantPending=true to wait for reward on landing page")
+                        debugLog("watchAd: '点击跳转后停留'广告已点击转化按钮,等待落地页停留计时'奖励已发放'(不2s关闭)")
+                    }
                 } else {
                     // 找不到可点击商品节点：可能是页面还没渲染,等 2s 后重试
                     // build722 修复（debug_test_20260811_081229.log, build721, 08:11:59-08:12:25）：

@@ -32,7 +32,42 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build734 快手扭一扭end-card广告免疫所有温和退出,RETURNING加forceKill兜底
+### commit (待提交) - fix: build735 汇川"点击跳转后停留"广告误判TRAP_INSTALL死循环,补完跳转停留领奖流程
+
+**用户需求**: "分析日志"（debug_test_20260817_191553.log, build733）
+
+**问题(bug)**: 汇川"点击跳转后停留15秒立即获奖"变体广告(千问APP)奖励丢失
+- 19:15:10 HCRewardVideoActivity 打开,页面"点击跳转后停留\n15秒立即获奖",
+  转化按钮"立即点击领取"(clickable=false,bounds=[166,1657][1033,1821])+"查看详情"
+- identifyCurrentScene 步骤8: findAdInstallButton 匹配"查看详情"+无倒计时
+  → 误判 TRAP_INSTALL → closeAdInstallPopup 无关闭按钮 → pressBack 每5s循环
+- 广告 Activity 拦截 back 键,36s+ 无效果直到用户手动停止(分支无超时保护),奖励未领
+- **上一轮会话中断遗留**: trapInstallBackCount 已声明未使用、isClickJumpStayAd 已声明未调用、
+  守卫扩展不生效(huichuanMerchantPending 在此流程从未置true),本次全部补完
+
+**修复**(5处):
+1. [FarmAccessibilityService.kt identifyCurrentScene 步骤8](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt):
+   TRAP_INSTALL 分类加 isClickProductAd() 豁免——页面含点击商品/点击跳转后停留等CTA时,
+   "查看详情"是广告转化按钮而非安装陷阱
+2. [identifyCurrentScene 步骤12]: AD_PLAYING 判定改用 isClickProductAd() 统一关键词
+   (新增"点击跳转后停留"),消除两份列表不同步
+3. [AutomationController.kt TRAP_INSTALL 分支](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt):
+   接入 trapInstallBackCount,pressBack 连续4次(约20s)无效或超时
+   → forceKillApp杀宿主+reopenFarmByDeepLink重开农场(同build732,已验证100%有效)
+4. [huichuanMerchantPending 守卫]: 补 AD_ENDED 场景——落地页在广告Activity内
+   无倒计时无CTA时判为AD_ENDED,原守卫会漏→误走AD_ENDED关闭流程放弃奖励
+5. [isClickProductAd 阶段1]: 点击转化按钮后 isClickJumpStayAd() → 设
+   huichuanMerchantPending=true,由守卫块在落地页等"奖励已发放"(停留15秒),
+   不再2s关闭广告
+
+**预期流程**: 广告打开→scene=AD_PLAYING→findAdProductNode回退找"立即点击领取"文本节点
+→手势点击→跳转落地页→守卫等15s→"奖励已发放"→claimRewardViaCloseIcon点关闭领奖
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit 210e06e(用户快照,代码已含) - fix: build734 快手扭一扭end-card广告免疫所有温和退出,RETURNING加forceKill兜底
 
 **用户需求**: "分析日志"（debug_test_20260816_194357.log, build732-05b8ac6）
 

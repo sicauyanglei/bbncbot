@@ -1845,7 +1845,14 @@ class FarmAccessibilityService : AccessibilityService() {
         if (installBtn != null) {
             // 诱导弹窗：有诱导按钮 + 无倒计时（倒计时存在说明广告还在播放，诱导按钮是广告CTA）
             val hasCountdown = findAdDurationHint() > 0
-            if (!hasCountdown) return PageScene.TRAP_INSTALL
+            // build735 修复（debug_test_20260817_191553.log, build733, 19:15:13-19:15:49）:
+            //   汇川"点击跳转后停留15秒立即获奖"广告,转化按钮"查看详情"被 findAdInstallButton
+            //   匹配为安装陷阱按钮,页面无倒计时 → 误判 TRAP_INSTALL → WATCHING_AD pressBack
+            //   每5s循环36s+(广告Activity拦截back键)直到用户手动停止,奖励未领。
+            //   页面含 isClickProductAd 文案(点击商品/点击跳转后停留等)时,"查看详情"/
+            //   "立即点击领取"是广告转化CTA(点击才有奖励)而非安装陷阱,跳过 TRAP_INSTALL,
+            //   落到步骤12由 isClickProductAd 判为 AD_PLAYING(需点击转化按钮等奖励)。
+            if (!hasCountdown && !isClickProductAd()) return PageScene.TRAP_INSTALL
         }
         // 9. 复看陷阱（再看一个/加倍领取）
         if (isReplayTrapPage()) return PageScene.TRAP_REPLAY
@@ -1875,10 +1882,9 @@ class FarmAccessibilityService : AccessibilityService() {
                 //   干等 20s 用户手动停止。
                 //   修复:页面含"点击商品"/"点击广告拿奖励"等 isClickProductAd 文字时,广告还在播放
                 //   (需点击商品/广告才能领奖),scene=AD_PLAYING。与 build718 "去体验"修复一致。
-                if (pageTexts.any {
-                        it.contains("点击商品") || it.contains("点击广告拿奖励") ||
-                        it.contains("点击广告，即可获得奖励") || it.contains("点击广告拿")
-                    }) {
+                // build735: 改用 isClickProductAd() 统一关键词列表(新增"点击跳转后停留"),
+                //   避免本处与 isClickProductAd 两份列表不同步(本次误判根因之一)。
+                if (isClickProductAd()) {
                     return PageScene.AD_PLAYING
                 }
             }
@@ -3713,10 +3719,27 @@ class FarmAccessibilityService : AccessibilityService() {
         val root = rootInActiveWindowSafe() ?: return false
         val allText = collectAllText(root)
         // build717: 扩展检测"点击广告拿奖励"类型广告(腾讯PortraitADActivity)
+        // build735: 扩展检测汇川"点击跳转后停留15秒立即获奖"变体(千问APP等),
+        // 转化按钮="立即点击领取"/"查看详情",与"点击商品,领取奖励"同机制(点击才有奖励)
         return allText.any {
             it.contains("点击商品") || it.contains("点击广告拿奖励") ||
-            it.contains("点击广告，即可获得奖励") || it.contains("点击广告拿")
+            it.contains("点击广告，即可获得奖励") || it.contains("点击广告拿") ||
+            it.contains("点击跳转后停留")
         }
+    }
+
+    /**
+     * build735: 汇川"点击跳转后停留N秒立即获奖"变体广告
+     *
+     * 日志证据(debug_test_20260817_191553.log, build733, 19:15:13-19:15:49):
+     * 页面提示"点击跳转后停留\n15秒立即获奖",转化按钮"立即点击领取"/"查看详情"。
+     * 机制: 点击按钮 → 跳转落地页 → 停留15秒 → 奖励发放。
+     * 与"点击商家后立即领奖"不同: 无需关闭广告再返回,点击后直接落地页停留等"奖励已发放"。
+     */
+    fun isClickJumpStayAd(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        return allText.any { it.contains("点击跳转后停留") }
     }
 
     /**
@@ -3818,15 +3841,42 @@ class FarmAccessibilityService : AccessibilityService() {
             }
         }
         walk(root)
-        return candidates.firstOrNull().also {
-            if (it != null) {
+        val clickableCandidate = candidates.firstOrNull()
+        if (clickableCandidate != null) {
+            val rect = android.graphics.Rect()
+            clickableCandidate.getBoundsInScreen(rect)
+            debugLog("findAdProductNode: found clickable product node bounds=${rect.toShortString()}")
+            return clickableCandidate
+        }
+        // build735 修复（debug_test_20260817_191553.log, build733, 19:15:13）：
+        //   汇川"点击跳转后停留15秒立即获奖"广告(千问APP)整个 WebView 无 clickable 节点,
+        //   转化按钮"立即点击领取"是 clickable=false 的文本节点(bounds=[166,1657][1033,1821])。
+        //   修复: 无 clickable 候选时,直接找"立即点击领取"文本节点返回,
+        //   performClickSafe 会 ACTION_CLICK 失败后手势点击该节点 bounds 中心(即按钮中心)。
+        //   (不用 findNodeByText: 它会解析到可点击祖先,祖先 bounds 可能是全屏 WebView,手势会点偏)
+        var jumpTextBtn: AccessibilityNodeInfo? = null
+        fun findJumpBtn(node: AccessibilityNodeInfo) {
+            if (jumpTextBtn != null) return
+            val t = node.text?.toString().orEmpty()
+            if (t.contains("立即点击领取")) {
                 val rect = android.graphics.Rect()
-                it.getBoundsInScreen(rect)
-                debugLog("findAdProductNode: found clickable product node bounds=${rect.toShortString()}")
-            } else {
-                debugLog("findAdProductNode: no clickable product node found")
+                node.getBoundsInScreen(rect)
+                if (rect.width() > 0 && rect.height() > 0) {
+                    jumpTextBtn = node
+                }
+                return
+            }
+            for (i in 0 until node.childCount) {
+                node.getChild(i)?.let { findJumpBtn(it) }
             }
         }
+        findJumpBtn(root)
+        if (jumpTextBtn != null) {
+            debugLog("findAdProductNode: no clickable node, fallback to '立即点击领取' text node")
+            return jumpTextBtn
+        }
+        debugLog("findAdProductNode: no clickable product node found")
+        return null
     }
 
     /**
