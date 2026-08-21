@@ -88,3 +88,11 @@ git -c credential.helper= push "https://sicauyanglei:${TOKEN}@github.com/sicauya
 ```
 
 **Token 失效处理**：若推送返回 401/403（认证失败），提示用户提供新 PAT，更新 `.trae/rules/.github_token` 文件后继续使用。
+
+**新沙箱 Token 缺失处理**（build737 后补充）：
+- `.github_token` 被 .gitignore 忽略，**新沙箱从仓库克隆时不会带过来**，文件缺失是预期行为
+- 沙箱初始化后若需推送但发现该文件不存在：**直接向用户索要一次 PAT**（用户已确认每次会提供），
+  用 `printf '%s' '<TOKEN>' > /workspace/.trae/rules/.github_token && chmod 600` 保存后即用
+- 严禁将 token 以任何形式（明文/混淆/base64）提交进版本库：本仓库为 public，
+  Push Protection 会拦截明文 PAT，混淆形式也会泄露给任何访客
+- token 在会话历史中出现过时（延续会话），可直接从上文复制重存，无需再次询问用户
