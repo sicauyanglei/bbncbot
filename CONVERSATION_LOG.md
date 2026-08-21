@@ -32,6 +32,40 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit <待填> - fix: build740 腾讯PortraitAD安装类创意广告误判TRAP_INSTALL,任务#1死循环3轮+无法完成
+
+**用户需求**: "拉取github日志" → "分析日志"（debug_test_20260822_074553.log, build739-e38c7ac, 1011行）
+
+**build736/737 验证情况**: 两修复均已生效——
+- build737: L210/463 `parseDeepLinkStayMs: no duration hint, using default 15s, stay=20000ms` ✓
+- build736: L219/472 `processTask: ad open, skip red packet detection` ✓（红包守卫生效,广告正常进WATCHING_AD）
+
+**问题(bug,已修)**: 任务#1"看视频得巨额肥料(0/10)"点击去完成 → 腾讯 PortraitADActivity 激励视频,
+广告创意为安装类("立即安装"按钮,无倒计时无点击商品文案) → 误判 TRAP_INSTALL →
+pressBack×4无效(广告Activity拦截back键) → build735 forceKill兜底杀宿主+重开农场 →
+currentTaskIndex 重置0 → 再点任务#1 → 同类广告 → 循环3轮+(07:41:08-07:42:29+),任务永远
+无法完成(0/10),每轮浪费约20s。
+- 根因: PortraitADActivity 是广告SDK自己的Activity(激励视频正在播放),"立即安装"是广告
+  创意的转化CTA而非陷阱弹窗;步骤8 TRAP_INSTALL 判定(无倒计时+无isClickProductAd文案)
+  未豁免此场景。真陷阱场景(误点CTA跳转商店/安装器)时 currentActivityName 已变成商店的,
+  isAdActivity()=false,与本场景可区分。
+- 另注: build735 的 forceKill 兜底本身工作正常(20s退出不再死循环36s+),本次是消除误判源头。
+
+**修复** [FarmAccessibilityService.kt identifyCurrentScene 步骤8](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt):
+TRAP_INSTALL 判定加第三个豁免条件 `!isAdActivity()`——当前Activity是广告SDK Activity
+(PortraitAD/TTRewardVideo/HCRewardVideo/KsRewardVideo等)时,"立即安装"是广告创意CTA,
+不判陷阱,落到步骤11/12 按 AD_ENDED/AD_PLAYING 处理;广告播完出现"恭喜获取奖励"后由
+isAdEndedMultiSignal → CLOSING_AD 正常关闭领奖。
+安全性: 即使真弹窗叠加在广告Activity上(罕见),build735 的 pressBack×4+forceKill 兜底仍在。
+
+**效果**: "看视频得巨额肥料"安装创意广告 → 正常观看等播完(AD_ENDED多信号检测) →
+"恭喜获取奖励"/关闭按钮出现 → 关闭领奖 collectedCount++ → 任务#1 从(0/10)开始正常累计,
+不再 forceKill 循环。
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### commit 9bb7ce8 - feat: build737 深链任务改为"等够任务文案时长+保留现场切回农场"(原等2秒kill重开)
 
 **用户需求**: "进行芭芭农场任务时进入到其它应用，等待足够的时间后，切回芭芭农场应用时，只是切换回芭芭农场页面，保持切换时的现场，还是切走时的样子"——经确认选型：**等够时间+保留现场切回**，停留时长**解析任务文案**（无提示用默认值）。

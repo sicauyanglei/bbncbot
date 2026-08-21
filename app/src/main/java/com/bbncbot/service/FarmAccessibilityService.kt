@@ -1852,7 +1852,18 @@ class FarmAccessibilityService : AccessibilityService() {
             //   页面含 isClickProductAd 文案(点击商品/点击跳转后停留等)时,"查看详情"/
             //   "立即点击领取"是广告转化CTA(点击才有奖励)而非安装陷阱,跳过 TRAP_INSTALL,
             //   落到步骤12由 isClickProductAd 判为 AD_PLAYING(需点击转化按钮等奖励)。
-            if (!hasCountdown && !isClickProductAd()) return PageScene.TRAP_INSTALL
+            // build740 修复（debug_test_20260822_074553.log, build739, 07:41:08-07:42:29）:
+            //   任务#1"看视频得巨额肥料"点击去完成 → 腾讯 PortraitADActivity 激励视频打开,
+            //   广告创意为安装类("立即安装"按钮,无倒计时无点击商品文案) → 误判 TRAP_INSTALL →
+            //   pressBack×4无效 → forceKill杀宿主 → 重开农场 → currentTaskIndex重置0 →
+            //   再点任务#1 → 同类广告 → 循环3轮+,任务永远无法完成(0/10),每轮浪费约20s。
+            //   根因: PortraitADActivity 是广告SDK自己的Activity(激励视频正在播放),
+            //   "立即安装"是广告创意的转化CTA而非陷阱弹窗;真陷阱场景(误点CTA跳转商店/
+            //   安装器)时 currentActivityName 已变成商店的,isAdActivity()=false 不受影响。
+            //   修复: 当前Activity是广告SDK Activity时不判 TRAP_INSTALL,落到步骤11/12
+            //   按 AD_ENDED/AD_PLAYING 处理,广告播完出现"恭喜获取奖励"后正常关闭领奖;
+            //   即使真弹窗叠加在广告Activity上,build735 的 pressBack×4+forceKill 兜底仍在。
+            if (!hasCountdown && !isClickProductAd() && !isAdActivity()) return PageScene.TRAP_INSTALL
         }
         // 9. 复看陷阱（再看一个/加倍领取）
         if (isReplayTrapPage()) return PageScene.TRAP_REPLAY
