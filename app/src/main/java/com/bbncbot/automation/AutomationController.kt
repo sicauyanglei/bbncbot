@@ -112,6 +112,25 @@ object AutomationController {
     private var browseRedPacketCloseAttempts: Int = 0
 
     /**
+     * build736: checkTaskResult 中连续"关闭红包弹窗"的次数
+     *
+     * 日志证据(debug_test_20260822_070102.log, build735, 06:59:57-07:00:55):
+     * 穿山甲"淘宝闪购"红包样式广告,广告创意横幅"朋友快来，淘宝闪购请客啦！领取红包吃美食啦！"
+     * 被 findRedPacketCloseButton 误判为红包弹窗(页面含"红包"+"领取红包"),
+     * checkTaskResult 每2s点击横幅中心(点的是广告创意,还可能触发跳转),58s死循环
+     * 直到用户手动停止,广告从未进入 WATCHING_AD 处理。
+     *
+     * 防御(双层):
+     * 1. 广告打开时(isAdActivity/isAdPlaying/isAdContentShown)跳过红包弹窗处理,
+     *    让流程落到下方广告检测分支进入 WATCHING_AD(红包文案是广告创意非弹窗);
+     * 2. 非广告页也加次数上限(同 browseTask 的 MAX_RED_PACKET_CLOSE_ATTEMPTS),
+     *    超过后不再当红包弹窗处理,防止其他误判死循环。
+     * - 每次开始处理新任务(runProcessingTask attempt=0)时重置
+     */
+    @Volatile
+    private var taskRedPacketCloseAttempts: Int = 0
+
+    /**
      * 标记当前浏览任务是否从"直接领取弹窗"进入
      * - true：浏览完成后回到 COLLECTING_DIRECT 继续找其他 direct 按钮
      * - false（默认）：浏览完成后回到 OPENING_TASK_LIST 任务列表流程
@@ -2240,6 +2259,8 @@ object AutomationController {
         // build733: 重置"本次点击后是否离开过农场页"标记(新一轮任务点击开始)
         if (attempt == 0) {
             taskClickLeftFarm = false
+            // build736: 重置红包弹窗关闭计数(新一轮任务开始)
+            taskRedPacketCloseAttempts = 0
         }
 
         // 兜底：从 direct 弹窗进入浏览后若节点失效被踢回 PROCESSING_TASK，
@@ -3889,10 +3910,31 @@ object AutomationController {
 
         // 优先检测：是否有红包弹窗 → 先关闭它，才能继续处理
         // 红包弹窗会遮挡页面，不关闭会干扰后续检测
-        val redPacketBtn = service.findRedPacketCloseButton()
+        // build736 修复（debug_test_20260822_070102.log, build735, 06:59:57-07:00:55）:
+        //   穿山甲"淘宝闪购"红包样式广告,创意横幅"…领取红包吃美食啦！"含"红包"+"领取红包",
+        //   被 findRedPacketCloseButton 误判为红包弹窗 → 每2s点击横幅中心(点的是广告创意,
+        //   还可能触发跳转淘宝),58s死循环直到用户手动停止,广告从未进入 WATCHING_AD。
+        //   原因: 本分支位于广告检测分支之前,广告打开时红包文案是广告创意而非弹窗。
+        // 修复(双层):
+        //   1. 广告打开时(isAdActivity/isAdPlaying/isAdContentShown)跳过红包处理,
+        //      落到下方广告检测分支进入 WATCHING_AD;
+        //   2. 次数上限(同 browseTask 防御): 超过 MAX_RED_PACKET_CLOSE_ATTEMPTS 后
+        //      不再当红包弹窗处理,防止非广告页误判死循环。
+        val adCurrentlyOpen = service.isAdActivity() || service.isAdPlaying() || service.isAdContentShown()
+        val redPacketBtn = if (!adCurrentlyOpen && taskRedPacketCloseAttempts < MAX_RED_PACKET_CLOSE_ATTEMPTS) {
+            service.findRedPacketCloseButton()
+        } else {
+            if (adCurrentlyOpen) {
+                debugLog("processTask: ad open, skip red packet detection (red packet text is ad creative, not popup)")
+            } else if (taskRedPacketCloseAttempts >= MAX_RED_PACKET_CLOSE_ATTEMPTS) {
+                debugLog("processTask: red packet close attempts exceeded ($taskRedPacketCloseAttempts), ignoring red packet detection")
+            }
+            null
+        }
         if (redPacketBtn != null) {
-            Log.i(TAG, "processTask: red packet popup detected, closing it first")
-            debugLog("processTask: closing red packet popup")
+            taskRedPacketCloseAttempts++
+            Log.i(TAG, "processTask: red packet popup detected, closing it first (attempt $taskRedPacketCloseAttempts/$MAX_RED_PACKET_CLOSE_ATTEMPTS)")
+            debugLog("processTask: closing red packet popup (attempt $taskRedPacketCloseAttempts/$MAX_RED_PACKET_CLOSE_ATTEMPTS)")
             service.performClickSafe(redPacketBtn)
             // 等待弹窗关闭后重新检测
             handler.postDelayed({

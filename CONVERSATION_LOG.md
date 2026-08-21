@@ -32,7 +32,42 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build735 汇川"点击跳转后停留"广告误判TRAP_INSTALL死循环,补完跳转停留领奖流程
+### commit (待提交) - fix: build736 红包样式广告创意误判红包弹窗,checkTaskResult每2s点击广告横幅58s死循环
+
+**用户需求**: "分析日志"（debug_test_20260822_070102.log + debug_test_20260817_194249.log, 均 build735-da9740a）
+
+**build735 验证情况**: 两份日志均无"点击跳转后停留"汇川广告出现（广告池随机）,该修复待后续日志验证;
+194249 日志流程基本健康(签到✓/穿山甲广告✓/快手互动广告✓),快手免疫end-card在CLOSING_AD阶段
+用户即手动停止,build734 RETURNING forceKill兜底未及触发(非新问题)。
+
+**问题(bug,已修)**: 穿山甲"淘宝闪购"红包样式广告创意被误判为红包弹窗,58s死循环
+- 06:59:52 task#2"看视频得巨额肥料"点去完成 → TTRewardVideoActivity(穿山甲)广告打开
+- 广告创意横幅"朋友快来，淘宝闪购请客啦！领取红包吃美食啦！"(顶部[186,314][1011,455]+中部
+  [474,1263][989,1358]两个节点),页面含"红包"+"领取红包"
+- checkTaskResult 中 findRedPacketCloseButton 误判为红包弹窗 → "closing red packet popup"
+  → 每2s手势点击横幅中心(598.5,384.5)——**点的是广告创意本身,还可能触发跳转淘宝**
+- 06:59:57~07:00:55 循环29次58s无效果,广告(adActivity=true/adPlaying=true)从未进入
+  WATCHING_AD 处理,07:00:57用户手动停止
+- 根因: checkTaskResult 红包弹窗分支位于广告检测分支之前,且无次数上限
+  (browseTask 同分支有 MAX_RED_PACKET_CLOSE_ATTEMPTS=3 防御,此处漏加)
+
+**修复** [AutomationController.kt checkTaskResult 红包分支](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt):
+1. 双层守卫:
+   - 广告打开时(isAdActivity/isAdPlaying/isAdContentShown)跳过红包弹窗处理,
+     让流程落到下方广告检测分支进入 WATCHING_AD(红包文案=广告创意非弹窗)
+   - 次数上限 MAX_RED_PACKET_CLOSE_ATTEMPTS=3(同 browseTask 防御),
+     超过后不再当红包弹窗处理,防其他误判死循环
+2. 新增 taskRedPacketCloseAttempts 计数器(L114-131),
+   runProcessingTask(attempt=0) 新任务开始时重置(L2259-2264)
+
+**效果**: 红包样式广告直接进 WATCHING_AD 正常观看等待结束(与本日志第一个红果短剧广告
+相同流程);农场页真红包弹窗最多点3次后继续后续检测,不再无限循环。
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit da9740a - fix: build735 汇川"点击跳转后停留"广告误判TRAP_INSTALL死循环,补完跳转停留领奖流程
 
 **用户需求**: "分析日志"（debug_test_20260817_191553.log, build733）
 
