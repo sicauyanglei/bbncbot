@@ -59,11 +59,12 @@ object AutomationController {
      * - 不能关闭芭芭农场重新打开,只能在原来点击"我要加速"时的页面领取 */
     private const val SPEED_UP_JUMP_STAY_MS = 10000L
     /**
-     * 广告深链跳转进入其他 App（如快手）后的等待时间（毫秒）
-     * - 用户要求：打开快手等其它app任务，等其它app打开后等2秒，把主界面激活到前台，同时kill掉打开的app
-     * - 检测到深链 App 后等待此时间，然后激活农场 App 到前台并强杀被拉起的 App
+     * build737: 深链任务在其它App的默认停留时长（毫秒，任务文案无秒数提示时使用）
+     * 需求变更（原为"等2秒激活+kill"）：进入其它App后等够任务要求的时间再切回农场
      */
-    private const val DEEP_LINK_MAX_DURATION_MS = 2000L
+    private const val DEEP_LINK_DEFAULT_STAY_MS = 15000L
+    /** build737: 深链任务停留时长缓冲（毫秒），加在任务文案要求的秒数之上，确保任务判定有效停留 */
+    private const val DEEP_LINK_STAY_BUFFER_MS = 5000L
     /** 返回农场页最大尝试次数 */
     private const val MAX_RETURN_ATTEMPTS = 5
     /** 连续无进展轮次上限（超过则重新导航） */
@@ -263,7 +264,7 @@ object AutomationController {
      * 深链跳转跟踪：广告任务跳转到其他 App 时记录的包名（null=未在深链状态）
      * - 进入 WATCHING_AD 时重置为 null
      * - 检测到不在农场 App 且不在广告 Activity 时，记录当前包名和时间戳
-     * - 停留超过 [DEEP_LINK_MAX_DURATION_MS] 后强杀
+     * - 停留超过 [deepLinkTaskStayMs] 后保留现场切回农场并强杀被跳转 App
      */
     @Volatile
     private var deepLinkAppPkg: String? = null
@@ -271,6 +272,20 @@ object AutomationController {
     /** 深链跳转进入其他 App 的时间戳（elapsedMs），配合 [deepLinkAppPkg] 使用 */
     @Volatile
     private var deepLinkEnterTimeMs: Long = 0L
+
+    /**
+     * build737: 当前深链任务在其它App的停留时长（毫秒）
+     *
+     * 需求变更（原"等2秒激活+kill"）：深链任务（如"去头条极速版逛逛15秒"）进入其它App后，
+     * 等够任务文案要求的时间（解析"浏览15秒"等，无提示默认15s）+5s缓冲，
+     * 再用 bringFarmAppToFront(moveTaskToFront) 保留现场切回农场——不杀农场App、
+     * WebView不重载，页面保持切走时的样子（任务列表弹窗原样恢复）。
+     *
+     * - processTask 点击任务按钮前从任务文案解析（如"浏览15秒得1000肥料"→20s）
+     * - 值 = 解析秒数*1000 + [DEEP_LINK_STAY_BUFFER_MS]，无提示用 [DEEP_LINK_DEFAULT_STAY_MS]
+     */
+    @Volatile
+    private var deepLinkTaskStayMs: Long = DEEP_LINK_DEFAULT_STAY_MS + DEEP_LINK_STAY_BUFFER_MS
 
     /** 上一轮广告检测时是否有倒计时（用于多信号融合检测倒计时消失） */
     @Volatile
@@ -587,6 +602,27 @@ object AutomationController {
             return remaining
         }
         return 0
+    }
+
+    /**
+     * build737: 从任务文案解析深链任务的其它App停留时长（毫秒）
+     *
+     * 匹配"浏览15秒"/"逛15秒"/"停留15秒"/"观看15秒"/"滑动15s"等 关键词+数字+秒 模式，
+     * 返回 秒数*1000 + [DEEP_LINK_STAY_BUFFER_MS]（缓冲确保任务判定有效停留）；
+     * 无匹配或超范围(>300s视为误匹配)时用默认 [DEEP_LINK_DEFAULT_STAY_MS]+缓冲。
+     *
+     * 示例："去头条极速版浏览15秒得1000肥料" → 15000+5000=20000ms
+     */
+    private fun parseDeepLinkStayMs(taskText: String): Long {
+        val match = Regex("""(?:浏览|逛|停留|观看|滑动|看)\s*(\d+)\s*[秒sS]""").find(taskText)
+        val parsedSec = match?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val baseSec = if (parsedSec in 1..300) parsedSec else (DEEP_LINK_DEFAULT_STAY_MS / 1000L).toInt()
+        if (parsedSec in 1..300) {
+            debugLog("parseDeepLinkStayMs: parsed ${parsedSec}s from task text (matched '${match?.value}'), stay=${baseSec * 1000L + DEEP_LINK_STAY_BUFFER_MS}ms")
+        } else {
+            debugLog("parseDeepLinkStayMs: no duration hint (parsed=$parsedSec), using default ${baseSec}s, stay=${baseSec * 1000L + DEEP_LINK_STAY_BUFFER_MS}ms")
+        }
+        return baseSec * 1000L + DEEP_LINK_STAY_BUFFER_MS
     }
 
     /**
@@ -2624,6 +2660,9 @@ object AutomationController {
                 debugLog("processTask: multi-click task detected, remainingReplays=$taskReplayRemaining")
             }
         }
+        // build737: 点击前从任务文案解析深链任务停留时长（如"浏览15秒得1000肥料"→15s+5s缓冲）。
+        // 若点击后深链跳转到其它App，等够该时长再保留现场切回农场（见 runWatchingAd 深链分支）。
+        deepLinkTaskStayMs = parseDeepLinkStayMs(fullTaskText)
         service.performClickSafe(button)
 
         // 等待检测是否进入广告
@@ -6067,7 +6106,10 @@ object AutomationController {
         }
 
         // 超时强制关闭
-        if (elapsedMs >= adMaxDurationMs) {
+        // build737: 深链任务等待期间（deepLinkAppPkg!=null）不受广告超时限制——
+        // 深链停留时长由任务文案决定（deepLinkTaskStayMs，可达60s+），超过 adMaxDurationMs
+        // （广告专用，通常90s）时不能强制关闭，否则会打断深链等待（下方深链分支有自己的调度）
+        if (elapsedMs >= adMaxDurationMs && deepLinkAppPkg == null) {
             Log.w(TAG, "watchAd: timeout (${elapsedMs}ms/${adMaxDurationMs}ms), force closing")
             moveTo(AutomationState.CLOSING_AD)
             handler.postDelayed({ runClosingAd(strategy = 0) }, INTERVAL_CLICK_MS)
@@ -6095,49 +6137,70 @@ object AutomationController {
         }
 
         // 深链跳转任务：广告任务跳转到其他 App（如快手，非农场/非广告Activity/非异常页）
-        // 用户要求：等其它app打开后等2秒，把主界面激活到前台，同时kill掉打开的app
-        // 注意：此检查在"最短等待时间"检查之前，确保深链任务用 2s 超时（而非默认 30s 广告等待）
+        // build737 需求变更（原"等2秒激活+kill"）：
+        //   进入其它App后等够任务文案要求的时长（processTask 点击时解析存入 deepLinkTaskStayMs，
+        //   如"浏览15秒"→20s，无提示默认20s），再用 bringFarmAppToFront(moveTaskToFront)
+        //   保留现场切回农场——不杀农场App、WebView不重载，页面保持切走时的样子
+        //   （任务列表弹窗原样恢复，OPENING_TASK_LIST 检测到已打开直接续处理）。
+        //   bringFarmAppToFront 失败时（系统未返回农场任务）fallback deep link 拉起（不杀农场进程）。
+        //   被跳转App已被切到后台，随后 kill 释放内存（防止干扰后续流程）。
+        // 注意：此检查在"最短等待时间"检查之前，确保深链任务用自己的停留超时（而非默认 30s 广告等待）
         // 注：异常交易页（isOnAbnormalPage）已在上方场景识别 TRAP_ABNORMAL 中统一处理
         if (elapsedMs >= 5000L && !service.isOnFarmPage() && !service.isAdActivity() &&
             !service.isAdPlaying() && !service.isOnAbnormalPage()) {
             val currentPkg = service.getCurrentWindowPackage()
             if (currentPkg != null) {
-                // 首次检测到深链跳转：记录包名，调度 2 秒后"激活主界面 + kill 被拉起的 App"
+                // 首次检测到深链跳转：记录包名，等够任务停留时长后"保留现场切回农场 + kill 被拉起的 App"
                 if (deepLinkAppPkg == null) {
                     deepLinkAppPkg = currentPkg
                     deepLinkEnterTimeMs = elapsedMs
-                    Log.i(TAG, "watchAd: entered deep-linked app '$currentPkg', will activate farm + kill in ${DEEP_LINK_MAX_DURATION_MS}ms")
-                    debugLog("watchAd: deep-linked app '$currentPkg' detected, scheduling activate+kill in ${DEEP_LINK_MAX_DURATION_MS}ms")
-                    val killedPkg = currentPkg
+                    val stayMs = deepLinkTaskStayMs
+                    Log.i(TAG, "watchAd: entered deep-linked app '$currentPkg', will bring farm to front (preserve scene) after ${stayMs}ms")
+                    debugLog("watchAd: deep-linked app '$currentPkg' detected, waiting ${stayMs}ms (task hint) then bringFarmAppToFront")
+                    val jumpedPkg = currentPkg
                     handler.postDelayed({
                         if (state != AutomationState.WATCHING_AD) return@postDelayed
-                        // 若已自然回到农场页（任务完成），取消 kill
+                        // 若已自然回到农场页（任务完成），取消切回
                         if (deepLinkAppPkg == null) {
-                            debugLog("watchAd: deep-link app already returned, cancel scheduled kill")
+                            debugLog("watchAd: deep-link app already returned, cancel scheduled bring-to-front")
                             return@postDelayed
                         }
-                        Log.w(TAG, "watchAd: ${DEEP_LINK_MAX_DURATION_MS}ms elapsed, activating farm to foreground and killing '$killedPkg'")
-                        debugLog("watchAd: activating farm to foreground + killing '$killedPkg' simultaneously")
+                        Log.w(TAG, "watchAd: ${stayMs}ms elapsed, bringing farm to front (preserve scene) and killing '$jumpedPkg'")
+                        debugLog("watchAd: bringFarmAppToFront (preserve scene) + killing '$jumpedPkg'")
                         service.setAdMode(false)
-                        // 1. 激活农场 App 到前台（同时把被拉起的 App 推到后台）
+                        // 1. 保留现场切回农场（moveTaskToFront，不重启不重载，页面保持切走时的样子）；
+                        //    失败（系统未返回农场运行任务）时 fallback deep link 拉起（不杀农场进程）
                         if (watchingAdPlatform != Platform.UNKNOWN) {
-                            debugLog("watchAd: launching farm platform $watchingAdPlatform to foreground")
-                            service.launchPlatformApp(watchingAdPlatform)
+                            val brought = service.bringFarmAppToFront(watchingAdPlatform)
+                            if (!brought) {
+                                debugLog("watchAd: bringFarmAppToFront failed, fallback launchPlatformApp(deep link, killCurrentFirst=false)")
+                                service.launchPlatformApp(watchingAdPlatform, killCurrentFirst = false)
+                            }
                         }
-                        // 2. 同时 kill 掉被拉起的 App（跳过返回键，避免误伤已激活的农场 App）
-                        service.forceKillApp(killedPkg, pressBackFirst = false)
+                        // 2. kill 被拉起的 App（已切到后台，killBackgroundProcesses 有效；
+                        //    跳过返回键避免误伤已切回前台的农场App；跳过农场平台自身包名防误杀）
+                        val isFarmPkg = watchingAdPlatform != Platform.UNKNOWN &&
+                            jumpedPkg in watchingAdPlatform.config.packageNames
+                        if (!isFarmPkg) {
+                            service.forceKillApp(jumpedPkg, pressBackFirst = false)
+                        } else {
+                            debugLog("watchAd: jumped pkg '$jumpedPkg' is farm platform pkg, skip kill")
+                        }
                         deepLinkAppPkg = null
-                        currentTaskIndex++
+                        // 等够任务时长视为任务完成（同自然返回分支），计入收集数并推进任务
+                        collectedCount++
+                        advanceTaskIndex()
                         handler.postDelayed({
                             if (state == AutomationState.WATCHING_AD) {
                                 moveTo(AutomationState.OPENING_TASK_LIST)
                                 handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
                             }
                         }, INTERVAL_PAGE_LOAD_MS)
-                    }, DEEP_LINK_MAX_DURATION_MS)
+                    }, stayMs)
                 }
-                // 已调度 kill，继续轮询兜底（若任务自然完成返回农场，上方"returned to farm"分支会取消 kill）
-                debugLog("watchAd: in deep-linked app '$currentPkg', kill scheduled in ${DEEP_LINK_MAX_DURATION_MS}ms, polling as fallback")
+                // 已调度切回，继续轮询兜底（若任务自然完成返回农场，上方"returned to farm"分支会取消切回）
+                val remainMs = deepLinkTaskStayMs - (elapsedMs - deepLinkEnterTimeMs)
+                debugLog("watchAd: in deep-linked app '$currentPkg', bring-to-front scheduled in ${maxOf(remainMs, 0)}ms, polling as fallback")
                 handler.postDelayed({
                     if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
                 }, adEndCheckIntervalMs)

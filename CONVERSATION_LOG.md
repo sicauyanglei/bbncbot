@@ -32,7 +32,36 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit (待提交) - fix: build736 红包样式广告创意误判红包弹窗,checkTaskResult每2s点击广告横幅58s死循环
+### commit (待提交) - feat: build737 深链任务改为"等够任务文案时长+保留现场切回农场"(原等2秒kill重开)
+
+**用户需求**: "进行芭芭农场任务时进入到其它应用，等待足够的时间后，切回芭芭农场应用时，只是切换回芭芭农场页面，保持切换时的现场，还是切走时的样子"——经确认选型：**等够时间+保留现场切回**，停留时长**解析任务文案**（无提示用默认值）。
+
+**原行为**: 深链任务（去头条极速版逛逛等）进入其它App 5s检测到后只等2秒（DEEP_LINK_MAX_DURATION_MS=2000，旧需求"等2秒激活+kill"）就 `launchPlatformApp()`（HOME+杀农场进程+deep link 重开，**WebView重载，现场丢失**）+ kill 被跳转App，回的是重新加载的农场主页。
+（对比："我要加速"流程 build716 已是 moveTaskToFront 保留现场切回，本次把深链任务对齐到同样机制）
+
+**修改** [AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt):
+1. 常量: `DEEP_LINK_MAX_DURATION_MS=2000` 替换为 `DEEP_LINK_DEFAULT_STAY_MS=15000`(默认)+`DEEP_LINK_STAY_BUFFER_MS=5000`(缓冲)
+2. 新增字段 `deepLinkTaskStayMs`（默认20s），processTask 点击任务按钮前用 `parseDeepLinkStayMs(fullTaskText)` 解析:
+   - 匹配"浏览15秒"/"逛15秒"/"停留15秒"/"观看15秒"/"滑动15s"等 关键词+数字+秒 模式 → 秒数*1000+5s缓冲
+   - 无匹配或>300s(误匹配)时用默认 15s+5s=20s
+3. runWatchingAd 深链分支重写:
+   - 检测到深链App后等 `deepLinkTaskStayMs`（而非2s）
+   - 到时用 `bringFarmAppToFront`（moveTaskToFront）**保留现场切回**——不杀农场App、WebView不重载,
+     页面保持切走时的样子（任务列表弹窗原样恢复，OPENING_TASK_LIST 检测到已打开直接续处理）
+   - bringFarmAppToFront 失败时（系统未返回农场任务）fallback `launchPlatformApp(killCurrentFirst=false)`（deep link拉起，不杀农场进程）
+   - 被跳转App切后台后 kill 释放内存（跳过农场平台自身包名防误杀）
+   - 任务完成计数对齐自然返回分支: `collectedCount++ + advanceTaskIndex()`（原为 currentTaskIndex++）
+   - 自然返回分支不变：任务在其它App内自然跳回农场时取消定时切回
+4. 广告超时守卫: `elapsedMs >= adMaxDurationMs` 加 `deepLinkAppPkg == null`——深链等待期间
+   不受广告90s超时打断（"浏览60秒"类长任务需等 5s+65s=70s+）
+
+**效果**: "去头条极速版浏览15秒得1000肥料"任务 → 进头条极速版停留20s → moveTaskToFront 切回UC → 农场页任务列表原样恢复 → 继续下一个任务。
+
+**编译验证**: sandbox 网络限制无法本地编译, 等 CI 构建验证。
+
+---
+
+### commit b5cb4d1 - fix: build736 红包样式广告创意误判红包弹窗,checkTaskResult每2s点击广告横幅58s死循环
 
 **用户需求**: "分析日志"（debug_test_20260822_070102.log + debug_test_20260817_194249.log, 均 build735-da9740a）
 
