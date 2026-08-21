@@ -14,6 +14,7 @@ on:
       - 'rules/**'
       - 'sessions/**'
       - '*.md'
+      - '**/*.md'
   workflow_dispatch:
 
 jobs:
