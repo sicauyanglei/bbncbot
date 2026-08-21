@@ -1,0 +1,554 @@
+=== cleared on app start (version=2.2, build=build735-da9740a, time=06:58:13) ===
+06:58:13.400 killPlatformApps: killed com.ucmobile.lite for UC
+06:58:13.402 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+06:58:13.403 killPlatformApps: killed com.taobao.taobao for TAOBAO
+06:58:21.449 FarmAccessibilityService connected, API=36
+06:58:22.825 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+06:58:22.832 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+06:58:22.834 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+06:58:37.390 === Automation v2 Started === platform=UC
+06:58:37.400 cancelNavigation: all navigation callbacks cancelled
+06:58:37.407 reset platform complete: UC
+06:58:37.408 state: IDLE -> NAVIGATING
+06:58:40.144 isNonAdTaskPage: YES, matched non-ad task in [后退, 智能组件, 菜单, 多窗口, 1, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收]
+06:58:40.184 [navigate-start] snapshot: pkg=null, act=android.widget.LinearLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+06:58:40.272 isRechargePage: YES, sample=[后退, 智能组件, 菜单, 多窗口, 1]
+06:58:40.304 navigate: farm app not in foreground (platform=UC, attempt=0), calling reopenFarmByDeepLink
+06:58:40.307 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+06:58:40.309 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching UC
+06:58:40.333 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+06:58:45.864 navigate: on farm page, platform=UC
+06:58:45.895 hasFarmContentLoaded: text count=16, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+06:58:45.901 hasFarmContentLoaded: realContent count=15
+06:58:45.902 navigate: hasFarmContentLoaded=false, attempt=1
+06:58:52.513 navigate: on farm page, platform=UC
+06:58:52.548 hasFarmContentLoaded: text count=155, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+06:58:52.554 hasFarmContentLoaded: realContent count=142
+06:58:52.560 navigate: hasFarmContentLoaded=true, attempt=2
+06:58:52.560 state: NAVIGATING -> COLLECTING_DIRECT
+06:58:56.307 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:58:56.329 [collectDirect-start] claim-text-nodes (count=2):
+06:58:56.330 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+06:58:56.330 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2230][694,2299] clickable=false
+06:58:56.370 collectDirect: found 2 direct buttons, attempt=0
+06:58:56.373 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1156][822,1208] (attempt 1)
+06:58:56.375 performClickSafe: text='看广告领奖' desc='' bounds=[641,1156][822,1208] clickable=false
+06:58:56.377 performClickSafe: ACTION_CLICK failed, trying gesture
+06:58:56.380 dispatchGesture: screen=[[641,1156][822,1208]] window=[[0,0][0,0]]
+06:58:56.381 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1182.0)
+06:58:56.388 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+06:59:06.396 collectDirect: jump button '看广告领奖' led to ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity), entering WATCHING_AD
+06:59:06.401 state: COLLECTING_DIRECT -> WATCHING_AD
+06:59:08.429 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+06:59:08.580 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:59:08.590 [watchAd-0ms] claim-text-nodes (count=3):
+06:59:08.592 [watchAd-0ms]   text='直接领取' desc='' bounds=[648,1336][998,1453] clickable=true
+06:59:08.593 [watchAd-0ms]   text='可立即领奖' desc='' bounds=[622,975][989,1064] clickable=false
+06:59:08.594 [watchAd-0ms]   text='去体验15秒可立即领奖' desc='' bounds=[543,176][1015,235] clickable=false
+06:59:08.732 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+06:59:08.739 watchAd: scene=AD_PLAYING, elapsed=0ms/90000ms
+06:59:08.770 watchAd: waiting 0ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, 通用聊天, 红果免费短剧, 60c616aea6d442517329582ab0b4680f~tplv-qgppglrh0x-cs:100:100:q75, 嗨！太好了终于联系上你了，我是红果免费短剧的活动专员~, 60c616aea6d442517329582ab0b4680f~tplv-qgppglrh0x-cs:100:100:q75, 今天系统刚刚抽出了一批幸运名额，刚好就有你！我来帮你做下确认。, 60c616aea6d442517329582ab0b4680f~tplv-qgppglrh0x-cs:100:100:q75]
+06:59:13.990 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+06:59:13.996 watchAd: scene=AD_PLAYING, elapsed=5000ms/90000ms
+06:59:14.016 watchAd: clicking speedUp button '我要加速' to speed up ad countdown
+06:59:14.017 performClickSafe: text='我要加速' desc='' bounds=[212,1535][989,1738] clickable=false
+06:59:14.018 performClickSafe: ACTION_CLICK failed, trying gesture
+06:59:14.018 dispatchGesture: screen=[[212,1535][989,1738]] window=[[0,0][0,0]]
+06:59:14.019 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 1636.5)
+06:59:14.021 watchAd: '我要加速' clicked, entering jump stay state (will stay 10s then pressBack to ad page)
+06:59:16.035 watchAd: '我要加速' jumped to app 'com.phoenix.read', staying 10s
+06:59:16.040 watchAd: '我要加速' staying in jumped app, 5/10000ms elapsed
+06:59:21.435 [watchAd-15000ms] snapshot: pkg=com.phoenix.read, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:59:21.454 watchAd: '我要加速' staying in jumped app, 5419/10000ms elapsed
+06:59:26.485 watchAd: 10s elapsed, bringFarmAppToFront (not relaunch, keep ad session)
+06:59:26.493 bringFarmAppToFront: no running task found for com.ucmobile.lite, fallback to pressBack
+06:59:31.515 watchAd: current pkg='com.phoenix.read' is not farm app, exiting (ad button trap) and relaunching farm
+06:59:31.527 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+06:59:31.528 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching UC
+06:59:31.560 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+06:59:31.561 launchPlatformApp: opened UC via deep link
+06:59:31.569 forceKillApp: killing com.phoenix.read (pressBackFirst=false)
+06:59:31.571 forceKillApp: killBackgroundProcesses(com.phoenix.read) called, cleared currentActivityName/currentEventPkg
+06:59:36.576 state: WATCHING_AD -> OPENING_TASK_LIST
+06:59:39.802 [openTaskList-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:59:39.820 [openTaskList-start] claim-text-nodes (count=2):
+06:59:39.822 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+06:59:39.824 [openTaskList-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2230][694,2299] clickable=false
+06:59:39.826 openTaskList: resetting currentTaskIndex to 0 for new round (was 1, taskButtons.size=0)
+06:59:39.848 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[78,920][209,1031])
+06:59:39.851 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.852 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[94,926][193,1028])
+06:59:39.853 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.856 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[239,920][370,1031])
+06:59:39.857 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.858 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[255,926][353,1028])
+06:59:39.860 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.862 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[399,920][530,1031])
+06:59:39.862 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.863 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[415,926][514,1028])
+06:59:39.864 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.865 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[556,920][691,1031])
+06:59:39.865 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.866 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[573,926][674,1028])
+06:59:39.866 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.867 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[733,920][864,1031])
+06:59:39.867 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.868 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[749,926][848,1028])
+06:59:39.868 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.869 findGoCompleteButtons: no clickable ancestor for '签到', keep node itself for coordinate click (bounds=[894,933][1123,1031])
+06:59:39.870 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1234][1120,1336])
+06:59:39.872 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1437][1120,1539])
+06:59:39.875 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1843][1120,1945])
+06:59:39.876 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2046][1120,2148])
+06:59:39.878 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2249][1120,2351])
+06:59:39.878 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2452][1120,2509])
+06:59:39.879 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,2656][1120,2509])
+06:59:39.880 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,2859][1120,2509])
+06:59:39.881 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3062][1120,2509])
+06:59:39.882 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3265][1120,2509])
+06:59:39.882 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3468][1120,2509])
+06:59:39.883 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3671][1120,2509])
+06:59:39.883 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3874][1120,2509])
+06:59:39.884 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,4077][1120,2509])
+06:59:39.884 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,4280][1120,2509])
+06:59:39.891 openTaskList: [UC闭环] 7 goComplete buttons already visible, task list open, processing directly
+06:59:39.912 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[78,920][209,1031])
+06:59:39.913 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.913 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[94,926][193,1028])
+06:59:39.914 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.914 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[239,920][370,1031])
+06:59:39.915 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.915 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[255,926][353,1028])
+06:59:39.916 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.916 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[399,920][530,1031])
+06:59:39.917 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.917 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[415,926][514,1028])
+06:59:39.918 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.918 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[556,920][691,1031])
+06:59:39.918 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.919 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[573,926][674,1028])
+06:59:39.920 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.922 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[733,920][864,1031])
+06:59:39.924 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.926 findGoCompleteButtons: no clickable ancestor for '签到肥料', keep node itself for coordinate click (bounds=[749,926][848,1028])
+06:59:39.927 findGoCompleteButtons: drop non-button sign-in node text='签到肥料' (only allow pure '签到'/'去签到' etc.)
+06:59:39.928 findGoCompleteButtons: no clickable ancestor for '签到', keep node itself for coordinate click (bounds=[894,933][1123,1031])
+06:59:39.929 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1234][1120,1336])
+06:59:39.930 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1437][1120,1539])
+06:59:39.930 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,1843][1120,1945])
+06:59:39.931 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2046][1120,2148])
+06:59:39.931 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2249][1120,2351])
+06:59:39.932 findGoCompleteButtons: no clickable ancestor for '去完成', keep node itself for coordinate click (bounds=[890,2452][1120,2509])
+06:59:39.932 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,2656][1120,2509])
+06:59:39.933 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,2859][1120,2509])
+06:59:39.933 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3062][1120,2509])
+06:59:39.934 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3265][1120,2509])
+06:59:39.934 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3468][1120,2509])
+06:59:39.934 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3671][1120,2509])
+06:59:39.935 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,3874][1120,2509])
+06:59:39.935 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,4077][1120,2509])
+06:59:39.936 findGoCompleteButtons: drop non-clickable node text='去完成' (no clickable ancestor within 10 levels and invalid bounds=[890,4280][1120,2509])
+06:59:39.940 openTaskList: 7 goComplete buttons already visible, processing directly (attempt=0)
+06:59:39.942 taskButton[0]: text='签到', desc='', bounds=[894,933][1123,1031], clickable=false
+06:59:39.944 taskButton[1]: text='去完成', desc='', bounds=[890,1234][1120,1336], clickable=false
+06:59:39.944 taskButton[2]: text='去完成', desc='', bounds=[890,1437][1120,1539], clickable=false
+06:59:39.945 taskButton[3]: text='去完成', desc='', bounds=[890,1843][1120,1945], clickable=false
+06:59:39.946 taskButton[4]: text='去完成', desc='', bounds=[890,2046][1120,2148], clickable=false
+06:59:39.946 taskButton[5]: text='去完成', desc='', bounds=[890,2249][1120,2351], clickable=false
+06:59:39.947 taskButton[6]: text='去完成', desc='', bounds=[890,2452][1120,2509], clickable=false
+06:59:39.947 openTaskList: resetting currentTaskIndex to 0 (was 0)
+06:59:39.948 collectTaskContextText: result='签到 天天领奖 ', buttonText='签到', btnHeight=98, containerHeight=275
+06:59:39.949 collectTaskContextText: result='签到 天天领奖 ', buttonText='签到', btnHeight=98, containerHeight=275
+06:59:39.950 collectTaskContextText: result='签到 天天领奖 ', buttonText='签到', btnHeight=98, containerHeight=275
+06:59:39.950 sortTaskButtons: idx=0 task='签到 天天领奖' priority=0 (easyClaim=true, paid=false, paidHint=false, pureClaim=false, button='签到')
+06:59:39.958 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1800 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:39.962 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1800 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:39.963 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1800 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:39.963 sortTaskButtons: idx=1 task='看视频得巨额肥料 看视频得巨额肥料 助力果树光速升级↑ 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+06:59:39.964 collectTaskContextText: result='浏览广告赚肥料 浏览广告赚肥料 (0/10) 浏览 肥料 +900   下单得 肥料 +80000 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:39.965 collectTaskContextText: result='浏览广告赚肥料 浏览广告赚肥料 (0/10) 浏览 肥料 +900   下单得 肥料 +80000 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:39.965 collectTaskContextText: result='浏览广告赚肥料 浏览广告赚肥料 (0/10) 浏览 肥料 +900   下单得 肥料 +80000 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:39.966 sortTaskButtons: idx=2 task='浏览广告赚肥料 浏览广告赚肥料 浏览 肥料 + 下单得 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+06:59:39.966 collectTaskContextText: result='去头条极速版逛逛 去头条极速版逛逛 本次可得 肥料 +684 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:39.967 collectTaskContextText: result='去头条极速版逛逛 去头条极速版逛逛 本次可得 肥料 +684 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:39.968 collectTaskContextText: result='去头条极速版逛逛 去头条极速版逛逛 本次可得 肥料 +684 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:39.968 sortTaskButtons: idx=3 task='去头条极速版逛逛 去头条极速版逛逛 本次可得 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+06:59:39.969 collectTaskContextText: result='搜小天鹅洗衣机 搜小天鹅洗衣机 进小天鹅官网领福利 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:39.975 collectTaskContextText: result='搜小天鹅洗衣机 搜小天鹅洗衣机 进小天鹅官网领福利 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:39.976 collectTaskContextText: result='搜小天鹅洗衣机 搜小天鹅洗衣机 进小天鹅官网领福利 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:39.977 sortTaskButtons: idx=4 task='搜小天鹅洗衣机 搜小天鹅洗衣机 进小天鹅官网领福利 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+06:59:39.978 collectTaskContextText: result='去支付宝农场领肥料 去支付宝农场领肥料 逛逛可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=187
+06:59:39.979 collectTaskContextText: result='去支付宝农场领肥料 去支付宝农场领肥料 逛逛可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=187
+06:59:39.980 collectTaskContextText: result='去支付宝农场领肥料 去支付宝农场领肥料 逛逛可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=187
+06:59:39.981 sortTaskButtons: idx=5 task='去支付宝农场领肥料 去支付宝农场领肥料 逛逛可得 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+06:59:39.981 collectTaskContextText: result='去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 本次可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=57, containerHeight=99
+06:59:39.982 collectTaskContextText: result='去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 本次可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=57, containerHeight=99
+06:59:39.983 collectTaskContextText: result='去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 本次可得 肥料 +600 去完成 ', buttonText='去完成', btnHeight=57, containerHeight=99
+06:59:39.983 sortTaskButtons: idx=6 task='去支付宝逛蚂蚁庄园 去支付宝逛蚂蚁庄园 本次可得 肥料 +' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+06:59:39.984 state: OPENING_TASK_LIST -> PROCESSING_TASK
+06:59:42.565 [processTask-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:59:42.592 [processTask-start] claim-text-nodes (count=2):
+06:59:42.592 [processTask-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+06:59:42.593 [processTask-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2230][694,2299] clickable=false
+06:59:42.653 processTask: current task #1/7, text='签到', bounds=[894,933][1123,1031], attempt=0
+06:59:42.659 collectTaskContextText: result='签到 天天领奖 ', buttonText='签到', btnHeight=98, containerHeight=275
+06:59:42.663 collectTaskContextText: result='签到 天天领奖 ', buttonText='签到', btnHeight=98, containerHeight=275
+06:59:42.667 collectTaskContextText: result='签到 天天领奖 ', buttonText='签到', btnHeight=98, containerHeight=275
+06:59:42.672 collectTaskContextText: result='签到 天天领奖 ', buttonText='签到', btnHeight=98, containerHeight=275
+06:59:42.674 isBrowseTask: buttonText='签到', context='签到 天天领奖 ', isBrowse=false
+06:59:42.677 performClickSafe: text='签到' desc='' bounds=[894,933][1123,1031] clickable=false
+06:59:42.678 performClickSafe: ACTION_CLICK failed, trying gesture
+06:59:42.678 dispatchGesture: screen=[[894,933][1123,1031]] window=[[0,0][0,0]]
+06:59:42.679 dispatchGesture: not in popup, screen bounds valid, click at (1008.5, 982.0)
+06:59:49.745 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:59:49.768 [checkTaskResult] claim-text-nodes (count=4):
+06:59:49.769 [checkTaskResult]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+06:59:49.770 [checkTaskResult]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+06:59:49.770 [checkTaskResult]   text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+06:59:49.771 [checkTaskResult]   text='去支付宝农场领肥料' desc='' bounds=[255,2230][694,2299] clickable=false
+06:59:49.905 processTask: 已领取+明天领肥料 detected, task #1 签到 done, advance
+06:59:52.484 [processTask-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:59:52.521 [processTask-start] claim-text-nodes (count=4):
+06:59:52.523 [processTask-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+06:59:52.526 [processTask-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+06:59:52.528 [processTask-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2230][222,2374] clickable=false
+06:59:52.530 [processTask-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2230][694,2299] clickable=false
+06:59:52.592 processTask: current task #2/7, text='去完成', bounds=[890,1234][1120,1336], attempt=0
+06:59:52.595 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1800 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:52.598 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1800 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:52.602 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1800 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:52.606 collectTaskContextText: result='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1800 去完成 ', buttonText='去完成', btnHeight=102, containerHeight=186
+06:59:52.610 isBrowseTask: buttonText='去完成', context='看视频得巨额肥料 看视频得巨额肥料 (0/10) 助力果树光速升级↑ 肥料 +1800 去完成 ', isBrowse=false
+06:59:52.614 parseTaskCount: completed=0, total=10, remaining=10
+06:59:52.616 processTask: multi-click task detected, remainingReplays=10
+06:59:52.618 performClickSafe: text='去完成' desc='' bounds=[890,1234][1120,1336] clickable=false
+06:59:52.620 performClickSafe: ACTION_CLICK failed, trying gesture
+06:59:52.624 dispatchGesture: screen=[[890,1234][1120,1336]] window=[[0,0][0,0]]
+06:59:52.627 dispatchGesture: not in popup, screen bounds valid, click at (1005.0, 1285.0)
+06:59:57.689 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+06:59:57.696 [checkTaskResult] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+06:59:57.844 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+06:59:57.891 findRedPacketCloseButton: found '领取红包' in red packet popup
+06:59:57.893 processTask: closing red packet popup
+06:59:57.894 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+06:59:57.896 performClickSafe: ACTION_CLICK failed, trying gesture
+06:59:57.898 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+06:59:57.902 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:00.068 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:00.075 [checkTaskResult] claim-text-nodes (count=3):
+07:00:00.078 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:00.080 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:00.082 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:00.190 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:00.196 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:00.214 processTask: closing red packet popup
+07:00:00.216 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:00.217 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:00.218 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:00.219 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:02.292 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:02.304 [checkTaskResult] claim-text-nodes (count=3):
+07:00:02.306 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:02.308 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:02.310 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:02.454 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:02.457 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:02.469 findRedPacketCloseButton: found '领取红包' in red packet popup
+07:00:02.470 processTask: closing red packet popup
+07:00:02.471 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:02.471 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:02.472 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:02.472 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:04.564 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:04.578 [checkTaskResult] claim-text-nodes (count=3):
+07:00:04.581 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:04.582 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:04.584 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:04.794 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:04.803 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:04.830 processTask: closing red packet popup
+07:00:04.832 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:04.834 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:04.834 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:04.835 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:06.913 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:06.922 [checkTaskResult] claim-text-nodes (count=3):
+07:00:06.924 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:06.925 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:06.926 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:07.026 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:07.037 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:07.067 findRedPacketCloseButton: found '领取红包' in red packet popup
+07:00:07.069 processTask: closing red packet popup
+07:00:07.070 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:07.072 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:07.072 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:07.074 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:09.169 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:09.184 [checkTaskResult] claim-text-nodes (count=3):
+07:00:09.188 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:09.190 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:09.192 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:09.395 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:09.410 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:09.438 processTask: closing red packet popup
+07:00:09.440 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:09.442 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:09.442 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:09.444 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:11.545 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:11.556 [checkTaskResult] claim-text-nodes (count=3):
+07:00:11.558 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:11.560 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:11.563 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:11.760 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:11.767 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:11.798 findRedPacketCloseButton: found '领取红包' in red packet popup
+07:00:11.800 processTask: closing red packet popup
+07:00:11.802 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:11.804 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:11.806 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:11.807 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:13.897 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:13.906 [checkTaskResult] claim-text-nodes (count=3):
+07:00:13.909 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:13.911 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:13.913 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:14.113 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:14.120 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:14.147 processTask: closing red packet popup
+07:00:14.149 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:14.151 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:14.152 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:14.153 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:16.245 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:16.256 [checkTaskResult] claim-text-nodes (count=3):
+07:00:16.258 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:16.261 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:16.263 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:16.429 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:16.442 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:16.459 findRedPacketCloseButton: found '领取红包' in red packet popup
+07:00:16.461 processTask: closing red packet popup
+07:00:16.462 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:16.463 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:16.463 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:16.464 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:18.569 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:18.581 [checkTaskResult] claim-text-nodes (count=3):
+07:00:18.583 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:18.585 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:18.587 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:18.793 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:18.807 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:18.857 processTask: closing red packet popup
+07:00:18.860 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:18.862 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:18.864 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:18.866 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:20.963 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:20.977 [checkTaskResult] claim-text-nodes (count=3):
+07:00:20.980 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:20.982 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:20.984 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:21.148 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:21.156 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:21.176 findRedPacketCloseButton: found '领取红包' in red packet popup
+07:00:21.178 processTask: closing red packet popup
+07:00:21.178 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:21.180 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:21.180 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:21.181 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:23.271 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:23.288 [checkTaskResult] claim-text-nodes (count=3):
+07:00:23.291 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:23.293 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:23.295 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:23.478 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:23.484 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:23.494 processTask: closing red packet popup
+07:00:23.496 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:23.497 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:23.498 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:23.499 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:25.586 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:25.600 [checkTaskResult] claim-text-nodes (count=3):
+07:00:25.603 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:25.605 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:25.606 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:25.820 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:25.824 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:25.836 findRedPacketCloseButton: found '领取红包' in red packet popup
+07:00:25.837 processTask: closing red packet popup
+07:00:25.837 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:25.838 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:25.838 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:25.839 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:27.939 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:27.953 [checkTaskResult] claim-text-nodes (count=3):
+07:00:27.955 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:27.957 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:27.960 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:28.102 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:28.108 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:28.135 processTask: closing red packet popup
+07:00:28.138 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:28.139 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:28.141 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:28.143 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:30.246 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:30.256 [checkTaskResult] claim-text-nodes (count=3):
+07:00:30.259 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:30.261 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:30.263 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:30.433 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:30.443 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:30.471 findRedPacketCloseButton: found '领取红包' in red packet popup
+07:00:30.473 processTask: closing red packet popup
+07:00:30.475 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:30.477 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:30.478 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:30.480 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:32.557 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:32.568 [checkTaskResult] claim-text-nodes (count=3):
+07:00:32.570 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:32.572 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:32.573 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:32.740 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:32.747 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:32.778 processTask: closing red packet popup
+07:00:32.780 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:32.782 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:32.783 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:32.786 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:34.867 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:34.880 [checkTaskResult] claim-text-nodes (count=3):
+07:00:34.883 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:34.885 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:34.887 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:35.101 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:35.107 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:35.127 findRedPacketCloseButton: found '领取红包' in red packet popup
+07:00:35.128 processTask: closing red packet popup
+07:00:35.129 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:35.130 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:35.131 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:35.132 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:37.222 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:37.237 [checkTaskResult] claim-text-nodes (count=3):
+07:00:37.240 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:37.242 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:37.244 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:37.450 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:37.461 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:37.485 processTask: closing red packet popup
+07:00:37.487 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:37.488 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:37.489 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:37.490 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:39.597 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:39.608 [checkTaskResult] claim-text-nodes (count=3):
+07:00:39.610 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:39.613 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:39.614 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:39.797 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:39.804 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:39.832 findRedPacketCloseButton: found '领取红包' in red packet popup
+07:00:39.834 processTask: closing red packet popup
+07:00:39.835 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:39.836 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:39.837 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:39.838 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:41.923 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:41.938 [checkTaskResult] claim-text-nodes (count=3):
+07:00:41.940 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:41.942 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:41.946 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:42.084 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:42.091 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:42.103 processTask: closing red packet popup
+07:00:42.104 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:42.105 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:42.106 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:42.106 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:44.184 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:44.194 [checkTaskResult] claim-text-nodes (count=3):
+07:00:44.196 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:44.198 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:44.199 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:44.380 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:44.390 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:44.417 findRedPacketCloseButton: found '领取红包' in red packet popup
+07:00:44.420 processTask: closing red packet popup
+07:00:44.422 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:44.424 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:44.426 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:44.430 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:46.517 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:46.529 [checkTaskResult] claim-text-nodes (count=3):
+07:00:46.531 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:46.532 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:46.534 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:46.652 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:46.666 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:46.707 processTask: closing red packet popup
+07:00:46.710 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:46.711 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:46.713 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:46.714 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:48.786 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:48.799 [checkTaskResult] claim-text-nodes (count=3):
+07:00:48.802 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:48.803 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:48.805 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:48.953 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:48.958 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:48.977 findRedPacketCloseButton: found '领取红包' in red packet popup
+07:00:48.978 processTask: closing red packet popup
+07:00:48.979 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:48.980 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:48.981 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:48.982 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:51.055 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:51.067 [checkTaskResult] claim-text-nodes (count=3):
+07:00:51.069 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:51.070 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:51.071 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:51.256 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:51.269 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:51.285 processTask: closing red packet popup
+07:00:51.287 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:51.288 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:51.288 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:51.289 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:53.392 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:53.410 [checkTaskResult] claim-text-nodes (count=3):
+07:00:53.414 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:53.417 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:53.425 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:53.531 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:53.534 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:53.553 findRedPacketCloseButton: found '领取红包' in red packet popup
+07:00:53.553 processTask: closing red packet popup
+07:00:53.554 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:53.554 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:53.555 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:53.555 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:55.644 [checkTaskResult] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+07:00:55.653 [checkTaskResult] claim-text-nodes (count=3):
+07:00:55.655 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:55.657 [checkTaskResult]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+07:00:55.660 [checkTaskResult]   text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[474,1263][989,1358] clickable=false
+07:00:55.843 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+07:00:55.852 findFertilizerClaimButton: ad playing, skip (领取 button likely trap)
+07:00:55.886 processTask: closing red packet popup
+07:00:55.889 performClickSafe: text='朋友快来，淘宝闪购请客啦！领取红包吃美食啦！' desc='' bounds=[186,314][1011,455] clickable=false
+07:00:55.892 performClickSafe: ACTION_CLICK failed, trying gesture
+07:00:55.894 dispatchGesture: screen=[[186,314][1011,455]] window=[[0,0][0,0]]
+07:00:55.896 dispatchGesture: not in popup, screen bounds valid, click at (598.5, 384.5)
+07:00:57.187 state: PROCESSING_TASK -> STOPPING
+07:00:57.191 cancelNavigation: all navigation callbacks cancelled
+07:00:57.193 state: STOPPING -> IDLE
+07:01:02.861 saveToken: saved (len=93, head='gith', tail='McKr')
+07:01:02.865 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+07:01:02.867 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260822_070102.log, localFile=debug.log (69419 bytes)
