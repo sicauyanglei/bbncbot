@@ -32,7 +32,38 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build743 深链分支自build737起是死代码——ad button trap分支先执行杀掉深链跳转App,build742全部恢复路径不可达
+### commit <待填> - fix: build744 安装类广告放弃后"看广告领奖"按钮死循环(22s/轮×4)+任务索引不推进
+
+**用户需求**: "分析日志"（debug_test_20260822_182904.log, build743-4289e9c, 691行, 18:24-18:29 约4分钟）
+
+**build741/743 验证结果**:
+- build741 ✓ 完美生效: 4次安装类广告全部 **0ms** 立即放弃（"下载安装类广告...立即forceKill杀宿主+重开农场放弃"），不再干等90秒
+- build743 ✓ 广告会话 trap 正常: 18:26:07"我要更快拿奖"跳京东,25s stage=1超时后 trap 分支杀京东+重开UC恢复（~45s,比旧版快）
+- build743 深链分支: 本次无深链任务执行（"去美团刷视频"任务未轮到）,待下轮验证
+
+**新问题(死循环,已修)**:
+- 18:27:06 任务#1"看视频"→安装类广告放弃→重开农场→COLLECTING_DIRECT 点击主页"看广告领奖"
+  →10s→又是安装类广告→放弃→NAVIGATING→COLLECTING_DIRECT **又点同一按钮**→22秒一轮无限循环
+- 根因1: collectDirect 防重复(build581)比较 text+bounds,按钮 bounds 抖动4px([641,1152]→[641,1156])
+  绕过防护→重复点击
+- 根因2: build741 放弃分支不推进任务索引(taskReplayRemaining/currentTaskIndex 不变)→
+  重进 OPENING_TASK_LIST 后又从任务#1死磕
+- 用户 18:29:01 手动停止
+
+**修复**（[AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt)）:
+1. collectDirect 防重复改为 **text-only**（同 text 即跳过,bounds 仅记录日志）——彻底免疫 bounds 抖动
+2. build741 放弃分支推进任务: `currentTaskIndex++; taskReplayRemaining=0`（放弃不消耗
+   multi-click replay 次数,下一轮轮到别的任务,OPENING_TASK_LIST 整轮重扫时被跳过的
+   任务自然恢复）
+3. 连续放弃停止防护: `installAdAbandonStreak`——放弃时若 collectedCount 与基线相同
+   （期间无任何成功）则 streak++,不同则重置;连续 ≥8 次(一轮任务数上限)→ stop()
+   停止自动化（当天广告池全是安装类广告,继续跑只会无限杀UC重开）。start() 处重置
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit 4289e9c - fix: build743 深链分支自build737起是死代码——ad button trap分支先执行杀掉深链跳转App,build742全部恢复路径不可达
 
 **用户需求**: "分析日志"（debug_test_20260822_094757.log, build739-e38c7ac, 1283行, 两段会话）
 

@@ -69,6 +69,11 @@ object AutomationController {
     private const val MAX_RETURN_ATTEMPTS = 5
     /** 连续无进展轮次上限（超过则重新导航） */
     private const val MAX_NO_PROGRESS_ROUNDS = 3
+    /**
+     * build744: 连续"下载安装类广告放弃"（期间无任何成功收集）上限，超过则停止自动化
+     * （一轮任务数约 6-8，全失败说明当天广告池全是安装类广告，继续跑只会无限杀UC重开）
+     */
+    private const val MAX_CONSECUTIVE_INSTALL_AD_ABANDON = 8
     /** 施肥按钮最大点击次数（防止无限点击） */
     private const val MAX_FERTILIZE_CLICKS = 30
     /** 滑动浏览任务最大滑动次数 */
@@ -304,6 +309,25 @@ object AutomationController {
      */
     @Volatile
     private var watchingAdFromDeepLinkTask: Boolean = false
+
+    /**
+     * build744: 连续"下载安装类广告放弃"计数与基线（防无限循环）
+     *
+     * debug_test_20260822_182904.log（build743, 18:27:06-18:29:01）：
+     * 任务#1"看视频"与主页"看广告领奖"点击后全是安装类广告，build741 立即放弃
+     * （0ms forceKill+重开农场）→ NAVIGATING → COLLECTING_DIRECT 又点同一按钮 →
+     * 22 秒一轮无限循环，4 轮后用户手动停止。
+     *
+     * - 放弃时若 collectedCount 与基线相同（期间无任何成功）→ streak++；不同则重置为 1
+     * - streak >= [MAX_CONSECUTIVE_INSTALL_AD_ABANDON] → 停止自动化（当天广告池
+     *   全是安装类广告，继续跑只会无限杀UC重开）
+     */
+    @Volatile
+    private var installAdAbandonStreak: Int = 0
+
+    /** 上次安装类广告放弃时的 collectedCount 快照（检测期间是否有成功） */
+    @Volatile
+    private var installAdAbandonBaseCount: Int = -1
 
     /** 上一轮广告检测时是否有倒计时（用于多信号融合检测倒计时消失） */
     @Volatile
@@ -692,6 +716,8 @@ object AutomationController {
         browseFromSearchBrowse = false  // 复位搜索浏览任务标记，避免上一轮残留
         lastDirectClickedText = ""  // build581: 复位 direct 防死循环标记
         lastDirectClickedBounds = ""
+        installAdAbandonStreak = 0  // build744: 复位安装类广告连续放弃计数
+        installAdAbandonBaseCount = -1
         aiVisionDirectClickAttempted = false  // build596: 复位 AI 视觉识别点击标记
         browsingNovelStarted = false  // build584: 复位小说阅读任务标记
         currentTaskIsQuiz = false  // build610: 复位答题任务标记
@@ -1503,12 +1529,17 @@ object AutomationController {
         // build581 防死循环：跳过与上次点击相同（text+bounds 一致）的按钮
         // 场景：buttons[0]='签到肥料' clickable=false,dispatchGesture 点击无效,
         // 下一轮 findDirectCollectButtons 仍返回 buttons[0]='签到肥料',避免重复点击。
+        // build744 修复（debug_test_20260822_182904.log, build743, 18:27-18:29）:
+        //   "看广告领奖"点击→安装类广告放弃(build741 forceKill+重开农场)→重进
+        //   COLLECTING_DIRECT,按钮 text 相同但 bounds 抖动 4px([641,1152]→[641,1156]),
+        //   text+bounds 双重比较被绕过→重复点击同一按钮,22秒一轮死循环4次。
+        //   修复：改为 text-only 比较(同 text 即视为同一按钮跳过)。
         var chosenIdx = -1
         for (i in buttons.indices) {
             val b = buttons[i]
             val bText = b.text?.toString().orEmpty()
             val bBoundsStr = android.graphics.Rect().also { b.getBoundsInScreen(it) }.toShortString()
-            if (bText == lastDirectClickedText && bBoundsStr == lastDirectClickedBounds) {
+            if (bText == lastDirectClickedText) {
                 debugLog("collectDirect: skip button[$i] text='$bText' bounds=$bBoundsStr (same as last clicked, click had no effect)")
                 continue
             }
@@ -4966,6 +4997,27 @@ object AutomationController {
         if (fasterRewardStage == 0 && service.isDownloadInstallAd()) {
             Log.w(TAG, "watchAd: download-install ad detected (完成App安装才给奖励), abandoning immediately")
             debugLog("watchAd: 下载安装类广告(完成App安装才给奖励),等待无意义,立即forceKill杀宿主+重开农场放弃")
+            // build744: 跳过当前任务（直接推进索引，不消耗 multi-click replay 次数——
+            // 放弃不是成功，重进 OPENING_TASK_LIST 后轮到下一个任务，避免同一任务无限重试）
+            currentTaskIndex++
+            taskReplayRemaining = 0
+            debugLog("watchAd: install-ad abandon skips task, next taskIndex=$currentTaskIndex")
+            // build744: 连续放弃防护——期间无任何成功（collectedCount 与基线相同）连续
+            // MAX_CONSECUTIVE_INSTALL_AD_ABANDON 次则停止（当天广告池全是安装类广告）
+            if (collectedCount == installAdAbandonBaseCount) {
+                installAdAbandonStreak++
+            } else {
+                installAdAbandonStreak = 1
+                installAdAbandonBaseCount = collectedCount
+            }
+            if (installAdAbandonStreak >= MAX_CONSECUTIVE_INSTALL_AD_ABANDON) {
+                Log.w(TAG, "watchAd: $installAdAbandonStreak consecutive install-ad abandons with no progress, stopping automation")
+                debugLog("watchAd: 连续${installAdAbandonStreak}次安装类广告放弃且无进展,停止自动化(当天广告池异常)")
+                installAdAbandonStreak = 0
+                installAdAbandonBaseCount = -1
+                stop()
+                return
+            }
             service.setAdMode(false)
             val farmPkgs = service.currentPlatformConfig().packageNames
             for (pkg in farmPkgs) {
