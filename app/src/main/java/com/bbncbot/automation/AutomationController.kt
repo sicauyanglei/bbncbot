@@ -329,6 +329,13 @@ object AutomationController {
     @Volatile
     private var installAdAbandonBaseCount: Int = -1
 
+    /**
+     * build747: 当前正在处理的任务上下文文本（runProcessingTask 点击时快照）
+     * 供 checkTaskResult 判断当前任务类型（如是否签到任务）
+     */
+    @Volatile
+    private var currentTaskContextText: String = ""
+
     /** 上一轮广告检测时是否有倒计时（用于多信号融合检测倒计时消失） */
     @Volatile
     private var prevAdHadCountdown: Boolean = false
@@ -2386,6 +2393,32 @@ object AutomationController {
 
         // 确保在农场页
         if (!service.isOnFarmPage()) {
+            // build747 修复（debug_test_20260822_192917.log, build746, 19:27:55-19:28:55 卡死70s）：
+            //   看视频任务误判 advance 后页面跳到淘宝首页,本分支 pressBack×3 无效
+            //   （淘宝首页拦截返回键）→ skip task → 下一个任务 → pressBack×3 …… 8个任务
+            //   轮完需 2 分钟+,用户手动停止时已卡 70s。
+            // 修复：attempt>=1（pressBack 已试过一次无效）且活动窗口是外来App（非农场/
+            //   非systemui/非android）→ forceKill 该App + reopenFarmByDeepLink 回农场。
+            //   注:深链任务停留期间状态是 WATCHING_AD（processTask 点击后走 checkTaskResult
+            //   深链分支）,不会进入本分支,forceKill 不影响深链任务浏览。
+            val activeRootPkg = service.rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+            val cfg = service.currentPlatformConfig()
+            val isForeignActiveApp = activeRootPkg.isNotEmpty() &&
+                activeRootPkg !in cfg.packageNames &&
+                cfg.internalPackagePrefixes.none { activeRootPkg.startsWith(it) } &&
+                activeRootPkg != "com.bbncbot" &&
+                activeRootPkg != "android" &&
+                activeRootPkg != "com.android.systemui"
+            if (isForeignActiveApp && attempt >= 1) {
+                Log.w(TAG, "processTask: foreign app '$activeRootPkg' in foreground, pressBack ineffective, forceKill + reopen farm")
+                debugLog("processTask: 外来App'$activeRootPkg'前台且pressBack无效, forceKill它+深链重开农场")
+                service.forceKillApp(activeRootPkg, pressBackFirst = false)
+                service.reopenFarmByDeepLink(killCurrentFirst = false)
+                handler.postDelayed({
+                    if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
             Log.w(TAG, "processTask: not on farm page, returning")
             service.pressBack()
             handler.postDelayed({
@@ -2713,6 +2746,8 @@ object AutomationController {
         // build737: 点击前从任务文案解析深链任务停留时长（如"浏览15秒得1000肥料"→15s+5s缓冲）。
         // 若点击后深链跳转到其它App，等够该时长再保留现场切回农场（见 runWatchingAd 深链分支）。
         deepLinkTaskStayMs = parseDeepLinkStayMs(fullTaskText)
+        // build747: 快照当前任务上下文，供 checkTaskResult 判断任务类型（签到误判守卫等）
+        currentTaskContextText = taskContextText
         service.performClickSafe(button)
 
         // 等待检测是否进入广告
@@ -3818,6 +3853,45 @@ object AutomationController {
             taskClickLeftFarm = true
         }
 
+        // build747 修复（debug_test_20260822_192917.log, build746, 19:27:47-19:27:53）：
+        //   task#1 "看视频得巨额肥料(1/10)" 点击"去完成"后,任务列表上弹出倒计时领取弹窗
+        //   text='去领取(1s)' bounds=[222,1637][979,1801] clickable=false。
+        //   旧逻辑不识别该弹窗,而页面静态的"已领取/明天领肥料"(签到区标识)触发了下方
+        //   build668 的签到误判 → advance → 弹窗无人点击 → 看视频任务奖励丢失。
+        //   且 advance 后 replay 循环中页面跳到淘宝,又卡死 70s(见 runProcessingTask
+        //   build747 非农场恢复)。
+        // 修复：检测到"去领取(Ns)"弹窗 → 等 N+2 秒倒计时结束 → 重新查找"去领取"节点点击
+        //   领取 → 继续结果检测。优先级放在"已领取"签到判定之前。
+        val countdownClaim = service.findCountdownClaimButton()
+        if (countdownClaim != null) {
+            val (cdNode, cdSecs) = countdownClaim
+            val cdBounds = Rect().also { cdNode.getBoundsInScreen(it) }
+            Log.i(TAG, "processTask: countdown claim popup detected ('去领取($cdSecs s)'), waiting ${cdSecs}s then claim")
+            debugLog("processTask: 检测到'去领取(${cdSecs}s)'倒计时弹窗 bounds=${cdBounds.toShortString()}, ${cdSecs + 2}s后点击领取")
+            handler.postDelayed({
+                if (state != AutomationState.PROCESSING_TASK) return@postDelayed
+                // 倒计时结束后文本变为"去领取",重新查找（旧节点可能已失效）
+                val root = service.rootInActiveWindowSafe() ?: return@postDelayed
+                val claimNodes = root.findAccessibilityNodeInfosByText("去领取")
+                    .filter { it.text?.toString() == "去领取" || Regex("去领取\\(\\d+s?\\)").matches(it.text?.toString().orEmpty()) }
+                val claimBtn = claimNodes.firstOrNull()
+                if (claimBtn != null) {
+                    debugLog("processTask: countdown ended, clicking '去领取' to claim reward")
+                    service.performClickSafe(claimBtn)
+                    // 点击领取后等待肥料到账/任务完成提示，重新评估
+                    handler.postDelayed({
+                        if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt + 1)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                } else {
+                    debugLog("processTask: '去领取' node gone after countdown (claimed automatically?), re-checking")
+                    handler.postDelayed({
+                        if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt + 1)
+                    }, INTERVAL_CLICK_MS)
+                }
+            }, (cdSecs + 2) * 1000L)
+            return
+        }
+
         // build668 修复（debug_test_20260731_210558.log, build666）：
         // 点击 task #1 "签到"后页面变"已领取"+"明天领肥料"（签到 = 当天点击领取,已领成功）,
         // 但 processTask 未识别,继续重试点击 task #1（实际签到已成功）,还误判 isRechargePage
@@ -3833,7 +3907,15 @@ object AutomationController {
         //   重试 5 次都误判完成,直到第 6 次点击真正进入广告。
         // 修复："已领取"检测只对 task #1 "签到"有效（currentTaskIndex == 0）,
         // 后续任务不能用这个标识判断完成（"已领取"是签到的标识,与后续任务无关）。
-        if (currentTaskIndex == 0 && service.isOnFarmPage() && service.hasDailyRewardClaimedIndicator()) {
+        // build747 修复（debug_test_20260822_192917.log, build746, 19:27:53）：
+        //   签到按钮被 findGoCompleteButtons drop（"签到肥料"不匹配纯签到规则）时,
+        //   task#0 是"看视频得巨额肥料"而非签到任务;页面静态的"已领取/明天领肥料"
+        //   （签到区标识,签到早已完成）触发本判定 → 误判看视频任务完成 → advance
+        //   → 奖励丢失 + replay 循环跳淘宝卡死。
+        //   修复：本判定仅对签到任务生效——当前任务上下文须含"签到"字样。
+        val curTaskIsSignIn = currentTaskContextText.contains("签到") ||
+            taskButtons.getOrNull(currentTaskIndex)?.text?.toString().orEmpty().contains("签到")
+        if (currentTaskIndex == 0 && curTaskIsSignIn && service.isOnFarmPage() && service.hasDailyRewardClaimedIndicator()) {
             Log.i(TAG, "processTask: daily reward already claimed (已领取+明天领肥料 detected), advance to next task")
             debugLog("processTask: 已领取+明天领肥料 detected, task #1 签到 done, advance")
             collectedCount++

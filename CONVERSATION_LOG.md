@@ -32,7 +32,50 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build746 "我要更快拿奖"点击直接跳广告主App干等25s广告被弃×3+美团overlay后UC未起桌面卡死2分17秒
+### commit <待填> - fix: build747 "去领取(1s)"倒计时弹窗无人点击奖励丢失+签到误判守卫+淘宝前台pressBack无效卡死70s
+
+**用户需求**: "分析日志"（debug_test_20260822_192917.log, build746-40246b3, 330行, 19:24:40-19:28:55 约4.5分钟; 192857.log 是同会话前20秒的子集）
+
+**build746 验证结果**:
+- ✓ 弱信号守卫生效: 19:26:52-19:27:04 微信前台12秒(疑用户手动切换)被正确识别
+  "activeRootPkg='com.tencent.mm' is foreign, activity weak signal ignored" →
+  attempt=6 reopenFarmByDeepLink 拉回UC,不再像 build721/746 之前那样桌面卡死
+- ✓ 快照 pkg 全程正确(UC/微信/淘宝各归其位)
+- 流程: 19:25:28 看广告领奖→快手激励视频(摇一摇互动)15s倒计时卡住→CLOSING_AD→
+  pressBack×3无效→forceKill UC+深链重开→NAVIGATING 2分37秒(H5加载慢+微信12s)→
+  farmContentLoaded→COLLECTING_DIRECT→AI视觉15s超时→OPENING_TASK_LIST→
+  19:27:47 PROCESSING_TASK task#1"看视频得巨额肥料(1/10)"点击"去完成"
+
+**问题A(已修)**: "去领取(1s)"倒计时弹窗无人点击,看视频任务奖励丢失:
+- 19:27:52 checkTaskResult 快照: text='去领取(1s)' bounds=[222,1637][979,1801]
+  clickable=false——这是看视频任务的倒计时领取弹窗(N秒后变可点)
+- 旧逻辑不识别它;页面静态"已领取/明天领肥料"(签到区标识,签到早已完成)触发
+  build668 签到判定(误判) → advance → 弹窗没人点 → 奖励丢失
+- 修复1: checkTaskResult 优先检测"去领取(Ns)"弹窗(findCountdownClaimButton,
+  Regex 去领取\((\d+)s?\)) → 等 N+2 秒 → 重新找"去领取"节点点击 → 继续结果检测
+- 修复2: build668 签到判定加守卫——当前任务上下文须含"签到"才允许"已领取"判定
+  (签到按钮被 drop 时 task#0 是看视频,不该用签到标识判定完成);
+  runProcessingTask 点击时快照 currentTaskContextText 供 checkTaskResult 使用
+
+**问题B(已修)**: 误判 advance 后页面跳淘宝,processTask 卡死70秒:
+- 19:27:55-19:28:55 淘宝首页前台(TBMainActivity),isOnFarmPage false → pressBack
+  ×3 无效(淘宝首页拦截返回键) → skip task → 下一个任务 → pressBack×3……
+  8任务轮完需2分钟+,用户19:28:55手动停止时已卡70s
+- 修复: runProcessingTask 非农场分支——attempt>=1(pressBack已试一次无效)且活动
+  窗口是外来App(非农场/非systemui/非android) → forceKill 该App +
+  reopenFarmByDeepLink 回农场。深链任务停留期间状态是WATCHING_AD(checkTaskResult
+  深链分支),不经过此分支,不受影响
+
+**已知未修(次要)**: ①快手摇一摇互动广告倒计时卡10s静态→15s放弃进CLOSING_AD,
+  claim-text-nodes NONE 无领取按钮,该广告无收益(互动广告需摇动手机,自动化无解);
+  ②UC杀掉重开后H5加载慢,NAVIGATING耗2分37秒(realContent 12~22个未达阈值),
+  系UC WebView冷启动固有耗时
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit 40246b3 - fix: build746 "我要更快拿奖"点击直接跳广告主App干等25s广告被弃×3+美团overlay后UC未起桌面卡死2分17秒
 
 **用户需求**: "分析日志"（debug_test_20260822_191049.log, build745-ebc33a1, 972行, 19:02-19:10 约8分钟）
 

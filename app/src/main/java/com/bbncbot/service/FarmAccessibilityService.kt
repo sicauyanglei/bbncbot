@@ -5819,6 +5819,31 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * 查找"去领取(Ns)"倒计时领取弹窗按钮
+     *
+     * build747 添加（debug_test_20260822_192917.log, build746, 19:27:52）：
+     * UC 看视频任务点击"去完成"后，任务列表上弹出倒计时领取弹窗：
+     *   text='去领取(1s)' bounds=[222,1637][979,1801] clickable=false
+     * 倒计时期间不可点，N 秒后文本变为"去领取"变可点。旧逻辑不识别该弹窗——
+     * checkTaskResult 误用页面静态的"已领取/明天领肥料"（签到区标识）判定任务完成
+     * 直接 advance，弹窗无人点击，看视频任务奖励丢失。
+     *
+     * @return (节点, 倒计时秒数)；未找到返回 null
+     */
+    fun findCountdownClaimButton(): Pair<AccessibilityNodeInfo, Int>? {
+        val root = getRootInFarmApp() ?: return null
+        val regex = Regex("去领取\\((\\d+)s?\\)")
+        val nodes = root.findAccessibilityNodeInfosByText("去领取")
+        for (node in nodes) {
+            val text = node.text?.toString().orEmpty()
+            val match = regex.find(text) ?: continue
+            val secs = match.groupValues[1].toIntOrNull() ?: continue
+            return node to secs
+        }
+        return null
+    }
+
+    /**
      * 检测是否为 UC 芭芭农场活动版页面（非标准版）
      *
      * build673 添加（debug_test_20260801_092504.log, build671）：
