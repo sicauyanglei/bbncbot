@@ -6143,20 +6143,31 @@ object AutomationController {
         // 深链跳转任务：检测是否已回到芭芭农场App（任务完成返回）
         // 深链任务跳转到其他App执行后，回到农场App表示任务完成
         // 要求 elapsedMs >= 5s 避免广告刚打开时短暂显示农场的误判
+        // build742: 深链任务返回农场App后，WebView 可能停在任务落地页（任务开始页）而非
+        // 农场主页——点击"去完成"时 H5 先导航到落地页再拉起其它App，返回后页面保持落地页。
+        // 此时不能直接进 OPENING_TASK_LIST（找不到"去完成"按钮会走坐标兜底乱点），
+        // 由 runDeepLinkReturnToFarm 先确保回到农场主页。
         if (elapsedMs >= 5000L && service.isOnFarmPage()) {
+            val wasDeepLinkTask = deepLinkAppPkg != null
             Log.i(TAG, "watchAd: returned to farm app (${elapsedMs}ms), task complete")
-            debugLog("watchAd: returned to farm, deep-link task complete")
+            debugLog("watchAd: returned to farm, deep-link task complete (wasDeepLinkTask=$wasDeepLinkTask)")
             // 取消可能已调度的深链 kill（若曾进入其他 App 又自然返回）
             deepLinkAppPkg = null
             service.setAdMode(false)
             collectedCount++
             advanceTaskIndex()  // 多次任务重玩同一任务，否则前进到下一个
-            handler.postDelayed({
-                if (state == AutomationState.WATCHING_AD) {
-                    moveTo(AutomationState.OPENING_TASK_LIST)
-                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
-                }
-            }, INTERVAL_CLICK_MS)
+            if (wasDeepLinkTask) {
+                // build742: 深链任务——返回的可能是任务落地页（isOnFarmPage 因"任务完成"/
+                // "得肥料"文案误判 true），先确保回到农场主页再开任务列表
+                runDeepLinkReturnToFarm(0)
+            } else {
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) {
+                        moveTo(AutomationState.OPENING_TASK_LIST)
+                        handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                    }
+                }, INTERVAL_CLICK_MS)
+            }
             return
         }
 
@@ -6174,6 +6185,20 @@ object AutomationController {
             !service.isAdPlaying() && !service.isOnAbnormalPage()) {
             val currentPkg = service.getCurrentWindowPackage()
             if (currentPkg != null) {
+                // build742: 已进入过其它App(deepLinkAppPkg!=null)后农场App自身又回到前台——
+                // 深链任务自然完成返回，但 WebView 停在任务落地页（无农场关键词，isOnFarmPage=false）。
+                // 视为任务完成，runDeepLinkReturnToFarm 先回农场主页（pressBack/深链重开）再开任务列表
+                if (deepLinkAppPkg != null && watchingAdPlatform != Platform.UNKNOWN &&
+                    currentPkg in watchingAdPlatform.config.packageNames) {
+                    Log.i(TAG, "watchAd: back to farm app '$currentPkg' on task landing page (no farm keywords), deep-link task complete")
+                    debugLog("watchAd: farm app back in foreground on task landing page, task complete, recovering to farm page")
+                    deepLinkAppPkg = null  // 清除后已调度的切回定时器会自动取消
+                    service.setAdMode(false)
+                    collectedCount++
+                    advanceTaskIndex()
+                    runDeepLinkReturnToFarm(0)
+                    return
+                }
                 // 首次检测到深链跳转：记录包名，等够任务停留时长后"保留现场切回农场 + kill 被拉起的 App"
                 if (deepLinkAppPkg == null) {
                     deepLinkAppPkg = currentPkg
@@ -6194,9 +6219,12 @@ object AutomationController {
                         service.setAdMode(false)
                         // 1. 保留现场切回农场（moveTaskToFront，不重启不重载，页面保持切走时的样子）；
                         //    失败（系统未返回农场运行任务）时 fallback deep link 拉起（不杀农场进程）
+                        var broughtToFront = false
                         if (watchingAdPlatform != Platform.UNKNOWN) {
                             val brought = service.bringFarmAppToFront(watchingAdPlatform)
-                            if (!brought) {
+                            if (brought) {
+                                broughtToFront = true
+                            } else {
                                 debugLog("watchAd: bringFarmAppToFront failed, fallback launchPlatformApp(deep link, killCurrentFirst=false)")
                                 service.launchPlatformApp(watchingAdPlatform, killCurrentFirst = false)
                             }
@@ -6214,12 +6242,21 @@ object AutomationController {
                         // 等够任务时长视为任务完成（同自然返回分支），计入收集数并推进任务
                         collectedCount++
                         advanceTaskIndex()
-                        handler.postDelayed({
-                            if (state == AutomationState.WATCHING_AD) {
-                                moveTo(AutomationState.OPENING_TASK_LIST)
-                                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
-                            }
-                        }, INTERVAL_PAGE_LOAD_MS)
+                        // build742: moveTaskToFront 保留现场切回后，WebView 可能停在任务落地页
+                        // （点击"去完成"时 H5 先导航到落地页再拉起App）而非农场主页 →
+                        // runDeepLinkReturnToFarm 确保回农场主页再开任务列表。
+                        // bringFarmAppToFront 失败走 launchPlatformApp 深链重开时必然回农场页，
+                        // 等页面加载后直接进 OPENING_TASK_LIST。
+                        if (broughtToFront) {
+                            runDeepLinkReturnToFarm(0)
+                        } else {
+                            handler.postDelayed({
+                                if (state == AutomationState.WATCHING_AD) {
+                                    moveTo(AutomationState.OPENING_TASK_LIST)
+                                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                                }
+                            }, INTERVAL_PAGE_LOAD_MS)
+                        }
                     }, stayMs)
                 }
                 // 已调度切回，继续轮询兜底（若任务自然完成返回农场，上方"returned to farm"分支会取消切回）
@@ -6474,6 +6511,84 @@ object AutomationController {
         handler.postDelayed({
             if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
         }, adEndCheckIntervalMs)
+    }
+
+    // ============== build742: 深链任务完成后确保回到芭芭农场主页 ==============
+
+    /**
+     * build742: 判定当前页面是否"真"芭芭农场主页（区分农场主页 vs 深链任务落地页/任务开始页）
+     *
+     * 背景（用户反馈"任务完成切到任务开始的页面，不是切到芭芭农场页面"）：
+     * 点击深链任务"去完成"时，农场 H5 先导航到任务落地页（任务开始页）再拉起其它App；
+     * 任务完成保留现场切回后，WebView 停在落地页。落地页常含"任务完成"/"得肥料"等文案，
+     * 会让 isOnFarmPage() 误判为 true（hasFarmContent 关键词过宽），导致 OPENING_TASK_LIST
+     * 在落地页上找不到"去完成"按钮而走坐标兜底乱点。
+     *
+     * 判定标准：页面含"芭芭农场"标题 且 含农场核心元素（集肥料/施肥/换种/免费领水果）。
+     * 落地页无种植页核心元素，不会误判。
+     */
+    private fun isOnRealFarmPageForDeepLinkReturn(service: FarmAccessibilityService): Boolean {
+        val texts = service.collectAllTextSnapshot(maxCount = 300)
+        val hasFarmTitle = texts.any { it.contains("芭芭农场") }
+        val hasFarmCore = texts.any {
+            it.contains("集肥料") || it.contains("施肥") || it.contains("换种") ||
+                it.contains("免费领水果") || it.contains("领水果")
+        }
+        if (!hasFarmTitle || !hasFarmCore) {
+            debugLog("isOnRealFarmPageForDeepLinkReturn: NO (hasFarmTitle=$hasFarmTitle, hasFarmCore=$hasFarmCore), sample=${texts.take(8)}")
+        }
+        return hasFarmTitle && hasFarmCore
+    }
+
+    /**
+     * build742: 深链任务完成后确保回到芭芭农场主页（而非任务开始页/落地页）
+     *
+     * 调用时机：深链任务已计完成（collectedCount++/advanceTaskIndex 已执行），仍在 WATCHING_AD。
+     * 处理流程：
+     * 1. 已在农场主页（任务列表可见 或 农场标题+核心元素齐全）→ 进入 OPENING_TASK_LIST 继续下一任务
+     * 2. 农场App在前台但停在任务落地页 → pressBack 回退（WebView 历史栈弹出落地页回到农场页，
+     *    不重载、保留农场会话），最多 2 次
+     * 3. 仍不在农场主页（或农场App不在前台）→ reopenFarmByDeepLink 深链重开农场页（不杀农场进程）
+     */
+    private fun runDeepLinkReturnToFarm(attempt: Int) {
+        if (state != AutomationState.WATCHING_AD) return
+        val service = getService() ?: run { stop(); return }
+
+        // 1. 已回到真农场页（任务列表开着 或 农场标题+核心元素齐全）
+        val taskListVisible = service.findGoCompleteButtons().isNotEmpty()
+        if (taskListVisible || isOnRealFarmPageForDeepLinkReturn(service)) {
+            debugLog("deepLinkReturn: on farm page now (taskListVisible=$taskListVisible), opening task list")
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) {
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                }
+            }, INTERVAL_CLICK_MS)
+            return
+        }
+
+        // 2. 农场App在前台但停在任务落地页：pressBack 弹出落地页（WebView 历史回退到农场页）
+        if (attempt < 2 && service.isFarmAppInForeground()) {
+            debugLog("deepLinkReturn: farm app foreground but on task landing page (attempt=$attempt), pressBack to pop it")
+            service.pressBack()
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) runDeepLinkReturnToFarm(attempt + 1)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 3. pressBack 无效或农场App不在前台：深链重开农场页（killCurrentFirst=false 保留农场进程）
+        Log.w(TAG, "deepLinkReturn: still not on farm page after $attempt back attempts, reopening farm by deep link")
+        debugLog("deepLinkReturn: pressBack x$attempt 无效, reopenFarmByDeepLink 重开农场页(killCurrentFirst=false)")
+        if (watchingAdPlatform != Platform.UNKNOWN) {
+            service.reopenFarmByDeepLink(watchingAdPlatform, killCurrentFirst = false)
+        }
+        handler.postDelayed({
+            if (state == AutomationState.WATCHING_AD) {
+                moveTo(AutomationState.OPENING_TASK_LIST)
+                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+            }
+        }, INTERVAL_PAGE_LOAD_MS)
     }
 
     // ============== 阶段5: 关闭广告（多策略） ==============

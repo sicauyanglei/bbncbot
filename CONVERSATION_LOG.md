@@ -32,7 +32,39 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build741 下载安装类广告干等90s+盲点坐标误触packageinstaller,检测到立即放弃
+### commit <待填> - fix: build742 深链任务完成后停在任务落地页(任务开始页),未回芭芭农场主页
+
+**用户需求**: "uc芭芭农场中点击任务后，任务完成切到任务开始的页面，不是切到芭芭农场页面"
+
+**根因**: 深链任务（如"去头条极速版浏览15秒"）点击"去完成"时，农场 H5 先导航到
+任务落地页（任务开始页）再拉起其它App；任务完成保留现场切回农场后，WebView 停在
+落地页而非农场主页。旧逻辑直接进 OPENING_TASK_LIST，在落地页上找不到"去完成"
+按钮（任务列表弹窗已被 H5 导航关闭），走坐标兜底乱点，用户看到的就是"停在任务
+开始页不回农场主页"。
+
+**修复**（[AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt)）:
+1. 新增 `isOnRealFarmPageForDeepLinkReturn()`: 严格判定"真"农场主页——须同时含
+   "芭芭农场"标题 + 核心元素（集肥料/施肥/换种/免费领水果）。落地页只有
+   "任务完成"/"得肥料"等文案，不含核心元素，不会误判。
+2. 新增 `runDeepLinkReturnToFarm(attempt)`: 深链任务完成后确保回农场主页——
+   ①已在农场主页（任务列表可见或标题+核心齐全）→ OPENING_TASK_LIST；
+   ②农场App前台但停在落地页 → pressBack 弹出 WebView 历史栈中的落地页（不重载
+   保留会话），最多2次；
+   ③仍无效 → reopenFarmByDeepLink 深链重开农场页（killCurrentFirst=false 不杀进程）。
+3. 三条深链完成路径全部接入 runDeepLinkReturnToFarm：
+   - 自然返回分支（isOnFarmPage=true，wasDeepLinkTask 时不再直接进 OPENING_TASK_LIST）
+   - 新增落地页检测分支：deepLinkAppPkg!=null 且农场App回前台但无农场关键词
+     （isOnFarmPage=false，旧逻辑会一直干等超时）→ 视为任务完成并恢复回农场页
+   - 定时切回分支：bringFarmAppToFront 成功后先确认在农场主页；失败走深链重开
+     必然回农场页，维持原直接 OPENING_TASK_LIST
+4. 不影响"我要加速"流程：adSpeedUpJumpStage=1/2 停留阶段在上方已 return，
+   不会进入深链分支。
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit bf52d38 - fix: build741 下载安装类广告干等90s+盲点坐标误触packageinstaller,检测到立即放弃
 
 **用户需求**: "分析日志"（debug_test_20260822_094757.log, build739-e38c7ac, 1283行, 09:42-09:47新会话段）
 
