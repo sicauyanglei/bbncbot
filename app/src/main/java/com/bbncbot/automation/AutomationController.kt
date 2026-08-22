@@ -287,6 +287,24 @@ object AutomationController {
     @Volatile
     private var deepLinkTaskStayMs: Long = DEEP_LINK_DEFAULT_STAY_MS + DEEP_LINK_STAY_BUFFER_MS
 
+    /**
+     * build743: 本次 WATCHING_AD 会话是否由"任务深链跳转"进入
+     * （processTask 点击任务后检测到跳转到其他 App，非广告 Activity）。
+     *
+     * 根因（debug_test_20260822_094757.log 结构分析）：runWatchingAd 中"ad button trap"
+     * 分支（build714，检测非农场App前台→杀+重开农场+跳过任务）在深链任务分支
+     * （build737，等够任务时长后保留现场切回）**之前**执行，且条件不排除深链跳转的
+     * App → 深链任务刚跳转就被当作"广告按钮陷阱"杀掉，任务被跳过；深链分支从未
+     * 执行过（全部历史日志中"entered deep-linked app"零出现，证实为死代码），
+     * build742 的三条落地页恢复路径也因此全部不可达。
+     *
+     * 修复：深链入口置 true，广告入口置 false；true 时 trap 分支放行，交给深链
+     * 任务分支处理（等够时长→保留现场切回→build742 恢复回农场主页）。
+     * 在 WATCHING_AD 三个入口处赋值（processTask 广告入口/深链入口、collectDirect 广告入口）。
+     */
+    @Volatile
+    private var watchingAdFromDeepLinkTask: Boolean = false
+
     /** 上一轮广告检测时是否有倒计时（用于多信号融合检测倒计时消失） */
     @Volatile
     private var prevAdHadCountdown: Boolean = false
@@ -1564,6 +1582,7 @@ object AutomationController {
                 if (service.isAdActivity() || service.isAdPlaying()) {
                     Log.i(TAG, "collectDirect: jump button led to ad activity, entering WATCHING_AD")
                     debugLog("collectDirect: jump button '$btnText' led to ad (act=${service.getCurrentActivityName()}), entering WATCHING_AD")
+                    watchingAdFromDeepLinkTask = false  // build743: 广告入口，非深链任务
                     service.setAdMode(true)
                     moveTo(AutomationState.WATCHING_AD)
                     handler.postDelayed({ runWatchingAd(elapsedMs = 0L) }, INTERVAL_CLICK_MS)
@@ -4097,6 +4116,7 @@ object AutomationController {
         if (service.isAdActivity() || service.isAdPlaying() || service.isAdContentShown()) {
             Log.i(TAG, "processTask: ad opened! watching ad (activity=${service.isAdActivity()}, playing=${service.isAdPlaying()}, content=${service.isAdContentShown()})")
             debugLog("processTask: ad detected, entering WATCHING_AD")
+            watchingAdFromDeepLinkTask = false  // build743: 广告入口，非深链任务
             service.setAdMode(true)
             moveTo(AutomationState.WATCHING_AD)
             handler.postDelayed({ runWatchingAd(elapsedMs = 0L) }, INTERVAL_CLICK_MS)
@@ -4178,6 +4198,7 @@ object AutomationController {
                 else -> {
                     Log.i(TAG, "processTask: deep-linked to another app (otherPkg=$otherPkg, activeRoot=$activeRootPkg), treating as ad task")
                     debugLog("processTask: deep-link ad task, otherPkg=$otherPkg, activeRoot=$activeRootPkg, entering WATCHING_AD to wait for return to farm")
+                    watchingAdFromDeepLinkTask = true  // build743: 深链任务入口，trap 分支放行交给深链分支处理
                     service.setAdMode(true)
                     moveTo(AutomationState.WATCHING_AD)
                     handler.postDelayed({ runWatchingAd(elapsedMs = 0L) }, INTERVAL_CLICK_MS)
@@ -5337,9 +5358,14 @@ object AutomationController {
         //         (fasterRewardStage=2 停留阶段已在 when 块内 return,不会走到这里)
         //         (adSpeedUpJumpStage=1 停留阶段已在上方处理并 return,不会走到这里)
         //   build716 调整:此检测现在只处理"非我要加速跳转"的其他意外跳转(如千问误点CTA)
+        //   build743 修复:深链任务跳转也放行——watchingAdFromDeepLinkTask=true 时跳过此
+        //   分支,交给下方深链任务分支(等够任务时长后保留现场切回农场)处理。此前此分支
+        //   在深链分支之前执行且不区分两者,深链任务刚跳转就被当陷阱杀掉+跳过任务,
+        //   深链分支自 build737 引入以来从未执行过(死代码)。
         val currentPkg = service.getCurrentWindowPackage()
         if (watchingAdPlatform != Platform.UNKNOWN && currentPkg != null &&
             adSpeedUpJumpStage != 1 &&  // 放行"我要加速"跳转停留阶段
+            !watchingAdFromDeepLinkTask &&  // build743: 放行深链任务跳转,交给深链分支处理
             currentPkg !in watchingAdPlatform.config.packageNames &&
             !currentPkg.contains("launcher", ignoreCase = true) &&
             !currentPkg.contains("aod", ignoreCase = true) &&
@@ -6148,7 +6174,9 @@ object AutomationController {
         // 此时不能直接进 OPENING_TASK_LIST（找不到"去完成"按钮会走坐标兜底乱点），
         // 由 runDeepLinkReturnToFarm 先确保回到农场主页。
         if (elapsedMs >= 5000L && service.isOnFarmPage()) {
-            val wasDeepLinkTask = deepLinkAppPkg != null
+            // build743: 深链任务会话（入口标记）或已记录深链包名都算深链任务——
+            // 早期返回（5s内回农场，deepLinkAppPkg 尚未记录）也要走落地页恢复
+            val wasDeepLinkTask = deepLinkAppPkg != null || watchingAdFromDeepLinkTask
             Log.i(TAG, "watchAd: returned to farm app (${elapsedMs}ms), task complete")
             debugLog("watchAd: returned to farm, deep-link task complete (wasDeepLinkTask=$wasDeepLinkTask)")
             // 取消可能已调度的深链 kill（若曾进入其他 App 又自然返回）
@@ -6188,8 +6216,11 @@ object AutomationController {
                 // build742: 已进入过其它App(deepLinkAppPkg!=null)后农场App自身又回到前台——
                 // 深链任务自然完成返回，但 WebView 停在任务落地页（无农场关键词，isOnFarmPage=false）。
                 // 视为任务完成，runDeepLinkReturnToFarm 先回农场主页（pressBack/深链重开）再开任务列表
-                if (deepLinkAppPkg != null && watchingAdPlatform != Platform.UNKNOWN &&
-                    currentPkg in watchingAdPlatform.config.packageNames) {
+                // build743: watchingAdFromDeepLinkTask=true（深链任务会话，5s内早期返回、
+                // deepLinkAppPkg 尚未记录）也走此分支——否则下方会把农场包名误记为跳转App
+                if (watchingAdPlatform != Platform.UNKNOWN &&
+                    currentPkg in watchingAdPlatform.config.packageNames &&
+                    (deepLinkAppPkg != null || watchingAdFromDeepLinkTask)) {
                     Log.i(TAG, "watchAd: back to farm app '$currentPkg' on task landing page (no farm keywords), deep-link task complete")
                     debugLog("watchAd: farm app back in foreground on task landing page, task complete, recovering to farm page")
                     deepLinkAppPkg = null  // 清除后已调度的切回定时器会自动取消

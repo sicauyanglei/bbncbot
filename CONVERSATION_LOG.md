@@ -32,7 +32,43 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build742 深链任务完成后停在任务落地页(任务开始页),未回芭芭农场主页
+### commit <待填> - fix: build743 深链分支自build737起是死代码——ad button trap分支先执行杀掉深链跳转App,build742全部恢复路径不可达
+
+**用户需求**: "分析日志"（debug_test_20260822_094757.log, build739-e38c7ac, 1283行, 两段会话）
+
+**日志总览**: 两段会话共 10 次广告遭遇，**0 肥料收集**（广告池当天几乎全下发安装类/
+互动类广告）。build740 修复的 TRAP_INSTALL 误判（4次, 07:41-07:43）、build741 修复的
+下载安装类广告（4次, 07:44+09:42-09:47）均覆盖。本日志无深链任务执行（任务#1从未
+完成，未推进到深链任务）。
+
+**问题(bug,已修——build742 的真正根因)**: 用户反馈"任务完成切到任务开始的页面"，
+build742 修的落地页恢复逻辑根本不可达：
+- `runWatchingAd` 中 "ad button trap" 分支（build714）在深链任务分支（build737, L6212）
+  **之前**执行，条件不排除深链跳转的 App
+- 深链任务点击 → 跳转其它App → **第一次轮询** trap 分支就触发：杀掉跳转App +
+  重开UC + 跳过任务（currentTaskIndex++）→ UC WebView 停在任务落地页
+- 深链分支自 build737 引入以来**从未执行过**（全部历史日志 grep "entered deep-linked
+  app" 零出现，证实死代码；build737 验证只验证了 parseDeepLinkStayMs 解析日志）
+- build742 的三条恢复路径全部挂在 `deepLinkAppPkg != null` 上，该变量只在死代码分支
+  赋值 → build742 无效
+
+**修复**（[AutomationController.kt](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt)）:
+1. 新增 `watchingAdFromDeepLinkTask` 标记：WATCHING_AD 三入口赋值——processTask
+   深链入口=true，processTask/collectDirect 广告入口=false
+2. trap 分支条件加 `!watchingAdFromDeepLinkTask`：深链任务跳转放行，交给深链分支
+   （等够任务时长 → 保留现场切回 → build742 恢复回农场主页）
+3. 自然返回分支 `wasDeepLinkTask = deepLinkAppPkg != null || watchingAdFromDeepLinkTask`
+   （5s内早期返回、deepLinkAppPkg 未记录时也走落地页恢复）
+4. 落地页检测分支条件同样扩展（否则早期返回时会把农场包名误记为跳转App）
+5. 广告会话行为完全不变（flag=false，trap 照常拦截广告误跳转，如 07:43:29
+   "立即打开"广告自动跳 article.lite 被 trap 5s 恢复——该变体文案不含 build741
+   匹配词，但 trap 恢复仅 ~17s，可接受）
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit a5443d8 - fix: build742 深链任务完成后停在任务落地页(任务开始页),未回芭芭农场主页
 
 **用户需求**: "uc芭芭农场中点击任务后，任务完成切到任务开始的页面，不是切到芭芭农场页面"
 
