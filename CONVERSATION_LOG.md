@@ -32,7 +32,41 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build747 "去领取(1s)"倒计时弹窗无人点击奖励丢失+签到误判守卫+淘宝前台pressBack无效卡死70s
+### commit <待填> - fix: build748 快手"扭一扭或点击立即获取"互动广告点击可替代摇一摇拿奖励,不再当陷阱干等60s强退无收益
+
+**用户需求**: "分析日志"（debug_test_20260822_195844.log, build747-d37ff9c, 1097行, 19:49-19:58 约9.5分钟）
+
+**build747 验证结果**:
+- ✓ 签到误判守卫生效: 3次看视频任务点击后页面有"已领取/明天领肥料"静态标识但**不再误判**,
+  正确进入广告检测 → WATCHING_AD
+- ✓ 任务收益确认: 看视频任务计数 (1/10)→(3/10), 穿山甲广告2次"领取成功"
+- ✓ "去领取(1s)"弹窗未再现; 淘宝卡死未再现; 快照 pkg 全程正确
+- ✓ build746 弱信号守卫继续生效
+- 流程完整跑通多轮, 无卡死, 用户在最后一轮 NAVIGATING(H5渲染慢)时手动停止
+
+**问题(已修)**: 快手摇一摇互动广告被当"无法自动化陷阱",每次~60s全浪费且无收益:
+- 19:52:55/19:55:30/19:57:01 共3次: KsRewardVideoActivity 文案
+  "扭一扭或点击立即获取"+"可直接拿奖励"——**点击可替代物理摇动直接拿奖励**
+- 旧逻辑: 干等15s(countdown stuck at 10s) → CLOSING_AD(跳过+8坐标×2轮≈25s) →
+  RETURNING(pressBack×3无效+forceKill UC+深链重开≈25s) → 奖励丢失
+- 3次共~3分钟浪费(本轮9.5分钟的1/3)
+- 修复: TRAP_INTERACTIVE 分支优先检测"扭一扭或点击立即获取"类按钮
+  (findInteractiveAdClickToClaimButton, 精确文案+contains兜底, **排除**
+  "点击跳转详情页/第三方应用"陷阱变体) → 点击 → 后续轮询由 isAdEndedMultiSignal
+  检测"领取成功"走正常 REWARD_POPUP 流程; interactiveAdClickClaimClicked
+  每轮广告只点一次, 广告入口处重置。点击无效则走原15s等待+CLOSING_AD,无回退风险
+
+**已知未修(次要)**: ①"我要加速"跳转包名记录错误(19:49:45记录微信,实际19:49:51
+  在汽车之家)→10s停留后bringFarmAppToFront失败→trap分支兜底杀汽车之家,广告被弃
+  (恢复正常无卡死,跳转包名追踪深层修复复杂,暂不动); ②最后一轮NAVIGATING H5渲染
+  卡住(realContent=22不涨)35s后用户手动停止(UC WebView渲染问题,attempt上限内会
+  reopenFarmByDeepLink重试)
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit d37ff9c - fix: build747 "去领取(1s)"倒计时弹窗无人点击奖励丢失+签到误判守卫+淘宝前台pressBack无效卡死70s
 
 **用户需求**: "分析日志"（debug_test_20260822_192917.log, build746-40246b3, 330行, 19:24:40-19:28:55 约4.5分钟; 192857.log 是同会话前20秒的子集）
 

@@ -2139,6 +2139,59 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build748: 查找互动广告"扭一扭或点击立即获取"类可点击领取按钮
+     *
+     * debug_test_20260822_195844.log（build747, 19:52:55/19:55:30/19:57:01 共3次）：
+     * 快手摇一摇互动广告文案为"扭一扭或点击立即获取"——**点击可替代物理摇动直接获取奖励**，
+     * 页面同时有"可直接拿奖励"标识。旧逻辑把所有含"扭一扭"的广告当"无法模拟摇动"的陷阱：
+     * 干等15s（countdown stuck）→ CLOSING_AD（跳过+8坐标×2轮≈25s）→ RETURNING
+     * （pressBack×3无效+forceKill UC+重开≈25s）→ 每次浪费~60s 且奖励丢失。
+     *
+     * 区分两类文案：
+     * - "扭一扭或点击**立即获取**"/"点击立即领奖" → 点击即拿奖励，应点击 ✓
+     * - "扭一扭或点击**跳转详情页或第三方应用**"（build706 日志变体）→ 跳转陷阱，不点 ✗
+     *
+     * @return 可点击领取的按钮节点，或 null
+     */
+    fun findInteractiveAdClickToClaimButton(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        // 精确文案优先
+        val exactTexts = listOf(
+            "扭一扭或点击立即获取",
+            "摇一摇或点击立即获取",
+            "点击立即获取",
+            "点击立即领奖"
+        )
+        for (kw in exactTexts) {
+            val node = findNodeByText(root, kw)
+            if (node != null) {
+                debugLog("findInteractiveAdClickToClaimButton: found by exact text='$kw'")
+                return node
+            }
+        }
+        // 兜底 contains 匹配：须含"立即获取/立即领奖"，且排除"跳转详情页/第三方应用"陷阱变体
+        fun walk(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+            val text = node.text?.toString().orEmpty()
+            val desc = node.contentDescription?.toString().orEmpty()
+            for (s in listOf(text, desc)) {
+                if (s.isEmpty()) continue
+                val hasClaimKeyword = s.contains("立即获取") || s.contains("立即领奖")
+                val isJumpTrap = s.contains("跳转详情页") || s.contains("第三方应用")
+                if (hasClaimKeyword && !isJumpTrap && s.length <= 30) {
+                    debugLog("findInteractiveAdClickToClaimButton: found by contains='$s'")
+                    return node
+                }
+            }
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                walk(child)?.let { return it }
+            }
+            return null
+        }
+        return walk(root)
+    }
+
+    /**
      * 检测奖励领取弹窗页面（供场景识别引擎用）
      *
      * 特征：含"恭喜获得"/"奖励"/"领取"等文案 + 领取按钮

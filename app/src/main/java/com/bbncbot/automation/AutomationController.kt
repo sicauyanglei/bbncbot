@@ -336,6 +336,12 @@ object AutomationController {
     @Volatile
     private var currentTaskContextText: String = ""
 
+    /**
+     * build748: 互动广告"点击立即获取"按钮已点击标记（每轮广告只点一次）
+     */
+    @Volatile
+    private var interactiveAdClickClaimClicked: Boolean = false
+
     /** 上一轮广告检测时是否有倒计时（用于多信号融合检测倒计时消失） */
     @Volatile
     private var prevAdHadCountdown: Boolean = false
@@ -5015,6 +5021,7 @@ object AutomationController {
             lastAiProgressCheckMs = 0L
             watchingAdPlatform = service.currentPlatform  // 记录农场平台，强杀深链 App 后重新启动此平台
             interactiveAdDownloadClicked = false  // build599 v2: 重置互动广告下载按钮点击标记
+            interactiveAdClickClaimClicked = false  // build748: 重置互动广告"点击立即获取"按钮点击标记
             // build671: 重置倒计时停滞检测状态
             adCountdownStallHandled = false
             // build675: 重置"点我加速"按钮点击标记
@@ -5773,7 +5780,27 @@ object AutomationController {
             //
             // 防重入：用 interactiveAdDownloadClicked 标记,每轮广告只点一次下载按钮
             PageScene.TRAP_INTERACTIVE -> {
+                // build748 修复（debug_test_20260822_195844.log, build747, 19:52:55/19:55:30/19:57:01 共3次）：
+                //   快手互动广告文案"扭一扭或点击立即获取"——**点击可替代物理摇动直接获取奖励**。
+                //   旧逻辑把所有"扭一扭"当无法自动化的陷阱：干等15s → CLOSING_AD(≈25s) →
+                //   RETURNING forceKill UC(≈25s) → 每次浪费~60s 且奖励丢失,本轮3次共3分钟。
+                //   修复：先检测"扭一扭或点击立即获取"类按钮（findInteractiveAdClickToClaimButton
+                //   已排除"点击跳转详情页/第三方应用"陷阱变体）→ 点击它 → 后续轮询由
+                //   isAdEndedMultiSignal 检测"领取成功"等结束信号,走正常 REWARD_POPUP 流程。
                 if (!interactiveAdDownloadClicked) {
+                    val clickClaimBtn = service.findInteractiveAdClickToClaimButton()
+                    if (clickClaimBtn != null && !interactiveAdClickClaimClicked) {
+                        interactiveAdClickClaimClicked = true
+                        val ccText = clickClaimBtn.text?.toString().orEmpty()
+                        Log.i(TAG, "watchAd: interactive ad click-to-claim button '$ccText' found (click replaces shake), clicking to get reward")
+                        debugLog("watchAd: 互动广告'${ccText}'按钮(点击可替代摇一摇), 点击直接获取奖励")
+                        service.performClickSafe(clickClaimBtn)
+                        // 点击后等待"领取成功"/奖励弹窗,继续轮询广告结束检测
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                        }, INTERVAL_PAGE_LOAD_MS)
+                        return
+                    }
                     val downloadBtn = service.findInteractiveAdDownloadButton()
                     if (downloadBtn != null) {
                         interactiveAdDownloadClicked = true
