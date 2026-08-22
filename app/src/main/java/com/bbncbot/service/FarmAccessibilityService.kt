@@ -461,21 +461,32 @@ class FarmAccessibilityService : AccessibilityService() {
      */
     fun getCurrentWindowPackage(): String? {
         return try {
-            val windows = windows
             val cfg = currentPlatformConfig()
+            // build745 修复（debug_test_20260822_184814.log, build744, 18:47-18:48）：
+            // 微信窗口（悬浮窗/分屏残留）持续存在于 windows 列表中，旧逻辑"第一个非农场
+            // 窗口"扫描每次都返回 com.tencent.mm——即使 UC 农场页/UC 激励视频广告
+            // （TTRewardVideoActivity）真正在前台。watchAd 的 ad button trap 分支据此
+            // 连续两次 0ms 误判：forceKill 杀微信 + 重开 UC + 跳过任务，真广告被当场放弃。
+            // 与 build506/638 历史修复同理（systemui/后台淘宝窗口误报）：
+            // rootInActiveWindowSafe() 才是用户实际看到的活动窗口，必须优先取它的包名。
+            // 顺序：①活动窗口是外来包→返回（真跳转/寄宿广告）②活动窗口是农场App→
+            // 直接返回（前台就是农场，后台残留窗口不算数——核心修复）③活动窗口无效
+            // （null/systemui）才退回 windows 扫描兜底。
+            val activePkg = rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+            if (isForeignForegroundPkg(activePkg, cfg.packageNames, cfg.internalPackagePrefixes)) {
+                return activePkg
+            }
+            if (activePkg.isNotEmpty() && (
+                    activePkg in cfg.packageNames ||
+                        cfg.internalPackagePrefixes.any { activePkg.startsWith(it) })) {
+                return activePkg
+            }
+            val windows = windows
+            // 兜底：活动窗口无效（null/systemui）时扫描窗口列表
             // 优先返回非当前平台的活动窗口（可能是广告）
             for (w in windows) {
                 val pkg = w.root?.packageName?.toString().orEmpty()
-                if (pkg.isNotEmpty() &&
-                    pkg !in cfg.packageNames &&
-                    cfg.internalPackagePrefixes.none { pkg.startsWith(it) } &&
-                    pkg != "com.bbncbot" &&
-                    pkg != "android" &&
-                    // build607 修复（debug_test_20260722_075045.log line 18/35/45）：
-                    // 荣耀手机状态栏窗口（com.android.systemui）排在 windows 列表前面，
-                    // 被当作 activeRootPkg 返回，导致 isFarmAppInForeground 等判断误以为
-                    // 不在农场 App。排除 systemui，让循环继续找真正的农场 App 窗口。
-                    pkg != "com.android.systemui") {
+                if (isForeignForegroundPkg(pkg, cfg.packageNames, cfg.internalPackagePrefixes)) {
                     return pkg
                 }
             }
@@ -490,6 +501,28 @@ class FarmAccessibilityService : AccessibilityService() {
         } catch (e: Exception) {
             null
         }
+    }
+
+    /**
+     * build745: 包名是否为"外来前台包"（非农场App/非自家App/非系统窗口）
+     * 供 [getCurrentWindowPackage] 判定活动窗口或窗口列表项
+     */
+    private fun isForeignForegroundPkg(
+        pkg: String,
+        farmPackageNames: List<String>,
+        internalPackagePrefixes: List<String>
+    ): Boolean {
+        if (pkg.isEmpty()) return false
+        if (pkg in farmPackageNames) return false
+        if (internalPackagePrefixes.any { pkg.startsWith(it) }) return false
+        if (pkg == "com.bbncbot") return false
+        if (pkg == "android") return false
+        // build607 修复（debug_test_20260722_075045.log line 18/35/45）：
+        // 荣耀手机状态栏窗口（com.android.systemui）排在 windows 列表前面，
+        // 被当作 activeRootPkg 返回，导致 isFarmAppInForeground 等判断误以为
+        // 不在农场 App。排除 systemui，让循环继续找真正的农场 App 窗口。
+        if (pkg == "com.android.systemui") return false
+        return true
     }
 
     /**

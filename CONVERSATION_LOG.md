@@ -32,7 +32,45 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build744 安装类广告放弃后"看广告领奖"按钮死循环(22s/轮×4)+任务索引不推进
+### commit <待填> - fix: build745 微信残留窗口致getCurrentWindowPackage误报,trap分支0ms误杀微信+放弃UC真激励视频广告×2
+
+**用户需求**: "分析日志"（debug_test_20260822_184814.log, build744-e415ef3, 311行, 18:46-18:48 约2分钟）
+
+**日志现象**:
+- 全程所有快照 `pkg=com.tencent.mm`（微信）——即使 UC 农场页(onFarm=true)、UC 激励视频
+  广告(act=TTRewardVideoActivity, adActivity=true)真正在前台
+- 18:47:40 watchAd trap 分支第一次轮询(0ms)即误判"ad button trap"：forceKill 杀微信 +
+  深链重开UC + 跳过任务 → "看广告领奖"打开的真激励视频广告被当场放弃
+- 18:48:03 任务#1"看视频"再次打开激励视频广告 → 同样 0ms 误杀
+- 用户 18:48:12 手动停止；0 肥料收集
+- 另注：启动导航耗 10 次 attempt(~55s)，hasFarmContentLoaded 一直 false（farm 文本
+  已齐全但 realContent count=17~22 未达阈值）——次要问题未修
+
+**根因**: [FarmAccessibilityService.kt](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt)
+`getCurrentWindowPackage()` 旧逻辑"返回 windows 列表第一个非农场包名"——手机上微信
+（悬浮窗/分屏残留）窗口持续存在于 windows 列表且排在前面，导致永远返回
+com.tencent.mm。与 build506（systemui 误报）、build638（后台淘宝误报）同一类历史坑：
+windows 扫描不可靠，rootInActiveWindowSafe() 才是用户实际看到的活动窗口。
+
+**修复**（getCurrentWindowPackage 重构优先级）:
+1. 活动窗口(rootInActiveWindowSafe)是外来包→返回（千问跳转/深链任务跳转/
+   packageinstaller寄宿广告[build725]场景保持不变）
+2. 活动窗口是农场App包→直接返回（**核心修复**：前台就是农场/UC广告时，后台残留的
+   微信窗口不再被误报）
+3. 活动窗口无效(null/systemui/android)→退回原 windows 扫描兜底（build607 systemui
+   排除逻辑保持）
+4. 提取 `isForeignForegroundPkg()` 公共判定（排除农场包/内部前缀/bbncbot/android/
+   systemui），活动窗口与窗口扫描共用
+
+**影响面**: getCurrentWindowPackage 的全部调用点受益——watchAd trap 分支（本 bug）、
+processTask 深链检测(otherPkg)、isAdPlaying 第2步、NAVIGATING 前台判断、
+logPageSnapshot 诊断日志等，前台判定全部改为以活动窗口为准。
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit e415ef3 - fix: build744 安装类广告放弃后"看广告领奖"按钮死循环(22s/轮×4)+任务索引不推进
 
 **用户需求**: "分析日志"（debug_test_20260822_182904.log, build743-4289e9c, 691行, 18:24-18:29 约4分钟）
 
