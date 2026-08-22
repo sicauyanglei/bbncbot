@@ -361,6 +361,28 @@ class FarmAccessibilityService : AccessibilityService() {
                     debugLog("isFarmAppInForeground: activity=$activity is bbncbot itself, NOT treat as farm app")
                     return false
                 }
+                // build746 修复（debug_test_20260822_191049.log, build745, 19:08:29-19:10:46 卡死2分17秒）：
+                //   19:08:31 美团 overlay 分支 reopenFarmByDeepLink(killCurrentFirst=true) 杀UC重开,
+                //     但 UC 未起来(Honor 后台启动限制),桌面成为活动窗口
+                //   19:08:38 起 activeRootPkg='com.hihonor.android.launcher',但 currentActivityName=
+                //     'com.uc.browser.innerucmobile'(深链拉起UC时残留的窗口事件) → 弱信号误判"在农场App"
+                //   19:08:38-19:10:46 navigateToFarm→stepTab 在桌面找'芭芭农场'必然失败→pressBack→
+                //     abort→重试,循环 2 分 17 秒直到用户手动停止(与 build721 08:02 场景同根源)
+                // 修复：活动窗口(rootInActiveWindow)是外来App(桌面/第三方)时,activity 弱信号不可信
+                //   (那是残留的窗口事件),返回 false → navigate 走 "farm app not in foreground" 分支
+                //   → reopenFarmByDeepLink(killCurrentFirst=false) 正确拉起 UC。
+                //   仅 systemui(下拉通知/锁屏)/android/null 活动窗口时保留弱信号(kill+relaunch 过渡期)。
+                val weakActiveRootPkg = rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+                if (weakActiveRootPkg.isNotEmpty() &&
+                    weakActiveRootPkg != BBNCBOT_PKG &&
+                    weakActiveRootPkg !in cfg.packageNames &&
+                    cfg.internalPackagePrefixes.none { weakActiveRootPkg.startsWith(it) } &&
+                    weakActiveRootPkg != "android" &&
+                    weakActiveRootPkg != "com.android.systemui"
+                ) {
+                    debugLog("isFarmAppInForeground: activeRootPkg='$weakActiveRootPkg' is foreign (launcher/3rd-party), activity weak signal ignored (stale window event)")
+                    return false
+                }
                 debugLog("isFarmAppInForeground: windows miss farm pkg, but activity=$activity matches farm keywords, treat as in farm app (weak signal, requires content check)")
                 return true
             }

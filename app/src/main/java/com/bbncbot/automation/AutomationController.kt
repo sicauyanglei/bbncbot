@@ -5092,6 +5092,38 @@ object AutomationController {
                         }, INTERVAL_PAGE_LOAD_MS)
                         return
                     }
+                    // build746 修复（debug_test_20260822_191049.log, build745, 19:05:38/19:06:25/19:07:35 共3次）：
+                    //   19:05:38 PortraitADActivity(腾讯优量汇)广告页找到'我要更快拿奖'并点击
+                    //   19:05:53 活动窗口 pkg=com.ss.android.ugc.aweme.lite ← 点击直接跳转抖音极速版
+                    //          (广告主App),确认弹窗根本不会出现(与 build686 华为应用市场变体同类)
+                    //   19:05:53-19:06:03 stage=1 干等 25s 超时 → stage=4
+                    //   19:06:08 trap 分支(30s轮询)才发现外来App → 杀抖音+重开农场 → 广告被放弃
+                    //   每次浪费 ~35s 且广告奖励丢失,一轮日志共 3 次。
+                    // 修复：stage=1 每次轮询先检查活动窗口(rootInActiveWindow)是否已跳到外来App
+                    //   ——是则立即杀掉它回到 UC 广告页继续观看(广告 Activity 未被关闭,杀掉
+                    //   覆盖其上的外来 App 后自动恢复前台),同时放弃 faster reward(stage=4),
+                    //   不再浪费 25s 等一个不会出现的确认弹窗。
+                    // 注意：必须用 rootInActiveWindowSafe() 直接取活动窗口,不能用
+                    //   getCurrentWindowPackage()——后者在 systemui 覆盖时会退回 windows
+                    //   扫描,可能误报后台残留窗口(如微信)。
+                    val stage1ActivePkg = service.rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+                    if (stage1ActivePkg.isNotEmpty() && watchingAdPlatform != Platform.UNKNOWN &&
+                        stage1ActivePkg !in watchingAdPlatform.config.packageNames &&
+                        watchingAdPlatform.config.internalPackagePrefixes.none { stage1ActivePkg.startsWith(it) } &&
+                        stage1ActivePkg != "com.bbncbot" &&
+                        stage1ActivePkg != "android" &&
+                        stage1ActivePkg != "com.android.systemui"
+                    ) {
+                        Log.w(TAG, "watchAd: faster reward entry jumped to foreign app '$stage1ActivePkg' directly (no confirm popup variant), killing it to return to ad")
+                        debugLog("watchAd: stage=1 点击'我要更快拿奖'直接跳转'$stage1ActivePkg'(无确认弹窗变体),立即杀掉回UC广告页继续观看")
+                        service.forceKillApp(stage1ActivePkg, pressBackFirst = false)
+                        fasterRewardStage = 4  // 放弃 faster reward,回到正常广告等待
+                        fasterRewardStage1WaitCount = 0
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                        }, INTERVAL_PAGE_LOAD_MS)
+                        return
+                    }
                     if (service.isFasterRewardPopupShown()) {
                         val allowBtn = service.findFasterRewardAllowButton()
                         if (allowBtn != null) {

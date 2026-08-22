@@ -32,7 +32,53 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build745 微信残留窗口致getCurrentWindowPackage误报,trap分支0ms误杀微信+放弃UC真激励视频广告×2
+### commit <待填> - fix: build746 "我要更快拿奖"点击直接跳广告主App干等25s广告被弃×3+美团overlay后UC未起桌面卡死2分17秒
+
+**用户需求**: "分析日志"（debug_test_20260822_191049.log, build745-ebc33a1, 972行, 19:02-19:10 约8分钟）
+
+**build744/745 验证结果**:
+- build745 ✓ 微信误报修复生效: 全程快照 pkg 正确（UC 农场/UC 广告= com.ucmobile.lite,
+  跳转抖音= com.ss.android.ugc.aweme.lite, 美团 overlay= com.sankuai.meituan）,
+  trap 分支不再误杀微信
+- build744 ✓ 防重复生效: 19:05:26 "skip button[0] text='看广告领奖' (same as last
+  clicked)"——text-only 比较免疫 bounds 抖动; 无死循环
+- build744 ✓ 安装类广告跳过任务生效: 19:07:15 "install-ad abandon skips task,
+  next taskIndex=1"
+- build743 深链链路: 本轮仍无深链任务执行（"去美团刷视频"未轮到）,待验证
+
+**问题A(已修)**: "我要更快拿奖"点击直接跳转广告主App,确认弹窗不出现,25s干等后广告被弃:
+- 19:05:38/19:06:25/19:07:35 共3次: PortraitADActivity(腾讯优量汇)广告页点击
+  '我要更快拿奖' → 直接跳抖音极速版(aweme.lite),确认弹窗根本不出现
+  (与 build686 华为应用市场变体同类)
+- stage=1 干等 25s 超时 → stage=4 → 30s 轮询 trap 分支才发现外来App →
+  杀抖音+重开农场 → 广告被放弃,奖励丢失;每次浪费 ~35s
+- 修复: stage=1 每次轮询先查活动窗口(rootInActiveWindow)是否外来App → 是则立即
+  forceKill 杀掉回 UC 广告页继续观看(广告Activity未被关闭,杀覆盖其上的外来App后
+  自动恢复前台),同时放弃 faster reward(stage=4);必须用 rootInActiveWindowSafe
+  而非 getCurrentWindowPackage(后者 systemui 覆盖时退回 windows 扫描可能误报微信残留)
+
+**问题B(已修)**: 美团 overlay 后 UC 未起来,桌面卡死 2分17秒:
+- 19:08:14 openTaskList 点'集肥料'后美团莫名到前台(疑坐标点击命中悬浮banner);
+  overlay 分支 reopenFarmByDeepLink(killCurrentFirst=true) 杀UC重开,但 Honor 后台
+  启动限制导致 UC 未起来,桌面成为活动窗口
+- 19:08:38-19:10:46: activeRootPkg=launcher 但 currentActivityName=
+  'com.uc.browser.innerucmobile'(深链拉起UC时残留的窗口事件) → isFarmAppInForeground
+  弱信号误判"在农场App" → navigateToFarm→stepTab 在桌面找'芭芭农场'必然失败→
+  pressBack→abort→循环 2分17秒直到用户手动停止(与 build721 08:02 场景同根源)
+- 修复: isFarmAppInForeground 弱信号加守卫——活动窗口是外来App(桌面/第三方)时
+  activity 弱信号不可信(残留窗口事件),返回 false → navigate 走 "farm app not in
+  foreground" 分支 → reopenFarmByDeepLink(killCurrentFirst=false) 正确拉起UC;
+  仅 systemui/android/null 活动窗口时保留弱信号(kill+relaunch 过渡期)
+
+**已知未修(次要)**: 19:03-19:05 穿山甲"去体验15秒可立即领奖"广告变体: 广告无结束
+信号,watchAd 干等满 90s 才 CLOSING_AD,且仅观看不点体验CTA无奖励(任务计数 1/10 未变)。
+需专门设计"点击体验CTA→跳转停留15s→返回领奖"流程,暂不动(避免破坏正常激励视频流)。
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit ebc33a1 - fix: build745 微信残留窗口致getCurrentWindowPackage误报,trap分支0ms误杀微信+放弃UC真激励视频广告×2
 
 **用户需求**: "分析日志"（debug_test_20260822_184814.log, build744-e415ef3, 311行, 18:46-18:48 约2分钟）
 
