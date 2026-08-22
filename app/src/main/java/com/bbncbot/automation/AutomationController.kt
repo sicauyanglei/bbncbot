@@ -4932,6 +4932,30 @@ object AutomationController {
             logPageSnapshot(service, "watchAd-${elapsedMs}ms")
         }
 
+        // build741 修复（debug_test_20260822_094757.log, build739, 09:43:06-09:45:23）:
+        //   "看广告领奖"拉起腾讯 PortraitADActivity"抖音极速版"下载安装类广告
+        //   ("完成App安装，即可获得奖励"),无视频无倒计时,只有安装App才发奖励,
+        //   用户策略绝不安装 → 等待永远无奖励:
+        //   - 第一次: scene=AD_ENDED 干等90s超时 → CLOSING_AD 无关闭按钮 → 盲点坐标
+        //     误触下载拉起 packageinstaller(09:45:08 危险,可能误装App)
+        //   - 第二次: 点"我要更快拿奖"直接进 packageinstaller(09:45:59)
+        //   修复: 检测到下载安装类广告立即放弃——forceKill杀宿主+重开农场
+        //   (该手段 07:41 已验证 100% 有效),全程不点广告页任何元素,不等90s不盲点坐标。
+        //   仅在 fasterRewardStage==0 时检测(阶段2停留的第三方App页面不受影响)。
+        if (fasterRewardStage == 0 && service.isDownloadInstallAd()) {
+            Log.w(TAG, "watchAd: download-install ad detected (完成App安装才给奖励), abandoning immediately")
+            debugLog("watchAd: 下载安装类广告(完成App安装才给奖励),等待无意义,立即forceKill杀宿主+重开农场放弃")
+            service.setAdMode(false)
+            val farmPkgs = service.currentPlatformConfig().packageNames
+            for (pkg in farmPkgs) {
+                service.forceKillApp(pkg, pressBackFirst = false)
+            }
+            service.reopenFarmByDeepLink(killCurrentFirst = false)
+            moveTo(AutomationState.NAVIGATING)
+            handler.postDelayed({ runNavigating(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
         // "更快拿奖"流程仅在支持的平台执行（UC 特有，支付宝/淘宝跳过）
         val supportsFasterReward = service.currentPlatformConfig().supportsFasterReward
         if (supportsFasterReward) {

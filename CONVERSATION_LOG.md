@@ -32,7 +32,42 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build740 腾讯PortraitAD安装类创意广告误判TRAP_INSTALL,任务#1死循环3轮+无法完成
+### commit <待填> - fix: build741 下载安装类广告干等90s+盲点坐标误触packageinstaller,检测到立即放弃
+
+**用户需求**: "分析日志"（debug_test_20260822_094757.log, build739-e38c7ac, 1283行, 09:42-09:47新会话段）
+
+**背景**: 用户尚未安装 build740（日志仍为 build739），本日志验证了 build734/735 的 RETURNING
+forceKill 兜底有效（09:45:23 广告Activity温和退出3次无效→forceKill→恢复正常）。
+
+**问题(bug,已修)**: "看广告领奖"拉起腾讯 PortraitADActivity **下载安装类广告**（"抖音极速版",
+文案"点击打开或下载第三方应用"+"完成App安装，即可获得奖励",无视频无倒计时）——只有安装App
+才发奖励,用户策略绝不安装,等待永远无奖励:
+- 第一次(09:43:06-09:45:23): scene=AD_ENDED（findAdInstallButton 不匹配此类文案）→ 干等90s
+  超时 → CLOSING_AD 找不到关闭按钮 → **盲点坐标误触下载拉起 packageinstaller(09:45:08,可能误装App!)**
+  → RETURNING pressBack无效 → forceKill 兜底恢复(耗时2分17秒)
+- 第二次(09:45:44): 点"我要更快拿奖"入口直接进 packageinstaller(09:45:59) → 检测系统包 pressBack
+  退出 → 恢复
+- 第三次(09:46:58): 又是同类广告,干等到45s用户手动停止
+- 一小时段内连遇3次,广告池高频下发此类广告
+
+**修复**:
+1. [FarmAccessibilityService.kt](file:///workspace/app/src/main/java/com/bbncbot/service/FarmAccessibilityService.kt)
+   新增 `isDownloadInstallAd()`: 匹配"完成App安装"/"完成APP安装"/"点击打开或下载第三方应用"
+   (无歧义子集,仅下载类广告出现;视频广告安装CTA"立即安装"不含这些文案,不误伤)
+2. [AutomationController.kt watchAd](file:///workspace/app/src/main/java/com/bbncbot/automation/AutomationController.kt):
+   快照日志后、"更快拿奖"检测前加早期退出——`fasterRewardStage==0 && isDownloadInstallAd()` 时
+   立即 forceKill杀宿主+reopenFarmByDeepLink+NAVIGATING(该手段07:41已验证100%有效),
+   全程不点广告页任何元素(不盲点坐标、不点更快拿奖),不等90s。
+   仅 stage==0 检测,不影响更快拿奖阶段2停留的第三方App页面。
+
+**效果**: 下载安装类广告从"90s等待+误触安装器风险+2分钟恢复"变为"~15s放弃重开"，
+且彻底消除误装App风险。广告池轮换后正常视频广告不受影响。
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit 7e0559c - fix: build740 腾讯PortraitAD安装类创意广告误判TRAP_INSTALL,任务#1死循环3轮+无法完成
 
 **用户需求**: "拉取github日志" → "分析日志"（debug_test_20260822_074553.log, build739-e38c7ac, 1011行）
 

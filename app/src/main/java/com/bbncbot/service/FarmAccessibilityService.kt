@@ -3754,6 +3754,31 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build741: 下载安装类广告检测("完成App安装，即可获得奖励"型)
+     *
+     * 日志证据(debug_test_20260822_094757.log, build739, 09:43:06-09:45:23):
+     * 腾讯 PortraitADActivity 拉起"抖音极速版"下载页: 无视频无倒计时,
+     * 文案"点击打开或下载第三方应用"+"完成App安装，即可获得奖励"。
+     * 此类广告只有完成安装App才发奖励(用户策略: 绝不安装),无法通过等待获得:
+     * - build739 行为: scene=AD_ENDED 干等 90s 超时 → CLOSING_AD 找不到关闭按钮 →
+     *   盲点坐标误触下载拉起 packageinstaller(09:45:08 危险!)
+     * - 第二次遇到: 点"我要更快拿奖"直接进 packageinstaller(09:45:59)
+     * 检测到即立即放弃(forceKill 杀宿主重开农场),不点页面任何元素。
+     *
+     * 关键词取无歧义子集: "完成App安装"/"点击打开或下载第三方应用"仅下载类广告出现,
+     * 视频广告的安装CTA("立即安装"按钮)不含这些文案(由 TRAP_INSTALL 逻辑另行处理),
+     * 不会误伤正常视频广告。
+     */
+    fun isDownloadInstallAd(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val allText = collectAllText(root)
+        return allText.any {
+            it.contains("完成App安装") || it.contains("完成APP安装") ||
+            it.contains("点击打开或下载第三方应用")
+        }
+    }
+
+    /**
      * 检测当前是否为"下载确认"系统对话框（如番茄畅听下载确认）
      *
      * 场景（debug_test_20260801_144605.log, build677, 14:45:39）：
