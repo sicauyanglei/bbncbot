@@ -1225,6 +1225,26 @@ object AutomationController {
                 }, INTERVAL_PAGE_LOAD_MS)
                 return
             }
+            // build749 修复（debug_test_20260829_084927.log, build747, 08:47:13-08:49:24 死循环2分11秒）：
+            //   UC 极速版更新后新增首页容器 activity=h02.c（不在 UC farmPageActivityKeywords
+            //   innerucmobile/mainactivity/pz1 中），openFarmInUcBrowser 普通启动 UC 停在 h02.c 首页。
+            //   stepTab 每轮都能找到首页"芭芭农场，免费领水果，助果农增收"入口卡片并 gesture 点击，
+            //   但新版首页点击该卡片无效（12 次均未进入农场页），本分支无兜底 → 死循环到用户手动停止。
+            //   修复：attempt>=6（约30s）仍不在农场页时，放弃 stepTab 点击入口，
+            //   改用 reopenFarmByDeepLink(killCurrentFirst=false) 深链直达农场页
+            //   （build746 日志证实深链打开后 activity=InnerUCMobile，isOnFarmPage 正常判定）。
+            //   killCurrentFirst=false：UC 在前台未被杀，深链直接切换；
+            //   build721 教训：kill 后 Honor 后台启动限制可能拉不起 UC。
+            //   深链后 attempt 重置为 0，给 H5 加载留 6 轮（~30s）窗口，加载慢时才会再次深链。
+            if (attempt >= 6) {
+                Log.w(TAG, "navigate: still not on farm page after $attempt attempts (act=${service.getCurrentActivityName()}), deep link fallback")
+                debugLog("navigate: stepTab ineffective after $attempt attempts (act=${service.getCurrentActivityName()}), reopenFarmByDeepLink(killCurrentFirst=false)")
+                service.reopenFarmByDeepLink(killCurrentFirst = false)
+                handler.postDelayed({
+                    if (state == AutomationState.NAVIGATING) runNavigating(0)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
             Log.i(TAG, "navigate: in farm app but not farm page (platform=${service.currentPlatform}), calling navigateToFarm")
             debugLog("navigate: calling navigateToFarm, platform=${service.currentPlatform}")
             service.navigateToFarm()

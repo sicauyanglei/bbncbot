@@ -777,13 +777,21 @@ class FarmAccessibilityService : AccessibilityService() {
             return false
         }
         // 2. 如果当前活动已知且不在农场页 Activity 关键词列表中，则不在农场页
+        // build749 修复（debug_test_20260829_084927.log, build747, 08:47:13-08:49:24 死循环2分11秒）：
+        //   UC 极速版更新后新增容器 activity=h02.c（不在 UC farmPageActivityKeywords
+        //   innerucmobile/mainactivity/pz1 中）。旧逻辑此处直接 return false，即使页面
+        //   实际已是农场页（内容已加载）也永远判"不在农场页" → NAVIGATING 死循环。
+        //   修复：activity 不匹配时不立即返回 false，标记 activityMismatch 后继续走
+        //   下方内容检查，页面含农场核心元素（hasFarmCore，如"集肥料/施肥"）则内容
+        //   兜底判定为农场页；无农场核心元素才返回 false。避免 App 更新换 activity 名
+        //   后农场页判定彻底失效。
         val farmKeywords = currentPlatformConfig().farmPageActivityKeywords
+        var activityMismatch = false
         if (activity.isNotEmpty() && farmKeywords.isNotEmpty() &&
             farmKeywords.none { activity.contains(it) } &&
             activity != "android.widget.framelayout") {
-            debugLog("isOnFarmPage: activity=$activity not in farm keywords, not on farm page")
-            farmPageCache = false
-            return false
+            debugLog("isOnFarmPage: activity=$activity not in farm keywords, trying content fallback (build749)")
+            activityMismatch = true
         }
         // 3. 检查是否有第三方广告 SDK 窗口
         //    拿不到当前窗口包名时：
@@ -896,6 +904,21 @@ class FarmAccessibilityService : AccessibilityService() {
         // build584: 小说阅读页同样不应判为农场主页（与上方 hasFarmCoreEffective 同步）
         // build590: 短剧任务页同处理（"开始观看得肥料"会被 hasFarmContent 误判）
         val hasFarmContentEffective = if (isNovelOrShortDramaPage) false else hasFarmContent
+        // build749: activity 不在白名单时的内容兜底判定（配合上方 activityMismatch 标记）。
+        // 用更严格的 hasFarmCoreEffective（集肥料/施肥/换种等农场核心元素）而非宽泛的
+        // hasFarmContentEffective（含"领取奖励/任务完成"等易误判词），降低非农场页误判风险。
+        if (activityMismatch) {
+            if (hasFarmCoreEffective) {
+                debugLog("isOnFarmPage: activity=$activity not in farm keywords but farm core content found, on farm page (content fallback)")
+                farmPageCache = true
+                farmPageCacheTime = now
+                return true
+            }
+            debugLog("isOnFarmPage: activity=$activity not in farm keywords and no farm core content, not on farm page")
+            farmPageCache = false
+            farmPageCacheTime = now
+            return false
+        }
         // 单独的"芭芭农场"不算，搜索推荐页也会有这个文字
         if (!hasFarmContentEffective) {
             // H5 WebView 兜底：支付宝/淘宝农场页是 H5 页面，WebView 可能不暴露文本节点，

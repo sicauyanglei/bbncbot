@@ -32,7 +32,52 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build748 快手"扭一扭或点击立即获取"互动广告点击可替代摇一摇拿奖励,不再当陷阱干等60s强退无收益
+### commit <待填> - fix: build749 UC更新新增首页activity=h02.c不在farmPageActivityKeywords,isOnFarmPage永远false+stepTab点击入口12次无效,NAVIGATING死循环2分11秒(深链兜底+内容兜底双修复)
+
+**用户需求**: "分析日志"（debug_test_20260829_084927.log, build747-d37ff9c, 202行, 08:46:50-08:49:24 约2.5分钟, 用户手动停止）
+
+**问题(已修)**: UC 极速版更新引入新首页容器 activity=h02.c, NAVIGATING 死循环 2 分 11 秒:
+- 死循环链条:
+  1. h02.c 为历史日志从未出现的 UC 新 activity(不在 UC farmPageActivityKeywords
+     [innerucmobile/mainactivity/pz1] 中);本次 openFarmInUcBrowser 普通启动 UC
+     (非深链)停在 h02.c 首页
+  2. isOnFarmPage 第2步 activity 不匹配直接 return false,永不做内容检查
+  3. runNavigating else 分支(in farm app but not farm page)→ navigateToFarm →
+     stepTab 每轮都找到首页"芭芭农场，免费领水果，助果农增收"入口卡片
+     (bounds=[363,451][838,520])并 gesture 点击,但新版首页点击无效
+     (12 次均未进入农场页, 08:47:16-08:49:24 每~11s循环一次)
+  4. else 分支无任何兜底; attempt>=10 仅重置计数继续循环 → 死循环到用户手动停止
+- 佐证: build746 日志证实深链打开农场 URL 后 activity=InnerUCMobile(在 keywords 中,
+  isOnFarmPage 正常判定);普通启动 UC 停在 h02.c 是新版 UC 行为变化
+
+**修复(双保险)**:
+- 修复A: runNavigating else 分支 attempt>=6(约30s)仍不在农场页时,放弃 stepTab
+  点击入口,改用 reopenFarmByDeepLink(killCurrentFirst=false) 深链直达农场页;
+  深链后 attempt 重置为 0,给 H5 加载留 6 轮(~30s)窗口,加载慢时才会再次深链。
+  killCurrentFirst=false: UC 在前台未被杀,深链直接切换(build721 教训:kill 后
+  Honor 后台启动限制可能拉不起 UC)
+- 修复B: isOnFarmPage activity 不匹配时不立即 return false,标记 activityMismatch
+  继续走内容检查,页面含农场核心元素(hasFarmCoreEffective: 集肥料/施肥/换种等)
+  则内容兜底判定为农场页;无农场核心元素才返回 false。防止未来 UC 再换容器
+  activity 名后农场页判定彻底失效。用严格核心词(非宽泛 hasFarmContent 的
+  "领取奖励/任务完成")降低非农场页误判风险
+- 安全性: 广告页 activity 在 farmKeywords 检查之前已被 AD_ACTIVITY_KEYWORDS
+  拦截(776行),内容兜底不会放过广告页;h02.c 首页无农场核心文本(日志
+  claim-text-nodes NONE 证实),不会被误判为农场页
+
+**修复后预期时间线**: 启动 UC 停 h02.c → attempt 0-5 stepTab 尝试(~30s) →
+attempt=6 深链直达农场页(InnerUCMobile) → H5 加载 → isOnFarmPage=true →
+COLLECTING_DIRECT 正常流程;若新版 UC 深链打开后仍是 h02.c 承载农场页,
+修复B 内容兜底生效
+
+**注意**: 本轮日志未验证 build748(快手互动广告点击领取)修复——自动化卡死在
+NAVIGATING 死循环,未进入广告流程,build748 修复待下轮日志验证
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit 3464529 - fix: build748 快手"扭一扭或点击立即获取"互动广告点击可替代摇一摇拿奖励,不再当陷阱干等60s强退无收益
 
 **用户需求**: "分析日志"（debug_test_20260822_195844.log, build747-d37ff9c, 1097行, 19:49-19:58 约9.5分钟）
 
