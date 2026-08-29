@@ -32,7 +32,7 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build759 视频广告类型调试-快手扭一扭广告"点击跳转拿奖励"按钮漏识别被当陷阱forceKill奖励丢失(关键词扩展+跳转守卫:陷阱场景降级+深链分支放宽停留20s保留现场切回)
+### commit efe08f5 - fix: build759 视频广告类型调试-快手扭一扭广告"点击跳转拿奖励"按钮漏识别被当陷阱forceKill奖励丢失(关键词扩展+跳转守卫:陷阱场景降级+深链分支放宽停留20s保留现场切回)
 
 **用户需求**: "先把视频广告任务做好，一个类型一个类型调试通过"
 
@@ -86,6 +86,8 @@ watchAd: bringFarmAppToFront (preserve scene) + killing 'com.taobao.taobao'
 ```
 
 **编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+✅ **CI 已通过**（run 33260148695, efe08f5, run_number=759, 2026-08-30），APK 自报
+编号 **build759-efe08f5** 已发布。
 
 ---
 
