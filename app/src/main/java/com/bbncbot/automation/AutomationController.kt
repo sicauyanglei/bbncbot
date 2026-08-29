@@ -69,6 +69,8 @@ object AutomationController {
     private const val DEEP_LINK_DEFAULT_STAY_MS = 15000L
     /** build737: 深链任务停留时长缓冲（毫秒），加在任务文案要求的秒数之上，确保任务判定有效停留 */
     private const val DEEP_LINK_STAY_BUFFER_MS = 5000L
+    /** build761: 千问App包名（任务"打开千问发起对话"跳转目标） */
+    private const val QIANWEN_PKG = "com.aliyun.tongyi"
     /**
      * build760: bringFarmAppToFront 手势切换（底部上滑停顿开最近任务→点App卡片）的
      * 全流程最坏耗时（毫秒）：800ms 等最近任务 + 最多 5×500ms 卡片重试 + 600ms 验证。
@@ -526,6 +528,16 @@ object AutomationController {
      */
     @Volatile
     private var interactiveAdJumpPending: Boolean = false
+
+    /**
+     * build761: 千问对话任务状态
+     * 任务"打开千问发起对话"跳转千问App后，需在对话框发送"你吃饭了吗"才算发起对话。
+     * typed=文本已填入输入框；sent=发送按钮已点击（对话已发起）。
+     */
+    @Volatile
+    private var qianwenChatTyped: Boolean = false
+    @Volatile
+    private var qianwenChatSent: Boolean = false
 
     /** 单个任务最大失败次数，超过则跳过该任务 */
     private const val MAX_TASK_FAILS = 2
@@ -5257,6 +5269,9 @@ object AutomationController {
             interactiveAdClickClaimClicked = false  // build748: 重置互动广告"点击立即获取"按钮点击标记
             // build759: 重置互动广告"点击跳转拿奖励"跳转状态
             interactiveAdJumpPending = false
+            // build761: 重置千问对话任务状态
+            qianwenChatTyped = false
+            qianwenChatSent = false
             // build671: 重置倒计时停滞检测状态
             adCountdownStallHandled = false
             // build675: 重置"点我加速"按钮点击标记
@@ -6760,6 +6775,15 @@ object AutomationController {
                     val stayMs = deepLinkTaskStayMs
                     Log.i(TAG, "watchAd: entered deep-linked app '$currentPkg', will bring farm to front (preserve scene) after ${stayMs}ms")
                     debugLog("watchAd: deep-linked app '$currentPkg' detected, waiting ${stayMs}ms (task hint) then bringFarmAppToFront")
+                    // build761: 千问对话任务——跳转千问App后在对话框发送"你吃饭了吗"
+                    // （任务"打开千问发起对话"要求发起对话才算完成；广告跳转
+                    //   interactiveAdJumpPending 场景不是对话任务，不触发）
+                    if (currentPkg == QIANWEN_PKG && !interactiveAdJumpPending) {
+                        debugLog("watchAd: entered Qianwen app (chat task), will type '你吃饭了吗' and send in 3s")
+                        handler.postDelayed({
+                            if (state == AutomationState.WATCHING_AD) runQianwenChat(0)
+                        }, 3000L)
+                    }
                     val jumpedPkg = currentPkg
                     handler.postDelayed({
                         if (state != AutomationState.WATCHING_AD) return@postDelayed
@@ -7193,6 +7217,57 @@ object AutomationController {
                 handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
             }
         }, INTERVAL_PAGE_LOAD_MS)
+    }
+
+    /**
+     * build761: 千问对话任务——在千问App对话框输入"你吃饭了吗"并发送
+     *
+     * 用户需求："打开千问发起对话，得在千问对话框中发送个'你吃饭了吗'"——
+     * 任务"打开千问发起对话"仅跳转到千问App不够，需在对话框实际发出消息才算发起对话。
+     *
+     * 流程（深链分支检测到 QIANWEN_PKG 后 3s 启动，等千问首页加载）：
+     *   1. 找可编辑输入框（千问对话框）→ ACTION_SET_TEXT 填入"你吃饭了吗"
+     *   2. 等 1.2s（输入文本后发送按钮才出现/启用）→ 找"发送"按钮点击
+     *   3. 两步各最多重试 6 次（2s 间隔）——千问首次打开可能有隐私弹窗/登录页/加载慢
+     *
+     * 对话发起后不影响原有停留计时（deepLinkTaskStayMs 到点仍保留现场切回农场）。
+     */
+    private fun runQianwenChat(attempt: Int) {
+        if (state != AutomationState.WATCHING_AD || qianwenChatSent) return
+        val service = getService() ?: return
+        if (attempt >= 6) {
+            debugLog("runQianwenChat: giving up after $attempt attempts (input/send button not found, task may need manual completion)")
+            return
+        }
+        // 第一步：填入文本
+        if (!qianwenChatTyped) {
+            val typed = service.qianwenTypeChatMessage("你吃饭了吗")
+            if (typed) {
+                qianwenChatTyped = true
+                debugLog("runQianwenChat: typed '你吃饭了吗', waiting 1.2s for send button to appear, then click send")
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runQianwenChat(attempt)
+                }, 1200L)
+            } else {
+                val texts = service.collectAllTextSnapshot(maxCount = 8)
+                debugLog("runQianwenChat: input not found (attempt=$attempt, texts=$texts), retrying in 2s")
+                handler.postDelayed({
+                    if (state == AutomationState.WATCHING_AD) runQianwenChat(attempt + 1)
+                }, 2000L)
+            }
+            return
+        }
+        // 第二步：点击发送
+        val sent = service.qianwenClickSendButton()
+        if (sent) {
+            qianwenChatSent = true
+            debugLog("runQianwenChat: send button clicked, chat initiated with '你吃饭了吗' (task requirement fulfilled)")
+        } else {
+            debugLog("runQianwenChat: send button not found (attempt=$attempt), retrying in 2s")
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) runQianwenChat(attempt + 1)
+            }, 2000L)
+        }
     }
 
     // ============== 阶段5: 关闭广告（多策略） ==============

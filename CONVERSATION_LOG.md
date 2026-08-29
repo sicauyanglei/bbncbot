@@ -32,6 +32,57 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit <待填> - feat: build761 千问对话任务-跳转千问App后在对话框自动发送"你吃饭了吗"(深链分支触发:找输入框SET_TEXT→1.2s后点发送按钮,假输入框兜底点击,6次重试)
+
+**用户需求**: "打开千问发起对话，得在千问对话框中发送个'你吃饭了吗'"
+
+**背景**: 任务"打开千问发起对话"点击"去完成"后跳转千问App（com.aliyun.tongyi），
+但仅跳转不算发起对话，需在千问对话框实际发出消息任务才完成。
+此前深链分支只做"停留→切回"，千问对话任务从未真正完成过。
+
+**实现链路**:
+1. **触发点**（watchAd 深链分支首检块）: `currentPkg == QIANWEN_PKG("com.aliyun.tongyi")
+   && !interactiveAdJumpPending`（广告跳转场景排除）→ 3s 后启动 runQianwenChat(0)
+   （等千问首页加载；深链检测在 elapsedMs>=5s，即跳转后约 8s 开始对话流程）
+2. **输入**（FarmAccessibilityService.qianwenTypeChatMessage）:
+   - 找页面第一个可编辑节点（findFirstEditText，千问输入框）→
+     ACTION_SET_TEXT 填入"你吃饭了吗"（无需聚焦，输入法无关，复用支付宝搜索
+     "芭芭农场"的 SET_TEXT 先例）
+   - 兜底：无 EditText 但有假输入框提示节点（"有问题，尽管问/发消息/问一问/去提问"
+     等关键词，千问首页样式）→ 点击打开输入界面，下一轮重试再输入
+3. **发送**（qianwenClickSendButton）: 输入后等 1.2s（发送按钮输入文本后才
+   出现/启用）→ 找 text/desc 含"发送"的短文本节点（≤6字，排除"已发送"）→ 点击
+4. **重试**: 输入/发送各最多 6 次（2s 间隔，覆盖隐私弹窗/登录页/加载慢），
+   每轮失败 dump 页面 texts（texts=...）便于下轮日志定位千问页面结构
+5. **标志位**: qianwenChatTyped/qianwenChatSent，每次进 WATCHING_AD（elapsedMs==0）重置；
+   发送成功后不影响原有停留计时（deepLinkTaskStayMs 到点仍保留现场切回农场）
+
+**时间线**（默认停留 20s 内完成）: 深链检测5s + 等待3s + 输入 + 1.2s + 发送 ≈ 10s
+
+**修复后预期日志**（千问任务）:
+```
+watchAd: deep-linked app 'com.aliyun.tongyi' detected, waiting 20000ms (task hint) then bringFarmAppToFront
+watchAd: entered Qianwen app (chat task), will type '你吃饭了吗' and send in 3s
+qianwenTypeChatMessage: SET_TEXT '你吃饭了吗' -> true
+runQianwenChat: typed '你吃饭了吗', waiting 1.2s for send button to appear, then click send
+qianwenClickSendButton: found send button (text='' desc='发送'), clicking
+runQianwenChat: send button clicked, chat initiated with '你吃饭了吗' (task requirement fulfilled)
+watchAd: bringFarmAppToFront (preserve scene) + killing 'com.aliyun.tongyi'  [20s到点切回]
+```
+若千问首页是假输入框:
+```
+qianwenTypeChatMessage: no EditText, clicking fake input hint '有问题，尽管问' to open chat input
+qianwenTypeChatMessage: SET_TEXT '你吃饭了吗' -> true   [下一轮重试成功]
+```
+
+**风险与调试点**: 千问App页面结构未实测（无真机日志），输入框定位（EditText/
+假输入框）和发送按钮文案（"发送"）基于通用聊天App模式，若失败看日志中
+`texts=[...]` dump 的实际页面文本下轮修正。
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### commit 4aee3dd - feat: build760 农场App切回前台改手势切换(底部上滑停顿开最近任务→点App卡片,模拟真实用户切换,WebView不重载不刷新);moveTaskToFront降级为fallback;kill+deepLinkReturn延迟4s等手势完成
 
 **用户需求**: "从底部手指拖动切换后台任务，把uc浏览器切换单前台，不要触发浏览器刷新"

@@ -6292,6 +6292,101 @@ class FarmAccessibilityService : AccessibilityService() {
         return null
     }
 
+    /**
+     * build761: 千问对话任务——在千问App聊天输入框填入消息文本
+     *
+     * 任务"打开千问发起对话"跳转千问App后，需在对话框发送消息才算发起对话。
+     * 找页面中第一个可编辑节点（千问输入框，hint"有问题，尽管问"等），
+     * ACTION_SET_TEXT 填入文本（无需聚焦，输入法无关）。
+     *
+     * @return true=文本已填入输入框
+     */
+    fun qianwenTypeChatMessage(message: String): Boolean {
+        val root = rootInActiveWindowSafe() ?: run {
+            debugLog("qianwenTypeChatMessage: root null")
+            return false
+        }
+        val input = findFirstEditText(root)
+        if (input == null) {
+            // build761 兜底：千问首页可能是假输入框（点击"有问题，尽管问"等提示后才
+            // 弹出真输入框/进入对话页）——点击提示节点，下一轮重试再找 EditText 输入
+            val hintKeywords = listOf("有问题", "尽管问", "发消息", "发送消息", "问一问", "去提问")
+            var hintNode: AccessibilityNodeInfo? = null
+            fun walkHint(node: AccessibilityNodeInfo) {
+                if (hintNode != null) return
+                val text = node.text?.toString().orEmpty()
+                val desc = node.contentDescription?.toString().orEmpty()
+                for (s in listOf(text, desc)) {
+                    if (s.isNotEmpty() && s.length <= 20 && hintKeywords.any { s.contains(it) }) {
+                        hintNode = node
+                        return
+                    }
+                }
+                for (i in 0 until node.childCount) {
+                    val child = node.getChild(i) ?: continue
+                    walkHint(child)
+                    if (hintNode != null) return
+                }
+            }
+            walkHint(root)
+            if (hintNode != null) {
+                val hintText = hintNode?.text?.toString().orEmpty()
+                debugLog("qianwenTypeChatMessage: no EditText, clicking fake input hint '$hintText' to open chat input")
+                performClickSafe(hintNode!!)
+            } else {
+                debugLog("qianwenTypeChatMessage: no editable input found (page may still be loading or has popup)")
+            }
+            return false
+        }
+        val args = android.os.Bundle()
+        args.putCharSequence(
+            android.view.accessibility.AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+            message
+        )
+        val ok = input.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+        debugLog("qianwenTypeChatMessage: SET_TEXT '$message' -> $ok")
+        return ok
+    }
+
+    /**
+     * build761: 千问对话任务——点击"发送"按钮
+     *
+     * 输入文本后千问的发送按钮才会出现/启用（调用前先 qianwenTypeChatMessage）。
+     * 找 text/contentDescription 含"发送"的短文本节点（排除"已发送"等），点击。
+     *
+     * @return true=发送按钮点击成功
+     */
+    fun qianwenClickSendButton(): Boolean {
+        val root = rootInActiveWindowSafe() ?: run {
+            debugLog("qianwenClickSendButton: root null")
+            return false
+        }
+        fun walk(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+            val text = node.text?.toString().orEmpty()
+            val desc = node.contentDescription?.toString().orEmpty()
+            for (s in listOf(text, desc)) {
+                if (s.isEmpty()) continue
+                // 短文本含"发送"且非"已发送"状态文案（发送按钮文案通常是"发送"或"发送消息"）
+                if (s.length <= 6 && s.contains("发送") && !s.contains("已发送")) {
+                    return node
+                }
+            }
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                walk(child)?.let { return it }
+            }
+            return null
+        }
+        val sendBtn = walk(root) ?: run {
+            debugLog("qianwenClickSendButton: no send button found (input may be empty or button not rendered)")
+            return false
+        }
+        val btnText = sendBtn.text?.toString().orEmpty()
+        val btnDesc = sendBtn.contentDescription?.toString().orEmpty()
+        debugLog("qianwenClickSendButton: found send button (text='$btnText' desc='$btnDesc'), clicking")
+        return performClickSafe(sendBtn)
+    }
+
     private fun findNodeByExactDesc(root: AccessibilityNodeInfo, exactDesc: String): AccessibilityNodeInfo? {
         return findNodeByExactDescInternal(root, exactDesc)
     }
