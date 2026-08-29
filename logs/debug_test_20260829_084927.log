@@ -1,0 +1,202 @@
+=== cleared on app start (version=2.2, build=build747-d37ff9c, time=08:46:50) ===
+08:46:50.720 killPlatformApps: killed com.ucmobile.lite for UC
+08:46:50.722 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+08:46:50.723 killPlatformApps: killed com.taobao.taobao for TAOBAO
+08:47:00.947 FarmAccessibilityService connected, API=36
+08:47:02.144 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+08:47:02.148 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+08:47:02.148 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+08:47:10.916 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+08:47:10.918 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+08:47:13.637 === Automation v2 Started === platform=UC
+08:47:13.638 cancelNavigation: all navigation callbacks cancelled
+08:47:13.645 reset platform complete: UC
+08:47:13.646 state: IDLE -> NAVIGATING
+08:47:13.717 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:13.792 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:15.809 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:15.884 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:16.028 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:16.140 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=h02.c, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+08:47:16.167 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+08:47:16.320 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:16.350 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:16.490 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:16.674 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:16.784 navigate: calling navigateToFarm, platform=UC
+08:47:19.030 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+08:47:19.063 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+08:47:19.065 performClickSafe: ACTION_CLICK failed, trying gesture
+08:47:19.067 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+08:47:19.076 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+08:47:23.213 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:23.507 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:23.692 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:24.042 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:29.211 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:29.266 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:29.417 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:29.568 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:29.783 navigate: calling navigateToFarm, platform=UC
+08:47:31.335 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+08:47:31.336 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+08:47:31.337 performClickSafe: ACTION_CLICK failed, trying gesture
+08:47:31.337 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+08:47:31.338 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+08:47:34.826 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:34.845 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:34.909 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:35.024 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:40.092 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:40.125 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:40.213 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:40.342 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:40.426 navigate: calling navigateToFarm, platform=UC
+08:47:41.997 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+08:47:41.999 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+08:47:42.000 performClickSafe: ACTION_CLICK failed, trying gesture
+08:47:42.001 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+08:47:42.002 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+08:47:45.490 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:45.540 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:45.655 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:45.823 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:50.921 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:50.970 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:51.087 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:51.273 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:51.422 navigate: calling navigateToFarm, platform=UC
+08:47:52.980 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+08:47:52.981 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+08:47:52.982 performClickSafe: ACTION_CLICK failed, trying gesture
+08:47:52.983 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+08:47:52.985 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+08:47:56.487 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:56.536 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:56.653 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:47:56.802 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:01.902 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:01.952 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:02.070 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:02.218 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:02.335 navigate: calling navigateToFarm, platform=UC
+08:48:03.910 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+08:48:03.912 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+08:48:03.914 performClickSafe: ACTION_CLICK failed, trying gesture
+08:48:03.916 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+08:48:03.918 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+08:48:07.400 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:07.450 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:07.566 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:07.733 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:12.831 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:12.883 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:12.982 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:13.114 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:13.232 navigate: calling navigateToFarm, platform=UC
+08:48:14.772 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+08:48:14.773 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+08:48:14.774 performClickSafe: ACTION_CLICK failed, trying gesture
+08:48:14.775 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+08:48:14.776 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+08:48:18.276 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:18.302 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:18.357 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:18.446 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:23.515 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:23.564 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:23.679 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:23.829 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:23.946 navigate: calling navigateToFarm, platform=UC
+08:48:25.501 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+08:48:25.503 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+08:48:25.504 performClickSafe: ACTION_CLICK failed, trying gesture
+08:48:25.505 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+08:48:25.506 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+08:48:29.031 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:29.082 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:29.198 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:29.364 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:34.495 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:34.528 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:34.629 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:34.745 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:34.817 navigate: calling navigateToFarm, platform=UC
+08:48:36.385 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+08:48:36.386 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+08:48:36.387 performClickSafe: ACTION_CLICK failed, trying gesture
+08:48:36.388 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+08:48:36.389 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+08:48:39.861 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:39.893 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:39.934 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:40.043 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:45.159 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:45.209 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:45.280 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:45.359 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:45.412 navigate: calling navigateToFarm, platform=UC
+08:48:46.935 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+08:48:46.936 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+08:48:46.936 performClickSafe: ACTION_CLICK failed, trying gesture
+08:48:46.937 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+08:48:46.937 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+08:48:50.466 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:50.507 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:50.573 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:50.646 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:55.723 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:55.771 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:55.888 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:56.056 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:48:56.154 navigate: calling navigateToFarm, platform=UC
+08:48:57.728 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+08:48:57.732 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+08:48:57.733 performClickSafe: ACTION_CLICK failed, trying gesture
+08:48:57.736 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+08:48:57.738 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+08:49:01.219 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:01.269 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:01.355 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:01.467 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:06.551 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:06.599 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:06.683 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:06.733 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:06.783 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:06.838 [navigate-start] snapshot: pkg=com.ucmobile.lite, act=h02.c, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+08:49:06.873 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+08:49:06.933 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:06.983 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:07.101 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:07.249 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:07.381 navigate: calling navigateToFarm, platform=UC
+08:49:08.927 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+08:49:08.930 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+08:49:08.932 performClickSafe: ACTION_CLICK failed, trying gesture
+08:49:08.933 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+08:49:08.935 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+08:49:12.447 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:12.497 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:12.614 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:12.764 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:17.828 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:17.838 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:17.887 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:17.993 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:18.034 navigate: calling navigateToFarm, platform=UC
+08:49:19.616 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+08:49:19.618 performClickSafe: text='芭芭农场，免费领水果，助果农增收' desc='' bounds=[363,451][838,520] clickable=false
+08:49:19.619 performClickSafe: ACTION_CLICK failed, trying gesture
+08:49:19.620 dispatchGesture: screen=[[363,451][838,520]] window=[[0,0][0,0]]
+08:49:19.621 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 485.5)
+08:49:23.096 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:23.127 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:23.180 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:23.277 isOnFarmPage: activity=h02.c not in farm keywords, not on farm page
+08:49:24.453 state: NAVIGATING -> STOPPING
+08:49:24.456 cancelNavigation: all navigation callbacks cancelled
+08:49:24.460 state: STOPPING -> IDLE
+08:49:27.801 saveToken: saved (len=93, head='gith', tail='McKr')
+08:49:27.804 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+08:49:27.805 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260829_084927.log, localFile=debug.log (16664 bytes)
