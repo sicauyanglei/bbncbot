@@ -32,7 +32,50 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build749 UC更新新增首页activity=h02.c不在farmPageActivityKeywords,isOnFarmPage永远false+stepTab点击入口12次无效,NAVIGATING死循环2分11秒(深链兜底+内容兜底双修复)
+### commit <待填> - fix: build750 快手"扭一扭"陷阱互动广告退出浪费40s,CLOSING_AD检测无领取/下载按钮直接forceKill宿主+深链重开(温和关闭多轮验证无效)
+
+**用户需求**: "分析日志"（debug_test_20260829_154730.log, build749-0a7470c, 597行, 15:43:52-15:47:24 约3.5分钟, 用户手动停止）
+
+**build749 验证结果**:
+- ✓ NAVIGATING 死循环已解决: 15:44:05 attempt=0 UC不在前台(pkg=null)→reopenFarmByDeepLink
+  深链直达→15:44:12 on farm page→15:44:18 farmContentLoaded→COLLECTING_DIRECT, 仅13秒
+  (本轮未触发 h02.c 死循环场景——普通启动时 UC 未起来走了深链分支; 修复B内容兜底无副作用,
+  forceKill UC 重开后 RETURNING→NAVIGATING→农场判定全程正常)
+- ✓ 快照 pkg 全程正确, 无卡死
+- ✗ build748 未验证: 本轮快手广告是"点击跳转拿奖励"陷阱变体(非"立即获取"可点变体),
+  findInteractiveAdClickToClaimButton 正确返回 null 不误点, 但该变体无收益
+
+**问题(已修)**: 快手陷阱互动广告退出流程一次浪费 40 秒(15:46:05-15:46:45):
+- 本轮文案: "扭一扭或点击跳转详情页或第三方应用"+"点击跳转拿奖励"+"可直接拿奖励"
+  (淘宝闪购推广)——是 build748 明确排除的跳转陷阱变体, 无可点领取按钮
+- 时间线: WATCHING_AD 干等18s(countdown stuck at 10s 静态文本)→CLOSING_AD 策略0
+  点'跳过'ACTION_CLICK success 但页面不关(15:46:07)→策略1 8坐标盲点无效(15:46:12)
+  →策略3 pressBack 无效→RETURNING 温和退出3次无效(15:46:30-15:46:45)→attempt=3
+  forceKill UC+深链重开才退出(6秒生效)。整轮广告 15:45:41-15:46:51 共70秒零收益
+- 多轮日志(build706/734/750)反复验证: 此类广告对所有温和关闭手段(跳过按钮/坐标盲点/
+  pressBack/back坐标)免疫, forceKillApp(宿主)+reopenFarmByDeepLink 是唯一可靠退出手段
+- 修复: runClosingAd strategy=0 入口检测互动陷阱广告(isInteractiveAdPage 且无
+  findInteractiveAdClickToClaimButton 按钮且无 findInteractiveAdDownloadButton 按钮且
+  非 isFertilizerGrantedPage)→跳过全部温和策略(0-4)和 RETURNING 温和退出,直接
+  forceKill 宿主+深链重开+NAVIGATING(与 build734 RETURNING 兜底同款)
+- isInteractiveAdPage 从 private 改 public 供 controller 调用
+- 安全性: 有"立即获取"按钮(build748 可点变体)或下载按钮(穿山甲下载类)或肥料已发放页
+  时不触发,保留原有流程; 预期单次广告退出从 ~40s 缩短到 ~7s
+
+**已知未修(次要)**:
+- ①"我要更快拿奖"无确认弹窗变体×2(15:44:53跳淘宝/15:45:21跳支付宝): stage=1 检测
+  跳转后 forceKillApp 杀不掉前台App(killBackgroundProcesses 限制,build697 已知),
+  5s后 trap 分支深链回UC+杀App(此时已退后台杀成功)→广告被弃。每次~15s,广告奖励
+  跳转后本来就拿不到,恢复流程正常无卡死,暂可接受
+- ②15:44:20 第一次点击"看广告领奖"无效(H5响应慢),第二次(15:44:41)才进广告,浪费~20s
+- ③forceKill UC 重开后 collectDirect 的 lastClickedButton 未重置,"看广告领奖"被
+  skip(影响小,任务列表阶段正常点"去完成"进广告)
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit 0a7470c - fix: build749 UC更新新增首页activity=h02.c不在farmPageActivityKeywords,isOnFarmPage永远false+stepTab点击入口12次无效,NAVIGATING死循环2分11秒(深链兜底+内容兜底双修复)
 
 **用户需求**: "分析日志"（debug_test_20260829_084927.log, build747-d37ff9c, 202行, 08:46:50-08:49:24 约2.5分钟, 用户手动停止）
 

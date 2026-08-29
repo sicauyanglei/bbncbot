@@ -6885,6 +6885,38 @@ object AutomationController {
             return
         }
 
+        // build750 修复（debug_test_20260829_154730.log, build749, 15:46:05-15:46:45 共40秒）：
+        //   快手"扭一扭"陷阱互动广告（本轮文案"扭一扭或点击跳转详情页或第三方应用"+
+        //   "点击跳转拿奖励"，是 build748 明确排除的跳转陷阱变体，无可点领取按钮）：
+        //   CLOSING_AD 策略0 点'跳过'ACTION_CLICK success 但页面不关(15:46:07)，
+        //   策略1 8坐标盲点无效(15:46:12)，策略3 pressBack 无效，
+        //   RETURNING 温和退出3次(attempt 0-2)无效(15:46:30-15:46:45)，
+        //   最终 attempt=3 forceKill UC+深链重开才退出(15:46:45-15:46:51,6秒生效)。
+        //   多轮日志(build706/734/750)反复验证：此类广告对所有温和关闭手段免疫，
+        //   forceKillApp(宿主)+reopenFarmByDeepLink 是唯一可靠退出手段。
+        //   修复：CLOSING_AD 入口检测互动陷阱广告（无可领"立即获取"按钮、无下载按钮、
+        //   非"肥料已发放"页）时，跳过全部温和策略(0-4)和 RETURNING 温和退出，
+        //   直接 forceKill 宿主+深链重开+NAVIGATING（与 build734 RETURNING 兜底同款，
+        //   该手段已验证有效），单次广告退出从 ~40s 缩短到 ~7s。
+        //   安全性：有"立即获取"按钮（build748 可点变体）或下载按钮（穿山甲下载类）
+        //   或肥料已发放页时不触发，保留原有流程。
+        if (strategy == 0 && !service.isFertilizerGrantedPage() &&
+            service.isInteractiveAdPage() &&
+            service.findInteractiveAdClickToClaimButton() == null &&
+            service.findInteractiveAdDownloadButton() == null) {
+            Log.w(TAG, "closeAd: interactive trap ad (no claim/download button), skipping gentle strategies, force killing host app")
+            debugLog("closeAd: 互动陷阱广告(无立即获取/下载按钮),温和关闭已验证无效,直接forceKill宿主+深链重开")
+            service.setAdMode(false)
+            val farmPkgs = service.currentPlatformConfig().packageNames
+            for (pkg in farmPkgs) {
+                service.forceKillApp(pkg, pressBackFirst = false)
+            }
+            service.reopenFarmByDeepLink(killCurrentFirst = false)
+            moveTo(AutomationState.NAVIGATING)
+            handler.postDelayed({ runNavigating(0) }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
         when (strategy) {
             0 -> {
                 // 策略0：查找并点击"×"/"关闭"按钮节点（优先平台特有关闭文本）

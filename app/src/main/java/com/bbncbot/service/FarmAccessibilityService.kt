@@ -2064,7 +2064,7 @@ class FarmAccessibilityService : AccessibilityService() {
      *
      * @return true 表示当前是摇一摇/扭一扭互动广告页（应点击下载按钮等待完成）
      */
-    private fun isInteractiveAdPage(): Boolean {
+    fun isInteractiveAdPage(): Boolean {
         val root = rootInActiveWindowSafe() ?: return false
         val allText = collectAllText(root)
         // build706 修复（debug_test_20260803_201027.log, build704, 20:08:39-20:10:24）:
