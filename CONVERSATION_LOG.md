@@ -32,7 +32,7 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - feat: build760 农场App切回前台改手势切换(底部上滑停顿开最近任务→点App卡片,模拟真实用户切换,WebView不重载不刷新);moveTaskToFront降级为fallback;kill+deepLinkReturn延迟4s等手势完成
+### commit 4aee3dd - feat: build760 农场App切回前台改手势切换(底部上滑停顿开最近任务→点App卡片,模拟真实用户切换,WebView不重载不刷新);moveTaskToFront降级为fallback;kill+deepLinkReturn延迟4s等手势完成
 
 **用户需求**: "从底部手指拖动切换后台任务，把uc浏览器切换单前台，不要触发浏览器刷新"
 
@@ -82,6 +82,8 @@ clickRecentTaskCard: root 'com.xxx' is not launcher (recents not opened, gesture
 "UC"两字母（最近任务界面元素少，误匹配风险低）。
 
 **编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+✅ **CI 已通过**（run 33277878509, 4aee3dd, run_number=760, 2026-08-30），APK 自报
+编号 **build760-4aee3dd** 已发布。
 
 ---
 
