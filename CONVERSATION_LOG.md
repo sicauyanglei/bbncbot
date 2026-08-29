@@ -32,6 +32,64 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit <待填> - fix: build758 深链浏览任务跳转外部App后被isNonAdTaskPage"充值"关键词误伤提前9s放弃(移动APP+300肥料丢失,守卫仅农场包内检测);松鼠大战H5游戏页activity已变仍判"点击无效果"死磕重试26s跳过(activity变化检测)
+
+**用户需求**: "分析日志"（debug_test_20260829_230753.log, **build757-4149866**, 670行,
+23:04:43-23:07:53 约3分钟单会话, 用户手动停止。GitHub logs/ 拉取, 本地 logs/ 同步）
+
+**build756 三项修复验证结果**:
+- ✓✓ Fix A(lite渲染态导航): 23:04:58.934 `navigate: hasFarmContentLoaded=false,
+  hasCoreEntry=true, attempt=1` → 直接进 COLLECTING_DIRECT（原 54s 干等消失）；
+  23:06:38.693 第二次同样快速通过（7s）
+- ✓✓ Fix B(互动陷阱快速退出): 两次快手扭一扭陷阱广告均走
+  `closeAd: 互动陷阱广告(无立即获取/下载按钮),温和关闭已验证无效,直接forceKill宿主+深链重开`
+  快速退出（~7s），trapAdExit streak=1/2 正常递增；无"立即购买"CTA变体出现
+  （该变体修复待后续日志验证）
+- ✗ Fix C(签到后跳过AI视觉): 无验证机会（签到在会话前已完成，页面直接'已领取'）
+- ✓✓ 编译修复(Fix E): build757-4149866 CI 构建成功发布（编号注意：run_number=757）
+
+**问题1(已修): 深链浏览任务跳转外部App后 isNonAdTaskPage 误伤提前放弃** ——
+23:07:18-23:07:27。任务#6"去中国移动领话费"（+300肥料）点击"去完成"成功跳转
+移动APP（com.greenpoint.android.mc10086.activity），但运营商APP首页必含"充值/
+理财"等词 → isNonAdTaskPage YES → `non-ad task page, skipping task #6` pressBack
+放弃。停留仅9s < 任务要求15s+，奖励丢失。
+- 修复(Fix A): checkTaskResult 的 isNonAdTaskPage 检测加守卫——activeRoot 非农场包
+  且非 systemui（真深链跳转到外部App）时跳过该检测，交给下方深链分支进
+  WATCHING_AD（停留 deepLinkTaskStayMs=20s + build755 奖励到账检测 + 保留现场
+  切回农场）。该检测语义本就是"农场App内WebView任务详情页"（邀请/充值类任务
+  详情），外部App首页内容不可控不应拦截
+
+**问题2(已修): 任务点击后 activity 已变仍判"无效果"死磕重试 26s 后跳过** ——
+23:06:47-23:07:13。任务#2"玩松鼠大战15秒"（+2400肥料）点击"去完成"后页面已切换
+（activity: com.uc.browser.InnerUCMobile → android.widget.LinearLayout，H5游戏页
+打开），但任务列表弹层下的农场节点（集肥料等）仍可读 → isOnFarmPage content
+fallback 误判 true → taskClickLeftFarm 未置位 → 误判"任务点击无效果"重试点击
+3 次（每次5s检查+点击）共 26s 后 `跳过该任务`，+2400 肥料丢失。
+- 修复(Fix B): 新增 taskClickActivityName（runProcessingTask 点击"去完成"前记录
+  activity，重试点击时刷新）；checkTaskResult"无效果"守卫加条件
+  actChangedSinceTaskClick——activity 已变化 = 页面已切换 = 点击有效果，不进重试
+  死磕，走任务完成退出路径（关闭/返回→advance 下一任务）
+
+**次要观察(不修)**:
+- taskComplete=true 从 23:06:41 起贯穿后半会话（isTaskCompletePage 误匹配页面
+  '已完成'文本），被 4142 无效果守卫挡住未致实害；Fix B 修复后 activity 变化
+  场景会引导到完成退出路径（恰好正确）
+- 任务#3/#4 头条系任务被 skip list task 跳过（跳过清单行为，正常）
+- 23:05:17/23:06:44 findGoCompleteButtons 对'签到肥料'节点重复 drop×6（签到区
+  7天格子），仅日志噪音无实害
+
+**修复后预期**:
+- 深链任务日志出现 `processTask: deep-linked to external app (activeRoot='...'),
+  skip non-ad-task-page check, fall through to deep-link branch` → 进 WATCHING_AD
+  停留20s（原 `non-ad task page, skipping task` 提前放弃消失）
+- 松鼠大战类H5任务日志出现 `processTask: activity changed since task click
+  ('com.uc.browser.InnerUCMobile' -> 'android.widget.LinearLayout'), page switched
+  (task page opened), not a no-effect click` → 走完成退出（原 3 次重试 26s 消失）
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### commit 4149866 - fix: build756 lite渲染态NAVIGATING干等54s(集肥料入口即视为可用);快手陷阱广告"立即购买"CTA误走诱导弹窗盲点59s跳淘宝(快速退出检测前置);签到后已领取仍AI视觉15s超时(跳过)
 
 **用户需求**: "分析日志"（debug_test_20260829_205529.log, build754-252bcba, 1637行。

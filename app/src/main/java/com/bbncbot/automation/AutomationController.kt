@@ -501,6 +501,16 @@ object AutomationController {
     @Volatile
     private var taskClickLeftFarm: Boolean = false
 
+    /**
+     * build758: 点击任务"去完成"按钮时记录的 activity 名。
+     * checkTaskResult 判定"任务点击无效果"时要求 activity 未变——
+     * 点击后 activity 变化说明页面已切换（如"玩松鼠大战"H5游戏页打开，
+     * act: InnerUCMobile→LinearLayout），点击是有效果的，
+     * 不应判"无效果"死磕重试3次浪费26s后跳过任务。
+     */
+    @Volatile
+    private var taskClickActivityName: String? = null
+
     /** 单个任务最大失败次数，超过则跳过该任务 */
     private const val MAX_TASK_FAILS = 2
 
@@ -2921,6 +2931,9 @@ object AutomationController {
         deepLinkTaskStayMs = parseDeepLinkStayMs(fullTaskText)
         // build747: 快照当前任务上下文，供 checkTaskResult 判断任务类型（签到误判守卫等）
         currentTaskContextText = taskContextText
+        // build758: 记录点击时 activity，checkTaskResult 判"点击无效果"时要求未变
+        // （activity 变化 = 页面已切换 = 点击有效果，如"玩松鼠大战"H5游戏页打开）
+        taskClickActivityName = service.getCurrentActivityName()
         service.performClickSafe(button)
 
         // 等待检测是否进入广告
@@ -4139,7 +4152,21 @@ object AutomationController {
             //   修复: 判定"完成"前,若仍在农场页且本次点击后从未离开过农场(taskClickLeftFarm=false),
             //   且无"点击领取"按钮/肥料到账弹窗 → 判定点击无效果(广告未拉出),走重试/跳过逻辑,
             //   不再误判完成、不触发退出点击。
-            if (service.isOnFarmPage() && !taskClickLeftFarm &&
+            // build758 修复（debug_test_20260829_230753.log, build757, 23:06:47-23:07:13）：
+            //   task#2"玩松鼠大战15秒"点击"去完成"后打开了H5游戏页（activity:
+            //   InnerUCMobile→LinearLayout，页面已切换），但任务列表弹层下的农场节点
+            //   （集肥料等）仍可读 → isOnFarmPage content fallback 误判true →
+            //   taskClickLeftFarm 未置位 → 误判"点击无效果"重试3次死磕26s后跳过任务
+            //   （+2400肥料丢失）。
+            //   修复: 点击后 activity 已变化 = 页面已切换 = 点击有效果，
+            //   不再判"无效果"重试，走任务完成退出路径（关闭/返回→advance）。
+            val curActName = service.getCurrentActivityName()
+            val actChangedSinceTaskClick = taskClickActivityName != null &&
+                curActName != null && curActName != taskClickActivityName
+            if (actChangedSinceTaskClick) {
+                debugLog("processTask: activity changed since task click ('$taskClickActivityName' -> '$curActName'), page switched (task page opened), not a no-effect click")
+            }
+            if (service.isOnFarmPage() && !taskClickLeftFarm && !actChangedSinceTaskClick &&
                 directClaimBtn == null && !service.isFertilizerGrantedPage()) {
                 if (attempt < MAX_TASK_ATTEMPTS) {
                     Log.w(TAG, "processTask: task click no-effect (still on farm, never left, ad not loaded), retry attempt=$attempt")
@@ -4147,6 +4174,8 @@ object AutomationController {
                     val buttons = service.findGoCompleteButtons()
                     if (buttons.isNotEmpty() && currentTaskIndex < buttons.size) {
                         taskButtons = buttons
+                        // build758: 重试点击后刷新记录的 activity（以重试点击时为基准）
+                        taskClickActivityName = service.getCurrentActivityName()
                         service.performClickSafe(buttons[currentTaskIndex])
                     } else {
                         Log.w(TAG, "processTask: task buttons changed, reopening task list")
@@ -4411,7 +4440,26 @@ object AutomationController {
 
         // 检测非广告任务页面（邀请/关注/分享/下载App/开通会员等）→ 跳过任务
         // 用户要求：只看广告获取肥料，非广告任务不做
-        if (service.isNonAdTaskPage()) {
+        // build758 修复（debug_test_20260829_230753.log, build757, 23:07:18-23:07:27）：
+        //   深链浏览任务"去中国移动领话费"点击"去完成"后跳转到移动APP首页，
+        //   运营商APP首页必含"充值/理财"等词 → isNonAdTaskPage YES → 误判非广告任务
+        //   pressBack 跳过（仅停留9s < 任务要求15s，+300肥料奖励丢失）。
+        //   该检测语义是"农场App内WebView任务详情页"（邀请/充值类任务详情页），
+        //   深链跳转到外部App后页面内容不可控，不应再用关键词拦截，
+        //   交给下方深链分支进 WATCHING_AD 停留等待（stay时长+奖励到账检测）。
+        //   守卫：仅当 activeRoot 仍是农场包（或 systemui/空，保持原行为）时才检测。
+        val nonAdGuardRootPkg = service.rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+        val nonAdGuardCfg = service.currentPlatformConfig()
+        val nonAdGuardActiveRootIsFarm = nonAdGuardRootPkg.isNotEmpty() && (
+            nonAdGuardCfg.packageNames.contains(nonAdGuardRootPkg) ||
+            nonAdGuardCfg.internalPackagePrefixes.any { nonAdGuardRootPkg.startsWith(it) } ||
+            nonAdGuardRootPkg == "com.bbncbot")
+        val nonAdGuardIsSystemUi = nonAdGuardRootPkg.isEmpty() || nonAdGuardRootPkg == "com.android.systemui"
+        val skipNonAdTaskCheck = !nonAdGuardActiveRootIsFarm && !nonAdGuardIsSystemUi
+        if (skipNonAdTaskCheck) {
+            debugLog("processTask: deep-linked to external app (activeRoot='$nonAdGuardRootPkg'), skip non-ad-task-page check, fall through to deep-link branch")
+        }
+        if (!skipNonAdTaskCheck && service.isNonAdTaskPage()) {
             Log.i(TAG, "processTask: non-ad task page detected (invite/share/download/membership), skipping task")
             debugLog("processTask: non-ad task page, skipping task #$${currentTaskIndex + 1}")
             service.pressBack()
