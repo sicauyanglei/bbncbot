@@ -32,7 +32,51 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build754 陷阱广告连续退出无进展时跳过视频类任务/入口改做其他任务(防7轮死循环零收益);isRechargePage广告Activity守卫(电商CTA误判充值页pressBack干等20s)
+### commit <待填> - fix: build755 断开视频入口跳过与openTaskList互转死循环(4轮×20s);深链任务奖励到账文本(已发放/领取成功)立即退出不等90s超时
+
+**用户需求**: "分析日志"（debug_test_20260829_192115.log, build754-252bcba, 1245行, 19:12:03-19:21:02 约9分钟, 用户手动停止。同目录 192106 为同会话早9秒的重复上传）
+
+**build754 验证结果(通过)**:
+- ✓ trapAdExit streak 生效: 19:12:56 streak=1, 19:17:40 streak=2
+- ✓ 跳过视频类入口: 19:18:40-19:19:41 连续4次 `跳过视频类入口'看广告领奖'`
+- ✓ 跳过视频类任务: 19:19:53 跳过'看视频得巨额肥料(1/10)', 19:20:23 跳过'看视频得大额肥料(0/10)'
+- ✓ ensureScreenOn 2次生效(19:13:01/19:17:49 forceKill后唤醒)
+- ✓ isRechargePage 广告Activity守卫生效: 本轮 TRAP_RECHARGE 0 次(上轮5次)
+- ✓ 深链任务成功1次: 19:14:40 支付宝蚂蚁庄园"恭喜获得奖励 UC元宝 180g饲料"自动领取
+
+**问题C(已修): build754跳过逻辑引入新死循环** —— 19:18:38-19:19:41
+COLLECTING_DIRECT↔OPENING_TASK_LIST 互转4轮(每轮~20s):
+- collectDirect 发现"看广告领奖"→视频跳过激活→转 OPENING_TASK_LIST
+- openTaskList 发现主页"看广告领奖"direct 按钮→又转回 COLLECTING_DIRECT
+- 中间"集肥料"点击后5次检查0个"去完成"按钮(任务列表未打开)无进展
+- 修复(Fix C): openTaskList 的 direct 按钮转换处加守卫——视频跳过激活期间
+  (shouldSkipVideoAdEntries)且 direct 按钮全是视频类入口(isVideoAdTask)时不转换,
+  继续正常任务列表流程(集肥料→任务列表→processTask 跳过视频任务改做其他任务)
+
+**问题D(已修): 深链任务奖励到账后干等90s超时** —— "去支付宝逛蚂蚁庄园"任务
+19:14:51 页面已显示"UC元宝、180g饲料已发放"(任务成功),但蚂蚁庄园页面无"已完成"
+类文本,isTaskCompletePage()=false 不满足完成分支 → AD_ENDED 干等轮询到 90s 超时
+(19:16:34)才 CLOSING_AD(假关闭按钮+8坐标盲点+RETURNING forceKill 又20s),
+一次成功任务浪费约2分钟。
+- 修复(Fix D): service 新增 hasRewardGrantedText()(已发放/领取成功/奖励已到账/
+  已到账文本检测);watchAd AD_ENDED 分支前加检测——非农场包前台(深链任务目标App)
+  且奖励到账文本出现 → 按任务完成处理(collectedCount+++advanceTaskIndex+关闭退出),
+  19:14:57 即退出,节省约95s
+
+**次要观察(不修)**:
+- 19:16:02 pkg=null 窗口过渡瞬间 findAdInstallButton 匹配"查看更多"误判 TRAP_INSTALL,
+  closeAdInstallPopup 点击大区域按钮拉起系统权限弹窗页(自动恢复,无实害)
+- 19:18:13 collectTaskContextText fallback 空(页面加载中),点击"去完成"无效1次后重试恢复
+
+**修复后预期**: 视频跳过激活时 openTaskList 日志出现 `direct buttons all video-ad
+entries (trap skip active), continue task list flow` 不再互转;深链任务奖励到账日志
+出现 `深链任务奖励已到账(已发放/领取成功文本),任务成功,立即退出不等超时`
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit 252bcba - fix: build754 陷阱广告连续退出无进展时跳过视频类任务/入口改做其他任务(防7轮死循环零收益);isRechargePage广告Activity守卫(电商CTA误判充值页pressBack干等20s)
 
 **用户需求**: "分析日志"（debug_test_20260829_173308.log, build753-087badf, 724行, 17:29:29-17:33:03 约3.5分钟, 用户手动停止。日志从 GitHub logs/ 目录拉取）
 

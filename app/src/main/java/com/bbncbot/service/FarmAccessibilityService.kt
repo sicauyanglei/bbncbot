@@ -420,6 +420,19 @@ class FarmAccessibilityService : AccessibilityService() {
         return realContent.size >= 30
     }
 
+    /**
+     * build755: 当前活动窗口是否含"奖励已到账"类文本（已发放/领取成功/奖励已到账/已到账）
+     * 用于深链任务（支付宝蚂蚁庄园等第三方 App 页面）奖励到账后立即退出，不再干等 90s 超时
+     */
+    fun hasRewardGrantedText(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val texts = collectAllText(root)
+        return texts.any {
+            it.contains("已发放") || it.contains("领取成功") ||
+                it.contains("奖励已到账") || it.contains("已到账")
+        }
+    }
+
     /** 收集节点树中所有文本 */
     fun collectAllText(node: AccessibilityNodeInfo, depth: Int = 0): List<String> {
         if (depth > 30) return emptyList()

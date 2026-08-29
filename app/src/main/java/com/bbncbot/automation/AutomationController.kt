@@ -2067,12 +2067,27 @@ object AutomationController {
         // 用户需求：点击这类按钮会弹出窗口，需在窗口里点"立即领取"才能领到肥料，应走 directCollect 流程
         // 而非当成"集肥料"入口去找任务列表
         val directButtons = service.findDirectCollectButtons()
-        if (directButtons.isNotEmpty()) {
+        // build755 修复（debug_test_20260829_192115.log, build754, 19:18:38-19:19:41）:
+        //   陷阱广告连续退出后 collectDirect 跳过视频类入口"看广告领奖"转回 OPENING_TASK_LIST,
+        //   而此处发现主页"看广告领奖"direct 按钮又转回 COLLECTING_DIRECT —— 两边互相
+        //   转换形成 4 轮死循环(每轮~20s,点"集肥料"5次检查0按钮无进展)。
+        //   修复:视频入口跳过激活期间,若 direct 按钮全是视频类入口则不转换,继续正常
+        //   任务列表流程(集肥料→任务列表→processTask 跳过视频任务改做其他任务)。
+        val videoSkipActive = shouldSkipVideoAdEntries()
+        val directButtonsAllVideo = directButtons.all { node ->
+            val t = node.text?.toString().orEmpty()
+            val d = node.contentDescription?.toString().orEmpty()
+            isVideoAdTask("$t $d")
+        }
+        if (directButtons.isNotEmpty() && !(videoSkipActive && directButtonsAllVideo)) {
             Log.i(TAG, "openTaskList: found ${directButtons.size} direct collect buttons, switching to COLLECTING_DIRECT")
             debugLog("openTaskList: ${directButtons.size} direct collect buttons found, switching to COLLECTING_DIRECT (attempt=$attempt)")
             moveTo(AutomationState.COLLECTING_DIRECT)
             handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
             return
+        }
+        if (directButtons.isNotEmpty() && videoSkipActive && directButtonsAllVideo) {
+            debugLog("openTaskList: ${directButtons.size} direct buttons all video-ad entries (trap skip active), continue task list flow")
         }
 
         // 优先查找"集肥料"按钮节点
@@ -6717,6 +6732,41 @@ object AutomationController {
         val adEnded = service.isAdEndedMultiSignal(prevAdHadCountdown)
         // 更新上一轮倒计时状态（供下一轮多信号检测用）
         prevAdHadCountdown = service.findAdDurationHint() > 0
+
+        // build755 修复（debug_test_20260829_192115.log, build754, 19:14:51-19:16:34）:
+        //   "去支付宝逛蚂蚁庄园"深链任务,19:14:40 奖励弹窗"恭喜获得奖励 UC元宝 180g饲料"
+        //   自动领取,19:14:51 页面变"UC元宝、180g饲料已发放"——任务已成功;
+        //   但蚂蚁庄园页面无"已完成"类文本,isTaskCompletePage()=false 不满足完成分支,
+        //   AD_ENDED 干等轮询到 90s 超时才 CLOSING_AD(假关闭按钮+坐标盲点+RETURNING
+        //   forceKill 又 20s),一次成功任务浪费约 2 分钟。
+        //   修复:深链任务第三方App页面(非农场包前台)出现"已发放/领取成功"奖励到账文本
+        //   时按任务完成处理,立即退出回农场。
+        val nonFarmPkgForeground = run {
+            val pkg = service.getCurrentWindowPackage()
+            pkg.isNotEmpty() && service.currentPlatformConfig().packageNames.none { it == pkg }
+        }
+        if (adEnded && nonFarmPkgForeground && service.hasRewardGrantedText()) {
+            Log.i(TAG, "watchAd: reward granted text on non-farm app page (deep-link task done), exiting")
+            debugLog("watchAd: 深链任务奖励已到账(已发放/领取成功文本),任务成功,立即退出不等超时")
+            val closeBtn = service.findAdCloseButton(service.currentPlatformConfig().adCloseButtonTexts)
+            val backIcon = service.findBackIcon()
+            when {
+                closeBtn != null -> { debugLog("watchAd: clicking close icon"); service.performClickSafe(closeBtn) }
+                backIcon != null -> { debugLog("watchAd: clicking back icon"); service.performClickSafe(backIcon) }
+                else -> { debugLog("watchAd: pressing back"); service.pressBack() }
+            }
+            service.setAdMode(false)
+            collectedCount++
+            advanceTaskIndex()
+            handler.postDelayed({
+                if (!service.isOnFarmPage()) service.pressBack()
+                handler.postDelayed({
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                }, INTERVAL_CLICK_MS)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
 
         if (adEnded && service.isTaskCompletePage()) {
             Log.i(TAG, "watchAd: task complete page detected (multi-signal), exiting")
