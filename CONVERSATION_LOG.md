@@ -32,7 +32,25 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - feat: build751 "我要更快拿奖"直接跳转外来App后停留15秒,从底部按住上滑(上滑停顿)打开最近任务点击UC卡片切回跳转前广告页(替代立即forceKill杀不掉方案)
+### commit <待填> - fix: build751补丁 修复CI编译失败:GestureResultCallback是AccessibilityService内部类,类路径android.accessibilityservice.GestureResultCallback错误改为android.accessibilityservice.AccessibilityService.GestureResultCallback
+
+**用户需求**: "流水线编译失败了"（CI run 33243805078, commit 4030a77, Build APKs step FAILED）
+
+**根因**: build751 在 FarmAccessibilityService.kt:1272 写了
+`object : android.accessibilityservice.GestureResultCallback()` ——
+GestureResultCallback 不是顶层类,是 AccessibilityService 的内部类,正确路径为
+`android.accessibilityservice.AccessibilityService.GestureResultCallback`。
+错误信息: Unresolved reference: GestureResultCallback / Type mismatch /
+'onCompleted'/'onCancelled' overrides nothing
+
+**修复**: 改为完整内部类路径 `android.accessibilityservice.AccessibilityService.GestureResultCallback()`,
+onCompleted/onCancelled 签名不变(GestureDescription 顶层类路径本来就对)
+
+**编译验证**: 等 CI 构建验证。
+
+---
+
+### commit 4030a77 - feat: build751 "我要更快拿奖"直接跳转外来App后停留15秒,从底部按住上滑(上滑停顿)打开最近任务点击UC卡片切回跳转前广告页(替代立即forceKill杀不掉方案)
 
 **用户需求**: "点击跳转后，过15秒回到跳转前的页面，操作应该是从底部手指按住不放，
 往上拖动，然后把之前切走前的页面设置为前台页面"（针对 debug_test_20260829_154730.log

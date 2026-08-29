@@ -1269,7 +1269,7 @@ class FarmAccessibilityService : AccessibilityService() {
                 val stroke1 = android.accessibilityservice.GestureDescription.StrokeDescription(path1, 0, 450, true)
                 val g1 = android.accessibilityservice.GestureDescription.Builder().addStroke(stroke1).build()
                 debugLog("swipeUpFromBottomToOpenRecents: ($x,$startY)->($x,$endY) hold 500ms (two-stage, API26+)")
-                dispatchGesture(g1, object : android.accessibilityservice.GestureResultCallback() {
+                dispatchGesture(g1, object : android.accessibilityservice.AccessibilityService.GestureResultCallback() {
                     override fun onCompleted(gestureDescription: android.accessibilityservice.GestureDescription?) {
                         // 立即续按：原地停顿500ms后松手（停顿让系统判定"上滑停顿"而非快速上滑回桌面）
                         try {
