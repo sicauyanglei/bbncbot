@@ -32,6 +32,63 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit <待填> - fix: build759 视频广告类型调试-快手扭一扭广告"点击跳转拿奖励"按钮漏识别被当陷阱forceKill奖励丢失(关键词扩展+跳转守卫:陷阱场景降级+深链分支放宽停留20s保留现场切回)
+
+**用户需求**: "先把视频广告任务做好，一个类型一个类型调试通过"
+
+**视频广告任务类型清单与调试状态**（点开"看视频得肥料"任务后遇到的广告类型）:
+
+| # | 类型 | 识别特征 | 处理行为 | 状态 |
+|---|------|---------|---------|------|
+| 1 | 快手互动陷阱(扭一扭,无按钮) | 扭一扭文案+无领取/下载按钮 | 等待→CLOSING_AD→forceKill ~7s | ✓ build757验证2次 |
+| 2 | 互动+"立即获取"按钮(build748) | 扭一扭或点击立即获取 | 点击按钮拿奖励 | ✓ 逻辑已有待日志 |
+| 3 | 互动+"点击跳转拿奖励"按钮 | 看10秒可直接拿奖励+点击跳转拿奖励 | **本轮修复**:点击→跳淘宝→停留20s→切回 | ✗→✓ build759 |
+| 4 | 互动+"立即购买"电商CTA(build756) | 扭一扭+立即购买 | 快速forceKill | 待验证 |
+| 5 | 互动+下载按钮(build599/748) | 立即下载 | 点击下载→等下载完成领肥料 | 已有 |
+| 6 | 正常激励视频(倒计时走动) | 倒计时文本变化 | 等倒计时结束→AD_ENDED→领奖 | 待日志(近期SDK未给) |
+| 7 | 结束奖励弹窗 | 奖励已发放+右上角关闭图标 | 点关闭图标拿奖励(build729/730) | ✓ 用户已确认 |
+
+**问题(build757日志, 23:05:27-23:05:45): 类型3按钮漏识别,奖励丢失** ——
+快手扭一扭广告页 texts=[扭一扭或点击跳转详情页或第三方应用, 看, 10秒,
+可直接拿奖励, 淘宝, 观赛好搭档，外卖上闪购, **点击跳转拿奖励**]。
+旧 findInteractiveAdClickToClaimButton 关键词只认"立即获取/立即领奖" →
+按钮漏识别 → watchAd 判无下载按钮干等15s → countdown stuck(静态"10秒")
+→ CLOSING_AD → 互动陷阱无按钮 → forceKill 杀UC重开,广告承诺的"看10秒
+可直接拿奖励"完全没拿到,trapAdExit streak还+1(连续2次后视频任务全跳过)。
+
+**修复链路(3处)**:
+1. **关键词扩展**(FarmAccessibilityService.findInteractiveAdClickToClaimButton):
+   exactTexts 新增"点击跳转拿奖励/跳转拿奖励/点击拿奖励";contains 兜底
+   新增"拿奖励/领取奖励"——isJumpTrap 排除"跳转详情页/第三方应用"保留
+2. **跳转置位**(watchAd TRAP_INTERACTIVE 分支点击处): 按钮文本含"跳转"
+   或"拿奖励"时置 interactiveAdJumpPending=true(新成员变量,每广告reset)
+3. **陷阱场景降级**(watchAd when前守卫): interactiveAdJumpPending=true时
+   - 每轮检测"奖励已发放"→claimRewardViaCloseIcon点关闭图标拿奖励
+   - trapLikeScene降级为UNKNOWN(effectiveScene)——跳转落地页(淘宝闪购)
+     含"立即购买/查看详情"会判TRAP_ABNORMAL/TRAP_LANDING,防御pressBack
+     退出会丢奖励;降级后fall through到深链分支
+   - 深链分支条件放宽: isOnAbnormalPage例外(interactiveAdJumpPending时);
+     自然返回分支条件加interactiveAdJumpPending(5s内返回农场也走完成路径)
+   - 深链分支已有机制复用: 停留deepLinkTaskStayMs(视频任务默认15s+5s缓冲
+     =20s,覆盖"看10秒")→bringFarmAppToFront保留现场切回→kill跳转App→
+     collectedCount+++advanceTaskIndex→runDeepLinkReturnToFarm回农场主页
+**诊断增强**: TRAP_INTERACTIVE无按钮等待分支每轮dump页面texts(追踪倒计时
+变化/奖励按钮出现时机,类型调试用)
+
+**修复后预期**(下轮日志验证类型3):
+```
+watchAd: 互动广告'点击跳转拿奖励'按钮(点击可替代摇一摇), 点击直接获取奖励
+watchAd: 跳转类拿奖励按钮, 点击后将拉起第三方App, 跳转守卫已置位(interactiveAdJumpPending=true)
+watchAd: interactive ad jump pending, scene=TRAP_ABNORMAL downgraded to UNKNOWN (expected landing page, skip trap defense)  [若落地页判陷阱]
+watchAd: deep-linked app 'com.taobao.taobao' detected, waiting 20000ms (task hint) then bringFarmAppToFront
+watchAd: bringFarmAppToFront (preserve scene) + killing 'com.taobao.taobao'
+=== FERTILIZER COLLECTED! ===  [奖励到手,原forceKill路径消失]
+```
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### commit 9d909e2 - fix: build758 深链浏览任务跳转外部App后被isNonAdTaskPage"充值"关键词误伤提前9s放弃(移动APP+300肥料丢失,守卫仅农场包内检测);松鼠大战H5游戏页activity已变仍判"点击无效果"死磕重试26s跳过(activity变化检测)
 
 **用户需求**: "分析日志"（debug_test_20260829_230753.log, **build757-4149866**, 670行,

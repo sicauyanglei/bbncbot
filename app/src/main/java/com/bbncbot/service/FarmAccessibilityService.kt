@@ -2278,11 +2278,19 @@ class FarmAccessibilityService : AccessibilityService() {
     fun findInteractiveAdClickToClaimButton(): AccessibilityNodeInfo? {
         val root = rootInActiveWindowSafe() ?: return null
         // 精确文案优先
+        // build759（debug_test_20260829_230753.log, build757, 23:05:27-23:05:45）：
+        //   快手扭一扭广告页面文案"看10秒可直接拿奖励" + 按钮"点击跳转拿奖励"。
+        //   旧关键词只认"立即获取/立即领奖" → 按钮漏识别 → 被当无奖励陷阱 forceKill，
+        //   奖励丢失。新增"点击跳转拿奖励"类按钮（点击→跳转淘宝闪购落地页→停留→
+        //   奖励到账，由 watchAd interactiveAdJumpPending 守卫处理停留切回）。
         val exactTexts = listOf(
             "扭一扭或点击立即获取",
             "摇一摇或点击立即获取",
             "点击立即获取",
-            "点击立即领奖"
+            "点击立即领奖",
+            "点击跳转拿奖励",
+            "跳转拿奖励",
+            "点击拿奖励"
         )
         for (kw in exactTexts) {
             val node = findNodeByText(root, kw)
@@ -2291,13 +2299,15 @@ class FarmAccessibilityService : AccessibilityService() {
                 return node
             }
         }
-        // 兜底 contains 匹配：须含"立即获取/立即领奖"，且排除"跳转详情页/第三方应用"陷阱变体
+        // 兜底 contains 匹配：须含"立即获取/立即领奖/拿奖励/领取奖励"，
+        // 且排除"跳转详情页/第三方应用"陷阱变体
         fun walk(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
             val text = node.text?.toString().orEmpty()
             val desc = node.contentDescription?.toString().orEmpty()
             for (s in listOf(text, desc)) {
                 if (s.isEmpty()) continue
-                val hasClaimKeyword = s.contains("立即获取") || s.contains("立即领奖")
+                val hasClaimKeyword = s.contains("立即获取") || s.contains("立即领奖") ||
+                    s.contains("拿奖励") || s.contains("领取奖励")
                 val isJumpTrap = s.contains("跳转详情页") || s.contains("第三方应用")
                 if (hasClaimKeyword && !isJumpTrap && s.length <= 30) {
                     debugLog("findInteractiveAdClickToClaimButton: found by contains='$s'")

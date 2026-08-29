@@ -511,6 +511,15 @@ object AutomationController {
     @Volatile
     private var taskClickActivityName: String? = null
 
+    /**
+     * build759: 互动广告"点击跳转拿奖励"按钮已点击，等待跳转落地页停留后返回。
+     * 该类按钮点击后会拉起第三方App（如淘宝闪购页），落地页常含"立即购买/查看详情"
+     * 等文案，会被识别为 TRAP_ABNORMAL/TRAP_LANDING 陷阱——但这是预期跳转（拿奖励），
+     * 不应触发陷阱防御，应等够停留时长（deepLinkTaskStayMs）后保留现场切回农场。
+     */
+    @Volatile
+    private var interactiveAdJumpPending: Boolean = false
+
     /** 单个任务最大失败次数，超过则跳过该任务 */
     private const val MAX_TASK_FAILS = 2
 
@@ -5239,6 +5248,8 @@ object AutomationController {
             watchingAdPlatform = service.currentPlatform  // 记录农场平台，强杀深链 App 后重新启动此平台
             interactiveAdDownloadClicked = false  // build599 v2: 重置互动广告下载按钮点击标记
             interactiveAdClickClaimClicked = false  // build748: 重置互动广告"点击立即获取"按钮点击标记
+            // build759: 重置互动广告"点击跳转拿奖励"跳转状态
+            interactiveAdJumpPending = false
             // build671: 重置倒计时停滞检测状态
             adCountdownStallHandled = false
             // build675: 重置"点我加速"按钮点击标记
@@ -5933,7 +5944,28 @@ object AutomationController {
             return
         }
 
-        when (scene) {
+        // build759 修复（debug_test_20260829_230753.log, build757, 23:05:27-23:05:45）：
+        //   快手扭一扭广告页含"看10秒可直接拿奖励"+"点击跳转拿奖励"按钮。旧关键词
+        //   只认"立即获取/立即领奖"→按钮漏识别→被当无奖励陷阱forceKill,奖励丢失。
+        //   修复链路: findInteractiveAdClickToClaimButton 关键词已扩展→点击该按钮→
+        //   跳转淘宝闪购落地页。落地页含"立即购买/查看详情"等文案会被识别为陷阱场景
+        //   （TRAP_ABNORMAL/TRAP_LANDING等）→陷阱防御pressBack退出→奖励又丢。
+        //   守卫: interactiveAdJumpPending=true 时陷阱场景降级为UNKNOWN（预期跳转
+        //   落地页,非陷阱）,让下方深链分支处理停留计时+保留现场切回农场+任务推进;
+        //   同时每轮检测"奖励已发放"（出现在农场App WebView时点击关闭图标拿奖励）。
+        if (interactiveAdJumpPending && detectRewardGrantedText(service)) {
+            claimRewardViaCloseIcon(service, elapsedMs)
+            return
+        }
+        val trapLikeSceneForJump = scene == PageScene.TRAP_RECHARGE || scene == PageScene.TRAP_ABNORMAL ||
+            scene == PageScene.TRAP_LANDING || scene == PageScene.TRAP_MINIPROGRAM ||
+            scene == PageScene.TRAP_INSTALL
+        val effectiveScene = if (interactiveAdJumpPending && trapLikeSceneForJump) PageScene.UNKNOWN else scene
+        if (effectiveScene != scene) {
+            debugLog("watchAd: interactive ad jump pending, scene=$scene downgraded to UNKNOWN (expected landing page, skip trap defense)")
+        }
+
+        when (effectiveScene) {
             // 陷阱1：充值/付费页（最高优先级，违反禁止交易原则，可能造成金钱损失）
             // 策略：优先点关闭按钮，否则按返回退出，继续轮询（不退出任务，可能是广告内弹窗）
             // build732 修复（debug_test_20260816_190740.log, build730, 19:05:51-19:07:15）：
@@ -6070,6 +6102,13 @@ object AutomationController {
                     if (clickClaimBtn != null && !interactiveAdClickClaimClicked) {
                         interactiveAdClickClaimClicked = true
                         val ccText = clickClaimBtn.text?.toString().orEmpty()
+                        // build759: "点击跳转拿奖励"类按钮点击后会拉起第三方App（淘宝闪购等），
+                        // 置跳转守卫标志——落地页的陷阱场景降级（见 when 前 effectiveScene），
+                        // 由深链分支处理停留计时+保留现场切回农场。
+                        if (ccText.contains("跳转") || ccText.contains("拿奖励")) {
+                            interactiveAdJumpPending = true
+                            debugLog("watchAd: 跳转类拿奖励按钮, 点击后将拉起第三方App, 跳转守卫已置位(interactiveAdJumpPending=true)")
+                        }
                         Log.i(TAG, "watchAd: interactive ad click-to-claim button '$ccText' found (click replaces shake), clicking to get reward")
                         debugLog("watchAd: 互动广告'${ccText}'按钮(点击可替代摇一摇), 点击直接获取奖励")
                         service.performClickSafe(clickClaimBtn)
@@ -6135,7 +6174,9 @@ object AutomationController {
                     // 修复：将"已点击下载按钮"分支改为 else 分支（仅当 interactiveAdDownloadClicked=true 时执行）,
                     //   无下载按钮 fall through 时不会误入,直接执行后续的广告结束检测。
                     if (elapsedMs < adMinDurationMs) {
-                        debugLog("watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=${elapsedMs}ms/${adMaxDurationMs}ms)")
+                        // build759: 每轮 dump 页面文本，追踪倒计时变化/奖励按钮出现时机（类型调试用）
+                        val trapTexts = service.collectAllTextSnapshot(maxCount = 10)
+                        debugLog("watchAd: interactive ad no download button, continue waiting for ad to end (elapsed=${elapsedMs}ms/${adMaxDurationMs}ms), texts=$trapTexts")
                         handler.postDelayed({
                             if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
                         }, adEndCheckIntervalMs)
@@ -6681,8 +6722,11 @@ object AutomationController {
         //   被跳转App已被切到后台，随后 kill 释放内存（防止干扰后续流程）。
         // 注意：此检查在"最短等待时间"检查之前，确保深链任务用自己的停留超时（而非默认 30s 广告等待）
         // 注：异常交易页（isOnAbnormalPage）已在上方场景识别 TRAP_ABNORMAL 中统一处理
+        // build759: interactiveAdJumpPending=true 时放宽 isOnAbnormalPage——
+        // "点击跳转拿奖励"的落地页（淘宝闪购等）常含"立即购买"类文案（isOnAbnormalPage
+        // =true），但这是预期跳转，也应进入本分支做停留计时+保留现场切回农场。
         if (elapsedMs >= 5000L && !service.isOnFarmPage() && !service.isAdActivity() &&
-            !service.isAdPlaying() && !service.isOnAbnormalPage()) {
+            !service.isAdPlaying() && (!service.isOnAbnormalPage() || interactiveAdJumpPending)) {
             val currentPkg = service.getCurrentWindowPackage()
             if (currentPkg != null) {
                 // build742: 已进入过其它App(deepLinkAppPkg!=null)后农场App自身又回到前台——
@@ -6692,7 +6736,7 @@ object AutomationController {
                 // deepLinkAppPkg 尚未记录）也走此分支——否则下方会把农场包名误记为跳转App
                 if (watchingAdPlatform != Platform.UNKNOWN &&
                     currentPkg in watchingAdPlatform.config.packageNames &&
-                    (deepLinkAppPkg != null || watchingAdFromDeepLinkTask)) {
+                    (deepLinkAppPkg != null || watchingAdFromDeepLinkTask || interactiveAdJumpPending)) {
                     Log.i(TAG, "watchAd: back to farm app '$currentPkg' on task landing page (no farm keywords), deep-link task complete")
                     debugLog("watchAd: farm app back in foreground on task landing page, task complete, recovering to farm page")
                     deepLinkAppPkg = null  // 清除后已调度的切回定时器会自动取消
