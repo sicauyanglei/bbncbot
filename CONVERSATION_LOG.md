@@ -32,7 +32,7 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build762 互动广告"点击跳转拿奖励"跳转7s后被"广告按钮陷阱"处理器拦截forceKill奖励流程打断(interactiveAdJumpPending守卫漏了此分支;补一行放行交给深链分支停留20s保留现场切回)
+### commit 1954f24 - fix: build762 互动广告"点击跳转拿奖励"跳转7s后被"广告按钮陷阱"处理器拦截forceKill奖励流程打断(interactiveAdJumpPending守卫漏了此分支;补一行放行交给深链分支停留20s保留现场切回)
 
 **用户需求**: "分析日志"（debug_test_20260830_060258.log, **build759-efe08f5**, 240行,
 06:00:42-06:02:55 约2分钟, 用户手动停止。注意: 用户测的是 build759 APK,
@@ -84,6 +84,8 @@ watchAd: bringFarmAppToFront (preserve scene) + killing 'com.antgroup.leopard.an
   无效果检测正常工作
 
 **编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+✅ **CI 已通过**（run 33279083793, 1954f24, run_number=762, 2026-08-30），APK 自报
+编号 **build762-1954f24** 已发布。
 
 ---
 
