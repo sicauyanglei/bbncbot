@@ -6589,6 +6589,40 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build753: 确保屏幕点亮（息屏/AOD 时用唤醒锁点亮屏幕）
+     * 问题（debug_test_20260829_171717.log, build752, 17:16:08/17:17:01 两次）：
+     *   广告播放时 App 持有 FLAG_KEEP_SCREEN_ON 屏幕不超时熄灭；forceKill 杀宿主
+     *   (UC)后该标志随进程死亡消失，若距用户上次物理触摸已超过屏幕超时时长，
+     *   屏幕立即熄灭进入荣耀 AOD（activeRootPkg='com.hihonor.aod'）——
+     *   无障碍读到的全是 AOD 窗口，collectDirect 找不到任何按钮转 AI vision 干等；
+     *   navigate 也需多发一次深链才恢复。
+     * 修复：用 PowerManager 唤醒锁（SCREEN_BRIGHT_WAKE_LOCK + ACQUIRE_CAUSES_WAKEUP）
+     *   点亮屏幕，3 秒后自动释放（由系统屏幕超时接管）。需 WAKE_LOCK 权限（已加 manifest）。
+     * @return true=屏幕本来就亮或已唤醒成功
+     */
+    fun ensureScreenOn(): Boolean {
+        return try {
+            val pm = getSystemService(android.content.Context.POWER_SERVICE)
+                as android.os.PowerManager
+            if (pm.isInteractive) {
+                return true
+            }
+            @Suppress("DEPRECATION")
+            val wl = pm.newWakeLock(
+                android.os.PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                    android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                "bbncbot:ensureScreenOn"
+            )
+            wl.acquire(3000)
+            debugLog("ensureScreenOn: screen was off (AOD/lock), wake lock acquired to turn screen on")
+            true
+        } catch (e: Exception) {
+            debugLog("ensureScreenOn: failed, ${e.message}")
+            false
+        }
+    }
+
+    /**
      * build716: 将后台的芭芭农场App切到前台（不重启）
      *
      * 用户需求："切换app后,芭芭农场app只是切换到后台,不是关闭,等待多少秒后,

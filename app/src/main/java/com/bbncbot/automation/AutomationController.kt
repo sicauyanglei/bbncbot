@@ -875,6 +875,10 @@ object AutomationController {
         if (state != AutomationState.NAVIGATING) return
         val service = getService() ?: run { stop(); return }
 
+        // build753: forceKill宿主后屏幕可能熄灭进入AOD(无障碍只能读到AOD窗口),
+        // 先确保屏幕点亮再导航(日志现象: navigate-start snapshot pkg=com.hihonor.aod)
+        service.ensureScreenOn()
+
         // 主动检测当前前台 App 平台（无障碍服务刚连接时可能还没检测到）
         service.refreshPlatform()
 
@@ -1278,6 +1282,10 @@ object AutomationController {
     private fun runCollectingDirect(attempt: Int) {
         if (state != AutomationState.COLLECTING_DIRECT) return
         val service = getService() ?: run { stop(); return }
+
+        // build753: 屏幕熄灭(AOD)时无障碍读不到农场页面按钮(会误转 AI vision 干等),
+        // 先确保屏幕点亮再收集(日志现象: collectDirect-start snapshot pkg=com.hihonor.aod)
+        service.ensureScreenOn()
 
         if (attempt == 0) {
             logPageSnapshot(service, "collectDirect-start")
@@ -5146,6 +5154,8 @@ object AutomationController {
             for (pkg in farmPkgs) {
                 service.forceKillApp(pkg, pressBackFirst = false)
             }
+            // build753: 杀宿主后屏幕可能熄灭进AOD,先唤醒再深链重开(同陷阱广告快速退出路径)
+            service.ensureScreenOn()
             service.reopenFarmByDeepLink(killCurrentFirst = false)
             moveTo(AutomationState.NAVIGATING)
             handler.postDelayed({ runNavigating(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
@@ -6982,6 +6992,9 @@ object AutomationController {
             for (pkg in farmPkgs) {
                 service.forceKillApp(pkg, pressBackFirst = false)
             }
+            // build753: 杀宿主后 KEEP_SCREEN_ON 随进程死亡,若屏幕超时已到会立即熄灭进 AOD,
+            // 无障碍读到 AOD 窗口导致后续 navigate/collectDirect 失明——先唤醒屏幕再深链重开
+            service.ensureScreenOn()
             service.reopenFarmByDeepLink(killCurrentFirst = false)
             moveTo(AutomationState.NAVIGATING)
             handler.postDelayed({ runNavigating(0) }, INTERVAL_PAGE_LOAD_MS)

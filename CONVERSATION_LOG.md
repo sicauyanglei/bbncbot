@@ -32,7 +32,45 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build751补丁 修复CI编译失败:GestureResultCallback是AccessibilityService内部类,类路径android.accessibilityservice.GestureResultCallback错误改为android.accessibilityservice.AccessibilityService.GestureResultCallback
+### commit <待填> - fix: build753 forceKill宿主后屏幕熄灭进荣耀AOD,无障碍读到AOD窗口失明(collectDirect误转AI vision干等/navigate需二次深链),ensureScreenOn唤醒锁(ACQUIRE_CAUSES_WAKEUP)在4处点亮屏幕
+
+**用户需求**: "分析日志"（debug_test_20260829_171717.log, build752-5c6e3da, 289行, 17:15:03-17:17:14 约2分钟, 用户手动停止。日志从 GitHub logs/ 目录拉取——App 现直接上传日志到仓库）
+
+**build750 验证结果(通过)**:
+- ✓ 快手陷阱互动广告快速退出生效 2 次(17:16:03/17:16:53): 文案"扭一扭或点击跳转
+  详情页或第三方应用"+"点击跳转拿奖励"(灵光App推广,陷阱变体),CLOSING_AD 入口
+  2 秒内识别 `互动陷阱广告(无立即获取/下载按钮)...直接forceKill宿主+深链重开`,
+  跳过全部温和策略,单次退出 ~8s(对比 build749 的 40s)
+- ✓ 两次 forceKill→深链→NAVIGATING→农场加载→COLLECTING_DIRECT 流程正常
+
+**build751(我要更快拿奖15秒手势切回)未验证**: 本轮无此类广告出现,待后续日志验证
+
+**问题(已修)**: forceKill 杀 UC 后屏幕熄灭进荣耀 AOD(activeRootPkg='com.hihonor.aod'):
+- 根因: 广告播放时 App 持有 FLAG_KEEP_SCREEN_ON 屏幕不超时;forceKill 杀宿主后该
+  标志随进程死亡,若距用户上次物理触摸已超屏幕超时时长,屏幕立即熄灭进 AOD
+- 现象1(17:16:08): 第一次杀UC后深链重开,navigate-start snapshot pkg=AOD,
+  需再发一次深链(17:16:08.149)才在 17:16:13 恢复农场页(多浪费~5s)
+- 现象2(17:17:01): 第二次杀UC后农场已加载(17:16:59 COLLECTING_DIRECT),
+  2秒后屏幕熄灭→collectDirect-start snapshot pkg=AOD→找不到任何按钮→
+  误转 AI vision 干等 13 秒到用户手动停止
+- 修复: service 新增 ensureScreenOn(): PowerManager.isInteractive 检测屏幕状态,
+  熄灭时用 SCREEN_BRIGHT_WAKE_LOCK|ACQUIRE_CAUSES_WAKEUP 唤醒锁点亮屏幕
+  (acquire 3秒自动释放,由系统屏幕超时接管);manifest 加 WAKE_LOCK 权限
+- 调用点(4处): ①closeAd 陷阱广告快速退出路径(杀宿主后唤醒再深链)
+  ②watchAd 安装类广告放弃路径(同上) ③runNavigating 开头
+  ④runCollectingDirect 开头(防误转 AI vision)
+
+**其他观察(不修)**: forceKill UC 重开后 collectDirect 的 lastClickedButton 未重置,
+"看广告领奖"被 skip 转 OPENING_TASK_LIST——任务列表路径正常工作,影响小
+
+**修复后预期**: 杀UC后日志出现 `ensureScreenOn: screen was off (AOD/lock), wake
+lock acquired` → 深链重开一次即恢复农场页,不再二次深链/AI vision 干等
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit 5c6e3da - fix: build751补丁 修复CI编译失败:GestureResultCallback是AccessibilityService内部类,类路径android.accessibilityservice.GestureResultCallback错误改为android.accessibilityservice.AccessibilityService.GestureResultCallback
 
 **用户需求**: "流水线编译失败了"（CI run 33243805078, commit 4030a77, Build APKs step FAILED）
 
