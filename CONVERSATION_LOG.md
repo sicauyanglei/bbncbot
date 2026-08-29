@@ -32,7 +32,52 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build750 快手"扭一扭"陷阱互动广告退出浪费40s,CLOSING_AD检测无领取/下载按钮直接forceKill宿主+深链重开(温和关闭多轮验证无效)
+### commit <待填> - feat: build751 "我要更快拿奖"直接跳转外来App后停留15秒,从底部按住上滑(上滑停顿)打开最近任务点击UC卡片切回跳转前广告页(替代立即forceKill杀不掉方案)
+
+**用户需求**: "点击跳转后，过15秒回到跳转前的页面，操作应该是从底部手指按住不放，
+往上拖动，然后把之前切走前的页面设置为前台页面"（针对 debug_test_20260829_154730.log
+build749 的 15:44:53 跳淘宝 / 15:45:21 跳支付宝 两次 stage=1 无确认弹窗直接跳转场景）
+
+**旧方案问题(已修)**:
+- 旧逻辑(build746): stage=1 检测到直接跳转 → 立即 forceKillApp 杀外来App——
+  但前台App杀不掉(killBackgroundProcesses 限制, build697 已知),5s后 trap 分支
+  深链回UC+杀App(此时已退后台才杀成功) → 广告被弃,每次~15s 无收益
+
+**新方案(build751, 按用户描述实现)**:
+1. stage=1 检测到直接跳转外来App: 记录包名+时刻(fasterRewardStage1JumpPkg/
+   fasterRewardStage1JumpStartMs), 停留等待15秒(FASTER_REWARD_STAGE1_JUMP_STAY_MS,
+   每5s轮询,期间 return 不会走到 scene/TRAP/超时分支,等待有保障)
+2. 停留满15秒: swipeUpFromBottomToOpenRecents() 从底部手指按住不放往上拖动
+   (上滑停顿手势)打开系统最近任务——API26+ 两段式 continuation: 底部中点慢速
+   上滑到屏高42%(450ms, willContinue=true 保持按住)+原地停顿500ms松手,
+   系统判定"上滑停顿"打开最近任务(快速上滑会回桌面,停顿是关键);
+   API<26 退化单段慢速长滑800ms
+3. 1.2s后 findAndClickRecentTaskCard() 点击UC卡片把跳转前的页面设置为前台:
+   最近任务刚打开时第一张卡片就是刚切走的UC广告页; 优先按关键词
+   (UC极速版/UC浏览器/芭芭农场/UC)找卡片节点点击, 找不到坐标兜底点击屏幕
+   中上部(第一张卡片主体区域)
+4. INTERVAL_PAGE_LOAD_MS 后验证 rootInActiveWindow 包名:
+   - 成功(UC包名): 继续正常广告结束/奖励检测(最近任务切回恢复原任务栈,
+     广告页原样保留可继续, 比深链拉起新页面更可靠, 也更像真人操作)
+   - 失败(未开手势导航/无UC卡片): 深链兜底回UC+杀外来App(UC拉前台后外来App
+     退后台可杀), 继续广告等待
+5. 守卫: 跳转等待期间跳过 isTaskCompletePage 检查(外来App页面文本可能含
+   "已完成"误判); 跳转期间自然回到农场App则清记录继续正常流程;
+   watchAd 入口重置两个新状态变量
+
+**新增**: FASTER_REWARD_STAGE1_JUMP_STAY_MS=15000L 常量; fasterRewardStage1JumpPkg/
+fasterRewardStage1JumpStartMs 状态变量; service.swipeUpFromBottomToOpenRecents()/
+findAndClickRecentTaskCard() 两个手势函数
+
+**修复后预期时间线**: 点击"我要更快拿奖"跳淘宝 → 停留15s(模拟真人浏览) →
+上滑停顿打开最近任务 → 点UC卡片切回 → 广告页恢复继续正常流程(不再深链重开);
+日志应出现 "停留15秒后手势切回UC" → "上滑停顿打开最近任务" → "手势切回UC成功" 链路
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证(括号平衡静态检查已过)。
+
+---
+
+### commit 6c45231 - fix: build750 快手"扭一扭"陷阱互动广告退出浪费40s,CLOSING_AD检测无领取/下载按钮直接forceKill宿主+深链重开(温和关闭多轮验证无效)
 
 **用户需求**: "分析日志"（debug_test_20260829_154730.log, build749-0a7470c, 597行, 15:43:52-15:47:24 约3.5分钟, 用户手动停止）
 

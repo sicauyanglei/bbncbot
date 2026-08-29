@@ -52,6 +52,10 @@ object AutomationController {
     private const val AD_DURATION_BUFFER_MS = 2000L
     /** "更快拿奖"流程：点击"允许"后新 App 打开的停留时间（毫秒） */
     private const val FASTER_REWARD_APP_STAY_MS = 16000L
+    /** build751: stage=1 无确认弹窗直接跳转外来App的停留时间（毫秒）
+     * 用户需求："点击跳转后，过15秒回到跳转前的页面"——停留15秒后从底部上滑停顿
+     * 手势打开最近任务，把之前切走前的页面（UC广告页）设置为前台页面 */
+    private const val FASTER_REWARD_STAGE1_JUMP_STAY_MS = 15000L
     /** build716: "我要加速"点击后跳转App的停留时间（毫秒）
      * 用户需求："点击我要加速后,需要等待指定的时间后回到芭芭农场广告点击时的页面领取"
      * - 点击"我要加速"会跳转到淘宝/闲鱼等App(穿山甲TTRewardVideoActivity的CTA)
@@ -515,6 +519,14 @@ object AutomationController {
     /** "更快拿奖"流程：stage=1 等待 confirm popup 的重试次数（超时放弃） */
     @Volatile
     private var fasterRewardStage1WaitCount: Int = 0
+
+    /** build751: stage=1 无确认弹窗直接跳转的外来App包名（停留15秒手势切回期间记录） */
+    @Volatile
+    private var fasterRewardStage1JumpPkg: String = ""
+
+    /** build751: stage=1 直接跳转发生时刻（System.currentTimeMillis，用于计算15秒停留） */
+    @Volatile
+    private var fasterRewardStage1JumpStartMs: Long = 0L
 
     // ---------- 跨平台切换 ----------
     /** 跨平台切换：原平台（切换完成后回到此平台） */
@@ -5036,6 +5048,8 @@ object AutomationController {
             fasterRewardAppPkg = null   // 重置新 App 包名记录
             fasterRewardAppEnterTimeMs = 0L  // 重置新 App 进入时间戳
             fasterRewardStage1WaitCount = 0  // 重置 stage=1 等待计数器
+            fasterRewardStage1JumpPkg = ""   // build751: 重置 stage=1 直接跳转外来App记录
+            fasterRewardStage1JumpStartMs = 0L  // build751: 重置 stage=1 直接跳转时间戳
             prevAdHadCountdown = false  // 重置倒计时状态，供多信号融合检测用
             // build529：进入广告时重置 AI 视觉进度识别节流（每个广告独立计数）
             lastAiProgressCheckMs = 0L
@@ -5177,7 +5191,9 @@ object AutomationController {
                     //   根因:stage=1 等待期间任务可能已完成(确认弹窗未出现但奖励已发放),
                     //     应立即退出,不应继续等确认弹窗或回到正常广告等待。
                     //   修复:stage=1 每次轮询先检查 isTaskCompletePage,已完成则直接退出。
-                    if (service.isTaskCompletePage()) {
+                    // build751 守卫：直接跳转外来App停留期间（fasterRewardStage1JumpPkg非空）
+                    //   跳过此检查——外来App页面（淘宝/支付宝）文本可能含"已完成"等误判词。
+                    if (fasterRewardStage1JumpPkg.isEmpty() && service.isTaskCompletePage()) {
                         Log.i(TAG, "watchAd: task complete detected during faster reward stage=1 wait, exiting")
                         debugLog("watchAd: task complete during stage=1 (确认弹窗未出现但任务已完成), exiting via close/back icon")
                         val closeBtn = service.findAdCloseButton(service.currentPlatformConfig().adCloseButtonTexts)
@@ -5201,17 +5217,16 @@ object AutomationController {
                         }, INTERVAL_PAGE_LOAD_MS)
                         return
                     }
-                    // build746 修复（debug_test_20260822_191049.log, build745, 19:05:38/19:06:25/19:07:35 共3次）：
-                    //   19:05:38 PortraitADActivity(腾讯优量汇)广告页找到'我要更快拿奖'并点击
-                    //   19:05:53 活动窗口 pkg=com.ss.android.ugc.aweme.lite ← 点击直接跳转抖音极速版
-                    //          (广告主App),确认弹窗根本不会出现(与 build686 华为应用市场变体同类)
-                    //   19:05:53-19:06:03 stage=1 干等 25s 超时 → stage=4
-                    //   19:06:08 trap 分支(30s轮询)才发现外来App → 杀抖音+重开农场 → 广告被放弃
-                    //   每次浪费 ~35s 且广告奖励丢失,一轮日志共 3 次。
-                    // 修复：stage=1 每次轮询先检查活动窗口(rootInActiveWindow)是否已跳到外来App
-                    //   ——是则立即杀掉它回到 UC 广告页继续观看(广告 Activity 未被关闭,杀掉
-                    //   覆盖其上的外来 App 后自动恢复前台),同时放弃 faster reward(stage=4),
-                    //   不再浪费 25s 等一个不会出现的确认弹窗。
+                    // build751 重写（原 build746 立即强杀方案，debug_test_20260829_154730.log, build749,
+                    //   15:44:53 跳淘宝/15:45:21 跳支付宝 共2次暴露问题）：
+                    //   旧逻辑检测到直接跳转立即 forceKillApp 杀外来App——但前台App杀不掉
+                    //   (killBackgroundProcesses 限制,build697 已知),5s后 trap 分支深链回UC+杀App
+                    //   (此时已退后台才杀成功)→ 广告被弃,每次浪费 ~15s 且无收益。
+                    // 用户新需求："点击跳转后，过15秒回到跳转前的页面，操作应该是从底部手指
+                    //   按住不放，往上拖动，然后把之前切走前的页面设置为前台页面"——
+                    //   停留15秒后用上滑停顿手势(从底部按住不放往上拖动)打开最近任务，
+                    //   点击UC卡片把跳转前的广告页切回前台（最近任务切回恢复原任务栈，
+                    //   广告页原样保留可继续，比深链拉起新页面更可靠，也更像真人操作）。
                     // 注意：必须用 rootInActiveWindowSafe() 直接取活动窗口,不能用
                     //   getCurrentWindowPackage()——后者在 systemui 覆盖时会退回 windows
                     //   扫描,可能误报后台残留窗口(如微信)。
@@ -5223,14 +5238,70 @@ object AutomationController {
                         stage1ActivePkg != "android" &&
                         stage1ActivePkg != "com.android.systemui"
                     ) {
-                        Log.w(TAG, "watchAd: faster reward entry jumped to foreign app '$stage1ActivePkg' directly (no confirm popup variant), killing it to return to ad")
-                        debugLog("watchAd: stage=1 点击'我要更快拿奖'直接跳转'$stage1ActivePkg'(无确认弹窗变体),立即杀掉回UC广告页继续观看")
-                        service.forceKillApp(stage1ActivePkg, pressBackFirst = false)
-                        fasterRewardStage = 4  // 放弃 faster reward,回到正常广告等待
+                        // 首次检测到直接跳转：记录包名和时刻，开始15秒停留
+                        if (fasterRewardStage1JumpPkg.isEmpty()) {
+                            fasterRewardStage1JumpPkg = stage1ActivePkg
+                            fasterRewardStage1JumpStartMs = System.currentTimeMillis()
+                            Log.w(TAG, "watchAd: faster reward entry jumped to foreign app '$stage1ActivePkg' directly (no confirm popup variant), staying ${FASTER_REWARD_STAGE1_JUMP_STAY_MS}ms then gesture switch back")
+                            debugLog("watchAd: stage=1 点击'我要更快拿奖'直接跳转'$stage1ActivePkg'(无确认弹窗变体),停留${FASTER_REWARD_STAGE1_JUMP_STAY_MS / 1000}秒后手势切回UC")
+                        }
+                        val jumpStayedMs = System.currentTimeMillis() - fasterRewardStage1JumpStartMs
+                        if (jumpStayedMs < FASTER_REWARD_STAGE1_JUMP_STAY_MS) {
+                            // 未满15秒：继续等待
+                            debugLog("watchAd: stage=1 在'$stage1ActivePkg'停留 ${jumpStayedMs}/${FASTER_REWARD_STAGE1_JUMP_STAY_MS}ms,等停留满后手势切回")
+                            handler.postDelayed({
+                                if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                            }, adEndCheckIntervalMs)
+                            return
+                        }
+                        // 停留满15秒：从底部按住上滑停顿打开最近任务 → 点击UC卡片切回跳转前的页面
+                        Log.i(TAG, "watchAd: stage=1 jump stay ${jumpStayedMs}ms done, gesture switching back to farm ad page")
+                        debugLog("watchAd: stage=1 停留满${FASTER_REWARD_STAGE1_JUMP_STAY_MS / 1000}秒,从底部按住上滑(上滑停顿)打开最近任务,切回跳转前的UC广告页")
+                        val jumpPkg = fasterRewardStage1JumpPkg
+                        fasterRewardStage = 4  // 手势切回流程接管,放弃 faster reward 轮询
+                        fasterRewardStage1JumpPkg = ""
                         fasterRewardStage1WaitCount = 0
+                        service.swipeUpFromBottomToOpenRecents()
+                        handler.postDelayed({
+                            if (state != AutomationState.WATCHING_AD) return@postDelayed
+                            // 最近任务已打开(第一张卡片即刚切走的UC),点击它切回前台
+                            val clicked = service.findAndClickRecentTaskCard(listOf("UC极速版", "UC浏览器", "芭芭农场", "UC"))
+                            debugLog("watchAd: stage=1 最近任务UC卡片点击结果=$clicked,等待验证前台...")
+                            handler.postDelayed({
+                                if (state != AutomationState.WATCHING_AD) return@postDelayed
+                                val nowPkg = service.rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+                                if (nowPkg in watchingAdPlatform.config.packageNames) {
+                                    // 手势切回成功：UC广告页恢复前台,继续正常广告结束/奖励检测
+                                    Log.i(TAG, "watchAd: stage=1 gesture switch back to '$nowPkg' success, resuming ad watch")
+                                    debugLog("watchAd: stage=1 手势切回UC成功(跳转前广告页已恢复前台),继续广告等待")
+                                    runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                                } else {
+                                    // 手势切回失败(未开手势导航/最近任务无UC卡片)：深链兜底回UC+杀外来App
+                                    Log.w(TAG, "watchAd: stage=1 gesture switch back failed (pkg=$nowPkg), deep link fallback")
+                                    debugLog("watchAd: stage=1 手势切回失败(pkg=$nowPkg),深链兜底回UC+杀'$jumpPkg'")
+                                    service.reopenFarmByDeepLink(killCurrentFirst = false)
+                                    if (jumpPkg.isNotEmpty()) {
+                                        service.forceKillApp(jumpPkg, pressBackFirst = false)
+                                    }
+                                    handler.postDelayed({
+                                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                                    }, INTERVAL_PAGE_LOAD_MS)
+                                }
+                            }, INTERVAL_PAGE_LOAD_MS)
+                        }, 1200)
+                        return
+                    }
+                    // build751: 跳转等待期间若已自然回到农场App(外来App自行退出),清除跳转记录继续正常广告流程
+                    if (fasterRewardStage1JumpPkg.isNotEmpty() &&
+                        stage1ActivePkg in watchingAdPlatform.config.packageNames
+                    ) {
+                        debugLog("watchAd: stage=1 已自然回到农场App(pkg=$stage1ActivePkg),清除跳转等待记录,继续广告等待")
+                        fasterRewardStage1JumpPkg = ""
+                        fasterRewardStage1JumpStartMs = 0L
+                        fasterRewardStage = 4
                         handler.postDelayed({
                             if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
-                        }, INTERVAL_PAGE_LOAD_MS)
+                        }, adEndCheckIntervalMs)
                         return
                     }
                     if (service.isFasterRewardPopupShown()) {

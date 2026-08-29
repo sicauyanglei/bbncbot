@@ -1248,6 +1248,84 @@ class FarmAccessibilityService : AccessibilityService() {
         return dispatchGesture(gesture, null, null)
     }
 
+    /**
+     * build751: 从底部手指按住不放往上拖动（上滑停顿手势）打开系统最近任务
+     * 用户需求：点击"我要更快拿奖"跳转第三方App后过15秒，模拟真人手势切回跳转前的页面(UC广告页)。
+     * 手势实现（API 26+ 两段式 continuation）：
+     *   第一段：屏幕底部中点慢速上滑到屏高42%处（450ms，willContinue=true 保持按住不放）
+     *   第二段：原地停顿500ms后松手 → 系统判定"上滑停顿"→ 打开最近任务
+     *   （若判快速上滑则回桌面，停顿是关键；两段间在onCompleted回调内立即continueStroke保持同一手势会话）
+     * API < 26 无 continueStroke，退化为单段慢速长滑（800ms）
+     * @return 第一段手势是否成功派发
+     */
+    fun swipeUpFromBottomToOpenRecents(): Boolean {
+        val dm = resources.displayMetrics
+        val x = dm.widthPixels / 2f
+        val startY = dm.heightPixels - 8f
+        val endY = dm.heightPixels * 0.42f
+        return try {
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                val path1 = android.graphics.Path().apply { moveTo(x, startY); lineTo(x, endY) }
+                val stroke1 = android.accessibilityservice.GestureDescription.StrokeDescription(path1, 0, 450, true)
+                val g1 = android.accessibilityservice.GestureDescription.Builder().addStroke(stroke1).build()
+                debugLog("swipeUpFromBottomToOpenRecents: ($x,$startY)->($x,$endY) hold 500ms (two-stage, API26+)")
+                dispatchGesture(g1, object : android.accessibilityservice.GestureResultCallback() {
+                    override fun onCompleted(gestureDescription: android.accessibilityservice.GestureDescription?) {
+                        // 立即续按：原地停顿500ms后松手（停顿让系统判定"上滑停顿"而非快速上滑回桌面）
+                        try {
+                            val path2 = android.graphics.Path().apply { moveTo(x, endY); lineTo(x, endY) }
+                            val stroke2 = stroke1.continueStroke(path2, 0, 500, false)
+                            dispatchGesture(
+                                android.accessibilityservice.GestureDescription.Builder().addStroke(stroke2).build(),
+                                null, null
+                            )
+                        } catch (e: Exception) {
+                            debugLog("swipeUpFromBottomToOpenRecents: continueStroke failed, ${e.message}")
+                        }
+                    }
+
+                    override fun onCancelled(gestureDescription: android.accessibilityservice.GestureDescription?) {
+                        debugLog("swipeUpFromBottomToOpenRecents: stroke1 cancelled")
+                    }
+                }, null)
+            } else {
+                debugLog("swipeUpFromBottomToOpenRecents: single-stage fallback (API<26)")
+                dispatchGestureSwipe(x, startY, x, endY, 800)
+            }
+        } catch (e: Exception) {
+            debugLog("swipeUpFromBottomToOpenRecents: failed, ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * build751: 在最近任务视图中查找目标App卡片并点击（把之前切走前的页面设置为前台）
+     * 最近任务刚打开时，第一张卡片就是刚切走的App（本流程中即UC广告页）。
+     * 优先按关键词找卡片节点（text/desc contains，最近任务卡片标题为App名），
+     * 找不到则坐标兜底点击屏幕中上部（第一张卡片主体区域）。
+     * @param keywords 目标App卡片标题关键词（按优先级）
+     * @return 是否已执行点击
+     */
+    fun findAndClickRecentTaskCard(keywords: List<String>): Boolean {
+        val root = rootInActiveWindowSafe()
+        if (root != null) {
+            for (kw in keywords) {
+                val node = findNodeByText(root, kw)
+                if (node != null) {
+                    debugLog("findAndClickRecentTaskCard: found card by '$kw', clicking")
+                    return performClickSafe(node)
+                }
+            }
+            debugLog("findAndClickRecentTaskCard: no card node matched ${keywords.size} keywords (rootPkg=${root.packageName})")
+        } else {
+            debugLog("findAndClickRecentTaskCard: no active window root")
+        }
+        // 兜底：最近任务第一张卡片（刚切走的UC）主体区域在中上部
+        val dm = resources.displayMetrics
+        debugLog("findAndClickRecentTaskCard: fallback click at screen center-top")
+        return dispatchGestureClick(dm.widthPixels / 2f, dm.heightPixels * 0.35f)
+    }
+
     // ============== 游戏任务支持（AI 游戏达人） ==============
 
     /**
