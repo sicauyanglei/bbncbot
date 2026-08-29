@@ -5845,10 +5845,18 @@ object AutomationController {
         //   分支,交给下方深链任务分支(等够任务时长后保留现场切回农场)处理。此前此分支
         //   在深链分支之前执行且不区分两者,深链任务刚跳转就被当陷阱杀掉+跳过任务,
         //   深链分支自 build737 引入以来从未执行过(死代码)。
+        //   build762 修复（debug_test_20260830_060258.log, build759, 06:01:15-06:01:22）:
+        //   快手互动广告"点击跳转拿奖励"按钮点击后跳转 com.antgroup.leopard.android
+        //   (广告落地App),build759 的 interactiveAdJumpPending 守卫只覆盖了场景降级和
+        //   深链分支条件,漏了本分支——跳转 7s 后被本分支当"广告按钮陷阱"forceKill+
+        //   深链重开农场,奖励流程被打断(看广告领奖按钮仍在,奖励未到账,循环重看广告,
+        //   两轮均如此,第一轮还引发 47s NAVIGATING 恢复)。修复:interactiveAdJumpPending
+        //   =true 时放行,交给深链分支(停留 20s→保留现场切回→广告关闭回调发奖)。
         val currentPkg = service.getCurrentWindowPackage()
         if (watchingAdPlatform != Platform.UNKNOWN && currentPkg != null &&
             adSpeedUpJumpStage != 1 &&  // 放行"我要加速"跳转停留阶段
             !watchingAdFromDeepLinkTask &&  // build743: 放行深链任务跳转,交给深链分支处理
+            !interactiveAdJumpPending &&  // build762: 放行互动广告"点击跳转拿奖励"跳转,交给深链分支处理
             currentPkg !in watchingAdPlatform.config.packageNames &&
             !currentPkg.contains("launcher", ignoreCase = true) &&
             !currentPkg.contains("aod", ignoreCase = true) &&

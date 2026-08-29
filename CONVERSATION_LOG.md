@@ -32,6 +32,61 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit <待填> - fix: build762 互动广告"点击跳转拿奖励"跳转7s后被"广告按钮陷阱"处理器拦截forceKill奖励流程打断(interactiveAdJumpPending守卫漏了此分支;补一行放行交给深链分支停留20s保留现场切回)
+
+**用户需求**: "分析日志"（debug_test_20260830_060258.log, **build759-efe08f5**, 240行,
+06:00:42-06:02:55 约2分钟, 用户手动停止。注意: 用户测的是 build759 APK,
+build760手势切换/build761千问对话行为不在此日志中）
+
+**build759 修复验证结果**:
+- ✓✓ "点击跳转拿奖励"按钮识别成功: 两轮广告均
+  `findInteractiveAdClickToClaimButton: found by exact text='点击跳转拿奖励'` →
+  `跳转类拿奖励按钮...跳转守卫已置位(interactiveAdJumpPending=true)` → 点击成功
+- ✗ 跳转后奖励流程被打断（本轮修复的核心问题）
+
+**问题: 跳转 7s 后被"广告按钮陷阱"处理器拦截** ——
+两轮完全相同的循环（06:01:15-06:01:22 和 06:02:40-06:02:46）:
+1. 快手互动广告(摇一摇/扭一扭, hint=10秒) → 按钮识别+守卫置位+点击成功 ✓
+2. 点击后跳转 com.antgroup.leopard.android（蚂蚁落地App）
+3. **7s 后 watchAd 的"广告按钮陷阱"处理器（build714 引入,处理我要加速/意外跳转）
+   触发**: `current pkg='com.antgroup.leopard.android' is not farm app, exiting
+   (ad button trap)` → forceKill 落地App + 深链重开农场
+4. 奖励流程被打断: 广告未正常关闭(发奖回调未触发),`看广告领奖`按钮仍在,
+   奖励未到账 → 循环重看广告(第一轮还引发 47s NAVIGATING 恢复: stepTab
+   "芭芭农场 not found"×5 + 弹窗关闭 + 重开)
+
+**根因**: build759 的 interactiveAdJumpPending 守卫覆盖了 3 处（陷阱场景降级/
+深链分支 isOnAbnormalPage 放宽/自然返回分支），但漏了执行顺序在深链分支**之前**
+的"广告按钮陷阱"处理器（5848 行, build714）。该处理器已有两个放行守卫
+（adSpeedUpJumpStage!=1 我要加速 / !watchingAdFromDeepLinkTask 深链任务,
+build743 同款问题同款修法），互动广告跳转被它抢先拦截。
+
+**修复**: 陷阱处理器条件加一行 `!interactiveAdJumpPending`（build743 深链任务
+放行的同款模式）。放行后流程: 陷阱处理器跳过 → 场景检测（落地页若判
+TRAP_ABNORMAL 被 build759 守卫降级 UNKNOWN）→ 深链分支（elapsed≥5s,守卫已放宽）
+→ deepLinkAppPkg=落地App, 停留 20s → bringFarmAppToFront 保留现场切回
+（广告 Activity 在 UC 栈顶恢复）→ runDeepLinkReturnToFarm pressBack 关广告
+（关闭回调触发发奖）→ OPENING_TASK_LIST 续处理。
+
+**修复后预期日志**（互动广告跳转类）:
+```
+watchAd: 互动广告'点击跳转拿奖励'按钮... 点击直接获取奖励
+watchAd: 跳转类拿奖励按钮... 跳转守卫已置位(interactiveAdJumpPending=true)
+watchAd: deep-linked app 'com.antgroup.leopard.android' detected, waiting 20000ms (task hint) then bringFarmAppToFront
+watchAd: bringFarmAppToFront (preserve scene) + killing 'com.antgroup.leopard.android'   [原 trap exit 路径消失]
+```
+
+**次要观察(不修)**:
+- 06:02:25 collectDirect "claim button found, clicking" 点了'已领取'文本节点
+  （领取关键词匹配到签到状态文本,坐标点击签到区,无害）
+- 任务"看视频得巨额肥料 (0/10)"需 10 轮,两轮广告均是同一任务
+- 06:02:20 "skip button[0] '看广告领奖' (same as last clicked, click had no effect)"
+  无效果检测正常工作
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### commit 62eeae9 - feat: build761 千问对话任务-跳转千问App后在对话框自动发送"你吃饭了吗"(深链分支触发:找输入框SET_TEXT→1.2s后点发送按钮,假输入框兜底点击,6次重试)
 
 **用户需求**: "打开千问发起对话，得在千问对话框中发送个'你吃饭了吗'"
