@@ -32,7 +32,50 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build753 forceKill宿主后屏幕熄灭进荣耀AOD,无障碍读到AOD窗口失明(collectDirect误转AI vision干等/navigate需二次深链),ensureScreenOn唤醒锁(ACQUIRE_CAUSES_WAKEUP)在4处点亮屏幕
+### commit <待填> - fix: build754 陷阱广告连续退出无进展时跳过视频类任务/入口改做其他任务(防7轮死循环零收益);isRechargePage广告Activity守卫(电商CTA误判充值页pressBack干等20s)
+
+**用户需求**: "分析日志"（debug_test_20260829_173308.log, build753-087badf, 724行, 17:29:29-17:33:03 约3.5分钟, 用户手动停止。日志从 GitHub logs/ 目录拉取）
+
+**build753 验证结果(通过)**:
+- ✓ ensureScreenOn 生效 1 次(17:30:21.748 第一次 forceKill 后 wake lock acquired),
+  屏幕点亮后 17:30:27 恢复农场页,未再出现二次深链/AI vision 干等
+- ✓ NAVIGATING 快速(5-6s), collectDirect→任务列表→广告循环状态机正常
+
+**问题A(已修): 陷阱广告死循环零收益** —— 7 次广告全是快手互动陷阱("扭一扭或点击
+跳转详情页或第三方应用",淘宝/灵光推广),forceKill 退出回农场后:
+- COLLECTING_DIRECT 再点"看广告领奖" → 陷阱广告 → 退出 → 再点... (4 次)
+- 任务列表每轮重置 currentTaskIndex=0,任务#1"看视频得巨额肥料(1/10)"反复被点 (3 次)
+- 3.5min 零收益,任务计数卡 1/10,松鼠大战(+2400)/头条极速版(+684)等任务从未被尝试
+- 修复(Fix A): 新增 trapAdExitStreak/trapAdExitBaseCount(仿 build744 安装广告放弃
+  streak 模式,以 collectedCount 为进展基线):
+  - 4 个陷阱退出点调 recordTrapAdExit(): closeAd 互动陷阱快速退出/watchAd 充值陷阱
+    forceKill/watchAd 安装陷阱 forceKill/watchAd 下载安装广告放弃
+  - 连续 TRAP_AD_SKIP_THRESHOLD=2 次陷阱退出且无进展(collectedCount 不变)时:
+    · collectDirect 跳过"看广告领奖"等视频类入口按钮,直接打开任务列表
+    · processTask 1a-ter 跳过看视频/看广告类任务(currentTaskIndex++)
+  - 有进展(collectedCount 增加,如深链任务完成/广告领奖成功)视频入口自动恢复
+  - reset() 复位计数器
+
+**问题B(已修): isRechargePage 误判广告电商CTA为充值页** —— 5 次同款快手互动广告
+(淘宝"精彩赛事相伴"页含"立即购买"类CTA)被判 TRAP_RECHARGE → pressBack×4 无效干等
+20s(广告Activity拦截back键);而同一广告无电商CTA时判 TRAP_INTERACTIVE 走 build750
+快速退出,行为不一致。
+- 修复(Fix B): identifyCurrentScene 步骤1加 !isAdActivity() 守卫(同 build740 对
+  TRAP_INSTALL 的修复):广告SDK Activity内"立即购买"等是广告创意CTA非真充值页,
+  跳过 TRAP_RECHARGE 落到步骤4按互动广告/AD_PLAYING 处理
+
+**次要观察(不修)**: 17:32:04 collectDirect 找0按钮(页面加载中'已领取'节点未出现)→
+dailyClaimed=false→AI vision 找'点击领取'15s超时,浪费一次,影响小
+
+**修复后预期**: 连续2次陷阱退出后日志出现 `trapAdExit: streak=2` →
+`跳过视频类入口'看广告领奖'`/`跳过视频类任务'看视频得巨额肥料'` → 任务#2
+松鼠大战(+2400)等被尝试;广告含电商CTA时不再走充值陷阱pressBack循环
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit 087badf - fix: build753 forceKill宿主后屏幕熄灭进荣耀AOD,无障碍读到AOD窗口失明(collectDirect误转AI vision干等/navigate需二次深链),ensureScreenOn唤醒锁(ACQUIRE_CAUSES_WAKEUP)在4处点亮屏幕
 
 **用户需求**: "分析日志"（debug_test_20260829_171717.log, build752-5c6e3da, 289行, 17:15:03-17:17:14 约2分钟, 用户手动停止。日志从 GitHub logs/ 目录拉取——App 现直接上传日志到仓库）
 

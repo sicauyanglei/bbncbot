@@ -1977,7 +1977,15 @@ class FarmAccessibilityService : AccessibilityService() {
         // 必须前置：权限弹窗会遮住农场页/任务列表,isOnFarmPage 返回 false 会导致误判
         if (isSystemPermissionPopup()) return PageScene.SYSTEM_PERMISSION
         // 1. 充值/付费页（最高优先级，违反禁止交易原则）
-        if (isRechargePage()) return PageScene.TRAP_RECHARGE
+        // build754 修复（debug_test_20260829_173308.log, build753, 17:30:48-17:32:59 五次）：
+        //   快手激励视频的电商推广创意（淘宝"精彩赛事相伴"页含"立即购买"类转化CTA）被
+        //   isRechargePage 误判为充值页 → TRAP_RECHARGE 分支 pressBack×4 无效干等 20s
+        //   （广告 Activity 拦截 back 键）；而同一广告无电商 CTA 时判 TRAP_INTERACTIVE 走
+        //   build750 快速退出，行为不一致。
+        //   修复：在广告 SDK Activity 内时"立即购买/去下单"等是广告创意 CTA 而非真充值页，
+        //   跳过 TRAP_RECHARGE（同 build740 对 TRAP_INSTALL 的守卫），落到步骤 4 按互动
+        //   广告/AD_PLAYING 处理；真充值弹窗叠加在广告上时，后续 forceKill 兜底仍会退出。
+        if (isRechargePage() && !isAdActivity()) return PageScene.TRAP_RECHARGE
         // 2. 交易/下单页（违反禁止交易原则）
         if (isOnAbnormalPage()) return PageScene.TRAP_ABNORMAL
         // 3. 非农场小程序陷阱（支付宝/淘宝）

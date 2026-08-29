@@ -78,6 +78,12 @@ object AutomationController {
      * （一轮任务数约 6-8，全失败说明当天广告池全是安装类广告，继续跑只会无限杀UC重开）
      */
     private const val MAX_CONSECUTIVE_INSTALL_AD_ABANDON = 8
+    /**
+     * build754: 陷阱广告（互动陷阱/充值误判陷阱/安装陷阱）连续退出且无进展的跳过阈值
+     * 达到后跳过视频类广告入口（"看广告领奖"按钮 + 看视频类任务），改做其他任务；
+     * 一旦有进展（collectedCount 增加）视频入口自动恢复
+     */
+    private const val TRAP_AD_SKIP_THRESHOLD = 2
     /** 施肥按钮最大点击次数（防止无限点击） */
     private const val MAX_FERTILIZE_CLICKS = 30
     /** 滑动浏览任务最大滑动次数 */
@@ -332,6 +338,25 @@ object AutomationController {
     /** 上次安装类广告放弃时的 collectedCount 快照（检测期间是否有成功） */
     @Volatile
     private var installAdAbandonBaseCount: Int = -1
+
+    /**
+     * build754: 陷阱广告连续退出计数（互动陷阱/充值误判陷阱/安装陷阱 forceKill 退出）
+     *
+     * debug_test_20260829_173308.log（build753, 17:29:46-17:33:03, 3.5min）：
+     * 7 次广告全是快手互动陷阱（"扭一扭或点击跳转详情页或第三方应用"，淘宝/灵光推广），
+     * forceKill 退出回农场后 COLLECTING_DIRECT 再点"看广告领奖"、任务列表每轮重置
+     * currentTaskIndex=0 再点任务#1"看视频得巨额肥料(1/10)" → 同类陷阱广告 → 循环 7 轮
+     * 零收益，任务计数卡 1/10，松鼠大战(+2400)/头条极速版(+684)等任务从未被尝试。
+     *
+     * - 陷阱退出时若 collectedCount 与基线相同（期间无任何成功）→ streak++；不同则重置为 1
+     * - streak >= [TRAP_AD_SKIP_THRESHOLD] 且仍无进展 → 跳过视频类广告入口，改做其他任务
+     */
+    @Volatile
+    private var trapAdExitStreak: Int = 0
+
+    /** 上次陷阱广告退出时的 collectedCount 快照（检测期间是否有成功） */
+    @Volatile
+    private var trapAdExitBaseCount: Int = -1
 
     /**
      * build747: 当前正在处理的任务上下文文本（runProcessingTask 点击时快照）
@@ -717,6 +742,32 @@ object AutomationController {
     private fun backButtonCandidates(service: FarmAccessibilityService) =
         service.currentPlatformConfig().backButtonCoords
 
+    /**
+     * build754: 记录一次陷阱广告退出（互动陷阱/充值误判陷阱/安装陷阱 forceKill 退出）
+     * 期间无进展（collectedCount 与基线相同）则 streak++，有进展则重置为 1
+     */
+    private fun recordTrapAdExit() {
+        if (collectedCount == trapAdExitBaseCount) {
+            trapAdExitStreak++
+        } else {
+            trapAdExitStreak = 1
+            trapAdExitBaseCount = collectedCount
+        }
+        debugLog("trapAdExit: streak=$trapAdExitStreak (base=$trapAdExitBaseCount, collected=$collectedCount)")
+    }
+
+    /**
+     * build754: 是否应跳过视频类广告入口（"看广告领奖"按钮 + 看视频类任务）
+     * 条件：连续 TRAP_AD_SKIP_THRESHOLD 次陷阱退出且期间无任何进展（collectedCount 未变）
+     */
+    private fun shouldSkipVideoAdEntries(): Boolean =
+        trapAdExitStreak >= TRAP_AD_SKIP_THRESHOLD && collectedCount == trapAdExitBaseCount
+
+    /** build754: 判断任务/按钮文本是否视频类广告任务（看视频/看广告等） */
+    private fun isVideoAdTask(text: String): Boolean =
+        text.contains("看视频") || text.contains("看广告") ||
+            text.contains("观看视频") || text.contains("视频得")
+
     /** 启动自动化 */
     fun start() {
         val service = getService()
@@ -742,6 +793,8 @@ object AutomationController {
         lastDirectClickedText = ""  // build581: 复位 direct 防死循环标记
         lastDirectClickedBounds = ""
         installAdAbandonStreak = 0  // build744: 复位安装类广告连续放弃计数
+        trapAdExitStreak = 0  // build754: 复位陷阱广告连续退出计数
+        trapAdExitBaseCount = -1
         installAdAbandonBaseCount = -1
         aiVisionDirectClickAttempted = false  // build596: 复位 AI 视觉识别点击标记
         browsingNovelStarted = false  // build584: 复位小说阅读任务标记
@@ -1617,6 +1670,15 @@ object AutomationController {
         val btnBoundsStr = android.graphics.Rect().also { button.getBoundsInScreen(it) }.toShortString()
         debugLog("collectDirect: clicking button[$chosenIdx] text='$btnText' desc='$btnDesc' bounds=$btnBoundsStr (attempt ${attempt + 1})")
         Log.i(TAG, "collectDirect: clicking '$btnText' (attempt ${attempt + 1})")
+        // build754: 陷阱广告连续退出且无进展时,跳过"看广告领奖"等视频类入口按钮,
+        // 直接打开任务列表改做其他任务(松鼠大战/头条极速版等)
+        if (shouldSkipVideoAdEntries() && isVideoAdTask("$btnText $btnDesc")) {
+            Log.i(TAG, "collectDirect: skip video-ad button '$btnText' (trap ad exit streak=$trapAdExitStreak, no progress)")
+            debugLog("collectDirect: 连续${trapAdExitStreak}次陷阱广告退出无进展,跳过视频类入口'$btnText',直接打开任务列表")
+            moveTo(AutomationState.OPENING_TASK_LIST)
+            handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
         // 记录本次点击,下一轮若仍是同一按钮则跳过
         lastDirectClickedText = btnText
         lastDirectClickedBounds = btnBoundsStr
@@ -2525,6 +2587,21 @@ object AutomationController {
         if (completedMatch != null) {
             Log.i(TAG, "processTask: task #${currentTaskIndex + 1} already completed (matched '${completedMatch.value}'), skipping (text='$buttonText', context='$taskContextText')")
             debugLog("processTask: skip completed task #$${currentTaskIndex + 1}, matched='${completedMatch.value}', context='$taskContextText'")
+            currentTaskIndex++
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
+            }, 500L)
+            return
+        }
+
+        // 1a-ter. build754: 陷阱广告连续退出防护——连续 TRAP_AD_SKIP_THRESHOLD 次广告陷阱
+        // 退出且期间无进展(collectedCount 不变)时,跳过视频类任务(看视频/看广告),改做其他任务。
+        // debug_test_20260829_173308.log: 7 次快手互动陷阱广告 forceKill 退出后,任务列表每轮
+        // 重置 currentTaskIndex=0 都从任务#1"看视频得巨额肥料"重新开始 → 死循环 3.5min 零收益,
+        // 松鼠大战(+2400)/头条极速版(+684)等任务从未被尝试。有进展后视频任务自动恢复(广告池会轮换创意)。
+        if (shouldSkipVideoAdEntries() && isVideoAdTask(fullTaskText)) {
+            Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is video-ad task, skipping (trap ad exit streak=$trapAdExitStreak, no progress)")
+            debugLog("processTask: 连续${trapAdExitStreak}次陷阱广告退出无进展,跳过视频类任务'$taskContextText',改做其他任务")
             currentTaskIndex++
             handler.postDelayed({
                 if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
@@ -5128,6 +5205,7 @@ object AutomationController {
         if (fasterRewardStage == 0 && service.isDownloadInstallAd()) {
             Log.w(TAG, "watchAd: download-install ad detected (完成App安装才给奖励), abandoning immediately")
             debugLog("watchAd: 下载安装类广告(完成App安装才给奖励),等待无意义,立即forceKill杀宿主+重开农场放弃")
+            recordTrapAdExit()  // build754: 陷阱退出计数（连续无进展则跳过视频类任务入口）
             // build744: 跳过当前任务（直接推进索引，不消耗 multi-click replay 次数——
             // 放弃不是成功，重进 OPENING_TASK_LIST 后轮到下一个任务，避免同一任务无限重试）
             currentTaskIndex++
@@ -5772,6 +5850,7 @@ object AutomationController {
                 if (trapRechargeBackCount >= 4 || elapsedMs >= adMaxDurationMs) {
                     Log.w(TAG, "watchAd: recharge trap back x$trapRechargeBackCount ineffective (elapsed=${elapsedMs}ms), force killing host app and relaunching farm")
                     debugLog("watchAd: 充值陷阱pressBack ${trapRechargeBackCount}次无效(elapsed=${elapsedMs}ms), forceKillApp杀宿主+重开农场兜底")
+                    recordTrapAdExit()  // build754: 陷阱退出计数（连续无进展则跳过视频类任务）
                     service.setAdMode(false)
                     val farmPkgs = service.currentPlatformConfig().packageNames
                     for (pkg in farmPkgs) {
@@ -5990,6 +6069,7 @@ object AutomationController {
                 if (trapInstallBackCount >= 4 || elapsedMs >= adMaxDurationMs) {
                     Log.w(TAG, "watchAd: install trap back x$trapInstallBackCount ineffective (elapsed=${elapsedMs}ms), force killing host app and relaunching farm")
                     debugLog("watchAd: 安装陷阱pressBack ${trapInstallBackCount}次无效(elapsed=${elapsedMs}ms), forceKillApp杀宿主+重开农场兜底")
+                    recordTrapAdExit()  // build754: 陷阱退出计数（连续无进展则跳过视频类任务）
                     service.setAdMode(false)
                     val farmPkgs = service.currentPlatformConfig().packageNames
                     for (pkg in farmPkgs) {
@@ -6987,6 +7067,7 @@ object AutomationController {
             service.findInteractiveAdDownloadButton() == null) {
             Log.w(TAG, "closeAd: interactive trap ad (no claim/download button), skipping gentle strategies, force killing host app")
             debugLog("closeAd: 互动陷阱广告(无立即获取/下载按钮),温和关闭已验证无效,直接forceKill宿主+深链重开")
+            recordTrapAdExit()  // build754: 陷阱退出计数（连续无进展则跳过视频类任务）
             service.setAdMode(false)
             val farmPkgs = service.currentPlatformConfig().packageNames
             for (pkg in farmPkgs) {
