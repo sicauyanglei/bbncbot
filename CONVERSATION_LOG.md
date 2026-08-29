@@ -104,6 +104,10 @@ of type String?"（compileNoOcrReleaseKotlin/compileFullReleaseKotlin 两个变�
 
 **编译验证**: sandbox 无 Android SDK（gradle 走代理可下载但 SDK 缺失无法编译），
 CI 失败日志确认唯一错误即上述一处，修复后等 CI 构建验证。
+✅ **CI 已通过**（run 33254637384, 4149866, 2026-08-29 13:20），APK 已发布。
+**编号注意**: release 名/日志 BUILD_LABEL 为 **build757**-4149866（github.run_number
+全局计数含被取消的 run 756），对应本条目 build756 修复——下轮日志分析时
+build757-4149866 即本构建。
 
 ---
 
