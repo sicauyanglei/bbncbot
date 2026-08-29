@@ -6689,6 +6689,171 @@ class FarmAccessibilityService : AccessibilityService() {
             debugLog("bringFarmAppToFront: no package name for $targetPlatform")
             return false
         }
+        // build760: 优先手势切换（模拟用户从底部上滑停顿打开最近任务→点App卡片切回前台）。
+        // 用户需求："从底部手指拖动切换后台任务，把uc浏览器切到前台，不要触发浏览器刷新"——
+        // moveTaskToFront 在部分设备会让浏览器 WebView 重载（页面刷新、任务列表弹窗丢失），
+        // 手势切换与真实用户切换完全一致，浏览器保持原状态（现场保留）。
+        // 手势发起成功返回 true（切换流程异步完成，约 2.5s 内到位），
+        // 中途失败（找不到卡片等）内部自动 fallback moveTaskToFront。
+        if (bringFarmAppToFrontByGesture(targetPlatform, farmPkg)) {
+            return true
+        }
+        return moveTaskToFrontInternal(targetPlatform, farmPkg)
+    }
+
+    /**
+     * build760: 手势切换农场App到前台（异步流程，不触发浏览器 WebView 刷新）
+     *
+     * 流程：
+     * 1. 从屏幕底部中间上滑 + 停顿（手势导航"上滑停顿"手势）→ 系统打开最近任务界面
+     * 2. 等 800ms 最近任务渲染后，遍历节点树找农场App任务卡片（text/contentDescription
+     *    含App名，如"UC浏览器"）并点击 → 切回前台，App 保持切走时的状态（WebView 不重载）
+     * 3. 等 600ms 验证前台包名；失败 fallback [moveTaskToFrontInternal]
+     *
+     * @return true=手势已成功派发（切换异步完成）；false=手势发起失败（API<26/异常）
+     */
+    private fun bringFarmAppToFrontByGesture(
+        targetPlatform: com.bbncbot.automation.Platform,
+        farmPkg: String
+    ): Boolean {
+        // continueStroke（多段手势）需 API 26+，低版本直接走 moveTaskToFront
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) {
+            debugLog("bringFarmAppToFrontByGesture: API<26, skip gesture, use moveTaskToFront")
+            return false
+        }
+        return try {
+            val metrics = resources.displayMetrics
+            val w = metrics.widthPixels.toFloat()
+            val h = metrics.heightPixels.toFloat()
+            val startX = w / 2f
+            val startY = h - 12f          // 底部边缘（手势导航热区）
+            val endY = h * 0.68f           // 上滑到屏幕约 1/3 处
+            // 第一段：上滑（willContinue=true，手指不抬起）
+            val path1 = android.graphics.Path().apply { moveTo(startX, startY); lineTo(startX, endY) }
+            val stroke1 = android.accessibilityservice.GestureDescription.StrokeDescription(
+                path1, 0, 220, true
+            )
+            // 第二段：原地停顿 500ms 后抬起（"上滑停顿"打开最近任务的判定条件）
+            val path2 = android.graphics.Path().apply { moveTo(startX, endY) }
+            val stroke2 = stroke1.continueStroke(path2, 0, 500, false)
+            val gesture = android.accessibilityservice.GestureDescription.Builder()
+                .addStroke(stroke2)
+                .build()
+            val dispatched = dispatchGesture(gesture, null, null)
+            debugLog("bringFarmAppToFrontByGesture: swipe-up-and-hold dispatched=$dispatched ($startX,$startY)->($startX,$endY), waiting 800ms for recents")
+            if (!dispatched) return false
+            // 800ms 后在最近任务界面找农场App卡片点击（navHandler 重试，最多 5 次）
+            navHandler.postDelayed({
+                clickRecentTaskCard(targetPlatform, farmPkg, attempt = 0)
+            }, 800L)
+            true
+        } catch (e: Exception) {
+            debugLog("bringFarmAppToFrontByGesture: dispatch failed, ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * build760: 在最近任务界面找农场App任务卡片并点击
+     * - 卡片节点 text/contentDescription 含App名（launcher 渲染，如"UC浏览器"）
+     * - 找不到/点击失败重试（最多 5 次，每次 500ms），全部失败 fallback moveTaskToFront
+     */
+    private fun clickRecentTaskCard(
+        targetPlatform: com.bbncbot.automation.Platform,
+        farmPkg: String,
+        attempt: Int
+    ) {
+        val root = rootInActiveWindowSafe()
+        // 已切到农场App前台（手势路径外的自然切换/已成功）→ 直接结束
+        if (root != null && root.packageName?.toString() == farmPkg) {
+            debugLog("clickRecentTaskCard: farm app '$farmPkg' already in front, done")
+            return
+        }
+        if (root == null) {
+            debugLog("clickRecentTaskCard: root null (attempt=$attempt), retrying")
+            if (attempt < 5) {
+                navHandler.postDelayed({ clickRecentTaskCard(targetPlatform, farmPkg, attempt + 1) }, 500L)
+            } else {
+                moveTaskToFrontInternal(targetPlatform, farmPkg)
+            }
+            return
+        }
+        // 最近任务界面由 launcher 渲染（com.android.launcher3 / com.miui.home 等）。
+        // 防护：若当前 root 不是 launcher（手势无效如三键导航设备，或最近任务未打开），
+        // 直接 fallback moveTaskToFront——否则会在跳转App页面上误点含"UC"等关键词的元素
+        val rootPkg = root.packageName?.toString().orEmpty()
+        val isLauncherish = rootPkg.contains("launcher", ignoreCase = true) ||
+            rootPkg.contains("home", ignoreCase = true) ||
+            rootPkg == "com.android.systemui"
+        if (!isLauncherish) {
+            debugLog("clickRecentTaskCard: root '$rootPkg' is not launcher (recents not opened, gesture may be unsupported), fallback moveTaskToFront")
+            moveTaskToFrontInternal(targetPlatform, farmPkg)
+            return
+        }
+        // 最近任务卡片由 launcher 渲染，contentDescription/text 含App名
+        val keywords = when (targetPlatform) {
+            com.bbncbot.automation.Platform.UC -> listOf("UC浏览器", "UC极速版", "UC")
+            com.bbncbot.automation.Platform.ALIPAY -> listOf("支付宝")
+            com.bbncbot.automation.Platform.TAOBAO -> listOf("淘宝")
+            else -> listOf("UC浏览器", "UC")
+        }
+        val card = findNodeByAnyKeyword(root, keywords)
+        if (card == null) {
+            debugLog("clickRecentTaskCard: no card for $keywords (attempt=$attempt, rootPkg=${root.packageName}), retrying")
+            if (attempt < 5) {
+                navHandler.postDelayed({ clickRecentTaskCard(targetPlatform, farmPkg, attempt + 1) }, 500L)
+            } else {
+                debugLog("clickRecentTaskCard: card not found after retries, fallback moveTaskToFront")
+                moveTaskToFrontInternal(targetPlatform, farmPkg)
+            }
+            return
+        }
+        val cardText = card.text?.toString().orEmpty()
+        val cardDesc = card.contentDescription?.toString().orEmpty()
+        debugLog("clickRecentTaskCard: found card (text='$cardText' desc='$cardDesc'), clicking to switch farm app to front")
+        performClickSafe(card)
+        // 600ms 后验证是否切到农场App，失败 fallback moveTaskToFront
+        navHandler.postDelayed({
+            val curRoot = rootInActiveWindowSafe()
+            val curPkg = curRoot?.packageName?.toString().orEmpty()
+            if (curPkg == farmPkg) {
+                debugLog("clickRecentTaskCard: switched to farm app '$farmPkg' via recents card (WebView state preserved)")
+            } else {
+                debugLog("clickRecentTaskCard: not on farm app yet (pkg='$curPkg'), fallback moveTaskToFront")
+                moveTaskToFrontInternal(targetPlatform, farmPkg)
+            }
+        }, 600L)
+    }
+
+    /**
+     * build760: 遍历节点树找 text/contentDescription 含任一关键词的节点（最近任务卡片识别用）
+     */
+    private fun findNodeByAnyKeyword(root: AccessibilityNodeInfo, keywords: List<String>): AccessibilityNodeInfo? {
+        fun walk(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+            val text = node.text?.toString().orEmpty()
+            val desc = node.contentDescription?.toString().orEmpty()
+            for (s in listOf(text, desc)) {
+                if (s.isEmpty()) continue
+                if (keywords.any { s.contains(it) }) {
+                    return node
+                }
+            }
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                walk(child)?.let { return it }
+            }
+            return null
+        }
+        return walk(root)
+    }
+
+    /**
+     * build760: 原 bringFarmAppToFront 的 moveTaskToFront 实现（手势方式的 fallback）
+     */
+    private fun moveTaskToFrontInternal(
+        targetPlatform: com.bbncbot.automation.Platform,
+        farmPkg: String
+    ): Boolean {
         return try {
             val am = getSystemService(android.content.Context.ACTIVITY_SERVICE)
                 as android.app.ActivityManager
@@ -6701,22 +6866,22 @@ class FarmAccessibilityService : AccessibilityService() {
                 val taskPkg = task.topActivity?.packageName?.toString().orEmpty()
                 if (taskPkg == farmPkg) {
                     farmTaskId = task.taskId
-                    debugLog("bringFarmAppToFront: found farm task id=$farmTaskId pkg=$farmPkg (top=${task.topActivity})")
+                    debugLog("moveTaskToFrontInternal: found farm task id=$farmTaskId pkg=$farmPkg (top=${task.topActivity})")
                     break
                 }
             }
             if (farmTaskId < 0) {
-                debugLog("bringFarmAppToFront: no running task found for $farmPkg, fallback to pressBack")
+                debugLog("moveTaskToFrontInternal: no running task found for $farmPkg, fallback to pressBack")
                 // 没找到任务(可能已被回收),用 pressBack 退出当前跳转App,尝试回到栈中前一个Activity
                 performGlobalAction(GLOBAL_ACTION_BACK)
                 return false
             }
             // 把芭芭农场任务切到前台,不重启
             am.moveTaskToFront(farmTaskId, android.app.ActivityManager.MOVE_TASK_WITH_HOME)
-            debugLog("bringFarmAppToFront: moved task $farmTaskId ($farmPkg) to front (not relaunched)")
+            debugLog("moveTaskToFrontInternal: moved task $farmTaskId ($farmPkg) to front (not relaunched)")
             true
         } catch (e: Exception) {
-            debugLog("bringFarmAppToFront: failed for $farmPkg, ${e.message}, fallback to pressBack")
+            debugLog("moveTaskToFrontInternal: failed for $farmPkg, ${e.message}, fallback to pressBack")
             performGlobalAction(GLOBAL_ACTION_BACK)
             false
         }

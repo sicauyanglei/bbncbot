@@ -32,6 +32,59 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit <待填> - feat: build760 农场App切回前台改手势切换(底部上滑停顿开最近任务→点App卡片,模拟真实用户切换,WebView不重载不刷新);moveTaskToFront降级为fallback;kill+deepLinkReturn延迟4s等手势完成
+
+**用户需求**: "从底部手指拖动切换后台任务，把uc浏览器切换单前台，不要触发浏览器刷新"
+
+**背景**: 原 bringFarmAppToFront 用 `am.moveTaskToFront(taskId, MOVE_TASK_WITH_HOME)`
+切回农场App。该 API 在部分设备会让浏览器 WebView 重载（页面刷新、任务列表弹窗
+状态丢失），与真实用户切换行为不一致。
+
+**修复（手势切换链路）**:
+1. **手势注入**（FarmAccessibilityService.bringFarmAppToFrontByGesture）:
+   从屏幕底部中间 (w/2, h-12) 上滑到 h*0.68（220ms，willContinue=true 手指不抬）
+   → 原地停顿 500ms 后抬起（continueStroke 两段手势，API 26+，minSdk 24 加
+   Build.VERSION 守卫）→ 系统识别"上滑停顿"打开最近任务界面
+2. **卡片点击**（clickRecentTaskCard）: 800ms 后在最近任务界面找农场App卡片
+   （launcher 渲染，text/contentDescription 含App名：UC→"UC浏览器/UC极速版/UC"，
+   支付宝→"支付宝"，淘宝→"淘宝"），performClickSafe 点击卡片切回前台
+   - 防护1: root 非 launcher（手势无效如三键导航）→ 直接 fallback，避免在
+     跳转App页面误点含"UC"关键词的元素
+   - 防护2: 卡片找不到重试 5 次（500ms间隔）→ fallback moveTaskToFrontInternal
+   - 防护3: 点击后 600ms 验证前台包名==farmPkg，未切到 → fallback
+3. **bringFarmAppToFront 语义变更**: 手势优先（发起成功返回 true，切换异步
+   完成 ~2.5s），失败 fallback 原 moveTaskToFront 逻辑（提取为
+   moveTaskToFrontInternal）
+4. **调用点时序适配**（AutomationController 深链切回块）:
+   - kill 被拉起App + runDeepLinkReturnToFarm 延迟 GESTURE_BRING_FRONT_SETTLE_MS
+     =4s（手势全流程最坏 800ms+5×500ms+600ms）后执行——立即 kill 会打断手势
+     流程（被拉起App可能仍前台）；立即 deepLinkReturn 会误判"不在农场页"走
+     分支3 深链重开 → WebView 重载 = 用户要避免的刷新
+   - deep link 拉起路径（launchPlatformApp）保持原逻辑（kill 立即 + 5s 后
+     OPENING_TASK_LIST）
+   - "我要加速"切回点（5793）后续 postDelayed 5000ms > 4s，天然兼容无需改
+
+**修复后预期日志**（深链任务停留结束切回时）:
+```
+watchAd: bringFarmAppToFront (preserve scene) + killing 'com.taobao.taobao'
+bringFarmAppToFrontByGesture: swipe-up-and-hold dispatched=true (...)->(...), waiting 800ms for recents
+clickRecentTaskCard: found card (text='' desc='UC浏览器'), clicking to switch farm app to front
+clickRecentTaskCard: switched to farm app 'com.ucmobile.lite' via recents card (WebView state preserved)
+deepLinkReturn: on farm page now ...   [无"重新加载"页签,任务列表弹窗原样恢复]
+```
+手势失败时自动回退：
+```
+clickRecentTaskCard: root 'com.xxx' is not launcher (recents not opened, gesture may be unsupported), fallback moveTaskToFront
+```
+
+**风险与兜底**: 手势导航依赖设备支持（三键导航设备上滑无效 → launcher 检查
+防护 → fallback moveTaskToFront，行为同 build759 之前）；卡片名匹配含宽松
+"UC"两字母（最近任务界面元素少，误匹配风险低）。
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### commit efe08f5 - fix: build759 视频广告类型调试-快手扭一扭广告"点击跳转拿奖励"按钮漏识别被当陷阱forceKill奖励丢失(关键词扩展+跳转守卫:陷阱场景降级+深链分支放宽停留20s保留现场切回)
 
 **用户需求**: "先把视频广告任务做好，一个类型一个类型调试通过"

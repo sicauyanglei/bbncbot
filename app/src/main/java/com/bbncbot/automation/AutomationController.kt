@@ -69,6 +69,13 @@ object AutomationController {
     private const val DEEP_LINK_DEFAULT_STAY_MS = 15000L
     /** build737: 深链任务停留时长缓冲（毫秒），加在任务文案要求的秒数之上，确保任务判定有效停留 */
     private const val DEEP_LINK_STAY_BUFFER_MS = 5000L
+    /**
+     * build760: bringFarmAppToFront 手势切换（底部上滑停顿开最近任务→点App卡片）的
+     * 全流程最坏耗时（毫秒）：800ms 等最近任务 + 最多 5×500ms 卡片重试 + 600ms 验证。
+     * 切回后的 kill 被拉起App / runDeepLinkReturnToFarm 页面检查须等该时间后执行，
+     * 否则会打断手势流程（kill 前台App）或误判"不在农场页"触发深链重开（WebView 刷新）。
+     */
+    private const val GESTURE_BRING_FRONT_SETTLE_MS = 4000L
     /** 返回农场页最大尝试次数 */
     private const val MAX_RETURN_ATTEMPTS = 5
     /** 连续无进展轮次上限（超过则重新导航） */
@@ -6764,8 +6771,11 @@ object AutomationController {
                         Log.w(TAG, "watchAd: ${stayMs}ms elapsed, bringing farm to front (preserve scene) and killing '$jumpedPkg'")
                         debugLog("watchAd: bringFarmAppToFront (preserve scene) + killing '$jumpedPkg'")
                         service.setAdMode(false)
-                        // 1. 保留现场切回农场（moveTaskToFront，不重启不重载，页面保持切走时的样子）；
-                        //    失败（系统未返回农场运行任务）时 fallback deep link 拉起（不杀农场进程）
+                        // 1. 保留现场切回农场（build760: 手势切换——底部上滑停顿开最近任务→
+                        //    点农场App卡片切回，与真实用户切换一致，WebView 不重载不刷新；
+                        //    手势发起失败 fallback moveTaskToFront，再失败 deep link 拉起）。
+                        //    手势流程异步完成（最坏 ~4s：800ms 等最近任务 + 卡片重试 + 验证），
+                        //    返回 true 只代表已发起，不能立即做 kill/页面检查等后续动作。
                         var broughtToFront = false
                         if (watchingAdPlatform != Platform.UNKNOWN) {
                             val brought = service.bringFarmAppToFront(watchingAdPlatform)
@@ -6776,27 +6786,39 @@ object AutomationController {
                                 service.launchPlatformApp(watchingAdPlatform, killCurrentFirst = false)
                             }
                         }
-                        // 2. kill 被拉起的 App（已切到后台，killBackgroundProcesses 有效；
-                        //    跳过返回键避免误伤已切回前台的农场App；跳过农场平台自身包名防误杀）
                         val isFarmPkg = watchingAdPlatform != Platform.UNKNOWN &&
                             jumpedPkg in watchingAdPlatform.config.packageNames
-                        if (!isFarmPkg) {
-                            service.forceKillApp(jumpedPkg, pressBackFirst = false)
-                        } else {
-                            debugLog("watchAd: jumped pkg '$jumpedPkg' is farm platform pkg, skip kill")
-                        }
                         deepLinkAppPkg = null
                         // 等够任务时长视为任务完成（同自然返回分支），计入收集数并推进任务
                         collectedCount++
                         advanceTaskIndex()
-                        // build742: moveTaskToFront 保留现场切回后，WebView 可能停在任务落地页
+                        // build742: 保留现场切回后，WebView 可能停在任务落地页
                         // （点击"去完成"时 H5 先导航到落地页再拉起App）而非农场主页 →
                         // runDeepLinkReturnToFarm 确保回农场主页再开任务列表。
-                        // bringFarmAppToFront 失败走 launchPlatformApp 深链重开时必然回农场页，
-                        // 等页面加载后直接进 OPENING_TASK_LIST。
+                        // build760: 手势切换是异步流程（滑动→最近任务→点卡片→验证，
+                        // 最坏 800ms+5×500ms 重试+600ms 验证≈4s），期间不能：
+                        //   a. 立即 kill 被拉起App（手势流程中它可能仍是前台/可见，
+                        //      killBackgroundProcesses 无效且会打断最近任务界面）
+                        //   b. 立即 runDeepLinkReturnToFarm（页面检查发现不在农场页会走
+                        //      分支3 深链重开 → WebView 重载 = 用户要避免的刷新）
+                        // 故 kill + deepLinkReturn 统一延迟 4s（手势全流程最坏时间）执行。
                         if (broughtToFront) {
-                            runDeepLinkReturnToFarm(0)
+                            handler.postDelayed({
+                                if (state != AutomationState.WATCHING_AD) return@postDelayed
+                                // kill 被拉起的 App（手势切换完成后它必已切到后台，
+                                // killBackgroundProcesses 有效；跳过农场平台自身包名防误杀）
+                                if (!isFarmPkg) {
+                                    service.forceKillApp(jumpedPkg, pressBackFirst = false)
+                                } else {
+                                    debugLog("watchAd: jumped pkg '$jumpedPkg' is farm platform pkg, skip kill")
+                                }
+                                runDeepLinkReturnToFarm(0)
+                            }, GESTURE_BRING_FRONT_SETTLE_MS)
                         } else {
+                            // deep link 拉起路径（必然重新加载农场页）：立即 kill 被拉起App（已切后台）
+                            if (!isFarmPkg) {
+                                service.forceKillApp(jumpedPkg, pressBackFirst = false)
+                            }
                             handler.postDelayed({
                                 if (state == AutomationState.WATCHING_AD) {
                                     moveTo(AutomationState.OPENING_TASK_LIST)
