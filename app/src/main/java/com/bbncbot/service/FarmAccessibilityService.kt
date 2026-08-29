@@ -588,6 +588,33 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build763: 检测"真实"广告可见（不含 adModeFlag 逻辑标志）
+     *
+     * 与 [isAdPlaying] 的区别：跳过 adModeFlag（AutomationController 设置的广告会话标志），
+     * 只检测当前窗口是否真的在广告 Activity / 广告 SDK 包名上。
+     *
+     * 用途：watchAd 深链分支判断"已跳转到外部 App（淘宝/千问/蚂蚁落地页等）"时，
+     * adModeFlag 在整个广告会话期间恒为 true（processTask 深链入口/广告入口均 setAdMode(true)），
+     * 若用 isAdPlaying() 则深链分支条件 `!isAdPlaying()` 恒不满足——
+     * 历史所有日志中深链分支（build737 停留20s保留现场切回、build761 千问对话、
+     * build762 互动广告跳转停留）从未触发过，全部退化为等满 90s 广告超时后
+     * closeAd/forceKillApp 兜底（debug_test_20260830_065639.log 06:50:43 淘宝深链任务
+     * 干等 90s 即实证）。深链跳转的目标 App（taobao/tongyi/leopard 等）不在
+     * AD_ACTIVITY_KEYWORDS/AD_PKG_KEYWORDS 中，本方法正确返回 false。
+     */
+    fun isAdPlayingReal(): Boolean {
+        // 1. 当前 Activity 类名是广告活动
+        val activity = currentActivityName?.lowercase().orEmpty()
+        if (activity.isNotEmpty() && AD_ACTIVITY_KEYWORDS.any { activity.contains(it) }) {
+            return true
+        }
+        // 2. 当前窗口包名是第三方广告 SDK
+        val pkg = getCurrentWindowPackage() ?: return false
+        val pkgLower = pkg.lowercase()
+        return AD_PKG_KEYWORDS.any { pkgLower.contains(it) }
+    }
+
+    /**
      * 内容级广告识别：通过页面 UI 元素判断是否在播放广告
      *
      * 充分理解各种广告设计意图：
@@ -3902,6 +3929,20 @@ class FarmAccessibilityService : AccessibilityService() {
             val combined = "$text $desc"
             return systemControlKeywords.any { kw -> combined.contains(kw) }
         }
+        // build763: 网页错误码/URL 黑名单（debug_test_20260830_065639.log, build762）：
+        // 穿山甲 TTRewardVideoActivity 广告结束页 endcard WebView 加载失败，页面显示
+        // "网页无法打开 ... net::ERR_CONNECTION_CLOSED" 错误文本。findNodeByText("close")
+        // 是 contains(ignoreCase) 匹配，"ERR_CONNECTION_CLOSED" 含 "CLOSE" 被误识别为关闭按钮
+        // → 点击 1153x68 的错误文本横条（屏幕中部，非右上角图标）→ 无效果 → pressBack 3 次
+        // 无效 → forceKillApp UC 兜底（每轮广告多花 20-30s 且杀掉 UC 进程）。
+        // 黑名单：text/desc 含 Chromium 错误码前缀（err_）、net::、http(s)://、网页无法打开 时排除。
+        val webErrorKeywords = listOf("err_", "net::", "http://", "https://", "网页无法", "无法加载")
+        fun isWebErrorNode(node: AccessibilityNodeInfo): Boolean {
+            val text = node.text?.toString().orEmpty().lowercase()
+            val desc = node.contentDescription?.toString().orEmpty().lowercase()
+            val combined = "$text $desc"
+            return webErrorKeywords.any { kw -> combined.contains(kw) }
+        }
         // 检查 bounds 是否合法（top > bottom、width <= 0、height <= 0 都是非法矩形）
         // Honor 通知栏的控件 bounds 常出现 top > bottom 的非法矩形，必须过滤
         fun hasInvalidBounds(node: AccessibilityNodeInfo): Boolean {
@@ -3913,11 +3954,15 @@ class FarmAccessibilityService : AccessibilityService() {
             }
             return false
         }
-        // 综合校验节点：陷阱 / 系统控件 / 非法 bounds 都排除
+        // 综合校验节点：陷阱 / 系统控件 / 网页错误码 / 非法 bounds 都排除
         fun isValidCloseNode(node: AccessibilityNodeInfo): Boolean {
             if (isTrapNode(node)) return false
             if (isSystemControlNode(node)) {
                 debugLog("findAdCloseButton: drop system control node text='${node.text?.toString()?.take(20)}' desc='${node.contentDescription?.toString()?.take(20)}'")
+                return false
+            }
+            if (isWebErrorNode(node)) {
+                debugLog("findAdCloseButton: drop web error node text='${node.text?.toString()?.take(30)}' desc='${node.contentDescription?.toString()?.take(20)}'")
                 return false
             }
             if (hasInvalidBounds(node)) return false

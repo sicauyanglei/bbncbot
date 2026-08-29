@@ -6755,8 +6755,15 @@ object AutomationController {
         // build759: interactiveAdJumpPending=true 时放宽 isOnAbnormalPage——
         // "点击跳转拿奖励"的落地页（淘宝闪购等）常含"立即购买"类文案（isOnAbnormalPage
         // =true），但这是预期跳转，也应进入本分支做停留计时+保留现场切回农场。
+        // build763: `!isAdPlaying()` 改为 `!isAdPlayingReal()`——
+        // 深链任务入口（processTask）与广告入口均 setAdMode(true)，adModeFlag 在整个
+        // 广告会话期间恒为 true，isAdPlaying() 恒 true → 本分支条件恒不满足，
+        // 深链停留逻辑（build737/761 千问对话/762 互动广告跳转）从未触发过
+        // （全部历史日志零匹配 "deep-linked app detected"，淘宝深链任务干等 90s 实证）。
+        // isAdPlayingReal() 只检测真实广告 Activity/SDK 包名，深链目标 App
+        // （taobao/tongyi/leopard）不在广告关键词中，正确放行进本分支。
         if (elapsedMs >= 5000L && !service.isOnFarmPage() && !service.isAdActivity() &&
-            !service.isAdPlaying() && (!service.isOnAbnormalPage() || interactiveAdJumpPending)) {
+            !service.isAdPlayingReal() && (!service.isOnAbnormalPage() || interactiveAdJumpPending)) {
             val currentPkg = service.getCurrentWindowPackage()
             if (currentPkg != null) {
                 // build742: 已进入过其它App(deepLinkAppPkg!=null)后农场App自身又回到前台——
@@ -6777,7 +6784,12 @@ object AutomationController {
                     return
                 }
                 // 首次检测到深链跳转：记录包名，等够任务停留时长后"保留现场切回农场 + kill 被拉起的 App"
-                if (deepLinkAppPkg == null) {
+                // build763: 排除农场平台自身包名——普通广告（非深链任务/非互动跳转）结束后
+                // 广告 Activity 关闭、WebView 停在 UC 内广告落地页（pkg=UC 但 isOnFarmPage=false），
+                // 不排除会把农场包名误记为深链跳转 App，空等 20s 停留后才切回。
+                val isFarmPlatformPkg = watchingAdPlatform != Platform.UNKNOWN &&
+                    currentPkg in watchingAdPlatform.config.packageNames
+                if (deepLinkAppPkg == null && !isFarmPlatformPkg) {
                     deepLinkAppPkg = currentPkg
                     deepLinkEnterTimeMs = elapsedMs
                     val stayMs = deepLinkTaskStayMs
@@ -6861,8 +6873,11 @@ object AutomationController {
                     }, stayMs)
                 }
                 // 已调度切回，继续轮询兜底（若任务自然完成返回农场，上方"returned to farm"分支会取消切回）
-                val remainMs = deepLinkTaskStayMs - (elapsedMs - deepLinkEnterTimeMs)
-                debugLog("watchAd: in deep-linked app '$currentPkg', bring-to-front scheduled in ${maxOf(remainMs, 0)}ms, polling as fallback")
+                // build763: deepLinkAppPkg==null（农场平台自身落地页未记录）时只轮询不打切回日志
+                if (deepLinkAppPkg != null) {
+                    val remainMs = deepLinkTaskStayMs - (elapsedMs - deepLinkEnterTimeMs)
+                    debugLog("watchAd: in deep-linked app '$currentPkg', bring-to-front scheduled in ${maxOf(remainMs, 0)}ms, polling as fallback")
+                }
                 handler.postDelayed({
                     if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
                 }, adEndCheckIntervalMs)

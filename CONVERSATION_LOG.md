@@ -32,6 +32,73 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit（待填）- fix: build763 双修复①关闭按钮contains("close")误匹配endcard错误页net::ERR_CONNECTION_CLOSED错误文本(每轮广告点错节点→pressBack无效→forceKillApp浪费20-30s;新增网页错误码黑名单err_/net::/http://) ②深链分支被adModeFlag挡死从未触发(全部历史日志零匹配"deep-linked app detected";isAdPlaying()恒true;新增isAdPlayingReal()只测真实广告Activity/SDK包,淘宝深链干等90s/千问对话/互动广告跳转停留20s全链路由此激活)
+
+**用户需求**: "分析日志"（debug_test_20260830_065639.log, **build762-1954f24**, 1374行,
+06:46:20-06:56:35 约10分钟, 用户手动停止）
+
+**build762 验证结果**: 互动广告"点击跳转拿奖励"和千问任务场景**均未出现**（全程穿山甲
+TTRewardVideo/汇川HCRewardVideo/淘宝深链三种场景），build762 的守卫修复未被测到——
+但发现了更深层的阻塞（见问题2）。
+
+**日志三大场景与问题**:
+
+1. **穿山甲广告"领取成功"弹窗+endcard加载失败（5+轮, 核心bug）**:
+   广告 0ms 即现"领取成功"弹窗(REWARD_POPUP)→ claimRewardViaCloseIcon 调
+   findAdCloseButton → **通用关键词 contains("close") 误匹配 endcard WebView 错误页的
+   `net::ERR_CONNECTION_CLOSED` 错误文本**（"CLOSED"含"close", ignoreCase, 1153x68
+   屏幕中部横条, 非右上角图标）→ 点击无效果 → RETURNING pressBack×3 无效 →
+   forceKillApp UC + 重开农场（每轮多花 20-30s, 全日志 forceKill UC 6+ 次）。
+   奖励实际已到账（任务计数 1/10→3/10→7/10 递增, 无奖励损失, 纯效率损耗）。
+   processTask 的 "clicking close icon (fertilizer granted)" 同样误点此节点。
+
+2. **淘宝深链广告任务干等90秒（06:50:43-06:53:01, 2分18秒）**:
+   processTask 点"去完成"深链跳淘宝"淘宝精选"页 → 4564行 setAdMode(true) 进 WATCHING_AD
+   → 深链分支条件 `!service.isAdPlaying()` 因 adModeFlag=true **恒不满足** →
+   退化为 AD_ENDED 场景轮询等满 90s max → CLOSING_AD 误触 23s 新广告 → forceKillApp。
+   **重大发现: 深链停留分支（build737 停留20s保留现场切回/build760 手势切换/
+   build761 千问对话/build762 互动广告跳转停留）在全部历史日志中零触发**
+   （grep "deep-linked app"/"bringFarmAppToFront"/"preserve scene" 均无匹配）——
+   processTask 深链入口和广告入口都 setAdMode(true)，isAdPlaying() 第0步 adModeFlag
+   恒 true，深链分支永远进不去。build759 互动广告跳转被陷阱处理器拦截、build762
+   放行后也到不了深链分支，同根因。
+
+3. **汇川"点击商品，领取奖励"广告（2轮, 防死循环正常）**:
+   点商品→关广告→"确认要离开吗(点击商家后立即领奖)"第1次点"返回点击商家"→再点商品→
+   等"奖励已发放"15s 无→点关闭→第2次弹窗"放弃奖励离开"退出（防死循环生效, 此类
+   广告主未发奖属正常放弃）。末轮 findAdProductNode 找不到商品节点重试中用户手动停止。
+
+**次要观察(不修)**: UC"多窗口"标签页计数 5→15 持续累积（每次深链/重开农场开新标签页）;
+collectDirect "看广告领奖 same as last clicked" 无效果检测正常工作。
+
+**修复1（FarmAccessibilityService.kt findAdCloseButton）**:
+isValidCloseNode 新增网页错误码黑名单 isWebErrorNode——text/desc 含
+"err_"/"net::"/"http://"/"https://"/"网页无法"/"无法加载"（lowercase）时排除。
+误匹配的错误文本节点被过滤后，查找继续走 findTopRightClickableIcon 找真右上角图标。
+
+**修复2（深链分支激活, 双文件）**:
+- FarmAccessibilityService.kt 新增 `isAdPlayingReal()`: 跳过 adModeFlag, 只检测
+  真实广告 Activity 类名（AD_ACTIVITY_KEYWORDS）+ 广告 SDK 包名（AD_PKG_KEYWORDS）。
+  深链目标 App（taobao/tongyi/leopard）不在关键词中→正确返回 false。
+- AutomationController.kt 深链分支条件 `!service.isAdPlaying()` → `!service.isAdPlayingReal()`。
+- 记录深链包名处排除农场平台包名（isFarmPlatformPkg）——防普通广告结束后 UC 内
+  落地页（pkg=UC 但非农场页）被误记为深链 App 空等 20s；兜底日志同步条件化。
+
+**修复后预期日志**:
+```
+# 淘宝深链任务(原干等90s, 现5s进深链分支):
+watchAd: deep-linked app 'com.taobao.taobao' detected, waiting 20000ms (task hint) then bringFarmAppToFront
+# 千问任务(原永不触发, 现深链分支内3s后启动):
+watchAd: deep-linked app 'com.aliyun.tongyi' detected, ...
+watchAd: entered Qianwen app (chat task), will type '你吃饭了吗' and send in 3s
+# 穿山甲"领取成功"弹窗(原误点错误文本, 现过滤后找右上角图标):
+findAdCloseButton: drop web error node text='net::ERR_CONNECTION_CLOSED...' 
+```
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### commit 1954f24 - fix: build762 互动广告"点击跳转拿奖励"跳转7s后被"广告按钮陷阱"处理器拦截forceKill奖励流程打断(interactiveAdJumpPending守卫漏了此分支;补一行放行交给深链分支停留20s保留现场切回)
 
 **用户需求**: "分析日志"（debug_test_20260830_060258.log, **build759-efe08f5**, 240行,
