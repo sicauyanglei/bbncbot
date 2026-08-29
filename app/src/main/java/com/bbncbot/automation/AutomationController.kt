@@ -371,6 +371,14 @@ object AutomationController {
     @Volatile
     private var interactiveAdClickClaimClicked: Boolean = false
 
+    /**
+     * build756: 本轮 COLLECTING_DIRECT 是否点击过"签到"类直达按钮
+     * 点击成功后按钮变"已领取"（每日直达领取完成），后续 0 direct 按钮时
+     * 应跳过 AI 视觉找"点击领取"（lite 渲染态无该 canvas 按钮必然 15s 超时）
+     */
+    @Volatile
+    private var directButtonSignInClicked: Boolean = false
+
     /** 上一轮广告检测时是否有倒计时（用于多信号融合检测倒计时消失） */
     @Volatile
     private var prevAdHadCountdown: Boolean = false
@@ -797,6 +805,7 @@ object AutomationController {
         trapAdExitBaseCount = -1
         installAdAbandonBaseCount = -1
         aiVisionDirectClickAttempted = false  // build596: 复位 AI 视觉识别点击标记
+        directButtonSignInClicked = false  // build756: 复位签到直达按钮点击标记
         browsingNovelStarted = false  // build584: 复位小说阅读任务标记
         currentTaskIsQuiz = false  // build610: 复位答题任务标记
         quizVisionFailCount = 0  // build617: 复位 AI 视觉答题失败计数器
@@ -1004,11 +1013,21 @@ object AutomationController {
             currentTaskIndex = 0
             noProgressRounds = 0
             // H5 页面可能仍在加载中（WebView Activity 已显示但内容未渲染），
-            // 检查页面是否有可交互内容，没有则等待重试（最多等5次，每次5秒）
+            // 检查页面是否有可交互内容，没有则等待重试（最多等10次，每次5秒）
+            // build756 修复（debug_test_20260829_205529.log, build754, 20:50:56-20:51:49 共54s）：
+            //   深链重开农场后页面常处于"lite 渲染态"：首屏横幅+签到组件已渲染
+            //   （文字数 12→25 稳定，低于阈值 30），折叠下方内容（任务列表/果树区）
+            //   懒渲染未触发，hasFarmContentLoaded 连续 10 次=false 干等 54s 后才
+            //   强制进入 COLLECTING_DIRECT——实际页面功能完全正常（签到/集肥料/
+            //   看广告领奖均可点，签到点击成功领取）。20:55:10-20:55:26 同样 lite 态
+            //   （29 texts）等待中被用户手动停止。
+            //   修复：集肥料任务列表入口存在即视为页面可用（核心交互元素已渲染），
+            //   不再干等文字数阈值；无入口时仍按原逻辑等待（真加载中）。
             val root = service.getRootInFarmApp()
             val hasContent = root != null && service.hasFarmContentLoaded(root)
-            debugLog("navigate: hasFarmContentLoaded=$hasContent, attempt=$attempt")
-            if (!hasContent && attempt < 10) {
+            val hasCoreEntry = service.findCollectFertilizerButton() != null
+            debugLog("navigate: hasFarmContentLoaded=$hasContent, hasCoreEntry=$hasCoreEntry, attempt=$attempt")
+            if (!hasContent && !hasCoreEntry && attempt < 10) {
                 Log.i(TAG, "navigate: farm H5 page still loading, waiting...")
                 handler.postDelayed({
                     if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
@@ -1342,6 +1361,7 @@ object AutomationController {
 
         if (attempt == 0) {
             logPageSnapshot(service, "collectDirect-start")
+            directButtonSignInClicked = false  // build756: 新一轮 collectDirect 重置签到点击标记
         }
 
         if (attempt >= 5) {
@@ -1423,6 +1443,18 @@ object AutomationController {
         // 但"点击跳转拿奖励"按钮可能仍然可点击（H5 图像按钮,不在 accessibility tree）。
         // AI 视觉目标根据每日奖励状态切换：已领取→找"点击跳转拿奖励",未领取→找"点击领取"。
         if (buttons.isEmpty() && !aiVisionDirectClickAttempted && attempt >= 0) {
+            // build756 修复（debug_test_20260829_205529.log, build754, 20:52:00-20:52:15 共15s）：
+            //   点击'签到'direct按钮成功变'已领取'后（每日直达领取完成），lite 渲染态无
+            //   '看广告领奖'入口 → 0 direct 按钮；dailyClaimed=false（'已领取'+'明天领'
+            //   组合标识在 lite 态缺'明天领肥料'）→ AI 视觉找'点击领取'必然 15s 超时。
+            //   修复：本轮刚点过签到且页面已显示'已领取'，跳过 AI 视觉直接进任务列表。
+            if (directButtonSignInClicked && service.hasFarmAlreadyClaimedText()) {
+                debugLog("collectDirect: 签到直达按钮已点击且页面显示'已领取',每日直达领取完成,跳过AI视觉直接进任务列表")
+                Log.i(TAG, "collectDirect: sign-in just claimed (已领取 visible), skip AI vision, opening task list")
+                moveTo(AutomationState.OPENING_TASK_LIST)
+                handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                return
+            }
             aiVisionDirectClickAttempted = true
             // build678: 根据每日奖励状态决定 AI 视觉目标
             val dailyClaimed = service.hasDailyRewardClaimedIndicator()
@@ -1682,6 +1714,9 @@ object AutomationController {
         // 记录本次点击,下一轮若仍是同一按钮则跳过
         lastDirectClickedText = btnText
         lastDirectClickedBounds = btnBoundsStr
+        // build756: 记录是否点击了"签到"类直达按钮（供 AI 视觉跳过判定，
+        // 点击成功后按钮变"已领取"即每日直达领取完成）
+        directButtonSignInClicked = btnText.contains("签到") || btnDesc.contains("签到")
         service.performClickSafe(button)
 
         // build598 修复（用户反馈"'点击跳转拿奖励'，需要点击，后等待10秒"）：
@@ -6743,7 +6778,7 @@ object AutomationController {
         //   时按任务完成处理,立即退出回农场。
         val nonFarmPkgForeground = run {
             val pkg = service.getCurrentWindowPackage()
-            pkg.isNotEmpty() && service.currentPlatformConfig().packageNames.none { it == pkg }
+            !pkg.isNullOrEmpty() && service.currentPlatformConfig().packageNames.none { it == pkg }
         }
         if (adEnded && nonFarmPkgForeground && service.hasRewardGrantedText()) {
             Log.i(TAG, "watchAd: reward granted text on non-farm app page (deep-link task done), exiting")
@@ -7081,21 +7116,6 @@ object AutomationController {
             return
         }
 
-        // 陷阱防护：策略0 之前先检测诱导弹窗（立即下载弹窗）
-        // 若存在诱导弹窗，优先用 closeAdInstallPopup 关闭弹窗，再尝试常规关闭
-        if (strategy == 0 && service.findAdInstallButton() != null) {
-            Log.w(TAG, "closeAd: install popup detected during closing, trying closeAdInstallPopup first")
-            debugLog("closeAd: install popup trap detected, attempting closeAdInstallPopup")
-            val closed = service.closeAdInstallPopup()
-            handler.postDelayed({
-                if (state == AutomationState.CLOSING_AD) {
-                    // 弹窗关闭成功 → 继续常规策略0；失败 → 跳过策略0直接走坐标策略
-                    if (closed) checkAdClosed(service, 0) else runClosingAd(1)
-                }
-            }, INTERVAL_PAGE_LOAD_MS)
-            return
-        }
-
         // build750 修复（debug_test_20260829_154730.log, build749, 15:46:05-15:46:45 共40秒）：
         //   快手"扭一扭"陷阱互动广告（本轮文案"扭一扭或点击跳转详情页或第三方应用"+
         //   "点击跳转拿奖励"，是 build748 明确排除的跳转陷阱变体，无可点领取按钮）：
@@ -7111,6 +7131,18 @@ object AutomationController {
         //   该手段已验证有效），单次广告退出从 ~40s 缩短到 ~7s。
         //   安全性：有"立即获取"按钮（build748 可点变体）或下载按钮（穿山甲下载类）
         //   或肥料已发放页时不触发，保留原有流程。
+        // build756 修复（debug_test_20260829_205529.log, build754, 20:53:43-20:54:42 共59s）：
+        //   本检测原在 findAdInstallButton 诱导弹窗检测之后执行：快手"扭一扭"陷阱
+        //   广告变体带"立即购买"电商CTA（广告创意按钮，同 build754 Fix B 的
+        //   isRechargePage 误判同源问题），被 findAdInstallButton 误命中 → 走
+        //   closeAdInstallPopup（广告页无"暂不下载"类关闭按钮可点）→ 策略1 八坐标
+        //   盲点 → 盲点/角标点击触发广告跳转到淘宝（20:54:23 activeRootPkg=
+        //   com.taobao.taobao TMSActivity）→ RETURNING pressBack×3 无效 → NAVIGATING
+        //   深链重开，59s 才回农场；且该路径漏调 recordTrapAdExit（streak 停在 1）。
+        //   修复：本检测移到诱导弹窗检测**之前**——强互动信号（摇一摇/扭一扭）+无
+        //   立即获取/下载按钮的陷阱广告，无论含不含"立即购买"CTA 都直接 forceKill
+        //   快速退出（~7s），recordTrapAdExit 正常计数。真安装弹窗（穿山甲下载类，
+        //   无互动信号）不受影响，仍走原 closeAdInstallPopup 路径。
         if (strategy == 0 && !service.isFertilizerGrantedPage() &&
             service.isInteractiveAdPage() &&
             service.findInteractiveAdClickToClaimButton() == null &&
@@ -7129,6 +7161,23 @@ object AutomationController {
             service.reopenFarmByDeepLink(killCurrentFirst = false)
             moveTo(AutomationState.NAVIGATING)
             handler.postDelayed({ runNavigating(0) }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // 陷阱防护：策略0 之前先检测诱导弹窗（立即下载弹窗）
+        // 若存在诱导弹窗，优先用 closeAdInstallPopup 关闭弹窗，再尝试常规关闭
+        // build756: 本块移到上方互动陷阱快速退出检测之后（原在前）——广告 Activity 内
+        // 的"立即购买"等电商CTA 是广告创意按钮非真安装弹窗，先被互动陷阱检测拦截
+        if (strategy == 0 && service.findAdInstallButton() != null) {
+            Log.w(TAG, "closeAd: install popup detected during closing, trying closeAdInstallPopup first")
+            debugLog("closeAd: install popup trap detected, attempting closeAdInstallPopup")
+            val closed = service.closeAdInstallPopup()
+            handler.postDelayed({
+                if (state == AutomationState.CLOSING_AD) {
+                    // 弹窗关闭成功 → 继续常规策略0；失败 → 跳过策略0直接走坐标策略
+                    if (closed) checkAdClosed(service, 0) else runClosingAd(1)
+                }
+            }, INTERVAL_PAGE_LOAD_MS)
             return
         }
 

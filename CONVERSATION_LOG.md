@@ -32,7 +32,82 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build755 断开视频入口跳过与openTaskList互转死循环(4轮×20s);深链任务奖励到账文本(已发放/领取成功)立即退出不等90s超时
+### commit <待填> - fix: build756 lite渲染态NAVIGATING干等54s(集肥料入口即视为可用);快手陷阱广告"立即购买"CTA误走诱导弹窗盲点59s跳淘宝(快速退出检测前置);签到后已领取仍AI视觉15s超时(跳过)
+
+**用户需求**: "分析日志"（debug_test_20260829_205529.log, build754-252bcba, 1637行。
+含两段会话：19:12:03-19:21:02 为 build755 已分析的会话；**20:50:56-20:55:26 新会话**
+约4.5分钟，用户手动停止，为本次分析重点）
+
+**build754 二段会话验证结果(部分通过)**:
+- ✓ 互动陷阱广告(无CTA)快速forceKill退出: 20:53:06 streak=1, ~7s 恢复
+- ✓ trapAdExit streak 记录: 20:53:06 streak=1（但第二次陷阱退出漏记,见问题B）
+- ✓ 坐标兜底守卫: 20:55:02 不在农场页时 re-navigating 不盲点坐标
+- ✓ 集肥料第二次点击恢复打开任务列表(20:52:31→20:52:37, 6个任务)
+- ✓ 签到直达按钮点击成功: 20:51:52 点'签到'→变'已领取'
+
+**问题A(已修): NAVIGATING 干等 54s** —— 20:50:56-20:51:49
+深链重开农场后页面处于"lite 渲染态"：首屏横幅+签到组件已渲染，文字数 12→25 稳定
+（阈值 30 未达），折叠下方内容（任务列表/果树区）懒渲染未触发，
+hasFarmContentLoaded 连续 10 次=false 干等 54s 后强制进 COLLECTING_DIRECT——
+实际页面功能完全正常（签到/集肥料/看广告领奖均可点）。20:55:10-20:55:26 同样
+lite 态（29 texts）等待中被用户手动停止。
+- 修复(Fix A): navigate 内容等待加"集肥料入口存在(findCollectFertilizerButton!=null)
+  即视为页面可用"——核心交互元素已渲染不再干等；无入口时仍按原逻辑等待（真加载中）
+
+**问题B(已修): 陷阱广告含"立即购买"CTA 误走诱导弹窗路径,59s 恢复且跳到淘宝** ——
+20:53:43-20:54:42。快手"扭一扭"陷阱广告变体带"立即购买"电商CTA（广告创意按钮，
+与 build754 Fix B isRechargePage 误判同源），closeAd 的 findAdInstallButton 误命中
+→ closeAdInstallPopup（广告页无"暂不下载"类按钮可点）→ 策略1 八坐标盲点 →
+盲点/角标点击触发广告跳转淘宝（20:54:23 activeRootPkg=com.taobao.taobao）→
+RETURNING pressBack×3 无效 → NAVIGATING 深链重开，59s 才回农场；且该路径漏调
+recordTrapAdExit（streak 停在 1，第二次陷阱退出未计数）。
+- 修复(Fix B): runClosingAd 中 build750 互动陷阱快速退出检测**移到 findAdInstallButton
+  诱导弹窗检测之前**——强互动信号(摇一摇/扭一扭)+无立即获取/下载按钮的陷阱广告，
+  无论含不含"立即购买"CTA 都直接 forceKill 快速退出（~7s），recordTrapAdExit 正常
+  计数。真安装弹窗（穿山甲下载类，无互动信号）不受影响仍走原路径
+
+**问题C(已修): 签到成功后 AI 视觉 15s 超时** —— 20:52:00-20:52:15
+点'签到'成功变'已领取'后，lite 态无'看广告领奖'入口 → 0 direct 按钮；
+hasDailyRewardClaimedIndicator 要求'已领取'+'明天领'组合，lite 态缺'明天领肥料'
+→ false → AI 视觉找'点击领取'必然 15s 超时。
+- 修复(Fix C): 新增 directButtonSignInClicked 标记（点击'签到'类直达按钮时置位，
+  collectDirect attempt=0/reset() 复位）；AI 视觉分支前检测——刚点过签到且页面已
+  显示'已领取'（service 新增 hasFarmAlreadyClaimedText()）→ 跳过 AI 视觉直接进
+  任务列表
+
+**次要观察(不修)**:
+- 20:52:15/20:54:46 lite 态点'集肥料'第一次点击无效/跳到 AI黄历推广页（20:55:02
+  sample=[黄历小工具...]），坐标兜底守卫正确恢复（re-navigating ~20s）；根因是
+  lite 渲染态点击目标不可靠，Fix A 提前放行后若复现可后续加滚动触发懒渲染
+- 20:52:40/20:53:12 isTaskCompletePage 误匹配页面某任务项'已完成'文本（签到任务
+  完成后显示），taskComplete=true 未造成实害
+- 19:21:08 日志上传 422（同文件名并发上传漏 sha），仅影响重复上传，无实害
+
+**修复后预期**:
+- lite 态日志出现 `navigate: hasFarmContentLoaded=false, hasCoreEntry=true` → 直接进
+  COLLECTING_DIRECT（原 10 次干等消失）
+- 含"立即购买"CTA 的扭一扭广告出现 `closeAd: 互动陷阱广告(无立即获取/下载按钮)...`
+  快速退出（原 install popup trap 路径消失），且 trapAdExit streak 正常递增
+- 签到成功后日志出现 `collectDirect: 签到直达按钮已点击且页面显示'已领取'...跳过AI视觉`
+  （原 AI vision timed out 15s 消失）
+
+**问题E(已修): CI 编译失败——可空接收者调用** ——
+build755 提交(1fd560f) Fix D 引入 `val pkg = service.getCurrentWindowPackage()` 后
+直接 `pkg.isNotEmpty()`，而 getCurrentWindowPackage() 返回 String?，Kotlin 编译报
+"Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver
+of type String?"（compileNoOcrReleaseKotlin/compileFullReleaseKotlin 两个变体同报
+此一处错误，CI run 33250066123 失败；build756 首推 1ec5b17 的 run 33254269214 主动
+取消未产出 APK）。
+- 修复(Fix E): 改为 `!pkg.isNullOrEmpty()`（stdlib 带契约，null 安全），并全库审计
+  无其他裸调用 getCurrentWindowPackage() 的遗留点。build755 的代码改动已并入本
+  build756 提交（1fd560f 不在 main 历史中，被本次提交覆盖）。
+
+**编译验证**: sandbox 无 Android SDK（gradle 走代理可下载但 SDK 缺失无法编译），
+CI 失败日志确认唯一错误即上述一处，修复后等 CI 构建验证。
+
+---
+
+### commit 1fd560f(已并入build756,CI编译失败被覆盖) - fix: build755 断开视频入口跳过与openTaskList互转死循环(4轮×20s);深链任务奖励到账文本(已发放/领取成功)立即退出不等90s超时
 
 **用户需求**: "分析日志"（debug_test_20260829_192115.log, build754-252bcba, 1245行, 19:12:03-19:21:02 约9分钟, 用户手动停止。同目录 192106 为同会话早9秒的重复上传）
 

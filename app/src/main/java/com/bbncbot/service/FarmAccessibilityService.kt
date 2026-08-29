@@ -5994,6 +5994,23 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build756: 农场页是否含"已领取"文本（签到直达按钮点击成功后的单独标识）
+     *
+     * debug_test_20260829_205529.log（build754, 20:51:52-20:52:15）：
+     * 点击'签到'direct按钮成功后按钮文本变'已领取'，但 lite 渲染态（折叠下方内容
+     * 懒渲染未触发，文字数 25 < 30）页面没有'明天领肥料'——hasDailyRewardClaimedIndicator
+     * 要求"已领取"+"明天领"组合返回 false，导致 AI 视觉找'点击领取'15s 超时。
+     *
+     * 与 [hasDailyRewardClaimedIndicator] 的区别：本方法只看'已领取'，专用于
+     * **刚点击过签到直达按钮**的场景（AutomationController.directButtonSignInClicked），
+     * 按钮文本已变'已领取'即为领取成功，不需要'明天领'佐证。
+     */
+    fun hasFarmAlreadyClaimedText(): Boolean {
+        val root = getRootInFarmApp() ?: return false
+        return collectAllText(root).any { it.contains("已领取") }
+    }
+
+    /**
      * 查找"去领取(Ns)"倒计时领取弹窗按钮
      *
      * build747 添加（debug_test_20260822_192917.log, build746, 19:27:52）：
