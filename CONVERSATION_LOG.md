@@ -32,7 +32,7 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit <待填> - fix: build758 深链浏览任务跳转外部App后被isNonAdTaskPage"充值"关键词误伤提前9s放弃(移动APP+300肥料丢失,守卫仅农场包内检测);松鼠大战H5游戏页activity已变仍判"点击无效果"死磕重试26s跳过(activity变化检测)
+### commit 9d909e2 - fix: build758 深链浏览任务跳转外部App后被isNonAdTaskPage"充值"关键词误伤提前9s放弃(移动APP+300肥料丢失,守卫仅农场包内检测);松鼠大战H5游戏页activity已变仍判"点击无效果"死磕重试26s跳过(activity变化检测)
 
 **用户需求**: "分析日志"（debug_test_20260829_230753.log, **build757-4149866**, 670行,
 23:04:43-23:07:53 约3分钟单会话, 用户手动停止。GitHub logs/ 拉取, 本地 logs/ 同步）
@@ -87,6 +87,8 @@ fallback 误判 true → taskClickLeftFarm 未置位 → 误判"任务点击无�
   (task page opened), not a no-effect click` → 走完成退出（原 3 次重试 26s 消失）
 
 **编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+✅ **CI 已通过**（run 33259678616, 9d909e2, run_number=758, 2026-08-30），APK 自报
+编号 **build758-9d909e2** 已发布。
 
 ---
 
