@@ -1351,6 +1351,35 @@ object AutomationController {
                 }, INTERVAL_PAGE_LOAD_MS)
                 return
             }
+            // build765 修复（debug_test_20260830_083111.log, build763, 08:27:05-08:28:34 挣扎1分29秒）：
+            //   08:26:59 关闭"树宠已捡2004松子"弹窗后,农场 H5 进入加载过渡态：
+            //   act=android.widget.LinearLayout（通用 WebView 加载窗口）+ 无农场核心内容，
+            //   持续约 90 秒。期间 stepTab 找"芭芭农场"×6 轮全部失败且每轮 pressBack
+            //   （有害：中断 H5 加载/回退页面，越按越加载不出来），期间 2 轮 stepTab abort
+            //   重来，最终 attempt>=6 才走 reopenFarmByDeepLink——6 秒即加载成功。
+            //   修复：农场包前台 + act=LinearLayout + 无农场内容 = H5 加载过渡态：
+            //   - 不做 stepTab 导航（页面空白找不到"芭芭农场"且 pressBack 有害），只耐心等待
+            //   - attempt>=3（约15s）仍加载不出 → 直接 reopenFarmByDeepLink（日志证明立即生效）
+            //   注：LinearLayout 只在加载过渡态出现——农场页/任务列表加载完成后内容检测
+            //   （isOnFarmPage content fallback）能找到农场核心文本，不会进本分支；
+            //   UC 首页是 h02.c、广告页是 InnerUCMobile，均非 LinearLayout。
+            val curActLower = service.getCurrentActivityName()?.lowercase().orEmpty()
+            if (curActLower == "android.widget.linearlayout") {
+                if (attempt >= 3) {
+                    Log.w(TAG, "navigate: farm H5 loading transition stuck (act=LinearLayout, attempt=$attempt), deep link reopen")
+                    debugLog("navigate: farm H5 loading stuck after $attempt attempts (~${attempt * 5}s), reopenFarmByDeepLink(killCurrentFirst=false)")
+                    service.reopenFarmByDeepLink(killCurrentFirst = false)
+                    handler.postDelayed({
+                        if (state == AutomationState.NAVIGATING) runNavigating(0)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                    return
+                }
+                debugLog("navigate: farm H5 loading transition (act=LinearLayout, no farm content), waiting patiently (attempt=$attempt)")
+                handler.postDelayed({
+                    if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
             // build749 修复（debug_test_20260829_084927.log, build747, 08:47:13-08:49:24 死循环2分11秒）：
             //   UC 极速版更新后新增首页容器 activity=h02.c（不在 UC farmPageActivityKeywords
             //   innerucmobile/mainactivity/pz1 中），openFarmInUcBrowser 普通启动 UC 停在 h02.c 首页。
@@ -2735,7 +2764,16 @@ object AutomationController {
             //   日志：跳转后 forceKillApp 失败 → 反复重试 6 次 → 最终 STOPPING。
             // 修复：skipTaskTexts 新增"头条"关键词，在 isBrowseTask 之前命中直接跳过。
             //   "头条"覆盖"头条极速版"/"今日头条"等所有头条系任务。
-            "头条"
+            "头条",
+            // build765 修复（debug_test_20260829_205529.log build754 19:19:54 +
+            //   debug_test_20260829_230753.log build757 23:06:47 双日志实证）：
+            //   "玩松鼠大战15秒 完成可得 肥料 +2400 去完成" 点击"去完成"后游戏在
+            //   UC 后台新标签页打开（多窗口计数+1），前台活动窗口仍是农场主页
+            //   （checkTaskResult: onFarm=true, 已领取/明天领肥料/去支付宝农场领肥料），
+            //   bot 无法切换到游戏标签页 → "任务点击无效果"重试 3 次（每轮 ~40s）
+            //   → 跳过。两个 build 日志均证明此任务无法通过点击完成，
+            //   直接跳过避免每轮浪费 40 秒。
+            "松鼠大战"
         )
         // build530 修复（debug_test_20260719_045429.log, build530-9ab1929）：
         // 历史问题：【福利】试玩热门新游 访问必得500-3500肥 的"领取"按钮被 skipTaskTexts
