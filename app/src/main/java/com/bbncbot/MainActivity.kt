@@ -333,6 +333,7 @@ class MainActivity : AppCompatActivity() {
     private fun openFarmInUcBrowser() {
         // 优先用桌面快捷方式打开（等同点击桌面"芭芭农场"组件）
         if (FarmShortcutLauncher.startFarmShortcut(this, Platform.UC) { msg -> debugLog("FarmShortcut: $msg") }) {
+            com.bbncbot.service.FarmAccessibilityService.markFarmRelaunchFired()  // build766: 标记启动，防 navigate 重复深链开新标签页
             Toast.makeText(this, "已从桌面快捷方式打开 UC 芭芭农场", Toast.LENGTH_SHORT).show()
             return
         }
@@ -347,6 +348,7 @@ class MainActivity : AppCompatActivity() {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 startActivity(intent)
+                com.bbncbot.service.FarmAccessibilityService.markFarmRelaunchFired()  // build766: 标记启动，防 navigate 重复深链开新标签页
                 Toast.makeText(this, "正在用 UC 浏览器打开芭芭农场", Toast.LENGTH_SHORT).show()
                 return
             } catch (_: ActivityNotFoundException) {
@@ -359,6 +361,7 @@ class MainActivity : AppCompatActivity() {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             startActivity(intent)
+            com.bbncbot.service.FarmAccessibilityService.markFarmRelaunchFired()  // build766: 标记启动，防 navigate 重复深链开新标签页
             Toast.makeText(this, "未找到 UC 浏览器，已用默认浏览器打开", Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
             Toast.makeText(this, "无法打开浏览器：${e.message}", Toast.LENGTH_LONG).show()

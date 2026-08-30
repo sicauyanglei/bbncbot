@@ -32,7 +32,51 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit（待填） - fix: build765 RETURNING已回到农场页仍无条件kill+深链重开浪费13s/轮(return-start快照onFarm=true但直接reopenFarmByDeepLink→HOME+forceKill UC+NAVIGATING重等H5加载;新增isOnFarmPage()前置检查,已在农场页直接进COLLECTING_DIRECT复用页面,不杀进程;adModeFlag未清/异常页自动落回原kill路径零风险)
+### commit（待填） - fix: build766 双修复①冷启动stepTab过渡态pressBack打断H5加载挣扎96s(act=android.widget.LinearLayout加载中找不到芭芭农场标签→pressBack浏览器后退打断加载×8次×3轮;过渡态跳过pressBack只等待,H5实际只需~6s) ②深链12s防重窗口(UC冷启动回前台需6-13s,navigate轮询5s内重复触发深链每开一个新标签页,多窗口5→15主因;forceKillApp重置窗口;MainActivity直接发深链也打标)
+
+**用户需求**: "解决所有问题"（无新日志, 处理 build763/764 日志遗留的两项"次要观察(不修)"问题）
+
+**问题1: NAVIGATING 冷启动挣扎 96s**（debug_test_20260830_083111.log, build763, 08:27:04-08:28:34）:
+- 时间线: 08:26:53 深链打开农场 → 08:26:59 "树宠已捡2004松子"弹窗关闭 →
+  页面进入加载过渡态(act=android.widget.LinearLayout, 无内容) → isOnFarmPage false →
+  navigateToFarm→stepTab 找不到"芭芭农场"标签 → **pressBack 相当于浏览器后退,
+  反复打断 H5 加载** → 8次重试×3轮共 96s 加载不出来 → 08:28:34 runNavigating
+  attempt>=6 深链兜底 → **6s 即加载完成**(证明 H5 本身只需 ~6s, 全是 pressBack 的锅)
+- 修复(FarmAccessibilityService.kt stepClickFarmTab): pressBack 前检查
+  currentActivityName——过渡态容器(act 含 "linearlayout")时跳过 pressBack 只等待
+  重试; H5 加载完成后 isOnFarmPage 变 true, runNavigating 正常前进, stepTab 重试
+  自行 abort(state 离开 NAVIGATING)。正常页面(UC 首页/淘宝主页等)行为不变。
+
+**问题2: 深链重复触发多开 UC 标签页**（"多窗口"计数 5→15 累积主因）:
+- 证据: 091342 日志 09:12:33 RETURNING kill+深链后 6s UC 冷启动未回前台,
+  navigate attempt=0 又触发一次深链(重复开标签页); 启动时 openFarmInUcBrowser
+  09:11:40 发深链后 navigate 09:11:47 又发一次; stepNavigateAlipayFarm retry%3
+  每 6s 可重复拉起
+- 修复(FarmAccessibilityService.kt + MainActivity.kt):
+  1. companion 新增静态 `lastFarmRelaunchAt` 时间戳, reopenFarmByDeepLink 入口
+     12s 防重窗口内的重复调用直接返回 true(启动已在进行中, 调用方继续轮询等待),
+     三条启动路径(快捷方式/深链/relaunch)成功后都打标
+  2. forceKillApp 时重置为 0(kill 后旧启动已失效, 必须允许立即重新触发)
+  3. MainActivity.openFarmInUcBrowser 三处直接 startActivity 后调
+     markFarmRelaunchFired() 打标(不走 reopenFarmByDeepLink 的路径也能感知)
+- 参数: 12s 窗口 vs 5s 轮询间隔 = 最多跳过 2 轮; UC 冷启动实测 6-13s,
+  t=15s 时若仍未回前台会正常补发, 无死等风险
+
+**修复后预期日志**:
+```
+# 冷启动(原 96s 挣扎场景):
+navigate stepTab: 芭芭农场 not found but act is page-loading transition (android.widget.linearlayout), skip pressBack (would interrupt H5 load), retry=0
+navigate: on farm page, platform=UC        [~10s 内, 原 96s]
+
+# 深链防重(原每次多开一个标签页):
+reopenFarmByDeepLink: skip duplicate fire, last fire was 6200ms ago (cold start takes ~6-13s), keep waiting
+```
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit 5d86bad - fix: build765 RETURNING已回到农场页仍无条件kill+深链重开浪费13s/轮(return-start快照onFarm=true但直接reopenFarmByDeepLink→HOME+forceKill UC+NAVIGATING重等H5加载;新增isOnFarmPage()前置检查,已在农场页直接进COLLECTING_DIRECT复用页面,不杀进程;adModeFlag未清/异常页自动落回原kill路径零风险)
 
 **用户需求**: "拉取日志" + "分析解决问题"（debug_test_20260830_091342.log, **build764-19affbc**, 339行,
 09:11:40-09:13:38 约2分钟, 用户手动停止）

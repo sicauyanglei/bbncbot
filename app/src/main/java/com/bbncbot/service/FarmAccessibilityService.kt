@@ -32,6 +32,18 @@ class FarmAccessibilityService : AccessibilityService() {
         @Volatile
         private var instance: FarmAccessibilityService? = null
 
+        /**
+         * build766: 上次农场启动（deep link / 快捷方式 / relaunch）触发时间戳（静态，
+         * MainActivity 直接发深链时也能标记）。防 12s 内重复触发多开 UC 标签页。
+         */
+        @Volatile
+        private var lastFarmRelaunchAt = 0L
+
+        /** build766: 供 MainActivity 等外部直接启动农场时标记时间戳 */
+        fun markFarmRelaunchFired() {
+            lastFarmRelaunchAt = System.currentTimeMillis()
+        }
+
         /** 当前是否已连接 */
         fun isConnected(): Boolean = instance != null
 
@@ -6531,8 +6543,16 @@ class FarmAccessibilityService : AccessibilityService() {
      * @return true 表示已发起打开请求，false 表示无 deep link 或打开失败
      */
     fun reopenFarmByDeepLink(targetPlatform: Platform = currentPlatform, killCurrentFirst: Boolean = true): Boolean {
+        // build766: 12s 防重窗口——上次启动仍在冷启动中（UC 回前台需 ~6-13s），重复触发只会
+        // 多开标签页，直接返回 true 让调用方继续等待轮询。forceKillApp 会重置该时间戳。
+        val sinceLastFire = System.currentTimeMillis() - lastFarmRelaunchAt
+        if (lastFarmRelaunchAt > 0 && sinceLastFire < 12_000L) {
+            debugLog("reopenFarmByDeepLink: skip duplicate fire, last fire was ${sinceLastFire}ms ago (cold start takes ~6-13s), keep waiting")
+            return true
+        }
         // 1. 优先用桌面快捷方式（等同点击桌面"芭芭农场"组件，内部含 kill 老进程）
         if (com.bbncbot.util.FarmShortcutLauncher.startFarmShortcut(this, targetPlatform) { msg -> debugLog("FarmShortcut: $msg") }) {
+            lastFarmRelaunchAt = System.currentTimeMillis()
             debugLog("reopenFarmByDeepLink: started shortcut for $targetPlatform")
             if (targetPlatform != currentPlatform) {
                 currentPlatform = Platform.UNKNOWN
@@ -6580,6 +6600,7 @@ class FarmAccessibilityService : AccessibilityService() {
                     }
                 }
                 startActivity(intent)
+                lastFarmRelaunchAt = System.currentTimeMillis()
                 debugLog("reopenFarmByDeepLink: opened $deepLink for $targetPlatform (pkg=${targetPlatform.config.packageNames.firstOrNull()})")
                 if (targetPlatform != currentPlatform) {
                     currentPlatform = Platform.UNKNOWN
@@ -6604,6 +6625,7 @@ class FarmAccessibilityService : AccessibilityService() {
             }
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(intent)
+            lastFarmRelaunchAt = System.currentTimeMillis()
             // 重置平台，等待新平台 H5 加载后被自动识别
             if (targetPlatform != currentPlatform) {
                 currentPlatform = Platform.UNKNOWN
@@ -6768,6 +6790,8 @@ class FarmAccessibilityService : AccessibilityService() {
             // （日志现象：act=xriveractivity 但 onFarm=false，因为 windows 里已无农场包名窗口）
             currentActivityName = null
             currentEventPkg = null
+            // build766: kill 后旧的深链启动已失效，重置防重窗口，允许立即重新触发
+            lastFarmRelaunchAt = 0L
             debugLog("forceKillApp: killBackgroundProcesses($pkg) called, cleared currentActivityName/currentEventPkg")
             true
         } catch (e: Exception) {
@@ -7127,6 +7151,19 @@ class FarmAccessibilityService : AccessibilityService() {
         // 策略：先按返回键回到淘宝主页，再重试找芭芭农场
         if (retry < 8) {
             if (retry == 0 || retry == 2 || retry == 4) {
+                // build766 修复（debug_test_20260830_083111.log, build763, 08:27:04-08:28:34 挣扎96s）:
+                //   冷启动时深链已打开农场 H5 正在加载（activity=android.widget.LinearLayout 过渡容器,
+                //   无任何页面内容），stepTab 在过渡态找不到"芭芭农场"标签 → pressBack 相当于浏览器
+                //   后退，反复打断 H5 加载 → 8 次重试 × 3 轮共 96s 农场页始终加载不出来；
+                //   最终 runNavigating attempt>=6 深链兜底后 6s 即加载完成（证明 H5 本身只需 ~6s）。
+                //   修复：过渡态容器 activity 时不按返回键，只等待重试——H5 加载完成后 isOnFarmPage
+                //   变 true，runNavigating 正常前进（state 离开 NAVIGATING 后 stepTab 重试自行 abort）。
+                val act = currentActivityName?.lowercase().orEmpty()
+                if (act.contains("linearlayout")) {
+                    debugLog("navigate stepTab: 芭芭农场 not found but act is page-loading transition ($act), skip pressBack (would interrupt H5 load), retry=$retry")
+                    navHandler.postDelayed({ stepClickFarmTab(platform, retry + 1) }, 2000L)
+                    return
+                }
                 // 按返回键回到淘宝主页
                 debugLog("navigate stepTab: 芭芭农场 not found (retry=$retry), pressing back to go home")
                 pressBack()
