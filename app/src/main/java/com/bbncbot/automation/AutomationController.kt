@@ -7565,6 +7565,25 @@ object AutomationController {
                 }, INTERVAL_PAGE_LOAD_MS)
                 return
             }
+            // build765 修复（debug_test_20260830_091342.log, build764, 09:12:33-09:12:46）:
+            //   汇川广告点关闭图标退出/"放弃奖励离开"后, UC 浏览器已直接回到农场页
+            //   (return-start snapshot onFarm=true, act=InnerUCMobile, 农场任务文本可见),
+            //   但 attempt=0 无条件 reopenFarmByDeepLink → HOME+forceKillApp(UC)+深链重开
+            //   → NAVIGATING 重新等农场 H5 加载, 每轮广告 RETURNING 多花 ~13s
+            //   (本日志 2 轮共 ~26s, 约占全程 1/5; 且反复 kill UC 加剧"多窗口"标签页累积)。
+            //   修复: attempt=0 先查 isOnFarmPage()——已在农场页则复用当前页面直接进
+            //   COLLECTING_DIRECT(与 NAVIGATING 成功后的下一状态完全一致, collectDirect
+            //   的 same-as-last 守卫/OPENING_TASK_LIST 的任务重扫照常生效), 不杀进程不重开。
+            //   安全性: isOnFarmPage 内部含农场内容校验(广告落地页/新标签页不会误判),
+            //   且 adModeFlag 未清时返回 false → 自动落回下方原 kill+重开路径;
+            //   不在农场页(异常页/其他App)时行为与原来完全一致。
+            if (service.isOnFarmPage()) {
+                Log.i(TAG, "return: already on farm page, skip kill+relaunch, reusing current page")
+                debugLog("return: already on farm page (onFarm=true), skip reopenFarmByDeepLink(kill), reuse page -> COLLECTING_DIRECT")
+                moveTo(AutomationState.COLLECTING_DIRECT)
+                handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
+                return
+            }
             // 优先用 deep link 重开农场主页（等同从桌面快捷方式进入），替代按返回键逐步退回
             // 成功后进入 NAVIGATING 等待页面加载，再重新走 COLLECTING_DIRECT → OPENING_TASK_LIST
             if (service.reopenFarmByDeepLink()) {

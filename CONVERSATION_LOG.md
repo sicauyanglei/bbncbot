@@ -32,7 +32,54 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit（待填）- fix: build764 互动广告跳转落地页activity名滞留KsRewardVideoActivity挡死深链分支(pkg已是蚂蚁落地App但act跟踪滞后;!isAdActivity()恒false→25s走AD_ENDED→CLOSING_AD坐标乱点→forceKillApp UC;跳转预期已确认时jumpExpected跳过act检查只信pkg;back-to-farm去掉单独interactiveAdJumpPending防未跳出误判;兜底return仅deepLinkAppPkg!=null防空转90s)
+### commit（待填） - fix: build765 RETURNING已回到农场页仍无条件kill+深链重开浪费13s/轮(return-start快照onFarm=true但直接reopenFarmByDeepLink→HOME+forceKill UC+NAVIGATING重等H5加载;新增isOnFarmPage()前置检查,已在农场页直接进COLLECTING_DIRECT复用页面,不杀进程;adModeFlag未清/异常页自动落回原kill路径零风险)
+
+**用户需求**: "拉取日志" + "分析解决问题"（debug_test_20260830_091342.log, **build764-19affbc**, 339行,
+09:11:40-09:13:38 约2分钟, 用户手动停止）
+
+**build764 验证结果**:
+- ✓ 整体流程健康: 农场页 7s 进入, 两轮汇川"点击商品"广告均按防死循环设计正常走完
+- ✓ 第1轮广告奖励到账: 点商品(fallback中心点击)→关广告→弹窗"返回点击商家"→
+  17s检测到"奖励已发放"→点关闭图标→RETURNING, 任务计数 7/10→8/10
+- ✗ 互动广告"点击跳转拿奖励"场景本轮未出现, build764 深链分支修复仍未被测到
+- 第2轮广告: 点商品→15s无"奖励已发放"→第2次弹窗"放弃奖励离开"(商家未发奖,正常放弃)
+
+**核心问题: RETURNING 已在农场页仍无条件 kill+重开, 每轮浪费 ~13s**:
+时间线(第1轮, 第2轮同样):
+1. 09:12:26 点关闭图标退出广告 → WATCHING_AD → RETURNING
+2. 09:12:33 return-start 快照: **onFarm=true, act=InnerUCMobile, 农场任务文本可见**
+   (广告关闭后浏览器已直接回到农场页, 页面状态完好)
+3. 但 runReturning attempt=0 无条件调用 reopenFarmByDeepLink() →
+   HOME + forceKillApp(UC) + 深链重开 → NAVIGATING
+4. 09:12:46 才重新进农场页(13s), 且期间 NAVIGATING 还因 launcher 在前台多发一次重开
+两轮 RETURNING 共浪费 ~26s, 约占全程 1/5; 反复 kill UC 还加剧"多窗口"标签页累积
+(上轮日志观察 5→15)。
+
+**根因**: runReturning attempt=0 的逻辑顺序是 isAdActivity→pressBack / 否则
+reopenFarmByDeepLink, "已回到农场页"的检查(isOnFarmPage→任务列表分支)排在深链重开
+之后且 attempt=0 永远走不到——广告正常退出(点关闭图标/放弃奖励离开)恰恰是回到
+农场页最常见的路径。
+
+**修复（AutomationController.kt runReturning attempt=0）**:
+在 reopenFarmByDeepLink 之前新增 `service.isOnFarmPage()` 前置检查: 已在农场页则
+跳过 kill+重开, 直接 moveTo(COLLECTING_DIRECT) 复用当前页面——与 NAVIGATING 成功
+后的下一状态完全一致, collectDirect 的 same-as-last 守卫和 OPENING_TASK_LIST 的
+任务重扫(含 currentTaskIndex 重置)全部照常生效。
+安全性: isOnFarmPage 内部含农场内容校验(广告落地页/新标签页不会误判)且 adModeFlag
+未清时返回 false→自动落回原 kill+重开路径; 不在农场页时行为与原来完全一致。
+
+**修复后预期日志**（广告正常退出场景）:
+```
+return: already on farm page (onFarm=true), skip reopenFarmByDeepLink(kill), reuse page -> COLLECTING_DIRECT
+state: RETURNING -> COLLECTING_DIRECT
+collectDirect: ... (直接复用页面, 无 forceKillApp/NAVIGATING, 每轮省 ~13s)
+```
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit 19affbc - fix: build764 互动广告跳转落地页activity名滞留KsRewardVideoActivity挡死深链分支(pkg已是蚂蚁落地App但act跟踪滞后;!isAdActivity()恒false→25s走AD_ENDED→CLOSING_AD坐标乱点→forceKillApp UC;跳转预期已确认时jumpExpected跳过act检查只信pkg;back-to-farm去掉单独interactiveAdJumpPending防未跳出误判;兜底return仅deepLinkAppPkg!=null防空转90s)
 
 **用户需求**: "分析日志"（debug_test_20260830_083111.log, **build763-f7058c5**, 533行,
 08:26:45-08:31:08 约4.5分钟, 用户手动停止）
