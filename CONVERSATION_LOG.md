@@ -32,7 +32,74 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit（待填）- fix: build763 双修复①关闭按钮contains("close")误匹配endcard错误页net::ERR_CONNECTION_CLOSED错误文本(每轮广告点错节点→pressBack无效→forceKillApp浪费20-30s;新增网页错误码黑名单err_/net::/http://) ②深链分支被adModeFlag挡死从未触发(全部历史日志零匹配"deep-linked app detected";isAdPlaying()恒true;新增isAdPlayingReal()只测真实广告Activity/SDK包,淘宝深链干等90s/千问对话/互动广告跳转停留20s全链路由此激活)
+### commit（待填）- fix: build764 互动广告跳转落地页activity名滞留KsRewardVideoActivity挡死深链分支(pkg已是蚂蚁落地App但act跟踪滞后;!isAdActivity()恒false→25s走AD_ENDED→CLOSING_AD坐标乱点→forceKillApp UC;跳转预期已确认时jumpExpected跳过act检查只信pkg;back-to-farm去掉单独interactiveAdJumpPending防未跳出误判;兜底return仅deepLinkAppPkg!=null防空转90s)
+
+**用户需求**: "分析日志"（debug_test_20260830_083111.log, **build763-f7058c5**, 533行,
+08:26:45-08:31:08 约4.5分钟, 用户手动停止）
+
+**build763 验证结果**:
+- ✓✓ 互动广告"点击跳转拿奖励"场景重现（08:28:55, build762 守卫生效）:
+  按钮识别+守卫置位(interactiveAdJumpPending=true)+点击成功,
+  **未被"广告按钮陷阱"处理器拦截**（无 trap exit 日志, build762 修复生效）
+- ✗ 跳转后深链分支仍被挡（build763 的 isAdPlayingReal 修复对此场景无效, 见下）
+- 未出现 endcard 错误页场景（build763 修复1未复发但也未测到）
+- 汇川"点击商品"广告防死循环正常（点商家→15s无奖励→第2次弹窗"放弃奖励离开"）
+
+**核心问题: 跳转落地页 activity 名滞留挡死深链分支**:
+时间线:
+1. 08:28:55 点击"点击跳转拿奖励"成功（0s）
+2. 5-10s: 停在 UC 内广告落地页（"雨境"App推广, act=KsRewardVideoActivity,
+   pkg=com.ucmobile.lite）
+3. 15s: **pkg=com.antgroup.leopard.android（蚂蚁落地App）但 act 仍停留在
+   com.kwad.sdk.api.proxy.app.KsRewardVideoActivity**（TYPE_WINDOW_STATE_CHANGED
+   事件跟踪滞留/落地页复用快手广告组件）→ 深链分支条件 `!isAdActivity()` 恒 false
+   → 深链分支进不去
+4. 25s: 倒计时消失 isAdEndedMultiSignal=YES → CLOSING_AD（右上角图标+坐标盲打8连击）
+5. 55s: RETURNING（pkg=leopard, act=KsRewardVideoActivity）pressBack×2 无效 →
+   08:30:12 forceKillApp UC + 重开农场
+6. 结果: 该轮互动广告奖励未到账（任务计数 7/10 未涨）, UC 进程被杀, 耗时 77s
+
+**根因**: build763 只修了 adModeFlag 一层（isAdPlayingReal），但外层条件里还有
+`!service.isAdActivity()` 这道墙——activity 名是事件跟踪的（TYPE_WINDOW_STATE_CHANGED），
+跨 App 跳转时事件可能丢失/滞后，act 不可靠；pkg（getCurrentWindowPackage）可靠。
+build763 修复的 isAdPlayingReal() 也检查 currentActivityName → 同样被滞留的
+KsRewardVideoActivity 命中 → `!isAdPlayingReal()` 也 false。
+
+**修复（AutomationController.kt 深链分支, 三处）**:
+1. **外层条件放宽**: `jumpExpected = interactiveAdJumpPending || watchingAdFromDeepLinkTask`
+   为 true 时跳过 `!isAdActivity() && !isAdPlayingReal()` 检查——跳转预期已确认
+   （用户点了跳转按钮/深链任务已在外部App），act 不可靠只信 pkg。普通广告
+   （jumpExpected=false）保持原条件零影响。
+2. **back-to-farm 子分支去掉单独 interactiveAdJumpPending**: 跳转按钮点击后可能还没
+   跳出去（pkg=UC 广告落地页），必须 deepLinkAppPkg!=null（真的离开过又回来）或
+   watchingAdFromDeepLinkTask 才算"跳转完成返回"，防止误判任务完成提前退出。
+3. **兜底轮询 return 仅 deepLinkAppPkg != null**: pkg=农场包名但从未跳转出去时
+   （互动跳转未发生/普通广告结束 UC 内落地页）不掉在此空转到 90s，继续正常
+   广告流程（min wait/AD_ENDED 检测）。
+
+**修复后预期日志**（互动广告跳转场景）:
+```
+watchAd: 互动广告'点击跳转拿奖励'按钮... 点击直接获取奖励
+watchAd: pkg 'com.ucmobile.lite' is farm platform pkg with no deep-link jump recorded, continue normal ad flow   [5-10s, UC内广告落地页]
+watchAd: deep-linked app 'com.antgroup.leopard.android' detected, waiting 20000ms (task hint) then bringFarmAppToFront   [15s]
+watchAd: bringFarmAppToFront (preserve scene) + killing 'com.antgroup.leopard.android'   [35s]
+[原 AD_ENDED→CLOSING_AD→forceKillApp UC 路径消失]
+```
+
+**次要观察(不修)**:
+- 开头 NAVIGATING 挣扎 1分40秒（08:26:59-08:28:40）: "树宠已捡2004松子"弹窗关闭后
+  activity=android.widget.linearlayout（页面加载过渡态）, isOnFarmPage content fallback
+  反复失败 + stepTab"芭芭农场 not found"×5×2轮, 最终 on farm page 成功——农场页
+  冷启动加载慢, 最终自恢复
+- 第二轮广告（08:30:31 汇川"点击商品"）正常走防死循环: 点商家→关广告→第1次弹窗
+  "返回点击商家"→再点→等15s无"奖励已发放"→第2次"放弃奖励离开"（此类广告商家
+  未发奖, 正常放弃, 非bug）
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit f7058c5 - fix: build763 双修复①关闭按钮contains("close")误匹配endcard错误页net::ERR_CONNECTION_CLOSED错误文本(每轮广告点错节点→pressBack无效→forceKillApp浪费20-30s;新增网页错误码黑名单err_/net::/http://) ②深链分支被adModeFlag挡死从未触发(全部历史日志零匹配"deep-linked app detected";isAdPlaying()恒true;新增isAdPlayingReal()只测真实广告Activity/SDK包,淘宝深链干等90s/千问对话/互动广告跳转停留20s全链路由此激活)
 
 **用户需求**: "分析日志"（debug_test_20260830_065639.log, **build762-1954f24**, 1374行,
 06:46:20-06:56:35 约10分钟, 用户手动停止）

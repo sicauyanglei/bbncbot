@@ -6762,8 +6762,18 @@ object AutomationController {
         // （全部历史日志零匹配 "deep-linked app detected"，淘宝深链任务干等 90s 实证）。
         // isAdPlayingReal() 只检测真实广告 Activity/SDK 包名，深链目标 App
         // （taobao/tongyi/leopard）不在广告关键词中，正确放行进本分支。
-        if (elapsedMs >= 5000L && !service.isOnFarmPage() && !service.isAdActivity() &&
-            !service.isAdPlayingReal() && (!service.isOnAbnormalPage() || interactiveAdJumpPending)) {
+        // build764: interactiveAdJumpPending/watchingAdFromDeepLinkTask=true 时跳过
+        // isAdActivity()/isAdPlayingReal() 检查——跳转预期已确认，但 activity 名不可靠：
+        // debug_test_20260830_083111.log (build763) 08:29:13 互动广告"点击跳转拿奖励"点击后
+        // pkg 已变成 com.antgroup.leopard.android（蚂蚁落地App），currentActivityName 却仍停留在
+        // com.kwad.sdk.api.proxy.app.KsRewardVideoActivity（TYPE_WINDOW_STATE_CHANGED 事件跟踪
+        // 滞留/落地页复用快手广告组件）→ `!isAdActivity()` 恒 false → 深链分支仍被挡死
+        // → 25s 走 AD_ENDED→CLOSING_AD 坐标乱点→RETURNING pressBack 无效→forceKillApp UC。
+        // 放宽后子分支用 pkg（可靠）精确分流，act 仅作普通广告场景的辅助判断。
+        val jumpExpected = interactiveAdJumpPending || watchingAdFromDeepLinkTask
+        if (elapsedMs >= 5000L && !service.isOnFarmPage() &&
+            ((!service.isAdActivity() && !service.isAdPlayingReal()) || jumpExpected) &&
+            (!service.isOnAbnormalPage() || interactiveAdJumpPending)) {
             val currentPkg = service.getCurrentWindowPackage()
             if (currentPkg != null) {
                 // build742: 已进入过其它App(deepLinkAppPkg!=null)后农场App自身又回到前台——
@@ -6771,9 +6781,12 @@ object AutomationController {
                 // 视为任务完成，runDeepLinkReturnToFarm 先回农场主页（pressBack/深链重开）再开任务列表
                 // build743: watchingAdFromDeepLinkTask=true（深链任务会话，5s内早期返回、
                 // deepLinkAppPkg 尚未记录）也走此分支——否则下方会把农场包名误记为跳转App
+                // build764: 去掉单独的 interactiveAdJumpPending——互动广告跳转按钮点击后
+                // 可能还没跳出去（仍停在 UC 广告落地页，pkg=UC），必须 deepLinkAppPkg!=null
+                // （真的离开过农场App又回来）才算"跳转完成返回"，防止误判任务完成提前退出。
                 if (watchingAdPlatform != Platform.UNKNOWN &&
                     currentPkg in watchingAdPlatform.config.packageNames &&
-                    (deepLinkAppPkg != null || watchingAdFromDeepLinkTask || interactiveAdJumpPending)) {
+                    (deepLinkAppPkg != null || watchingAdFromDeepLinkTask)) {
                     Log.i(TAG, "watchAd: back to farm app '$currentPkg' on task landing page (no farm keywords), deep-link task complete")
                     debugLog("watchAd: farm app back in foreground on task landing page, task complete, recovering to farm page")
                     deepLinkAppPkg = null  // 清除后已调度的切回定时器会自动取消
@@ -6873,15 +6886,19 @@ object AutomationController {
                     }, stayMs)
                 }
                 // 已调度切回，继续轮询兜底（若任务自然完成返回农场，上方"returned to farm"分支会取消切回）
-                // build763: deepLinkAppPkg==null（农场平台自身落地页未记录）时只轮询不打切回日志
+                // build764: deepLinkAppPkg==null 时（pkg=农场包名但从未跳转出去——
+                // 互动广告跳转按钮点击后仍停在 UC 广告落地页，或普通广告结束后的 UC 内
+                // H5 落地页），不算深链：不在此 return（否则空转到 90s 超时），
+                // 掉出本分支继续正常广告流程（min wait / AD_ENDED 检测等）。
                 if (deepLinkAppPkg != null) {
                     val remainMs = deepLinkTaskStayMs - (elapsedMs - deepLinkEnterTimeMs)
                     debugLog("watchAd: in deep-linked app '$currentPkg', bring-to-front scheduled in ${maxOf(remainMs, 0)}ms, polling as fallback")
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                    }, adEndCheckIntervalMs)
+                    return
                 }
-                handler.postDelayed({
-                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
-                }, adEndCheckIntervalMs)
-                return
+                debugLog("watchAd: pkg '$currentPkg' is farm platform pkg with no deep-link jump recorded, continue normal ad flow")
             }
         }
 
