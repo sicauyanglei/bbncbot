@@ -1411,7 +1411,16 @@ class FarmAccessibilityService : AccessibilityService() {
         }
         // 目标App是否还活着：无障碍 windows 列表包含所有App的窗口（含后台），
         // 有窗口=进程还活着（最近任务有卡片可点）；无窗口=已被杀，手势切换无意义
-        val alive = windows.any { it.packageName?.toString() in targetPlatform.config.packageNames }
+        // （包名取法与 isFarmAppInForeground/refreshPlatform 一致：w.root?.packageName）
+        val alive = try {
+            windows.any { w ->
+                val pkg = w.root?.packageName?.toString().orEmpty()
+                pkg.isNotEmpty() && pkg in targetPlatform.config.packageNames
+            }
+        } catch (e: Exception) {
+            debugLog("tryGestureSwitchToFarmApp: windows scan failed (${e.message}), fall back to deep link")
+            false
+        }
         if (!alive) {
             debugLog("tryGestureSwitchToFarmApp: $targetPlatform has no live window (killed?), fall back to deep link")
             return false
