@@ -331,6 +331,16 @@ class MainActivity : AppCompatActivity() {
 
     /** 尝试用 UC 浏览器打开芭芭农场页面 */
     private fun openFarmInUcBrowser() {
+        // build767（用户需求："底部手指按住，往上滑动，切换到uc浏览器，不要触发浏览器刷新"）：
+        //   UC 还在后台活着时优先用最近任务手势切换（底部按住上滑→点UC卡片），
+        //   恢复原任务栈（农场页原样保留，不触发浏览器刷新、不开新标签页）；
+        //   UC 未运行/手势失败时返回 false，落回下方快捷方式/深链原路径。
+        val accService = com.bbncbot.service.FarmAccessibilityService.getInstance()
+        if (accService != null && accService.tryGestureSwitchToFarmApp(Platform.UC)) {
+            debugLog("openFarmInUcBrowser: gesture switch to UC via recents initiated (no reload, no new tab)")
+            Toast.makeText(this, "已切回 UC 芭芭农场（原页面，未刷新）", Toast.LENGTH_SHORT).show()
+            return
+        }
         // 优先用桌面快捷方式打开（等同点击桌面"芭芭农场"组件）
         if (FarmShortcutLauncher.startFarmShortcut(this, Platform.UC) { msg -> debugLog("FarmShortcut: $msg") }) {
             com.bbncbot.service.FarmAccessibilityService.markFarmRelaunchFired()  // build766: 标记启动，防 navigate 重复深链开新标签页

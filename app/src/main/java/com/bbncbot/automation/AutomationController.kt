@@ -1284,6 +1284,19 @@ object AutomationController {
             //       再次调用 reopenFarmByDeepLink 重新拉起（避免卡死在 "waiting for relaunch"）。
             //       间隔由 INTERVAL_PAGE_LOAD_MS (5s) 控制，避免短时间内重复 kill+launch。
             if (attempt == 0 || attempt % 3 == 0) {
+                // build767 修复（用户需求："底部手指按住，往上滑动，切换到uc浏览器，不要触发浏览器刷新"）：
+                //   农场App（UC）还活着但不在前台时（如 bbncbot 在前台启动自动化/互动广告拉起
+                //   第三方App后），深链拉起会让 UC 重新加载农场页（触发浏览器刷新）且每次
+                //   新开一个标签页（"多窗口"计数累积主因）。优先用最近任务手势切换
+                //   （底部按住上滑→最近任务→点UC卡片）：恢复原任务栈，页面原样不刷新。
+                //   失败（手势导航未开/无卡片/10s防重）返回 false，自动落回下方深链原路径。
+                if (service.tryGestureSwitchToFarmApp(service.currentPlatform)) {
+                    debugLog("navigate: gesture switch to farm app initiated (no reload, no new tab), retry verifying in 5s (attempt=$attempt)")
+                    handler.postDelayed({
+                        if (state == AutomationState.NAVIGATING) runNavigating(attempt)
+                    }, INTERVAL_PAGE_LOAD_MS)
+                    return
+                }
                 // attempt==0：首次拉起；attempt % 3 == 0：每 3 轮（15s）重试一次拉起
                 Log.i(TAG, "navigate: farm app not in foreground (platform=${service.currentPlatform}), actively relaunching (attempt=$attempt)")
                 debugLog("navigate: farm app not in foreground (platform=${service.currentPlatform}, attempt=$attempt), calling reopenFarmByDeepLink")
@@ -7582,6 +7595,21 @@ object AutomationController {
                 debugLog("return: already on farm page (onFarm=true), skip reopenFarmByDeepLink(kill), reuse page -> COLLECTING_DIRECT")
                 moveTo(AutomationState.COLLECTING_DIRECT)
                 handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
+                return
+            }
+            // build767 修复（用户需求："底部手指按住，往上滑动，切换到uc浏览器，不要触发浏览器刷新"）：
+            //   互动广告"点击跳转拿奖励"拉起第三方App后，UC 在后台活着且多半停在农场页/广告页。
+            //   此处 kill+深链重开会触发 UC 重新加载农场页（浏览器刷新）且新开标签页；
+            //   优先用最近任务手势切换（底部按住上滑→点UC卡片）恢复原页面，不刷新不新开标签。
+            //   5s后重跑 RETURNING attempt=0：切回成功且在农场页 → 走上方 build765 复用路径；
+            //   UC 已前台但不在农场页 → 手势不适用（已在前台），落回 kill+深链原路径；
+            //   切换失败（仍第三方App）→ 10s防重内不再发起，落回 kill+深链原路径。
+            if (service.tryGestureSwitchToFarmApp(service.currentPlatform)) {
+                Log.i(TAG, "return: gesture switch to farm app initiated (no reload), retry in 5s")
+                debugLog("return: farm app alive in background, bottom-swipe-up-hold -> recents -> click card, retry verify in 5s")
+                handler.postDelayed({
+                    if (state == AutomationState.RETURNING) runReturning(0)
+                }, INTERVAL_PAGE_LOAD_MS)
                 return
             }
             // 优先用 deep link 重开农场主页（等同从桌面快捷方式进入），替代按返回键逐步退回

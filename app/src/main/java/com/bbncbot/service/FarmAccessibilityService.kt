@@ -1378,6 +1378,67 @@ class FarmAccessibilityService : AccessibilityService() {
         return dispatchGestureClick(dm.widthPixels / 2f, dm.heightPixels * 0.35f)
     }
 
+    /** build767: 手势切换防重时间戳（10s 内不重复发起，避免轮询循环反复打开最近任务） */
+    private var lastGestureSwitchAt = 0L
+
+    /** build767: 手势切换专用 handler（独立于 navHandler，防被 cancelNavigation 取消卡片点击） */
+    private val gestureSwitchHandler = Handler(Looper.getMainLooper())
+
+    /**
+     * build767: 通用手势切回农场App（"从底部手指按住往上滑动"→最近任务→点目标App卡片）
+     *
+     * 用户需求：凡需要把农场App（UC等）切回前台的场合，优先用最近任务手势切换，
+     * 不要用 deep link 重开——深链会让 UC 重新加载农场页（触发浏览器刷新），
+     * 且每次都会新开一个标签页（"多窗口"计数 5→15 累积的主因）；
+     * 最近任务切换恢复原任务栈，页面原样保留不刷新。
+     *
+     * 前置条件（不满足直接返回 false，调用方落回深链原路径）：
+     * 1. 目标App当前不在前台（在前台无需切换）
+     * 2. 目标App仍有存活窗口（在后台活着，最近任务里有它的卡片；已被杀则无卡片可点）
+     * 3. 距上次发起不足10s（防轮询循环反复打开最近任务）
+     *
+     * 异步流程：上滑停顿打开最近任务 → 1.2s后点目标App卡片 → 调用方在下一轮
+     * 轮询（5s后）里通过 isFarmAppInForeground/isOnFarmPage 验证切换结果，
+     * 失败自动落回原有深链路径，无需回调。
+     *
+     * @return true 表示手势切换已发起（调用方等待轮询验证）；false 表示不适用，走原路径
+     */
+    fun tryGestureSwitchToFarmApp(targetPlatform: Platform): Boolean {
+        val activePkg = rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+        if (activePkg.isNotEmpty() && activePkg in targetPlatform.config.packageNames) {
+            debugLog("tryGestureSwitchToFarmApp: $targetPlatform already in foreground (pkg=$activePkg), no switch needed")
+            return false
+        }
+        // 目标App是否还活着：无障碍 windows 列表包含所有App的窗口（含后台），
+        // 有窗口=进程还活着（最近任务有卡片可点）；无窗口=已被杀，手势切换无意义
+        val alive = windows.any { it.packageName?.toString() in targetPlatform.config.packageNames }
+        if (!alive) {
+            debugLog("tryGestureSwitchToFarmApp: $targetPlatform has no live window (killed?), fall back to deep link")
+            return false
+        }
+        val sinceLast = System.currentTimeMillis() - lastGestureSwitchAt
+        if (lastGestureSwitchAt > 0 && sinceLast < 10_000L) {
+            debugLog("tryGestureSwitchToFarmApp: gesture switch fired ${sinceLast}ms ago, skip duplicate")
+            return false
+        }
+        lastGestureSwitchAt = System.currentTimeMillis()
+        val keywords = when (targetPlatform) {
+            Platform.UC -> listOf("UC极速版", "UC浏览器", "芭芭农场", "UC")
+            Platform.ALIPAY -> listOf("支付宝", "芭芭农场")
+            Platform.TAOBAO -> listOf("淘宝", "芭芭农场")
+            Platform.UNKNOWN -> emptyList()
+        }
+        if (keywords.isEmpty()) return false
+        Log.i(TAG, "tryGestureSwitchToFarmApp: gesture switching to $targetPlatform via recents (no page reload, no new tab)")
+        debugLog("tryGestureSwitchToFarmApp: $targetPlatform alive but not foreground (active=$activePkg), bottom-swipe-up-hold -> recents -> click card")
+        swipeUpFromBottomToOpenRecents()
+        gestureSwitchHandler.postDelayed({
+            val clicked = findAndClickRecentTaskCard(keywords)
+            debugLog("tryGestureSwitchToFarmApp: recent task card clicked=$clicked, waiting for caller to verify foreground")
+        }, 1200L)
+        return true
+    }
+
     // ============== 游戏任务支持（AI 游戏达人） ==============
 
     /**

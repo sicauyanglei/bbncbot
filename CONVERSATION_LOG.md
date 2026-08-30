@@ -32,7 +32,46 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit（待填） - fix: build766 双修复①冷启动stepTab过渡态pressBack打断H5加载挣扎96s(act=android.widget.LinearLayout加载中找不到芭芭农场标签→pressBack浏览器后退打断加载×8次×3轮;过渡态跳过pressBack只等待,H5实际只需~6s) ②深链12s防重窗口(UC冷启动回前台需6-13s,navigate轮询5s内重复触发深链每开一个新标签页,多窗口5→15主因;forceKillApp重置窗口;MainActivity直接发深链也打标)
+### commit（待填） - feat: build767 手势切回UC优先于深链重开(用户需求"底部手指按住往上滑动切换到uc浏览器,不要触发浏览器刷新";封装tryGestureSwitchToFarmApp复用build751的swipeUpFromBottomToOpenRecents+findAndClickRecentTaskCard;农场App后台活着时最近任务切回=恢复原任务栈不刷新不开新标签;三接入点①runReturning kill+深链前②runNavigating farm-app-not-foreground③MainActivity.openFarmInUcBrowser;前置条件不满足/失败自动落回深链原路径,10s防重防轮询循环)
+
+**用户需求**: "底部手指按住，往上滑动，切换到uc浏览器，不要触发浏览器刷新"
+
+**语义解读**: 需要把 UC 切回前台的场合，优先用"底部按住上滑停顿→最近任务→点 UC 卡片"
+手势切换（build751 已为"我要更快拿奖"场景实现该手势，本次推广为通用路径），
+替代深链重开——深链会让 UC 重新加载农场页（触发浏览器刷新）且每次新开一个
+标签页（"多窗口"计数 5→15 累积主因）；最近任务切换恢复原任务栈，页面原样保留。
+
+**实现**:
+1. FarmAccessibilityService 新增 `tryGestureSwitchToFarmApp(targetPlatform)`:
+   - 前置条件（不满足返回 false, 调用方落回深链原路径）:
+     a. 目标App不在前台（在前台无需切换）
+     b. 目标App有存活窗口（无障碍 windows 含后台App窗口, 已被杀则无卡片可点）
+     c. 距上次发起 >=10s（防轮询循环反复打开最近任务）
+   - 流程: swipeUpFromBottomToOpenRecents()（两段式上滑停顿）→ 1.2s后
+     findAndClickRecentTaskCard(平台关键词: UC→[UC极速版,UC浏览器,芭芭农场,UC])
+   - 异步无回调: 调用方 5s 后轮询 isFarmAppInForeground/isOnFarmPage 验证
+   - 手势点击用独立 gestureSwitchHandler（防被 cancelNavigation 取消）
+2. 接入点×3:
+   - runReturning attempt=0: isOnFarmPage 检查失败后、kill+深链之前。
+     5s后重跑 attempt=0: 切回成功在农场页→build765复用路径; UC前台非农场页/
+     切换失败→落回 kill+深链原路径（闭环, 无死循环）
+   - runNavigating "farm app not in foreground": 深链之前。5s后重跑同 attempt
+     验证, 失败→深链原路径（10s防重挡住第二次手势）
+   - MainActivity.openFarmInUcBrowser: 快捷方式/深链之前。onResume 启动场景
+     UC 后台活着时手势切回（原页面不刷新）; UC 未运行→原路径
+
+**修复后预期日志**:
+```
+tryGestureSwitchToFarmApp: UC alive but not foreground (active=...), bottom-swipe-up-hold -> recents -> click card
+findAndClickRecentTaskCard: found card by 'UC极速版', clicking
+# 切回成功后不再有 reopenFarmByDeepLink 的 opened https://... (无深链=无刷新无新标签)
+```
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit f70b4dd - fix: build766 双修复①冷启动stepTab过渡态pressBack打断H5加载挣扎96s(act=android.widget.LinearLayout加载中找不到芭芭农场标签→pressBack浏览器后退打断加载×8次×3轮;过渡态跳过pressBack只等待,H5实际只需~6s) ②深链12s防重窗口(UC冷启动回前台需6-13s,navigate轮询5s内重复触发深链每开一个新标签页,多窗口5→15主因;forceKillApp重置窗口;MainActivity直接发深链也打标)
 
 **用户需求**: "解决所有问题"（无新日志, 处理 build763/764 日志遗留的两项"次要观察(不修)"问题）
 
