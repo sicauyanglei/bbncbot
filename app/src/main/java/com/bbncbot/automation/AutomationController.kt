@@ -5945,6 +5945,26 @@ object AutomationController {
         val scene = service.identifyCurrentScene()
         debugLog("watchAd: scene=$scene, elapsed=${elapsedMs}ms/${adMaxDurationMs}ms")
 
+        // build768 修复（debug_test_20260830_203822.log, build768-2248194, 19:52:06-20:37:43 卡死46分钟）:
+        //   快手广告(KsRewardVideoActivity, 25s倒计时)播完后系统落在桌面(荣耀 MagicOS, root=
+        //   com.hihonor.android.launcher 显示"第3屏/天气"小组件), 但 currentActivityName 残留
+        //   广告Activity名 → isAdActivity()=true → scene=AD_PLAYING 干等; findAdDurationHint
+        //   把桌面文本"第 3 屏"误解析为倒计时3秒(冻结不动, 像广告卡在最后3秒)。
+        //   桌面上无视频持有亮屏 → 锁屏深睡, handler 计时器(uptime)冻结45分钟, 期间 elapsed
+        //   只走了5s。用户20:37唤醒手机后靠 build681 的 no_root 防卡死守卫才退出。
+        //   修复: 活动窗口是桌面时广告必然已结束, 立即进 RETURNING(手势切回/深链兜底),
+        //   不进 CLOSING_AD——closeAd 在桌面上找不到关闭按钮会盲点8个坐标, 可能误开App。
+        if (service.isLauncherRoot()) {
+            Log.w(TAG, "watchAd: stranded on launcher (ad gone, stale adActivity name), entering RETURNING")
+            debugLog("watchAd: 活动窗口是桌面(launcher),广告已结束(Activity名残留),直接RETURNING手势切回农场(防46分钟卡死)")
+            service.setAdMode(false)
+            moveTo(AutomationState.RETURNING)
+            handler.postDelayed({
+                if (state == AutomationState.RETURNING) runReturning(0)
+            }, INTERVAL_CLICK_MS)
+            return
+        }
+
         // build730 修复（debug_test_20260816_184008.log, build728, 18:39:35-18:40:05）：
         //   汇川广告"返回点击商家"回广告后,广告 WebView 显示商家商品详情页
         //   (isProductDetailPage=YES: 加购/立即购买按钮),isRechargePage 匹配"立即购买"

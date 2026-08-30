@@ -461,12 +461,52 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build768: 默认桌面包名集合（缓存），用于识别"滞留桌面"场景
+     * （主页/最近任务界面由桌面 App 渲染，如 com.hihonor.android.launcher）
+     */
+    @Volatile
+    private var launcherPkgsCache: Set<String>? = null
+
+    fun getLauncherPackages(): Set<String> {
+        launcherPkgsCache?.let { if (it.isNotEmpty()) return it }
+        return try {
+            val homeIntent = android.content.Intent(android.content.Intent.ACTION_MAIN)
+                .addCategory(android.content.Intent.CATEGORY_HOME)
+            val pkgs = packageManager.queryIntentActivities(homeIntent, 0)
+                .mapNotNull { it.activityInfo?.packageName?.toString() }
+                .toSet()
+            launcherPkgsCache = pkgs
+            pkgs
+        } catch (e: Exception) {
+            debugLog("getLauncherPackages: failed, ${e.message}")
+            emptySet()
+        }
+    }
+
+    /**
+     * build768: 当前活动窗口 root 是否为桌面（主页或最近任务界面）
+     *
+     * 用于"滞留桌面"检测：广告结束后系统可能落在桌面而不是农场App，
+     * 此时 isAdActivity() 因 Activity 名残留仍返回 true，导致 watchAd 误判广告还在播放。
+     */
+    fun isLauncherRoot(): Boolean {
+        val pkg = rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+        if (pkg.isEmpty()) return false
+        return pkg in getLauncherPackages() ||
+            pkg.contains("launcher", ignoreCase = true) ||
+            pkg.contains("home", ignoreCase = true)
+    }
+
+    /**
      * 获取页面类型（用于诊断日志）
      * 返回简短的页面类型字符串：farm_home / browse / browse_duration / search_browse /
-     * complete / ad / abnormal / unknown
+     * complete / ad / abnormal / unknown / launcher
      */
     fun getPageType(): String {
         val root = rootInActiveWindowSafe() ?: return "unknown(no_root)"
+        // build768: 桌面检测必须在 isAdActivity() 之前——广告结束后系统落在桌面时,
+        // currentActivityName 残留广告Activity名(如 KsRewardVideoActivity),会被误判为 "ad"
+        if (isLauncherRoot()) return "launcher"
         if (isAdActivity() || isAdContentShown()) return "ad"
         if (!isFarmAppInForeground()) return "non_farm"
         val allText = collectAllText(root)
@@ -1310,42 +1350,80 @@ class FarmAccessibilityService : AccessibilityService() {
      * API < 26 无 continueStroke，退化为单段慢速长滑（800ms）
      * @return 第一段手势是否成功派发
      */
-    fun swipeUpFromBottomToOpenRecents(): Boolean {
-        val dm = resources.displayMetrics
-        val x = dm.widthPixels / 2f
-        val startY = dm.heightPixels - 8f
-        val endY = dm.heightPixels * 0.42f
-        return try {
-            if (android.os.Build.VERSION.SDK_INT >= 26) {
-                val path1 = android.graphics.Path().apply { moveTo(x, startY); lineTo(x, endY) }
-                val stroke1 = android.accessibilityservice.GestureDescription.StrokeDescription(path1, 0, 450, true)
-                val g1 = android.accessibilityservice.GestureDescription.Builder().addStroke(stroke1).build()
-                debugLog("swipeUpFromBottomToOpenRecents: ($x,$startY)->($x,$endY) hold 500ms (two-stage, API26+)")
-                dispatchGesture(g1, object : android.accessibilityservice.AccessibilityService.GestureResultCallback() {
-                    override fun onCompleted(gestureDescription: android.accessibilityservice.GestureDescription?) {
-                        // 立即续按：原地停顿500ms后松手（停顿让系统判定"上滑停顿"而非快速上滑回桌面）
-                        try {
-                            val path2 = android.graphics.Path().apply { moveTo(x, endY); lineTo(x, endY) }
-                            val stroke2 = stroke1.continueStroke(path2, 0, 500, false)
-                            dispatchGesture(
-                                android.accessibilityservice.GestureDescription.Builder().addStroke(stroke2).build(),
-                                null, null
-                            )
-                        } catch (e: Exception) {
-                            debugLog("swipeUpFromBottomToOpenRecents: continueStroke failed, ${e.message}")
-                        }
-                    }
+    fun swipeUpFromBottomToOpenRecents(): Boolean = dispatchRecentsGestureChain()
 
-                    override fun onCancelled(gestureDescription: android.accessibilityservice.GestureDescription?) {
-                        debugLog("swipeUpFromBottomToOpenRecents: stroke1 cancelled")
-                    }
-                }, null)
-            } else {
-                debugLog("swipeUpFromBottomToOpenRecents: single-stage fallback (API<26)")
-                dispatchGestureSwipe(x, startY, x, endY, 800)
+    /**
+     * build768: 三段式"底部按住→慢速上滑→停顿"手势链（打开最近任务）
+     *
+     * 重写原因（debug_test_20260830_203822.log, build768-2248194, 19:51:18）：
+     *   旧两段式（220ms 快速上滑至 0.68h + 停顿500ms）在荣耀 MagicOS 上派发成功
+     *   但未打开最近任务（800ms 后 root 仍在第三方App）。分析：上滑距离过短
+     *   （仅 32% 屏高，未越过"上滑停顿"触发阈值）+ 速度过快（220ms）。
+     *   按用户手工操作描述"底部手指按住，往上滑动"重写为三段式：
+     *   ① 底部边缘按住 150ms（按住）→ ② 慢速上滑到 0.45h 屏高，500ms（往上滑动）
+     *   → ③ 原地停顿 600ms 后松手（触发"上滑停顿"打开最近任务）
+     */
+    private fun dispatchRecentsGestureChain(): Boolean {
+        if (android.os.Build.VERSION.SDK_INT < 26) {
+            val dm = resources.displayMetrics
+            debugLog("dispatchRecentsGestureChain: API<26, single-stage fallback")
+            return try {
+                dispatchGestureSwipe(dm.widthPixels / 2f, dm.heightPixels - 8f, dm.widthPixels / 2f, dm.heightPixels * 0.45f, 900)
+            } catch (e: Exception) {
+                debugLog("dispatchRecentsGestureChain: failed, ${e.message}")
+                false
             }
+        }
+        return try {
+            val dm = resources.displayMetrics
+            val x = dm.widthPixels / 2f
+            val startY = dm.heightPixels - 8f
+            val endY = dm.heightPixels * 0.45f
+            // ① 底部按住 150ms（willContinue=true 手指不抬起）
+            val holdPath = android.graphics.Path().apply { moveTo(x, startY) }
+            val holdStroke = android.accessibilityservice.GestureDescription.StrokeDescription(holdPath, 0, 150, true)
+            val g1 = android.accessibilityservice.GestureDescription.Builder().addStroke(holdStroke).build()
+            debugLog("dispatchRecentsGestureChain: press-hold 150ms at ($x,$startY) -> slow swipe to ($x,$endY) 500ms -> hold 600ms (three-stage)")
+            dispatchGesture(g1, object : android.accessibilityservice.AccessibilityService.GestureResultCallback() {
+                override fun onCompleted(gestureDescription: android.accessibilityservice.GestureDescription?) {
+                    try {
+                        // ② 慢速上滑 500ms 到 0.45h 屏高（越过"上滑停顿"触发阈值）
+                        val swipePath = android.graphics.Path().apply { moveTo(x, startY); lineTo(x, endY) }
+                        val swipeStroke = holdStroke.continueStroke(swipePath, 0, 500, true)
+                        dispatchGesture(
+                            android.accessibilityservice.GestureDescription.Builder().addStroke(swipeStroke).build(),
+                            object : android.accessibilityservice.AccessibilityService.GestureResultCallback() {
+                                override fun onCompleted(gestureDescription: android.accessibilityservice.GestureDescription?) {
+                                    try {
+                                        // ③ 原地停顿 600ms 后松手（系统判定"上滑停顿"→最近任务）
+                                        val pausePath = android.graphics.Path().apply { moveTo(x, endY) }
+                                        val pauseStroke = swipeStroke.continueStroke(pausePath, 0, 600, false)
+                                        dispatchGesture(
+                                            android.accessibilityservice.GestureDescription.Builder().addStroke(pauseStroke).build(),
+                                            null, null
+                                        )
+                                    } catch (e: Exception) {
+                                        debugLog("dispatchRecentsGestureChain: stage-3 continueStroke failed, ${e.message}")
+                                    }
+                                }
+
+                                override fun onCancelled(gestureDescription: android.accessibilityservice.GestureDescription?) {
+                                    debugLog("dispatchRecentsGestureChain: stage-2 cancelled")
+                                }
+                            }, null
+                        )
+                    } catch (e: Exception) {
+                        debugLog("dispatchRecentsGestureChain: stage-2 continueStroke failed, ${e.message}")
+                    }
+                }
+
+                override fun onCancelled(gestureDescription: android.accessibilityservice.GestureDescription?) {
+                    debugLog("dispatchRecentsGestureChain: stage-1 cancelled")
+                }
+            }, null)
+            true
         } catch (e: Exception) {
-            debugLog("swipeUpFromBottomToOpenRecents: failed, ${e.message}")
+            debugLog("dispatchRecentsGestureChain: dispatch failed, ${e.message}")
             false
         }
     }
@@ -1360,7 +1438,17 @@ class FarmAccessibilityService : AccessibilityService() {
      */
     fun findAndClickRecentTaskCard(keywords: List<String>): Boolean {
         val root = rootInActiveWindowSafe()
-        if (root != null) {
+        // build768 防误点守卫：最近任务界面由桌面渲染，root 必须是 launcher；
+        // 若 root 还是第三方App页面（手势未打开最近任务），在第三方页面上点
+        // "UC/淘宝"等关键词节点或坐标盲点都可能误触跳转，直接返回 false 让调用方落回兜底
+        val rootPkg = root?.packageName?.toString().orEmpty()
+        val launcherish = rootPkg.contains("launcher", ignoreCase = true) ||
+            rootPkg.contains("home", ignoreCase = true) || rootPkg == "com.android.systemui"
+        if (root != null && !launcherish) {
+            debugLog("findAndClickRecentTaskCard: root '$rootPkg' is not launcher (recents not open), skip click to avoid mis-tap")
+            return false
+        }
+        if (root != null && launcherish) {
             for (kw in keywords) {
                 val node = findNodeByText(root, kw)
                 if (node != null) {
@@ -1368,11 +1456,12 @@ class FarmAccessibilityService : AccessibilityService() {
                     return performClickSafe(node)
                 }
             }
-            debugLog("findAndClickRecentTaskCard: no card node matched ${keywords.size} keywords (rootPkg=${root.packageName})")
+            debugLog("findAndClickRecentTaskCard: no card node matched ${keywords.size} keywords (rootPkg=$rootPkg)")
         } else {
             debugLog("findAndClickRecentTaskCard: no active window root")
         }
-        // 兜底：最近任务第一张卡片（刚切走的UC）主体区域在中上部
+        // 兜底：最近任务第一张卡片（刚切走的UC）主体区域在中上部（仅桌面 root 时安全）
+        if (!launcherish) return false
         val dm = resources.displayMetrics
         debugLog("findAndClickRecentTaskCard: fallback click at screen center-top")
         return dispatchGestureClick(dm.widthPixels / 2f, dm.heightPixels * 0.35f)
@@ -1441,10 +1530,22 @@ class FarmAccessibilityService : AccessibilityService() {
         Log.i(TAG, "tryGestureSwitchToFarmApp: gesture switching to $targetPlatform via recents (no page reload, no new tab)")
         debugLog("tryGestureSwitchToFarmApp: $targetPlatform alive but not foreground (active=$activePkg), bottom-swipe-up-hold -> recents -> click card")
         swipeUpFromBottomToOpenRecents()
+        // build768: 三段式手势全长 ~1.25s；+1.5s 验证最近任务是否打开（root 是否变桌面），
+        // 未打开则用系统全局"最近任务"动作兜底再等 1.2s，最后才找卡片点击；
+        // 全部失败由调用方 5s 后轮询发现仍不在前台 → 落回深链原路径
         gestureSwitchHandler.postDelayed({
-            val clicked = findAndClickRecentTaskCard(keywords)
-            debugLog("tryGestureSwitchToFarmApp: recent task card clicked=$clicked, waiting for caller to verify foreground")
-        }, 1200L)
+            if (!isLauncherRoot()) {
+                debugLog("tryGestureSwitchToFarmApp: recents not open after swipe (root=${rootInActiveWindowSafe()?.packageName}), assist with GLOBAL_ACTION_RECENTS")
+                try { performGlobalAction(GLOBAL_ACTION_RECENTS) } catch (_: Exception) {}
+                gestureSwitchHandler.postDelayed({
+                    val clicked = findAndClickRecentTaskCard(keywords)
+                    debugLog("tryGestureSwitchToFarmApp: recent task card clicked=$clicked (after global-action assist), waiting for caller to verify foreground")
+                }, 1200L)
+            } else {
+                val clicked = findAndClickRecentTaskCard(keywords)
+                debugLog("tryGestureSwitchToFarmApp: recent task card clicked=$clicked, waiting for caller to verify foreground")
+            }
+        }, 1500L)
         return true
     }
 
@@ -6956,30 +7057,16 @@ class FarmAccessibilityService : AccessibilityService() {
             return false
         }
         return try {
-            val metrics = resources.displayMetrics
-            val w = metrics.widthPixels.toFloat()
-            val h = metrics.heightPixels.toFloat()
-            val startX = w / 2f
-            val startY = h - 12f          // 底部边缘（手势导航热区）
-            val endY = h * 0.68f           // 上滑到屏幕约 1/3 处
-            // 第一段：上滑（willContinue=true，手指不抬起）
-            val path1 = android.graphics.Path().apply { moveTo(startX, startY); lineTo(startX, endY) }
-            val stroke1 = android.accessibilityservice.GestureDescription.StrokeDescription(
-                path1, 0, 220, true
-            )
-            // 第二段：原地停顿 500ms 后抬起（"上滑停顿"打开最近任务的判定条件）
-            val path2 = android.graphics.Path().apply { moveTo(startX, endY) }
-            val stroke2 = stroke1.continueStroke(path2, 0, 500, false)
-            val gesture = android.accessibilityservice.GestureDescription.Builder()
-                .addStroke(stroke2)
-                .build()
-            val dispatched = dispatchGesture(gesture, null, null)
-            debugLog("bringFarmAppToFrontByGesture: swipe-up-and-hold dispatched=$dispatched ($startX,$startY)->($startX,$endY), waiting 800ms for recents")
+            // build768: 改用三段式手势链（底部按住150ms→慢速上滑500ms到0.45h→停顿600ms）。
+            // 旧两段式（220ms快速上滑至0.68h+停顿）在荣耀 MagicOS 上派发成功但未打开最近任务
+            // （debug_test_20260830_203822.log 19:51:18, root 停留在第三方App）
+            val dispatched = dispatchRecentsGestureChain()
+            debugLog("bringFarmAppToFrontByGesture: three-stage swipe-up-hold dispatched=$dispatched, waiting 1500ms for recents")
             if (!dispatched) return false
-            // 800ms 后在最近任务界面找农场App卡片点击（navHandler 重试，最多 5 次）
+            // build768: 三段式手势全长 ~1.25s，等 1500ms 再找卡片（旧 800ms 太短，最近任务还在渲染）
             navHandler.postDelayed({
                 clickRecentTaskCard(targetPlatform, farmPkg, attempt = 0)
-            }, 800L)
+            }, 1500L)
             true
         } catch (e: Exception) {
             debugLog("bringFarmAppToFrontByGesture: dispatch failed, ${e.message}")
@@ -7020,8 +7107,25 @@ class FarmAccessibilityService : AccessibilityService() {
             rootPkg.contains("home", ignoreCase = true) ||
             rootPkg == "com.android.systemui"
         if (!isLauncherish) {
-            debugLog("clickRecentTaskCard: root '$rootPkg' is not launcher (recents not opened, gesture may be unsupported), fallback moveTaskToFront")
-            moveTaskToFrontInternal(targetPlatform, farmPkg)
+            // build768 修复（debug_test_20260830_203822.log, 19:51:19）：
+            //   旧逻辑 root 非 launcher 时立即 fallback moveTaskToFront——但三段式手势
+            //   刚派发完，最近任务可能还在渲染动画中；且 getRunningTasks 拿不到第三方
+            //   App任务，moveTaskToFront 必然失败退化成 pressBack。
+            //   新逻辑：800ms 重查最多 3 次（给最近任务渲染时间）；attempt==1 时补一次
+            //   系统全局"最近任务"动作兜底（手势在本机不被系统响应时的替代通道）；
+            //   3 次后仍非桌面才 fallback moveTaskToFront 原路径
+            if (attempt < 3) {
+                if (attempt == 1) {
+                    debugLog("clickRecentTaskCard: root '$rootPkg' still not launcher (attempt=$attempt), assist with GLOBAL_ACTION_RECENTS")
+                    try { performGlobalAction(GLOBAL_ACTION_RECENTS) } catch (_: Exception) {}
+                } else {
+                    debugLog("clickRecentTaskCard: root '$rootPkg' not launcher yet (attempt=$attempt, recents may be animating), recheck in 800ms")
+                }
+                navHandler.postDelayed({ clickRecentTaskCard(targetPlatform, farmPkg, attempt + 1) }, 800L)
+            } else {
+                debugLog("clickRecentTaskCard: recents not opening (root='$rootPkg'), fallback moveTaskToFront")
+                moveTaskToFrontInternal(targetPlatform, farmPkg)
+            }
             return
         }
         // 最近任务卡片由 launcher 渲染，contentDescription/text 含App名

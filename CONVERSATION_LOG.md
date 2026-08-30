@@ -32,7 +32,54 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit（待填） - feat: build767 手势切回UC优先于深链重开(用户需求"底部手指按住往上滑动切换到uc浏览器,不要触发浏览器刷新";封装tryGestureSwitchToFarmApp复用build751的swipeUpFromBottomToOpenRecents+findAndClickRecentTaskCard;农场App后台活着时最近任务切回=恢复原任务栈不刷新不开新标签;三接入点①runReturning kill+深链前②runNavigating farm-app-not-foreground③MainActivity.openFarmInUcBrowser;前置条件不满足/失败自动落回深链原路径,10s防重防轮询循环)
+### commit（待填） - fix: build768 双修复①广告结束落在桌面被误判"广告播放中"卡死46分钟(19:52快手广告播完系统落桌面,currentActivityName残留KsRewardVideoActivity→isAdActivity=true→scene=AD_PLAYING干等;findAdDurationHint把桌面"第3屏"误解析为倒计时3秒冻结;桌面无视频持亮屏→锁屏深睡45分钟uptime计时器冻结;新增isLauncherRoot()桌面识别,getPageType返回"launcher",watchAd桌面守卫直接进RETURNING手势切回,不进CLOSING_AD防桌面盲点误开App) ②三段式手势链修复在荣耀MagicOS上打不开最近任务(旧220ms快速上滑仅32%屏高未越过阈值;按用户描述"按住→往上滑动"重写为底部按住150ms→慢速上滑500ms到45%屏高→停顿600ms;+GLOBAL_ACTION_RECENTS系统全局动作兜底;findAndClickRecentTaskCard加launcher防误点守卫;clickRecentTaskCard非launcher重试3次再fallback)
+
+**用户需求**: "分析日志"（debug_test_20260830_203822.log, build768-2248194, 19:48-20:38 约50分钟, 511行）
+
+**日志分析结论**:
+1. 启动段完美: UC已被杀→手势前置检查正确识别"no live window"落回深链→7s进农场页
+2. 两轮互动广告"点击跳转拿奖励"均正常走 build764 跳转守卫（unionpay/leopard）
+3. **问题A(46分钟卡死, 本轮已修)**: 第三轮快手广告(灵光app 25s)19:51:44开播,
+   19:52:05倒计时3秒后广告结束, 系统落在桌面(非UC农场页)。watchAd因
+   act残留+倒计时误解析继续"等待广告结束", 桌面无视频持亮屏→19:52:30锁屏
+   深睡, handler(uptime)计时器冻结45分钟(期间elapsed只走5s), 20:37用户唤醒
+   后靠build681 no_root守卫退出, 用户手动停止
+4. **问题B(手势切换未生效, 本轮已修)**: 19:51:18 互动广告跳转守卫调
+   bringFarmAppToFrontByGesture, 手势派发成功但800ms后root仍在leopard
+   →最近任务没打开(旧手势220ms/32%屏高被系统忽略)→fallback moveTaskToFront
+   又因getRunningTasks限制必然失败→最终forceKill+深链(多窗口6→7)
+5. 次要观察: 多窗口计数5→6→7(每次深链+1, 与问题B直接相关, 手势修好后应止涨)
+
+**修复内容**:
+- FarmAccessibilityService: 新增 getLauncherPackages()(CATEGORY_HOME解析缓存)+
+  isLauncherRoot(); getPageType() 桌面检测置于isAdActivity前(防残留误判"ad")
+- AutomationController.watchAd: 场景分发前加桌面滞留守卫(isLauncherRoot→
+  setAdMode(false)+RETURNING, 由build767手势切回/深链兜底接力)
+- dispatchRecentsGestureChain(): 三段式手势(按住150ms→慢滑500ms到0.45h→
+  停顿600ms), 替换旧两段式; swipeUpFromBottomToOpenRecents/bringFarmAppToFront
+  ByGesture均走新链, 卡片点击等待800ms→1500ms
+- tryGestureSwitchToFarmApp: 手势后+1.5s验证最近任务是否打开(root变桌面),
+  未打开补GLOBAL_ACTION_RECENTS再等1.2s才点卡片
+- findAndClickRecentTaskCard: root非launcher时跳过点击防误点第三方页面
+- clickRecentTaskCard: 非launcher重试3次(800ms间隔)+attempt==1补全局动作,
+  3次后仍失败才fallback moveTaskToFront
+
+**修复后预期日志**:
+```
+# 桌面滞留(原46分钟卡死):
+watchAd: 活动窗口是桌面(launcher),广告已结束(Activity名残留),直接RETURNING手势切回农场(防46分钟卡死)
+
+# 三段式手势:
+dispatchRecentsGestureChain: press-hold 150ms at (...) -> slow swipe to (...) 500ms -> hold 600ms (three-stage)
+findAndClickRecentTaskCard: found card by 'UC极速版', clicking
+clickRecentTaskCard: switched to farm app 'com.ucmobile.lite' via recents card (WebView state preserved)
+```
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit 2248194 - feat: build767 手势切回UC优先于深链重开(用户需求"底部手指按住往上滑动切换到uc浏览器,不要触发浏览器刷新";封装tryGestureSwitchToFarmApp复用build751的swipeUpFromBottomToOpenRecents+findAndClickRecentTaskCard;农场App后台活着时最近任务切回=恢复原任务栈不刷新不开新标签;三接入点①runReturning kill+深链前②runNavigating farm-app-not-foreground③MainActivity.openFarmInUcBrowser;前置条件不满足/失败自动落回深链原路径,10s防重防轮询循环)
 
 **用户需求**: "底部手指按住，往上滑动，切换到uc浏览器，不要触发浏览器刷新"
 
