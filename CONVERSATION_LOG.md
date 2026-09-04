@@ -32,7 +32,47 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit（待填） - fix: build768-1 三隐患修复①launcher WINDOW_STATE_CHANGED残留广告Activity名(onAccessibilityEvent收到launcher事件但className仍是KsRewardVideoActivity→currentActivityName不更新→isAdActivity恒true;launcher事件时清空currentActivityName) ②三段式手势加强日志(手势/全局动作后各打印root包名,精确定位失败断点) ③UC多窗口标签自动清理(农场页加载完成后检测"多窗口"计数>2→点"多窗口"→点"关闭全部"→深链重开恢复;清理历史深链累积的5/6/7个标签)
+### commit 183e239 - fix: build768-2 腾讯点击商品广告修复①REWARD_POPUP误判(腾讯PortraitADActivity广告页"领取成功"残留文本+不可点击"立即领取"节点→isRewardPopupPage误判→identifyCurrentScene广告Activity内禁返REWARD_POPUP;findClaimRewardButton广告Activity内直接返回null+不可点击节点跳过;"立即领取"加入UC adInstallButtonTexts诱导名单) ②back死循环61秒(点击商品广告click count>=2后每2.5s pressBack连续17次无效,back被腾讯广告SDK拦截;且该分支return在90s超时守卫之前超时永远不可达→无限循环;新增adProductExitBackCount计数,back连续3次无效或超max时长升级CLOSING_AD多策略关闭,forceKill兜底)
+
+**用户需求**: "修复"（debug_test_20260905_063248.log, build770-c3a3677, 06:30-06:32, 316行）
+
+**日志分析结论**:
+1. 启动段正常: 杀UC后深链冷启动, 7s进农场页, 签到任务正常完成
+2. **问题A(REWARD_POPUP误判)**: 06:31:40 进入腾讯GDT广告(com.qq.e.ads.PortraitADActivity),
+   页面残留"领取成功"类文本+不可点击"立即领取"节点(clickable=false),
+   isRewardPopupPage() 误判 → scene=REWARD_POPUP(应为AD_PLAYING)
+3. **问题B(back死循环61秒, 核心)**: isClickProductAd()=true(页面含"点击广告拿奖励"类文案,
+   build717已纳入检测), 但 findAdProductNode 找不到可点击商品节点(WebView不可访问,
+   build722已知) → 5次失败后点屏幕中心×2(06:31:52/06:32:06) → 阶段2 pressBack 无效 →
+   click count>=2 分支每2.5s pressBack 连续17次无效(腾讯SDK拦截back) →
+   **该分支return在90s超时守卫(L6741)之前,超时永远不可达** → 无限循环,
+   06:32:45 用户手动停止
+4. 多窗口计数=2 稳定(build768-1清理功能正常);手势/launcher隐患本轮未触发
+
+**修复内容**:
+- FarmAccessibilityService.identifyCurrentScene: REWARD_POPUP 判断加 `!isAdActivity()` 前置
+  (广告Activity内的"领取"都是诱导按钮,真实奖励弹窗出现在广告关闭后)
+- FarmAccessibilityService.findClaimRewardButton: 广告Activity内直接返回null;
+  节点不可点击且无祖先可点击时跳过(新增 hasClickableParent,向上5层)
+- Platform.kt UC adInstallButtonTexts: 增加"立即领取"(腾讯广告诱导按钮,点击跳下载)
+- AutomationController.watchAd 点击商品广告 click count>=2 分支:
+  新增 adProductExitBackCount 计数, back连续3次无效(约7.5s)或 elapsed>=max 时
+  moveTo(CLOSING_AD) 走多策略关闭(策略0关闭按钮→策略1坐标盲点→RETURNING forceKill
+  兜底, build750已验证可靠), 广告进入时重置计数
+
+**修复后预期日志**:
+```
+watchAd: 点击商品 ad detected but click count=2 >= 2, pressing back to exit (backCount=1/3)
+watchAd: 点击商品 ad detected but click count=2 >= 2, pressing back to exit (backCount=2/3)
+watchAd: 点击商品广告 back×3无效(广告SDK拦截back),升级CLOSING_AD多策略关闭
+closeAd: start closing, ...
+```
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit c3a3677 - fix: build768-1 三隐患修复①launcher WINDOW_STATE_CHANGED残留广告Activity名(onAccessibilityEvent收到launcher事件但className仍是KsRewardVideoActivity→currentActivityName不更新→isAdActivity恒true;launcher事件时清空currentActivityName) ②三段式手势加强日志(手势/全局动作后各打印root包名,精确定位失败断点) ③UC多窗口标签自动清理(农场页加载完成后检测"多窗口"计数>2→点"多窗口"→点"关闭全部"→深链重开恢复;清理历史深链累积的5/6/7个标签)
 
 **用户需求**: "处理"（上一轮手势切换失败原因分析后遗留的 3 个隐患）
 

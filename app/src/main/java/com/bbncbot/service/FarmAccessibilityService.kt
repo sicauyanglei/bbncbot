@@ -2268,7 +2268,12 @@ class FarmAccessibilityService : AccessibilityService() {
         // 9. 复看陷阱（再看一个/加倍领取）
         if (isReplayTrapPage()) return PageScene.TRAP_REPLAY
         // 10. 奖励领取弹窗（恭喜获得 + 领取按钮）
-        if (isRewardPopupPage()) return PageScene.REWARD_POPUP
+        // build768-2 修复（debug_test_20260905_063248.log, build770, 06:31:43-06:32:42 卡死99秒）：
+        //   腾讯 PortraitADActivity 广告页残留"领取成功"文本 + 不可点击的"立即领取"节点,
+        //   isRewardPopupPage() 误判 REWARD_POPUP → scene 卡在弹窗场景,
+        //   AD_PLAYING 逻辑不执行, "点击商品"处理在错误场景下死循环 49 次。
+        //   修复: 广告 Activity 内禁止进 REWARD_POPUP（广告里的"领取"都是诱导按钮）。
+        if (!isAdActivity() && isRewardPopupPage()) return PageScene.REWARD_POPUP
         // 11. 广告已结束（任务完成页 或 无倒计时且不在广告Activity）
         if (isTaskCompletePage()) return PageScene.AD_ENDED
         // 12. 广告播放中（有倒计时 或 在广告Activity）
@@ -5093,6 +5098,15 @@ class FarmAccessibilityService : AccessibilityService() {
             return null
         }
         val root = rootInActiveWindowSafe() ?: return null
+        // build768-2 修复（debug_test_20260905_063248.log, build770, 06:31:43）:
+        //   广告 Activity 内的"领取"按钮都是诱导按钮（点击跳下载/跳转），不是奖励领取按钮。
+        //   腾讯 PortraitADActivity 广告页有不可点击的"立即领取"节点被误判为领取按钮,
+        //   导致 isRewardPopupPage() 误判 REWARD_POPUP → 卡死 99 秒。
+        //   修复: 广告 Activity 内直接返回 null（真实奖励弹窗出现在广告 Activity 关闭后）。
+        if (isAdActivity()) {
+            debugLog("findClaimRewardButton: in ad activity, skip (ad buttons are traps)")
+            return null
+        }
         val trapTexts = currentPlatformConfig().adInstallButtonTexts
         // 签到专属关键词放最前：签到页面的"立即签到"/"签到领取"按钮需要优先匹配，
         // 避免"领取"子串先命中无关文案。签到按钮不是诱导按钮，无需 trapTexts 过滤。
@@ -5179,6 +5193,13 @@ class FarmAccessibilityService : AccessibilityService() {
                 //   这些是退出确认弹窗的标题,不是领取奖励按钮。
                 if (kw == "确定" && (text.contains("退出吗") || text.contains("离开吗"))) {
                     debugLog("findClaimRewardButton: skip exit confirm dialog text='$text' desc='$desc' (matched kw='$kw')")
+                    continue
+                }
+                // build768-2 修复（debug_test_20260905_063248.log, build770, 06:31:43）：
+                //   腾讯广告页"立即领取"节点 clickable=false（是诱导文案不是按钮），
+                //   被误判为领取按钮。真实领取按钮必然 clickable=true 或有可点击父节点。
+                if (!node.isClickable && !hasClickableParent(node)) {
+                    debugLog("findClaimRewardButton: skip non-clickable node text='$text' desc='$desc' (matched kw='$kw')")
                     continue
                 }
                 Log.d(TAG, "findClaimRewardButton: found by text='$kw'")
@@ -6404,6 +6425,18 @@ class FarmAccessibilityService : AccessibilityService() {
     /** 递归查找包含指定文本的节点（返回可点击的自身或父节点） */
     fun findNodeByText(root: AccessibilityNodeInfo, keyword: String): AccessibilityNodeInfo? {
         return findNodeByTextInternal(root, keyword)
+    }
+
+    /** build768-2: 节点是否有可点击的祖先（向上最多5层） */
+    private fun hasClickableParent(node: AccessibilityNodeInfo): Boolean {
+        var parent = node.parent
+        var depth = 0
+        while (parent != null && depth < 5) {
+            if (parent.isClickable) return true
+            parent = parent.parent
+            depth++
+        }
+        return false
     }
 
     // ---------- build768-1 隐患3: UC 多窗口标签清理 ----------

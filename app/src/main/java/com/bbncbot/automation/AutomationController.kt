@@ -2277,6 +2277,17 @@ object AutomationController {
     private var adProductClickTimeMs: Long = 0L
 
     /**
+     * build768-2: "点击商品"广告退出阶段 back 无效计数
+     *
+     * 日志证据(debug_test_20260905_063248.log, build770, 06:32:10-06:32:44):
+     * 腾讯 PortraitADActivity 点击商品广告,click count>=2 后每 2.5s pressBack
+     * 连续 17 次无效(back 被广告 SDK 拦截);且该分支 return 在 90s 超时守卫之前,
+     * 超时永远不可达 → 无限循环 61 秒直到用户手动停止。
+     * 连续 3 次无效后升级 CLOSING_AD 多策略关闭(forceKill 兜底)。
+     */
+    private var adProductExitBackCount: Int = 0
+
+    /**
      * build731: 汇川广告"点击商家后立即领奖"返回后,等待点击商家→奖励发放
      *
      * 汇川 HCRewardVideoActivity "点击商品，领取奖励"广告:
@@ -5308,6 +5319,8 @@ object AutomationController {
             adProductClickCount = 0
             // build722: 重置 findAdProductNode 失败计数
             adProductNodeFindFailCount = 0
+            // build768-2: 重置退出阶段 back 无效计数
+            adProductExitBackCount = 0
             // build728: 重置汇川广告"点击商家后立即领奖"返回标记
             huichuanMerchantPending = false
             // build732: 重置充值陷阱 pressBack 无效计数
@@ -6403,8 +6416,22 @@ object AutomationController {
             //   修复:增加 adProductClickCount 计数,每轮广告最多点击2次商品,
             //   超过后不再点击,直接 pressBack 退出。
             if (!adProductClicked && adProductClickCount >= 2) {
-                Log.w(TAG, "watchAd: 点击商品 ad detected but already clicked ${adProductClickCount} times, pressing back to exit (elapsed=${elapsedMs}ms)")
-                debugLog("watchAd: 点击商品 ad detected but click count=${adProductClickCount} >= 2, pressing back to exit")
+                // build768-2 修复（debug_test_20260905_063248.log, build770, 06:32:10-06:32:44 死循环61秒）：
+                //   腾讯 PortraitADActivity 点击商品广告,back 被广告 SDK 拦截,
+                //   "pressing back to exit" 每 2.5s 一次连续 17 次无效;且本分支
+                //   return 在 90s 超时强制关闭守卫之前,超时永远不可达 → 无限循环。
+                //   修复:back 连续 3 次无效(约7.5s)或总时长超 max 时,升级 CLOSING_AD
+                //   多策略关闭(关闭按钮→坐标盲点→RETURNING forceKill 兜底,build750 已验证)。
+                adProductExitBackCount++
+                if (adProductExitBackCount >= 3 || elapsedMs >= adMaxDurationMs) {
+                    Log.w(TAG, "watchAd: 点击商品 ad back×$adProductExitBackCount ineffective (elapsed=${elapsedMs}ms/${adMaxDurationMs}ms), escalating to CLOSING_AD")
+                    debugLog("watchAd: 点击商品广告 back×${adProductExitBackCount}无效(广告SDK拦截back),升级CLOSING_AD多策略关闭")
+                    moveTo(AutomationState.CLOSING_AD)
+                    handler.postDelayed({ runClosingAd(strategy = 0) }, INTERVAL_CLICK_MS)
+                    return
+                }
+                Log.w(TAG, "watchAd: 点击商品 ad detected but already clicked ${adProductClickCount} times, pressing back to exit (elapsed=${elapsedMs}ms, backCount=$adProductExitBackCount)")
+                debugLog("watchAd: 点击商品 ad detected but click count=${adProductClickCount} >= 2, pressing back to exit (backCount=$adProductExitBackCount/3)")
                 service.pressBack()
                 handler.postDelayed({
                     if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
