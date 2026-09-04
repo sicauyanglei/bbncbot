@@ -32,7 +32,7 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit 183e239 - fix: build768-2 腾讯点击商品广告修复①REWARD_POPUP误判(腾讯PortraitADActivity广告页"领取成功"残留文本+不可点击"立即领取"节点→isRewardPopupPage误判→identifyCurrentScene广告Activity内禁返REWARD_POPUP;findClaimRewardButton广告Activity内直接返回null+不可点击节点跳过;"立即领取"加入UC adInstallButtonTexts诱导名单) ②back死循环61秒(点击商品广告click count>=2后每2.5s pressBack连续17次无效,back被腾讯广告SDK拦截;且该分支return在90s超时守卫之前超时永远不可达→无限循环;新增adProductExitBackCount计数,back连续3次无效或超max时长升级CLOSING_AD多策略关闭,forceKill兜底)
+### commit e858a46 - fix: build768-2 腾讯点击商品广告修复①REWARD_POPUP误判(腾讯PortraitADActivity广告页"领取成功"残留文本+不可点击"立即领取"节点→isRewardPopupPage误判→identifyCurrentScene广告Activity内禁返REWARD_POPUP;findClaimRewardButton广告Activity内直接返回null+不可点击节点跳过;"立即领取"加入UC adInstallButtonTexts诱导名单) ②back死循环61秒(点击商品广告click count>=2后每2.5s pressBack连续17次无效,back被腾讯广告SDK拦截;且该分支return在90s超时守卫之前超时永远不可达→无限循环;新增adProductExitBackCount计数,back连续3次无效或超max时长升级CLOSING_AD多策略关闭,forceKill兜底)
 
 **用户需求**: "修复"（debug_test_20260905_063248.log, build770-c3a3677, 06:30-06:32, 316行）
 
