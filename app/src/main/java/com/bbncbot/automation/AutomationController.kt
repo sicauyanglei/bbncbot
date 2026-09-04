@@ -1072,6 +1072,9 @@ object AutomationController {
                 }, INTERVAL_PAGE_LOAD_MS)
                 return
             }
+            // build768-1 隐患3: 农场页已加载，检查并关闭 UC 多余标签页（深链重开历史累积，
+            // 多窗口计数 5→6→7...；关闭全部后 isOnFarmPage=false → 深链重开恢复，农场 H5 无状态）
+            service.closeUcExtraTabsIfNeeded()
             moveTo(AutomationState.COLLECTING_DIRECT)
             handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
             return

@@ -32,7 +32,46 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit（待填） - fix: build768 双修复①广告结束落在桌面被误判"广告播放中"卡死46分钟(19:52快手广告播完系统落桌面,currentActivityName残留KsRewardVideoActivity→isAdActivity=true→scene=AD_PLAYING干等;findAdDurationHint把桌面"第3屏"误解析为倒计时3秒冻结;桌面无视频持亮屏→锁屏深睡45分钟uptime计时器冻结;新增isLauncherRoot()桌面识别,getPageType返回"launcher",watchAd桌面守卫直接进RETURNING手势切回,不进CLOSING_AD防桌面盲点误开App) ②三段式手势链修复在荣耀MagicOS上打不开最近任务(旧220ms快速上滑仅32%屏高未越过阈值;按用户描述"按住→往上滑动"重写为底部按住150ms→慢速上滑500ms到45%屏高→停顿600ms;+GLOBAL_ACTION_RECENTS系统全局动作兜底;findAndClickRecentTaskCard加launcher防误点守卫;clickRecentTaskCard非launcher重试3次再fallback)
+### commit（待填） - fix: build768-1 三隐患修复①launcher WINDOW_STATE_CHANGED残留广告Activity名(onAccessibilityEvent收到launcher事件但className仍是KsRewardVideoActivity→currentActivityName不更新→isAdActivity恒true;launcher事件时清空currentActivityName) ②三段式手势加强日志(手势/全局动作后各打印root包名,精确定位失败断点) ③UC多窗口标签自动清理(农场页加载完成后检测"多窗口"计数>2→点"多窗口"→点"关闭全部"→深链重开恢复;清理历史深链累积的5/6/7个标签)
+
+**用户需求**: "处理"（上一轮手势切换失败原因分析后遗留的 3 个隐患）
+
+**隐患修复**:
+1. **launcher 残留广告 Activity 名**（根源级，防未来同类误判）:
+   - 位置: FarmAccessibilityService.onAccessibilityEvent
+   - 问题: 广告结束系统落桌面时, launcher 的 WINDOW_STATE_CHANGED 事件的
+     className 可能残留广告 Activity 名(KsRewardVideoActivity), 代码无条件
+     记录 → currentActivityName 残留 → isAdActivity() 恒 true
+   - 修复: launcher 事件(pkg 在 CATEGORY_HOME 解析集合/含"launcher"/"home")
+     时清空 currentActivityName, 保持 null 让 isAdActivity 正确返回 false
+2. **三段式手势加强日志**（下次失败可精确定位断点）:
+   - tryGestureSwitchToFarmApp: 手势后/全局动作后各打印 root 包名+isLauncherRoot
+   - bringFarmAppToFrontByGesture: 手势后打印 root 状态
+   - 若再次失败, 日志可区分"手势未响应"vs"最近任务没渲染"vs"卡片没找到"
+3. **UC 多窗口标签自动清理**（一次性清历史累积）:
+   - 新增 closeUcExtraTabsIfNeeded()/clickCloseAllInMultiWindow()/
+     isMultiWindowButtonClickable()
+   - 注入点: runNavigating 农场页 hasContentLoaded 成功后
+   - 逻辑: 检测"多窗口"计数>2 → 点"多窗口"按钮 → 1.2s 后点多窗口页
+     "关闭全部" → 全部标签关闭(含农场页) → isOnFarmPage=false →
+     下一轮 navigate 深链重开恢复(农场 H5 无状态)
+   - 一次性清掉手势修好之前深链累积的 5/6/7 个标签
+
+**修复后预期日志**:
+```
+# 隐患1(launcher 残留名清理后, isAdActivity 不再误判):
+watchAd: 活动窗口是桌面(launcher),广告已结束(Activity名残留),直接RETURNING手势切回农场
+# 隐患3(多窗口清理):
+closeUcExtraTabsIfNeeded: multi-window count=7 (>2), closing all tabs
+clickCloseAllInMultiWindow: clicked '关闭全部'
+# 之后 isOnFarmPage=false → navigate 深链重开 → 多窗口计数回到 1
+```
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
+### commit f512bf3 - fix: build768 双修复①广告结束落在桌面被误判"广告播放中"卡死46分钟(19:52快手广告播完系统落桌面,currentActivityName残留KsRewardVideoActivity→isAdActivity=true→scene=AD_PLAYING干等;findAdDurationHint把桌面"第3屏"误解析为倒计时3秒冻结;桌面无视频持亮屏→锁屏深睡45分钟uptime计时器冻结;新增isLauncherRoot()桌面识别,getPageType返回"launcher",watchAd桌面守卫直接进RETURNING手势切回,不进CLOSING_AD防桌面盲点误开App) ②三段式手势链修复在荣耀MagicOS上打不开最近任务(旧220ms快速上滑仅32%屏高未越过阈值;按用户描述"按住→往上滑动"重写为底部按住150ms→慢速上滑500ms到45%屏高→停顿600ms;+GLOBAL_ACTION_RECENTS系统全局动作兜底;findAndClickRecentTaskCard加launcher防误点守卫;clickRecentTaskCard非launcher重试3次再fallback)
 
 **用户需求**: "分析日志"（debug_test_20260830_203822.log, build768-2248194, 19:48-20:38 约50分钟, 511行）
 

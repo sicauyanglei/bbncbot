@@ -147,7 +147,14 @@ class FarmAccessibilityService : AccessibilityService() {
         // 跟踪窗口状态变化，记录当前前台 Activity 和包名
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
             pkg.isNotEmpty() && className.isNotEmpty()) {
-            currentActivityName = className
+            // build768-1 隐患修复：广告结束系统落桌面时，launcher 的 WINDOW_STATE_CHANGED
+            // className 可能残留广告 Activity 名（KsRewardVideoActivity），导致 isAdActivity()
+            // 恒为 true、scene=AD_PLAYING 干等 46 分钟（debug_test_20260830_203822.log）。
+            // 前台窗口已切到桌面时，不再记录广告残留名，保持为空让 isAdActivity 正确返回 false。
+            val launcherPkgs = getLauncherPackages()
+            val isLauncherEvent = pkg in launcherPkgs || pkg.contains("launcher", ignoreCase = true) ||
+                pkg.contains("home", ignoreCase = true)
+            currentActivityName = if (isLauncherEvent) null else className
             currentEventPkg = pkg
             // 自动检测平台
             val detected = Platform.fromPackage(pkg)
@@ -1534,10 +1541,16 @@ class FarmAccessibilityService : AccessibilityService() {
         // 未打开则用系统全局"最近任务"动作兜底再等 1.2s，最后才找卡片点击；
         // 全部失败由调用方 5s 后轮询发现仍不在前台 → 落回深链原路径
         gestureSwitchHandler.postDelayed({
+            // build768-1 隐患2加强：每步打印 root 变化（手势→最近任务→卡片点击），
+            // 若再次失败可精确定位断在哪一步（手势未响应/最近任务没渲染/卡片没找到）
+            val rootAfterGesture = rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+            debugLog("tryGestureSwitchToFarmApp: after gesture root=$rootAfterGesture (launcher=${isLauncherRoot()})")
             if (!isLauncherRoot()) {
-                debugLog("tryGestureSwitchToFarmApp: recents not open after swipe (root=${rootInActiveWindowSafe()?.packageName}), assist with GLOBAL_ACTION_RECENTS")
+                debugLog("tryGestureSwitchToFarmApp: recents not open after swipe (root=$rootAfterGesture), assist with GLOBAL_ACTION_RECENTS")
                 try { performGlobalAction(GLOBAL_ACTION_RECENTS) } catch (_: Exception) {}
                 gestureSwitchHandler.postDelayed({
+                    val rootAfterGlobal = rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+                    debugLog("tryGestureSwitchToFarmApp: after global-action root=$rootAfterGlobal (launcher=${isLauncherRoot()})")
                     val clicked = findAndClickRecentTaskCard(keywords)
                     debugLog("tryGestureSwitchToFarmApp: recent task card clicked=$clicked (after global-action assist), waiting for caller to verify foreground")
                 }, 1200L)
@@ -6393,6 +6406,73 @@ class FarmAccessibilityService : AccessibilityService() {
         return findNodeByTextInternal(root, keyword)
     }
 
+    // ---------- build768-1 隐患3: UC 多窗口标签清理 ----------
+
+    /**
+     * build768-1: 导航栏"多窗口"按钮节点是否可点击（部分 UC 版本渲染为不可点击的文本节点）
+     */
+    fun isMultiWindowButtonClickable(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val btn = findNodeByTextInternal(root, "多窗口") ?: return false
+        if (btn.isClickable) return true
+        var parent = btn.parent
+        var depth = 0
+        while (parent != null && depth < 5) {
+            if (parent.isClickable) return true
+            parent = parent.parent
+            depth++
+        }
+        return false
+    }
+
+    /**
+     * build768-1: 在 UC 多窗口缩略图页点击"关闭全部"按钮，一次性关闭所有标签页
+     * （含农场页——农场是 H5 无状态，回前台后 isOnFarmPage=false → 深链重开恢复）
+     */
+    fun clickCloseAllInMultiWindow(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        for (kw in listOf("关闭全部", "关闭所有", "清除全部")) {
+            val node = findNodeByTextInternal(root, kw) ?: continue
+            if (performClickSafe(node)) {
+                debugLog("clickCloseAllInMultiWindow: clicked '$kw'")
+                return true
+            }
+        }
+        debugLog("clickCloseAllInMultiWindow: close-all button not found")
+        return false
+    }
+
+    /**
+     * build768-1 隐患3：UC 农场页加载完成后，若"多窗口"计数 > 2，自动关闭全部标签页
+     *
+     * 背景：手势切换修好之前每次深链 +1 个标签（历史日志多窗口计数 5→6→7 累积），
+     * 已累积的标签不会自动消失。在农场页已加载（当前窗口就是农场页）时关闭全部标签
+     * 再深链重开农场，一次性清干净，避免后续"多窗口"计数继续膨胀。
+     *
+     * 流程：点"多窗口"按钮 → 1.2s 后点多窗口页"关闭全部" → 回农场（isOnFarmPage=false
+     * → 下一轮 navigate 深链重开）
+     */
+    fun closeUcExtraTabsIfNeeded(targetPlatform: Platform = currentPlatform) {
+        if (targetPlatform != Platform.UC) return
+        val root = rootInActiveWindowSafe() ?: return
+        val allText = collectAllText(root)
+        // "多窗口" 后面的纯数字就是标签计数
+        val multiWindowIdx = allText.indexOfFirst { it.contains("多窗口") }
+        if (multiWindowIdx < 0 || multiWindowIdx + 1 >= allText.size) return
+        val countText = allText[multiWindowIdx + 1].trim()
+        val count = countText.toIntOrNull() ?: return
+        if (count <= 2) return
+        debugLog("closeUcExtraTabsIfNeeded: multi-window count=$count (>2), closing all tabs")
+        val btn = findNodeByTextInternal(root, "多窗口") ?: return
+        if (!performClickSafe(btn)) {
+            debugLog("closeUcExtraTabsIfNeeded: multi-window button click failed, skip")
+            return
+        }
+        navHandler.postDelayed({
+            clickCloseAllInMultiWindow()
+        }, 1200L)
+    }
+
     /**
      * build733: 精确匹配 text/contentDescription 等于 keyword 的节点（忽略大小写）
      *
@@ -7065,6 +7145,9 @@ class FarmAccessibilityService : AccessibilityService() {
             if (!dispatched) return false
             // build768: 三段式手势全长 ~1.25s，等 1500ms 再找卡片（旧 800ms 太短，最近任务还在渲染）
             navHandler.postDelayed({
+                // build768-1 隐患2加强：打印手势后 root 状态，便于定位失败断点
+                val rootAfterGesture = rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+                debugLog("bringFarmAppToFrontByGesture: after gesture root=$rootAfterGesture (launcher=${isLauncherRoot()})")
                 clickRecentTaskCard(targetPlatform, farmPkg, attempt = 0)
             }, 1500L)
             true
