@@ -32,6 +32,29 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit（待填） - fix: build774 汇川点击商品广告ACTION_CLICK不发奖修复(汇川WebView广告不把无障碍ACTION_CLICK计为"点击商家"——三轮对比:#1/#3 performClickSafe ACTION_CLICK depth=0成功但页面不跳转等15s无奖励放弃,#2找不到节点改点屏幕中心手势→跳商品详情页→"奖励已发放"→拿奖进度1/10→2/10;watchAd+checkTaskListOpened两处点商品节点改为dispatchGestureClick按bounds中心物理点击)
+
+**用户需求**: "分析日志"→"继续"（debug_test_20260905_100732.log, build772-e858a46, 10:01-10:07, 725行）
+
+**日志分析结论**:
+1. **汇川广告获奖率低的根因(核心发现)**: ACTION_CLICK vs 手势
+   - #1(10:04:55): 找到商品节点 ACTION_CLICK×2 成功 → 页面无跳转 → 15s无"奖励已发放" → 放弃
+   - #2(10:06:30): 找不到节点 → 点中心手势 → 10:06:50 跳商品详情页 → 检测到"奖励已发放" → 拿奖 ✅
+   - #3(10:07:10): ACTION_CLICK×2 → 等待中用户手动停止
+   - 结论: performClickSafe 在 ACTION_CLICK 返回 success 时不 fallback 手势,
+     而汇川 WebView 只认真实触摸 → 获奖率被拉低到 ~1/3
+2. 多窗口 count=10(持续累积)、close-all 单次查找失败、深链竞态(10:06:15 落launcher误发深链)、
+   双发导航(10:04:25) —— 均复现, build773 修复已覆盖(待推送)
+3. 快手互动广告→京东深链任务、手势切换(RECENTS兜底)正常
+
+**修复内容**:
+- AutomationController.watchAd 阶段1点商品: performClickSafe → dispatchGestureClick(rect中心)
+- AutomationController.checkTaskListOpened 点商品: 同上(同步修复)
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### commit（待填） - fix: build773 三问题修复①多窗口清理失败(点"多窗口"成功但1.2s单次找"关闭全部"失败即放弃→改600ms×5轮询+关键词扩展"关闭全部窗口/清空窗口"等+最终失败dump面板全部文本诊断真实文案;closeUcExtraTabsIfNeeded改回调式,控制器等清理完再走下一步,关闭全部后不在农场页回NAVIGATING深链重开,消除与COLLECTING_DIRECT竞态) ②深链重开与卡片切换竞态(07:37:22.606卡片点击成功但07:37:23.109检查时UC渲染未完成isFarmAppInForeground=false→误发深链多窗口+1;deepLinkReturn新增农场App不在前台宽限重试2次×2.5s,手势真失败才落深链) ③启动双发导航(07:36:20自动化NAVIGATING点tab同时MainActivity.openFarmInUcBrowser又发深链;isRunning时只做手势切回不开发深链)
 
 **用户需求**: "分析日志"→"需要"（debug_test_20260905_073855.log, build772-e858a46, 07:36-07:38, 527行）

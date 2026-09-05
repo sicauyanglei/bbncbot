@@ -2390,8 +2390,10 @@ object AutomationController {
                         val rect = Rect()
                         productNode.getBoundsInScreen(rect)
                         Log.i(TAG, "checkTaskListOpened: clicking ad product to trigger reward (bounds=${rect.toShortString()})")
-                        debugLog("checkTaskListOpened: clicking ad product bounds=${rect.toShortString()}")
-                        service.performClickSafe(productNode)
+                        debugLog("checkTaskListOpened: gesture-clicking ad product bounds=${rect.toShortString()} center (${rect.centerX()},${rect.centerY()})")
+                        // build774: 汇川 WebView 广告不计 ACTION_CLICK(页面不跳转不发奖),
+                        // 改按节点 bounds 中心手势点击(与 watchAd 同步修复)
+                        service.dispatchGestureClick(rect.centerX().toFloat(), rect.centerY().toFloat())
                         adProductClicked = true
                         adProductClickTimeMs = now
                     } else {
@@ -6458,8 +6460,14 @@ object AutomationController {
                     val rect = Rect()
                     productNode.getBoundsInScreen(rect)
                     Log.i(TAG, "watchAd: clicking ad product to trigger reward (bounds=${rect.toShortString()})")
-                    debugLog("watchAd: 点击商品 ad detected, clicking product bounds=${rect.toShortString()} (count=${adProductClickCount + 1})")
-                    service.performClickSafe(productNode)
+                    debugLog("watchAd: 点击商品 ad detected, gesture-clicking product bounds=${rect.toShortString()} center (${rect.centerX()},${rect.centerY()}) (count=${adProductClickCount + 1})")
+                    // build774 修复（debug_test_20260905_100732.log, build772, 汇川广告三轮对比）：
+                    //   #1/#3 用 performClickSafe ACTION_CLICK 点商品节点（depth=0 成功）,
+                    //   页面无任何跳转,等15s无"奖励已发放"放弃; #2 找不到节点改点屏幕中心手势
+                    //   → 跳进商品详情页 → "奖励已发放" → 拿奖(任务进度 1/10→2/10)。
+                    //   结论:汇川 WebView 广告不把无障碍 ACTION_CLICK 计为"点击商家",
+                    //   只有真实触摸手势才触发跳转发奖。改为按节点 bounds 中心手势点击。
+                    service.dispatchGestureClick(rect.centerX().toFloat(), rect.centerY().toFloat())
                     adProductClicked = true
                     adProductClickTimeMs = now
                     adProductClickCount++
