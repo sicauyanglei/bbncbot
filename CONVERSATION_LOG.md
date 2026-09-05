@@ -32,6 +32,32 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit c7f770b - fix: build776 穿山甲"我要加速"广告结束落农场页adModeFlag死锁修复(非深链路径无出口清flag→isAdPlaying恒true/isOnFarmPage被强制false→结束信号全失效+农场页误判TRAP_RECHARGE误点关闭→AD_ENDED空转85s;scene=AD_ENDED+不在广告Activity+hasFarmContentLoaded(纯文本检测不受flag影响)→清adModeFlag按任务完成退出)
+
+**用户需求**: "请分析新日志"→"修复"（debug_test_20260905_152919.log, build775-157c34c, 15:26-15:29, 137行）
+
+**日志分析结论**:
+1. **P0穿山甲"我要加速"广告adModeFlag死锁85s(15:28:11-15:29:16,用户手动停止,差7s到90s超时)**:
+   链条=15:27:58点"我要加速"→跳淘宝停留10s→15:28:11手势切回UC→广告Activity已自行结束
+   落在农场页(集肥料可见)→但"我要加速"是非深链路径,没有任何出口清adModeFlag
+   - ① isAdPlaying()恒true → isAdEndedMultiSignal 信号2(!isAdPlaying)永不成立
+   - ② isOnFarmPage()被adModeFlag守卫强制false → isRechargePage农场守卫失效
+     → 15:28:25 农场页误判TRAP_RECHARGE,误点"关闭"(1134,600),把"已完成"标记
+     和集肥料按钮点没 → 信号1(任务完成页)也失效
+   - 所有出口都要adEnded=true → 死锁空转(scene=AD_ENDED,elapsed 25s→70s)
+2. **build775锁屏修复本轮未触发**(未锁屏),其他流程(冷启动深链去重、导航、收集)正常
+3. 多窗口count=2正常(手势切回成功,无深链重开)
+
+**修复内容**:
+- AutomationController.watchAd: 多信号广告结束检测之后新增出口——
+  `!adEnded && scene==AD_ENDED && !adEndedActivity && hasFarmContentLoaded(root)`
+  (hasFarmContentLoaded为纯文本检测,不受adModeFlag影响)→广告会话已结束落在农场页,
+  清adModeFlag+collectedCount+++advanceTaskIndex→OPENING_TASK_LIST(同任务完成出口,斩断死锁链)
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### commit 157c34c - fix: build775 三问题修复①锁屏死循环8.5分钟(build672用getCurrentWindowPackage判systemui,但windows兜底返回后台UC包名→锁屏检查从未命中,锁屏被当generic popup每5s pressBack死循环101轮;新增isLockScreenShowing()KeyguardManager+活动窗口直查+swipeUpToUnlock(),navigate/watchAd两处generic popup分支命中锁屏时点亮+上滑解锁,5次失败退避15s等用户) ②runReturning误杀前台UC(互动广告落launcher→手势切卡成功→1.3s后判定onFarm=false(多窗口当前标签非农场页/渲染中)→reopenFarmByDeepLink默认kill→HOME+kill+冷启动1分钟→熄屏→锁屏;新增returnForegroundWaitCount,UC前台但非农场页先等2.5s×2渲染,仍不行改killCurrentFirst=false不杀进程发深链) ③多窗口清理兜底(三次dump确认UC新版面板无"关闭全部"文本按钮;关键词失败后逐一点击desc含"关闭"的标签关闭小图标(面板特征"无痕浏览"/"返回"守卫防误点农场页H5),重试扩到8次;最终失败dump全部clickable节点含无文本图标bounds)
 
 **用户需求**: "分析日志"→"修复"（debug_test_20260905_111247.log, build773-a5e63ae, 10:50-11:12, 2829行）
