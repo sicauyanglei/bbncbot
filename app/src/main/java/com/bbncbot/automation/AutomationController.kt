@@ -7065,6 +7065,33 @@ object AutomationController {
         // 更新上一轮倒计时状态（供下一轮多信号检测用）
         prevAdHadCountdown = service.findAdDurationHint() > 0
 
+        // build776 修复（debug_test_20260905_152919.log, build775, 15:28:19-15:29:16）:
+        //   穿山甲"我要加速"跳淘宝停留10s后手势切回UC,广告Activity已自行结束落在
+        //   农场页(集肥料可见)。但"我要加速"是非深链路径,没有任何出口清 adModeFlag →
+        //   ① isAdPlaying()恒true → isAdEndedMultiSignal 信号2(!isAdPlaying)永不成立;
+        //   ② isOnFarmPage() 被 adModeFlag 守卫强制 false → isRechargePage 农场守卫
+        //      失效,农场页误判 TRAP_RECHARGE 误点"关闭"(1134,600),把"已完成"标记
+        //      和集肥料按钮点没 → 信号1也失效;
+        //   所有出口都要 adEnded=true → 死锁空转85s直到用户手动停止(差7s到90s超时)。
+        //   修复:scene=AD_ENDED 且不在广告Activity 且农场内容已加载(hasFarmContentLoaded
+        //   为纯文本检测,不受 adModeFlag 影响)→ 广告会话已结束落在农场页,
+        //   清 adModeFlag 并退出(同任务完成出口,斩断死锁链)。
+        if (!adEnded && scene == PageScene.AD_ENDED && !adEndedActivity) {
+            val farmRoot = service.rootInActiveWindowSafe()
+            if (farmRoot != null && service.hasFarmContentLoaded(farmRoot)) {
+                Log.i(TAG, "watchAd: ad ended back on farm page (farm content loaded, breaking adModeFlag deadlock), exiting")
+                debugLog("watchAd: scene=AD_ENDED+农场内容已加载(不受adModeFlag影响),广告会话已结束落在农场页,清adModeFlag退出")
+                service.setAdMode(false)
+                collectedCount++
+                advanceTaskIndex()  // 多次任务重玩同一任务，否则前进到下一个
+                handler.postDelayed({
+                    moveTo(AutomationState.OPENING_TASK_LIST)
+                    handler.postDelayed({ runOpeningTaskList(attempt = 0) }, INTERVAL_CLICK_MS)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+        }
+
         // build755 修复（debug_test_20260829_192115.log, build754, 19:14:51-19:16:34）:
         //   "去支付宝逛蚂蚁庄园"深链任务,19:14:40 奖励弹窗"恭喜获得奖励 UC元宝 180g饲料"
         //   自动领取,19:14:51 页面变"UC元宝、180g饲料已发放"——任务已成功;
