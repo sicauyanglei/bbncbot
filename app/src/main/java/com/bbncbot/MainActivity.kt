@@ -331,6 +331,21 @@ class MainActivity : AppCompatActivity() {
 
     /** 尝试用 UC 浏览器打开芭芭农场页面 */
     private fun openFarmInUcBrowser() {
+        // build773 修复（debug_test_20260905_073855.log, build772, 07:36:20 双发导航）：
+        //   自动化运行中（NAVIGATING 已点"UC 芭芭农场"tab）本按钮又发一次深链
+        //   → 同页双入口并发，UC 多窗口 +1。自动化运行期间导航是控制器职责，
+        //   此处只做无刷新手势切回，不再发深链/快捷方式。
+        if (com.bbncbot.automation.AutomationController.isRunning) {
+            val acc = com.bbncbot.service.FarmAccessibilityService.getInstance()
+            val switching = acc?.tryGestureSwitchToFarmApp(Platform.UC) == true
+            debugLog("openFarmInUcBrowser: automation running, gesture-switch only (initiated=$switching), skip deep link to avoid extra tab")
+            Toast.makeText(
+                this,
+                if (switching) "自动化运行中，正在切回 UC（不刷新）" else "自动化运行中，导航由控制器负责",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
         // build767（用户需求："底部手指按住，往上滑动，切换到uc浏览器，不要触发浏览器刷新"）：
         //   UC 还在后台活着时优先用最近任务手势切换（底部按住上滑→点UC卡片），
         //   恢复原任务栈（农场页原样保留，不触发浏览器刷新、不开新标签页）；

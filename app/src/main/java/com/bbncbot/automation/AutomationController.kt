@@ -1074,9 +1074,22 @@ object AutomationController {
             }
             // build768-1 隐患3: 农场页已加载，检查并关闭 UC 多余标签页（深链重开历史累积，
             // 多窗口计数 5→6→7...；关闭全部后 isOnFarmPage=false → 深链重开恢复，农场 H5 无状态）
-            service.closeUcExtraTabsIfNeeded()
-            moveTo(AutomationState.COLLECTING_DIRECT)
-            handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
+            // build773 修复（debug_test_20260905_073855.log, build772, 07:36:25-07:36:27）：
+            //   原实现点击"多窗口"后立即进 COLLECTING_DIRECT，与清理流程竞态
+            //   （清理 1.2s 后找"关闭全部"时 collectDirect 已在操作农场页）。
+            //   改为回调式：等清理结束（最坏 ~5s）再走下一步；
+            //   关闭全部会连带关掉农场页 → 不在农场页则回 NAVIGATING 深链重开。
+            service.closeUcExtraTabsIfNeeded(onComplete = {
+                if (state != AutomationState.NAVIGATING) {
+                    debugLog("navigate: tab cleanup done but state=$state, skip transition")
+                } else if (service.isOnFarmPage()) {
+                    moveTo(AutomationState.COLLECTING_DIRECT)
+                    handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
+                } else {
+                    debugLog("navigate: tabs cleaned, farm page closed, re-navigating via deep link")
+                    handler.postDelayed({ runNavigating(attempt = 0) }, INTERVAL_PAGE_LOAD_MS)
+                }
+            })
             return
         }
 
@@ -7302,6 +7315,21 @@ object AutomationController {
         if (attempt < 2 && service.isFarmAppInForeground()) {
             debugLog("deepLinkReturn: farm app foreground but on task landing page (attempt=$attempt), pressBack to pop it")
             service.pressBack()
+            handler.postDelayed({
+                if (state == AutomationState.WATCHING_AD) runDeepLinkReturnToFarm(attempt + 1)
+            }, INTERVAL_PAGE_LOAD_MS)
+            return
+        }
+
+        // build773 修复（debug_test_20260905_073855.log, build772, 07:37:22-07:37:23 竞态）：
+        //   07:37:22.606 最近任务卡片点击成功（UC 切前台中）→ 07:37:23.109 本函数检查：
+        //   UC 窗口切换/H5 首帧渲染未完成（sample=[]，isFarmAppInForeground=false）
+        //   → 直接落分支3发深链（多窗口+1）→ 07:37:23.706 卡片切换成功日志才打出。
+        //   即卡片切换其实成功了，只是检查太早。修复：农场App尚不在前台时给最多2次
+        //   宽限重试（每次 INTERVAL_PAGE_LOAD_MS），让卡片切换/渲染落地后再判定；
+        //   宽限耗尽仍不在前台（手势真失败）才落分支3发深链，行为与原逻辑一致仅多等 ~5s。
+        if (!service.isFarmAppInForeground() && attempt < 2) {
+            debugLog("deepLinkReturn: farm app not foreground yet (attempt=$attempt), grace retry in ${INTERVAL_PAGE_LOAD_MS}ms (recents card switch may still be landing)")
             handler.postDelayed({
                 if (state == AutomationState.WATCHING_AD) runDeepLinkReturnToFarm(attempt + 1)
             }, INTERVAL_PAGE_LOAD_MS)

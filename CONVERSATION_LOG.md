@@ -32,6 +32,34 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit（待填） - fix: build773 三问题修复①多窗口清理失败(点"多窗口"成功但1.2s单次找"关闭全部"失败即放弃→改600ms×5轮询+关键词扩展"关闭全部窗口/清空窗口"等+最终失败dump面板全部文本诊断真实文案;closeUcExtraTabsIfNeeded改回调式,控制器等清理完再走下一步,关闭全部后不在农场页回NAVIGATING深链重开,消除与COLLECTING_DIRECT竞态) ②深链重开与卡片切换竞态(07:37:22.606卡片点击成功但07:37:23.109检查时UC渲染未完成isFarmAppInForeground=false→误发深链多窗口+1;deepLinkReturn新增农场App不在前台宽限重试2次×2.5s,手势真失败才落深链) ③启动双发导航(07:36:20自动化NAVIGATING点tab同时MainActivity.openFarmInUcBrowser又发深链;isRunning时只做手势切回不开发深链)
+
+**用户需求**: "分析日志"→"需要"（debug_test_20260905_073855.log, build772-e858a46, 07:36-07:38, 527行）
+
+**日志分析结论（build768-2 修复验证）**:
+- ✅ REWARD_POPUP 误判已修复：汇川 HCRewardVideoActivity 广告 scene=AD_PLAYING（07:37:41），不再误判
+- ✅ 三段式手势+RECENTS 兜底工作：07:37:18 手势→07:37:22 点中"UC浏览器极速版"卡片切回，WebView 现场保留
+- ✅ 汇川点击商品广告闭环完整：点商品→关广告→"返回点击商家"→再点→等15s→关闭→"放弃奖励离开"，无死循环
+- ✅ 京东深链任务正常：跳转→停留20s→手势切回→kill京东→任务重玩
+- ⚠️ back死循环修复本轮未触发（汇川广告有可用关闭图标，未走back路径）
+
+**本轮修复的3个问题**:
+1. **多窗口清理失败**（07:36:25-07:36:27）: count=4>2 触发清理，点"多窗口"成功，
+   但1.2s后单次查找"关闭全部"失败（面板渲染慢）即放弃；且状态立即转 COLLECTING_DIRECT 竞态。
+   修复：轮询重试+关键词扩展+失败dump诊断+回调式消除竞态
+2. **深链重开与卡片切换竞态**（07:37:22-07:37:23）: 卡片切换已成功但 deepLinkReturn
+   检查太早（UC 渲染未完成）误发深链 → 多窗口+1 累积主因。
+   修复：deepLinkReturn 农场App不在前台时宽限重试2次
+3. **启动双发导航**（07:36:20）: 自动化运行中 MainActivity.openFarmInUcBrowser
+   与控制器 NAVIGATING 并发，双入口开农场。
+   修复：isRunning 时只做手势切回，跳过深链/快捷方式
+
+**观察（非bug）**: 汇川广告两轮均15s等不到"奖励已发放"放弃离开（机制使然,build731已验证纯等待无效）
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### commit e858a46 - fix: build768-2 腾讯点击商品广告修复①REWARD_POPUP误判(腾讯PortraitADActivity广告页"领取成功"残留文本+不可点击"立即领取"节点→isRewardPopupPage误判→identifyCurrentScene广告Activity内禁返REWARD_POPUP;findClaimRewardButton广告Activity内直接返回null+不可点击节点跳过;"立即领取"加入UC adInstallButtonTexts诱导名单) ②back死循环61秒(点击商品广告click count>=2后每2.5s pressBack连续17次无效,back被腾讯广告SDK拦截;且该分支return在90s超时守卫之前超时永远不可达→无限循环;新增adProductExitBackCount计数,back连续3次无效或超max时长升级CLOSING_AD多策略关闭,forceKill兜底)
 
 **用户需求**: "修复"（debug_test_20260905_063248.log, build770-c3a3677, 06:30-06:32, 316行）

@@ -6461,18 +6461,51 @@ class FarmAccessibilityService : AccessibilityService() {
     /**
      * build768-1: 在 UC 多窗口缩略图页点击"关闭全部"按钮，一次性关闭所有标签页
      * （含农场页——农场是 H5 无状态，回前台后 isOnFarmPage=false → 深链重开恢复）
+     *
+     * build773 修复（debug_test_20260905_073855.log, build772, 07:36:25-07:36:27）：
+     *   点"多窗口"成功但 1.2s 后单次查找"关闭全部"失败即放弃（面板渲染慢/文案差异）。
+     *   改为 600ms×5 轮询；关键词扩展；最终失败 dump 全部节点文本便于诊断真实文案。
      */
-    fun clickCloseAllInMultiWindow(): Boolean {
-        val root = rootInActiveWindowSafe() ?: return false
-        for (kw in listOf("关闭全部", "关闭所有", "清除全部")) {
-            val node = findNodeByTextInternal(root, kw) ?: continue
-            if (performClickSafe(node)) {
-                debugLog("clickCloseAllInMultiWindow: clicked '$kw'")
-                return true
+    fun clickCloseAllInMultiWindow(attempt: Int = 0, onDone: ((Boolean) -> Unit)? = null) {
+        val root = rootInActiveWindowSafe()
+        if (root != null) {
+            for (kw in listOf("关闭全部", "关闭所有", "清除全部", "关闭全部窗口", "关闭所有窗口", "清空窗口")) {
+                val node = findNodeByTextInternal(root, kw) ?: continue
+                if (performClickSafe(node)) {
+                    debugLog("clickCloseAllInMultiWindow: clicked '$kw'")
+                    onDone?.invoke(true)
+                    return
+                }
             }
         }
-        debugLog("clickCloseAllInMultiWindow: close-all button not found")
-        return false
+        if (attempt < 4) {
+            debugLog("clickCloseAllInMultiWindow: close-all button not found (attempt=$attempt), retry in 600ms")
+            navHandler.postDelayed({ clickCloseAllInMultiWindow(attempt + 1, onDone) }, 600L)
+            return
+        }
+        // 最终失败：dump 面板全部文本/desc，便于确认 UC 真实按钮文案
+        val dumpRoot = rootInActiveWindowSafe()
+        if (dumpRoot != null) {
+            val texts = mutableListOf<String>()
+            collectNodeTextsForDump(dumpRoot, texts, 0)
+            debugLog("clickCloseAllInMultiWindow: close-all button NOT found after 5 attempts, panel texts=$texts")
+        } else {
+            debugLog("clickCloseAllInMultiWindow: close-all button NOT found after 5 attempts, root=null")
+        }
+        onDone?.invoke(false)
+    }
+
+    /** build773: dump 节点文本/desc（多窗口面板诊断用），限深限量防刷屏 */
+    private fun collectNodeTextsForDump(node: AccessibilityNodeInfo, out: MutableList<String>, depth: Int) {
+        if (out.size >= 40 || depth > 12) return
+        val text = node.text?.toString()?.trim().orEmpty()
+        val desc = node.contentDescription?.toString()?.trim().orEmpty()
+        if (text.isNotEmpty()) out.add("t:'${text.take(20)}'")
+        if (desc.isNotEmpty()) out.add("d:'${desc.take(20)}'")
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            collectNodeTextsForDump(child, out, depth + 1)
+        }
     }
 
     /**
@@ -6482,28 +6515,35 @@ class FarmAccessibilityService : AccessibilityService() {
      * 已累积的标签不会自动消失。在农场页已加载（当前窗口就是农场页）时关闭全部标签
      * 再深链重开农场，一次性清干净，避免后续"多窗口"计数继续膨胀。
      *
-     * 流程：点"多窗口"按钮 → 1.2s 后点多窗口页"关闭全部" → 回农场（isOnFarmPage=false
-     * → 下一轮 navigate 深链重开）
+     * 流程：点"多窗口"按钮 → 轮询点多窗口页"关闭全部" → onComplete 回调
+     * （build773：回调式，调用方等清理结束再进下一状态，消除与 COLLECTING_DIRECT 的竞态；
+     *   无需清理/清理失败也会回调，由调用方按 isOnFarmPage 决定 NAVIGATING/COLLECTING_DIRECT）
      */
-    fun closeUcExtraTabsIfNeeded(targetPlatform: Platform = currentPlatform) {
-        if (targetPlatform != Platform.UC) return
-        val root = rootInActiveWindowSafe() ?: return
+    fun closeUcExtraTabsIfNeeded(targetPlatform: Platform = currentPlatform, onComplete: (() -> Unit)? = null) {
+        if (targetPlatform != Platform.UC) { onComplete?.invoke(); return }
+        val root = rootInActiveWindowSafe()
+        if (root == null) { onComplete?.invoke(); return }
         val allText = collectAllText(root)
         // "多窗口" 后面的纯数字就是标签计数
         val multiWindowIdx = allText.indexOfFirst { it.contains("多窗口") }
-        if (multiWindowIdx < 0 || multiWindowIdx + 1 >= allText.size) return
+        if (multiWindowIdx < 0 || multiWindowIdx + 1 >= allText.size) { onComplete?.invoke(); return }
         val countText = allText[multiWindowIdx + 1].trim()
-        val count = countText.toIntOrNull() ?: return
-        if (count <= 2) return
+        val count = countText.toIntOrNull()
+        if (count == null || count <= 2) { onComplete?.invoke(); return }
         debugLog("closeUcExtraTabsIfNeeded: multi-window count=$count (>2), closing all tabs")
-        val btn = findNodeByTextInternal(root, "多窗口") ?: return
-        if (!performClickSafe(btn)) {
+        val btn = findNodeByTextInternal(root, "多窗口")
+        if (btn == null || !performClickSafe(btn)) {
             debugLog("closeUcExtraTabsIfNeeded: multi-window button click failed, skip")
+            onComplete?.invoke()
             return
         }
+        // 面板打开动画 ~0.6-1s，1s 后开始轮询"关闭全部"（内部 600ms×5，最坏 ~4s 回调）
         navHandler.postDelayed({
-            clickCloseAllInMultiWindow()
-        }, 1200L)
+            clickCloseAllInMultiWindow { clicked ->
+                debugLog("closeUcExtraTabsIfNeeded: cleanup done, clicked=$clicked")
+                onComplete?.invoke()
+            }
+        }, 1000L)
     }
 
     /**
