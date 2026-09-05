@@ -477,6 +477,14 @@ object AutomationController {
     @Volatile
     private var noProgressRounds: Int = 0
 
+    /** build775: navigate 锁屏解锁尝试次数（>5 次说明有密码锁屏,退避等用户解锁） */
+    @Volatile
+    private var lockUnlockAttempts: Int = 0
+
+    /** build775: RETURNING 中"UC已前台但非农场页"的渲染等待次数（最多2次后不kill发深链） */
+    @Volatile
+    private var returnForegroundWaitCount: Int = 0
+
     // build545：施肥连续无进展次数（肥料数值未增加），用于防卡死
     @Volatile
     private var noProgressStreak: Int = 0
@@ -1191,17 +1199,32 @@ object AutomationController {
             // build672 修复（debug_test_20260801_082040.log, build671）：
             // 手机锁屏时 activeRootPkg='com.android.systemui',navigate 误判为 generic popup,
             // 每 5 秒 pressBack 循环（锁屏状态 pressBack 无效）,卡死 2 分 44 秒。
-            // 修复：检测到 systemui（锁屏/系统界面）时,不当作 generic popup 处理,
-            // 延长等待间隔到 15 秒,等用户解锁后继续。
-            val currentPkg = service.getCurrentWindowPackage()
-            if (currentPkg == "com.android.systemui") {
-                Log.w(TAG, "navigate: lock screen / system UI detected (pkg=$currentPkg), waiting 15s for user unlock")
-                debugLog("navigate: lock screen detected, skip generic popup handling, wait 15s for unlock")
-                handler.postDelayed({
-                    if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
-                }, 15000L)
+            // build775 修复（debug_test_20260905_111247.log, build773, 10:53:52-11:02:16）：
+            //   build672 用 getCurrentWindowPackage() 判 systemui,但其 windows 列表兜底
+            //   会返回后台存活的 UC 包名 → 锁屏 8.5 分钟里检查从未命中,锁屏被当 generic popup
+            //   每 5s pressBack 死循环 101 轮(attempt 到 101),直到用户手动上滑解锁。
+            //   修复:改用 isLockScreenShowing()(KeyguardManager+活动窗口直查,不走 windows
+            //   兜底),且不再干等——点亮屏幕后主动上滑解锁(无密码滑动锁屏直接解开;
+            //   连续 5 次解不开说明有密码锁屏,退回 15s 等待用户)。
+            if (service.isLockScreenShowing()) {
+                lockUnlockAttempts++
+                Log.w(TAG, "navigate: lock screen detected (unlock attempt=$lockUnlockAttempts), wake + swipe up to unlock")
+                debugLog("navigate: 锁屏/熄屏检测命中(isLockScreenShowing),点亮+上滑解锁 attempt=$lockUnlockAttempts(不再按back)")
+                service.ensureScreenOn()
+                if (lockUnlockAttempts <= 5) {
+                    service.swipeUpToUnlock()
+                    handler.postDelayed({
+                        if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
+                    }, 3000L)
+                } else {
+                    // 有密码锁屏,手势解不开,延长等待等用户解锁
+                    handler.postDelayed({
+                        if (state == AutomationState.NAVIGATING) runNavigating(attempt + 1)
+                    }, 15000L)
+                }
                 return
             }
+            lockUnlockAttempts = 0
             val closeBtn = service.findAdCloseButton()
             if (closeBtn != null) {
                 debugLog("navigate: clicking close button on generic popup (text='${closeBtn.text}')")
@@ -6344,6 +6367,18 @@ object AutomationController {
             PageScene.GENERIC_POPUP -> {
                 Log.i(TAG, "watchAd: generic popup detected (no fertilizer hint), closing it")
                 debugLog("watchAd: generic popup (no fertilizer), attempting to close")
+                // build775: 与 navigate 同理——锁屏被误判 generic popup 时按 back 无效,
+                // 先判 isLockScreenShowing,命中则点亮+上滑解锁,不按 back
+                if (service.isLockScreenShowing()) {
+                    Log.w(TAG, "watchAd: lock screen detected, wake + swipe up to unlock (not a popup)")
+                    debugLog("watchAd: 锁屏/熄屏检测命中,点亮+上滑解锁(不按back)")
+                    service.ensureScreenOn()
+                    service.swipeUpToUnlock()
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                    }, 3000L)
+                    return
+                }
                 val closeBtn = service.findAdCloseButton()
                 if (closeBtn != null) {
                     debugLog("watchAd: clicking close button on generic popup (text='${closeBtn.text}')")
@@ -7698,6 +7733,34 @@ object AutomationController {
                 }, INTERVAL_PAGE_LOAD_MS)
                 return
             }
+            // build775 修复（debug_test_20260905_111247.log, build773, 10:52:56-10:53:52 连锁）：
+            //   互动广告落 launcher → 手势切卡 UC 成功(10:52:57.1) → 1.3s 后本函数判定
+            //   UC 前台但 onFarm=false(多窗口 13 标签当前标签非农场页/页面未渲染完) →
+            //   reopenFarmByDeepLink 默认 killCurrentFirst=true → HOME+kill UC+深链冷启动,
+            //   UC 冷启动 ~1 分钟停在 launcher,期间无真实触摸屏幕超时熄灭 → 锁屏死循环 8.5 分钟。
+            //   修复:UC 已在前台但 onFarm=false 时,先等 2.5s 让页面渲染(最多 2 次),
+            //   仍不行则 reopenFarmByDeepLink(killCurrentFirst=false) 不杀进程发深链
+            //   (UC 活着时深链直接路由农场,无冷启动;标签累积由 closeUcExtraTabsIfNeeded 兜底)。
+            if (service.isFarmAppInForeground() && !service.isOnFarmPage()) {
+                if (returnForegroundWaitCount < 2) {
+                    returnForegroundWaitCount++
+                    Log.i(TAG, "return: farm app foreground but onFarm=false, wait 2.5s for render (#$returnForegroundWaitCount, avoid kill)")
+                    debugLog("return: 农场App已前台但非农场页(标签错/渲染中),等2.5s重试#$returnForegroundWaitCount(不kill)")
+                    handler.postDelayed({
+                        if (state == AutomationState.RETURNING) runReturning(0)
+                    }, 2500L)
+                    return
+                }
+                returnForegroundWaitCount = 0
+                Log.i(TAG, "return: farm app foreground but still not farm page after waits, deep link WITHOUT kill")
+                debugLog("return: 前台等待仍非农场页,reopenFarmByDeepLink(killCurrentFirst=false)不杀进程发深链")
+                if (service.reopenFarmByDeepLink(killCurrentFirst = false)) {
+                    moveTo(AutomationState.NAVIGATING)
+                    handler.postDelayed({ runNavigating(0) }, INTERVAL_PAGE_LOAD_MS)
+                    return
+                }
+            }
+            returnForegroundWaitCount = 0
             // 优先用 deep link 重开农场主页（等同从桌面快捷方式进入），替代按返回键逐步退回
             // 成功后进入 NAVIGATING 等待页面加载，再重新走 COLLECTING_DIRECT → OPENING_TASK_LIST
             if (service.reopenFarmByDeepLink()) {

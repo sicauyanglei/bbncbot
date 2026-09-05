@@ -32,6 +32,42 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### commit（待填） - fix: build775 三问题修复①锁屏死循环8.5分钟(build672用getCurrentWindowPackage判systemui,但windows兜底返回后台UC包名→锁屏检查从未命中,锁屏被当generic popup每5s pressBack死循环101轮;新增isLockScreenShowing()KeyguardManager+活动窗口直查+swipeUpToUnlock(),navigate/watchAd两处generic popup分支命中锁屏时点亮+上滑解锁,5次失败退避15s等用户) ②runReturning误杀前台UC(互动广告落launcher→手势切卡成功→1.3s后判定onFarm=false(多窗口当前标签非农场页/渲染中)→reopenFarmByDeepLink默认kill→HOME+kill+冷启动1分钟→熄屏→锁屏;新增returnForegroundWaitCount,UC前台但非农场页先等2.5s×2渲染,仍不行改killCurrentFirst=false不杀进程发深链) ③多窗口清理兜底(三次dump确认UC新版面板无"关闭全部"文本按钮;关键词失败后逐一点击desc含"关闭"的标签关闭小图标(面板特征"无痕浏览"/"返回"守卫防误点农场页H5),重试扩到8次;最终失败dump全部clickable节点含无文本图标bounds)
+
+**用户需求**: "分析日志"→"修复"（debug_test_20260905_111247.log, build773-a5e63ae, 10:50-11:12, 2829行）
+
+**重要环境问题(已解决)**: 本次会话沙箱重建,浅克隆本地HEAD停在9f3ad27(build773/774之前),
+`git checkout origin/main -- logs/` 只恢复了日志目录,源码读到的全是旧代码。
+处理:`git fetch --depth=200 origin main && git checkout origin/main`(detached,44f5d14)同步到远端最新,
+新提交继续用 `push HEAD:main --force` 标准流程。**新沙箱开始工作时务必先 `git checkout origin/main` 同步。**
+
+**日志分析结论**:
+1. **build774手势点商品完美生效**: 5+次汇川广告全部 gesture-click→"奖励已发放"→拿奖,获奖率100%
+2. **P0锁屏死循环8.5分钟(10:53:52-11:02:16,用户手动解锁恢复)**: 链条=互动广告落launcher
+   →手势切卡UC成功→onFarm=false误判→kill UC+深链冷启动→launcher停1分钟→屏幕超时熄灭
+   →ensureScreenOn点亮停在锁屏→锁屏被当generic popup每5s pressBack(锁屏上back不解锁)→死循环101轮
+   - 根因:build672锁屏检查用getCurrentWindowPackage(),其windows列表兜底返回后台UC包名,检查永不命中
+3. **P1多窗口清理三次失败实锤**: dump面板=[无痕浏览,返回,标签名...],UC新版无"关闭全部"文本按钮;
+   count 13→15持续累积(每次kill+深链重开+1)
+4. **P2清理交互误触淘宝页**(11:12:32): 清理失败后当前标签被切到历史淘宝"宝贝讲解"页,P1解决后消失
+5. CLOSING_AD兜底(温和退出37次无效→forceKill+重开)、launcher守卫、build773清理轮询均正常工作
+
+**修复内容**:
+- FarmAccessibilityService: 新增 isLockScreenShowing()(KeyguardManager.isKeyguardLocked+!isInteractive
+  +活动窗口包名直查,不走windows兜底) + swipeUpToUnlock()(底部80%→25%屏高400ms上滑)
+- FarmAccessibilityService.clickCloseAllInMultiWindow: 关键词失败后(attempt>=2且面板特征存在)
+  逐一点击desc含"关闭"的可点击节点(单标签关闭图标);重试4→8次;最终失败dump clickable节点+bounds
+  (新增collectClickableNodesForDump/findClickableByDescContains)
+- AutomationController.navigate generic popup分支: build672的getCurrentWindowPackage()=="systemui"
+  检查替换为isLockScreenShowing(),命中→ensureScreenOn+swipeUpToUnlock,3s重试,5次失败退避15s
+- AutomationController.watchAd GENERIC_POPUP分支: 同款锁屏守卫
+- AutomationController.runReturning: tryGestureSwitchToFarmApp之后、reopenFarmByDeepLink(kill)之前,
+  新增"UC前台但onFarm=false"分支——等2.5s×2渲染重试,仍不行reopenFarmByDeepLink(killCurrentFirst=false)
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### commit a5e63ae - fix: build774 汇川点击商品广告ACTION_CLICK不发奖修复(汇川WebView广告不把无障碍ACTION_CLICK计为"点击商家"——三轮对比:#1/#3 performClickSafe ACTION_CLICK depth=0成功但页面不跳转等15s无奖励放弃,#2找不到节点改点屏幕中心手势→跳商品详情页→"奖励已发放"→拿奖进度1/10→2/10;watchAd+checkTaskListOpened两处点商品节点改为dispatchGestureClick按bounds中心物理点击)
 
 **用户需求**: "分析日志"→"继续"（debug_test_20260905_100732.log, build772-e858a46, 10:01-10:07, 725行）

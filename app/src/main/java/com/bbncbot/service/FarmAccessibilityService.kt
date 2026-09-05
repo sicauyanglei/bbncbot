@@ -6477,22 +6477,77 @@ class FarmAccessibilityService : AccessibilityService() {
                     return
                 }
             }
+            // build775 兜底（debug_test_20260905_111247.log, build773, 三次清理失败 dump）：
+            //   UC 新版多窗口面板没有"关闭全部"文本按钮,panel texts=
+            //   [无痕浏览, 返回, 标签名...]——但每个标签缩略图通常带 desc='关闭' 的
+            //   单标签关闭小图标。关键词找不到时,逐个点击 desc 含"关闭"的可点击节点
+            //   (面板语境下只有标签关闭键,底部导航是 后退/智能组件/菜单/多窗口/首页,
+            //   不会误伤),全部关完后 UC 回首页 → navigate 深链重开农场。
+            if (attempt >= 2) {
+                // 仅当确认多窗口面板已打开(含"无痕浏览"/"返回"特征文本)才逐标签点关闭,
+                // 防止面板未打开时在农场页/其他页误点 H5 里的"关闭"节点
+                val panelTexts = collectAllText(root)
+                val panelShowing = panelTexts.any { it.contains("无痕浏览") || it.trim() == "返回" }
+                if (panelShowing) {
+                    val perTabClose = findClickableByDescContains(root, "关闭")
+                    if (perTabClose != null) {
+                        debugLog("clickCloseAllInMultiWindow: no close-all text, clicking per-tab '关闭' desc node (attempt=$attempt)")
+                        if (performClickSafe(perTabClose)) {
+                            // 关了一个标签后面板仍在,继续轮询清理剩余的
+                            navHandler.postDelayed({ clickCloseAllInMultiWindow(attempt + 1, onDone) }, 500L)
+                            return
+                        }
+                    }
+                }
+            }
         }
-        if (attempt < 4) {
+        if (attempt < 8) {
             debugLog("clickCloseAllInMultiWindow: close-all button not found (attempt=$attempt), retry in 600ms")
             navHandler.postDelayed({ clickCloseAllInMultiWindow(attempt + 1, onDone) }, 600L)
             return
         }
-        // 最终失败：dump 面板全部文本/desc，便于确认 UC 真实按钮文案
+        // 最终失败：dump 面板全部文本 + 全部 clickable 节点(含无文本图标按钮及 bounds),
+        // 便于确认 UC 真实关闭按钮形态(文本/图标/位置)
         val dumpRoot = rootInActiveWindowSafe()
         if (dumpRoot != null) {
             val texts = mutableListOf<String>()
             collectNodeTextsForDump(dumpRoot, texts, 0)
-            debugLog("clickCloseAllInMultiWindow: close-all button NOT found after 5 attempts, panel texts=$texts")
+            val clickables = mutableListOf<String>()
+            collectClickableNodesForDump(dumpRoot, clickables, 0)
+            debugLog("clickCloseAllInMultiWindow: close-all button NOT found after 8 attempts, panel texts=$texts")
+            debugLog("clickCloseAllInMultiWindow: panel clickable nodes=$clickables")
         } else {
-            debugLog("clickCloseAllInMultiWindow: close-all button NOT found after 5 attempts, root=null")
+            debugLog("clickCloseAllInMultiWindow: close-all button NOT found after 8 attempts, root=null")
         }
         onDone?.invoke(false)
+    }
+
+    /** build775: dump 全部 clickable 节点(含无文本图标按钮) text/desc/bounds,面板诊断用 */
+    private fun collectClickableNodesForDump(node: AccessibilityNodeInfo, out: MutableList<String>, depth: Int) {
+        if (out.size >= 25 || depth > 14) return
+        if (node.isClickable) {
+            val r = android.graphics.Rect()
+            node.getBoundsInScreen(r)
+            val text = node.text?.toString()?.trim().orEmpty().take(12)
+            val desc = node.contentDescription?.toString()?.trim().orEmpty().take(12)
+            out.add("[${r.toShortString()} t:'$text' d:'$desc']")
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            collectClickableNodesForDump(child, out, depth + 1)
+        }
+    }
+
+    /** build775: 查找 contentDescription 含 keyword 的可点击节点(单标签关闭小图标用) */
+    private fun findClickableByDescContains(node: AccessibilityNodeInfo, keyword: String): AccessibilityNodeInfo? {
+        val desc = node.contentDescription?.toString().orEmpty()
+        if (desc.contains(keyword) && node.isClickable) return node
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val found = findClickableByDescContains(child, keyword)
+            if (found != null) return found
+        }
+        return null
     }
 
     /** build773: dump 节点文本/desc（多窗口面板诊断用），限深限量防刷屏 */
@@ -7154,6 +7209,46 @@ class FarmAccessibilityService : AccessibilityService() {
             true
         } catch (e: Exception) {
             debugLog("ensureScreenOn: failed, ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * build775: 锁屏/熄屏是否正在显示
+     *
+     * 修复（debug_test_20260905_111247.log, build773, 10:53:52-11:02:16 锁屏死循环 8.5 分钟）：
+     *   build672 的锁屏检查用 getCurrentWindowPackage()=="com.android.systemui",
+     *   但其 windows 列表兜底会返回后台存活的 UC 包名 → 检查从未命中,
+     *   navigate 把锁屏当 generic popup 每 5s pressBack(锁屏上 back 不解锁)死循环 101 轮。
+     *   此处用 KeyguardManager.isKeyguardLocked + 活动窗口包名直查,不走 windows 兜底。
+     */
+    fun isLockScreenShowing(): Boolean {
+        return try {
+            val km = getSystemService(android.content.Context.KEYGUARD_SERVICE)
+                as android.app.KeyguardManager
+            if (km.isKeyguardLocked) return true
+            val pm = getSystemService(android.content.Context.POWER_SERVICE)
+                as android.os.PowerManager
+            if (!pm.isInteractive) return true  // 熄屏/AOD
+            rootInActiveWindowSafe()?.packageName?.toString() == "com.android.systemui"
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * build775: 锁屏上滑解锁（无密码滑动锁屏直接解开；有密码锁屏解不开,调用方需退避等用户）
+     * 手势与系统"上滑解锁"一致：底部 80% 屏高上滑到 25%,400ms
+     */
+    fun swipeUpToUnlock(): Boolean {
+        return try {
+            val dm = resources.displayMetrics
+            val x = dm.widthPixels / 2f
+            val ok = dispatchGestureSwipe(x, dm.heightPixels * 0.80f, x, dm.heightPixels * 0.25f, 400)
+            debugLog("swipeUpToUnlock: swipe-up unlock dispatched=$ok")
+            ok
+        } catch (e: Exception) {
+            debugLog("swipeUpToUnlock: failed, ${e.message}")
             false
         }
     }
