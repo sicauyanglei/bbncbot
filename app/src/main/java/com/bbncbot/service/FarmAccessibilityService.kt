@@ -1329,7 +1329,21 @@ class FarmAccessibilityService : AccessibilityService() {
 
     /** 在指定坐标执行手势点击（200ms触摸时间，兼容淘宝等App） */
     fun dispatchGestureClick(x: Float, y: Float): Boolean {
-        val path = android.graphics.Path().apply { moveTo(x, y) }
+        // build778 修复（debug_test_20260905_171627.log, 17:14:37）：
+        //   跨平台跳转按钮"去淘宝农场得肥料"节点 bounds=[72,2583][890,2666] 超出
+        //   屏幕高度 2543（WebView 内容坐标未减滚动偏移），"not in popup, screen
+        //   bounds valid" 分支直接用中心点 (481.0, 2624.5) 点击——y 在屏幕外。
+        //   本次侥幸跳转成功，换个布局就会点空/误触。
+        //   修复：所有手势点击坐标在此统一钳制到真实屏幕范围内（留 1px 边距）。
+        val dm = resources.displayMetrics
+        val maxX = (dm.widthPixels - 1).toFloat().coerceAtLeast(1f)
+        val maxY = (dm.heightPixels - 1).toFloat().coerceAtLeast(1f)
+        val cx = x.coerceIn(1f, maxX)
+        val cy = y.coerceIn(1f, maxY)
+        if (cx != x || cy != y) {
+            debugLog("dispatchGestureClick: clamped ($x,$y) -> ($cx,$cy), screen=${dm.widthPixels}x${dm.heightPixels} (build778)")
+        }
+        val path = android.graphics.Path().apply { moveTo(cx, cy) }
         val gesture = android.accessibilityservice.GestureDescription.Builder()
             .addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, 200))
             .build()

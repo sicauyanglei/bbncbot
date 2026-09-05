@@ -4946,6 +4946,28 @@ object AutomationController {
         Log.i(TAG, "processTask: unknown page (not farm, not ad), failCount=$currentTaskFailCount/$MAX_TASK_FAILS")
         debugLog("processTask: unknown page, pkg=${service.getCurrentWindowPackage()}, act=${service.getCurrentActivityName()}, failCount=$currentTaskFailCount/$MAX_TASK_FAILS")
 
+        // build778 修复（debug_test_20260905_171627.log, 16:55:48）：
+        //   "大圣顶住"游戏任务加载中（AI 已正确判 WAIT，加载 20%），30s 后复查时前台
+        //   瞬时变成 com.hihonor.secime（系统键盘 IME 窗口）→ 被当 unknown page
+        //   计 failCount=2/2 → MAX_TASK_FAILS 误跳任务。
+        //   IME/键盘窗口是瞬时的（弹出即消），不应计入任务失败次数。
+        //   修复：当前窗口/活动窗口包名疑似 IME（含 "ime"/"inputmethod"）时，
+        //   等待后重新检测，不计 failCount；attempt 达上限后回退正常计数，防死循环。
+        if (attempt < MAX_TASK_ATTEMPTS) {
+            val winPkgNow = service.getCurrentWindowPackage().orEmpty().lowercase()
+            val activePkgNow = service.rootInActiveWindowSafe()?.packageName?.toString()?.lowercase().orEmpty()
+            val isTransientIme = winPkgNow.contains("ime") || winPkgNow.contains("inputmethod") ||
+                activePkgNow.contains("ime") || activePkgNow.contains("inputmethod")
+            if (isTransientIme) {
+                debugLog("processTask: transient IME/keyboard window (winPkg=$winPkgNow, activePkg=$activePkgNow), wait & recheck without failCount++ (build778)")
+                Log.i(TAG, "processTask: transient IME/keyboard window (winPkg=$winPkgNow), wait & recheck without failCount++ (build778)")
+                handler.postDelayed({
+                    if (state == AutomationState.PROCESSING_TASK) checkTaskResult(service, attempt + 1)
+                }, INTERVAL_PAGE_LOAD_MS)
+                return
+            }
+        }
+
         // 未知页面 → 失败计数
         currentTaskFailCount++
 

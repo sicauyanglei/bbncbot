@@ -32,6 +32,35 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build778 两个P3健壮性问题修复(瞬时IME窗口误计任务失败+手势点击坐标越界未钳制)
+
+**用户需求**: "继续扫描日志剩余段落，确认是否有 build777 未覆盖的问题"→"好的，修复这两个 P3 问题并构建 build778"（debug_test_20260905_171627.log 全量复查）
+
+**日志分析结论**（build777 之外的全量扫描新增）:
+1. **P3 游戏任务瞬时IME窗口误计失败(16:55:12-16:55:53)**:
+   "大圣顶住"任务点"去完成"→XRiverLite1小游戏加载页("初始化中")→AI视觉正确判
+   WAIT(加载20%)→30s后复查时前台瞬时变成 com.hihonor.secime(系统键盘IME窗口)
+   →被当 unknown page 计 failCount=2/2→MAX_TASK_FAILS 误跳任务。
+   修复: AutomationController.checkTaskResult unknown-page 分支,failCount++ 前检测
+   当前窗口/活动窗口包名疑似IME(含"ime"/"inputmethod")→等待 INTERVAL_PAGE_LOAD_MS
+   后 checkTaskResult(attempt+1) 重查,不计失败;attempt>=MAX_TASK_ATTEMPTS(3) 回退
+   正常计数防死循环
+2. **P3 跨平台跳转手势点击坐标超出屏幕未钳制(17:14:37)**:
+   "去淘宝农场得肥料"节点 clickable=false 且 bounds=[72,2583][890,2666] 超出屏幕
+   高度2543(WebView内容坐标未减滚动偏移)→ACTION_CLICK失败→手势点(481.0,2624.5)
+   落在屏幕外(本次侥幸跳转成功)。
+   修复: FarmAccessibilityService.dispatchGestureClick 统一入口钳制坐标到真实屏幕
+   范围(resources.displayMetrics,留1px边距),钳制时打日志;覆盖所有上层路径
+   (not-in-popup/popup-valid/window-bounds/popup-offset/ancestor兜底)
+
+**修改文件**:
+- AutomationController.kt: checkTaskResult unknown-page 分支瞬时IME窗口不计 failCount
+- FarmAccessibilityService.kt: dispatchGestureClick 坐标钳制屏幕范围
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### fix: build777 支付宝导航四连问题修复(小程序胶囊关闭误杀农场/系统弹窗back死循环5分钟/搜索建议页误判onFarm/fertilize主页误back退出+淘宝switch盲点坐标忽略可见领取节点)
 
 **用户需求**: "下载github日志，并解决所有问题"（debug_test_20260905_171627.log, build775-d7fc5b0, 16:17-17:15, ~1200行）
