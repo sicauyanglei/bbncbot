@@ -32,7 +32,7 @@
 
 ## 本轮会话修改历史（最新在上）
 
-### commit（待填） - fix: build775 三问题修复①锁屏死循环8.5分钟(build672用getCurrentWindowPackage判systemui,但windows兜底返回后台UC包名→锁屏检查从未命中,锁屏被当generic popup每5s pressBack死循环101轮;新增isLockScreenShowing()KeyguardManager+活动窗口直查+swipeUpToUnlock(),navigate/watchAd两处generic popup分支命中锁屏时点亮+上滑解锁,5次失败退避15s等用户) ②runReturning误杀前台UC(互动广告落launcher→手势切卡成功→1.3s后判定onFarm=false(多窗口当前标签非农场页/渲染中)→reopenFarmByDeepLink默认kill→HOME+kill+冷启动1分钟→熄屏→锁屏;新增returnForegroundWaitCount,UC前台但非农场页先等2.5s×2渲染,仍不行改killCurrentFirst=false不杀进程发深链) ③多窗口清理兜底(三次dump确认UC新版面板无"关闭全部"文本按钮;关键词失败后逐一点击desc含"关闭"的标签关闭小图标(面板特征"无痕浏览"/"返回"守卫防误点农场页H5),重试扩到8次;最终失败dump全部clickable节点含无文本图标bounds)
+### commit 157c34c - fix: build775 三问题修复①锁屏死循环8.5分钟(build672用getCurrentWindowPackage判systemui,但windows兜底返回后台UC包名→锁屏检查从未命中,锁屏被当generic popup每5s pressBack死循环101轮;新增isLockScreenShowing()KeyguardManager+活动窗口直查+swipeUpToUnlock(),navigate/watchAd两处generic popup分支命中锁屏时点亮+上滑解锁,5次失败退避15s等用户) ②runReturning误杀前台UC(互动广告落launcher→手势切卡成功→1.3s后判定onFarm=false(多窗口当前标签非农场页/渲染中)→reopenFarmByDeepLink默认kill→HOME+kill+冷启动1分钟→熄屏→锁屏;新增returnForegroundWaitCount,UC前台但非农场页先等2.5s×2渲染,仍不行改killCurrentFirst=false不杀进程发深链) ③多窗口清理兜底(三次dump确认UC新版面板无"关闭全部"文本按钮;关键词失败后逐一点击desc含"关闭"的标签关闭小图标(面板特征"无痕浏览"/"返回"守卫防误点农场页H5),重试扩到8次;最终失败dump全部clickable节点含无文本图标bounds)
 
 **用户需求**: "分析日志"→"修复"（debug_test_20260905_111247.log, build773-a5e63ae, 10:50-11:12, 2829行）
 
