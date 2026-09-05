@@ -1,0 +1,137 @@
+=== cleared on app start (version=2.2, build=build774-157c34c, time=15:26:49) ===
+15:26:49.243 killPlatformApps: killed com.ucmobile.lite for UC
+15:26:49.245 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+15:26:49.246 killPlatformApps: killed com.taobao.taobao for TAOBAO
+15:26:57.556 FarmAccessibilityService connected, API=36
+15:27:00.579 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+15:27:00.607 tryGestureSwitchToFarmApp: UC has no live window (killed?), fall back to deep link
+15:27:00.609 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+15:27:00.609 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+15:27:06.022 === Automation v2 Started === platform=UC
+15:27:06.023 cancelNavigation: all navigation callbacks cancelled
+15:27:06.026 reset platform complete: UC
+15:27:06.027 state: IDLE -> NAVIGATING
+15:27:06.112 [navigate-start] snapshot: pkg=null, act=null, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+15:27:06.229 tryGestureSwitchToFarmApp: UC has no live window (killed?), fall back to deep link
+15:27:06.230 navigate: farm app not in foreground (platform=UC, attempt=0), calling reopenFarmByDeepLink
+15:27:06.230 reopenFarmByDeepLink: skip duplicate fire, last fire was 5603ms ago (cold start takes ~6-13s), keep waiting
+15:27:11.235 navigate: still not in farm app after relaunch, calling navigateToFarm to push navigation
+15:27:12.742 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+15:27:12.743 performClickSafe: text='UC 芭芭农场' desc='' bounds=[52,1072][1148,1229] clickable=true
+15:27:12.749 tryGestureSwitchToFarmApp: UC has no live window (killed?), fall back to deep link
+15:27:12.750 openFarmInUcBrowser: automation running, gesture-switch only (initiated=false), skip deep link to avoid extra tab
+15:27:12.754 performClickSafe: ACTION_CLICK success at depth=0
+15:27:21.398 navigate: farm app still not in foreground after relaunch (attempt=1), waiting for next retry
+15:27:26.454 navigate: farm app still not in foreground after relaunch (attempt=2), waiting for next retry
+15:27:31.523 tryGestureSwitchToFarmApp: UC has no live window (killed?), fall back to deep link
+15:27:31.524 navigate: farm app not in foreground (platform=UC, attempt=3), calling reopenFarmByDeepLink
+15:27:31.525 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+15:27:31.526 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching UC
+15:27:31.547 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+15:27:38.066 navigate: on farm page, platform=UC
+15:27:38.097 hasFarmContentLoaded: text count=155, sample=[后退, 智能组件, 菜单, 多窗口, 2, 首页, UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树]
+15:27:38.100 hasFarmContentLoaded: realContent count=142
+15:27:38.111 findCollectFertilizerButton: found by text='集肥料' bounds=[949,2380][1129,2509]
+15:27:38.112 navigate: hasFarmContentLoaded=true, hasCoreEntry=true, attempt=4
+15:27:38.174 state: NAVIGATING -> COLLECTING_DIRECT
+15:27:40.909 isTaskCompletePage: YES, matched=[已完成], sample=[后退, 智能组件, 菜单, 多窗口, 2]
+15:27:40.937 [collectDirect-start] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+15:27:40.958 [collectDirect-start] claim-text-nodes (count=4):
+15:27:40.959 [collectDirect-start]   text='已领取' desc='' bounds=[894,933][1123,1031] clickable=false
+15:27:40.960 [collectDirect-start]   text='明天领肥料' desc='' bounds=[894,1054][1123,1110] clickable=false
+15:27:40.970 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[78,2642][222,2509] clickable=false
+15:27:40.971 [collectDirect-start]   text='去支付宝农场领肥料' desc='' bounds=[255,2642][694,2509] clickable=false
+15:27:41.047 collectDirect: found 1 direct buttons, attempt=0
+15:27:41.051 collectDirect: clicking button[0] text='看广告领奖' desc='' bounds=[641,1149][822,1198] (attempt 1)
+15:27:41.053 performClickSafe: text='看广告领奖' desc='' bounds=[641,1149][822,1198] clickable=false
+15:27:41.054 performClickSafe: ACTION_CLICK failed, trying gesture
+15:27:41.055 dispatchGesture: screen=[[641,1149][822,1198]] window=[[0,0][0,0]]
+15:27:41.056 dispatchGesture: not in popup, screen bounds valid, click at (731.5, 1173.5)
+15:27:41.063 collectDirect: jump button '看广告领奖' detected, waiting 10000ms then pressBack to return
+15:27:51.074 collectDirect: jump button '看广告领奖' led to ad (act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity), entering WATCHING_AD
+15:27:51.087 state: COLLECTING_DIRECT -> WATCHING_AD
+15:27:53.117 watchAd: no duration hint, platform=UC, default min=30000ms, max=90000ms, checkInterval=5000ms
+15:27:53.221 [watchAd-0ms] snapshot: pkg=com.ucmobile.lite, act=com.bytedance.sdk.openadsdk.core.component.reward.activity.TTRewardVideoActivity, onFarm=false, adActivity=true, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+15:27:53.229 [watchAd-0ms] claim-text-nodes (count=1):
+15:27:53.231 [watchAd-0ms]   text='去体验15秒可立即领奖' desc='' bounds=[65,186][537,245] clickable=false
+15:27:53.364 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+15:27:53.374 watchAd: scene=AD_PLAYING, elapsed=0ms/90000ms
+15:27:53.424 watchAd: waiting 0ms/30000ms (min), pageType=ad, adActivity=true, adPlaying=true, adContent=false, texts=[穿山甲, okbB5NlfkjeqFAAkIDcMNYDDgEuDD6BxFlknQq~tplv-noop, 紧急！淘宝闪购红包爆发，券后超低预算吃到爽！, 上滑或点击查看, 反馈, 广告, 去体验15秒可立即领奖, ｜跳过]
+15:27:58.609 findAdDurationHint: page contains '可立即领奖'/'立即领奖', skip fallback duration detection (15秒 is experience duration not countdown)
+15:27:58.620 watchAd: scene=AD_PLAYING, elapsed=5000ms/90000ms
+15:27:58.648 watchAd: clicking speedUp button '我要加速' to speed up ad countdown
+15:27:58.650 performClickSafe: text='我要加速' desc='' bounds=[212,1525][989,1725] clickable=false
+15:27:58.651 performClickSafe: ACTION_CLICK failed, trying gesture
+15:27:58.651 dispatchGesture: screen=[[212,1525][989,1725]] window=[[0,0][0,0]]
+15:27:58.652 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 1625.0)
+15:27:58.654 watchAd: '我要加速' clicked, entering jump stay state (will stay 10s then pressBack to ad page)
+15:28:00.723 watchAd: '我要加速' jumped to app 'com.taobao.taobao', staying 10s
+15:28:00.929 watchAd: '我要加速' staying in jumped app, 205/10000ms elapsed
+15:28:07.347 [watchAd-15000ms] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+15:28:07.406 watchAd: '我要加速' staying in jumped app, 6683/10000ms elapsed
+15:28:14.275 watchAd: 10s elapsed, bringFarmAppToFront (not relaunch, keep ad session)
+15:28:14.278 dispatchRecentsGestureChain: press-hold 150ms at (600.0,2535.0) -> slow swipe to (600.0,1144.35) 500ms -> hold 600ms (three-stage)
+15:28:14.280 bringFarmAppToFrontByGesture: three-stage swipe-up-hold dispatched=true, waiting 1500ms for recents
+15:28:15.798 bringFarmAppToFrontByGesture: after gesture root=com.taobao.taobao (launcher=false)
+15:28:15.807 clickRecentTaskCard: root 'com.taobao.taobao' not launcher yet (attempt=0, recents may be animating), recheck in 800ms
+15:28:16.617 clickRecentTaskCard: root 'com.taobao.taobao' still not launcher (attempt=1), assist with GLOBAL_ACTION_RECENTS
+15:28:18.116 clickRecentTaskCard: found card (text='UC浏览器极速版' desc=''), clicking to switch farm app to front
+15:28:18.118 performClickSafe: text='UC浏览器极速版' desc='' bounds=[709,843][949,887] clickable=false
+15:28:18.165 performClickSafe: ACTION_CLICK success at depth=1
+15:28:19.002 clickRecentTaskCard: switched to farm app 'com.ucmobile.lite' via recents card (WebView state preserved)
+15:28:19.440 watchAd: scene=AD_ENDED, elapsed=25000ms/90000ms
+15:28:19.493 watchAd: pkg 'com.ucmobile.lite' is farm platform pkg with no deep-link jump recorded, continue normal ad flow
+15:28:19.570 watchAd: checking ad end (25000ms/90000ms), pageType=unknown, adActivity=false, adPlaying=true, adContent=false, texts=[UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, BQA34+PvvSwEAAAAAElFTkSuQmCC, ATvLb3f1OMQpAAAAAElFTkSuQmCC, 集肥料, HOOK DIV]
+15:28:25.647 isAdContentShown: YES, matched ad signal in [UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树, 任务超多,肥料超多,够施219次, 芭芭农场赚肥料,用UC就够了, 和淘宝,支付宝农场共种一棵树, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+15:28:25.683 isTaskCompletePage: YES, matched=[已完成], sample=[UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树, 任务超多,肥料超多,够施219次]
+15:28:25.698 [watchAd-30000ms] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=false, adActivity=false, adPlaying=true, adContent=true, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=true, searchRec=false
+15:28:25.717 [watchAd-30000ms] claim-text-nodes (count=4):
+15:28:25.719 [watchAd-30000ms]   text='已领取' desc='' bounds=[894,723][1123,825] clickable=false
+15:28:25.722 [watchAd-30000ms]   text='明天领肥料' desc='' bounds=[894,848][1123,900] clickable=false
+15:28:25.724 [watchAd-30000ms]   text='去支付宝农场领肥料' desc='' bounds=[78,2433][222,2580] clickable=false
+15:28:25.728 [watchAd-30000ms]   text='去支付宝农场领肥料' desc='' bounds=[255,2436][694,2502] clickable=false
+15:28:25.776 isAdContentShown: YES, matched ad signal in [UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树, 任务超多,肥料超多,够施219次, 芭芭农场赚肥料,用UC就够了, 和淘宝,支付宝农场共种一棵树, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+15:28:25.785 isRechargePage: YES, sample=[UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树, 任务超多,肥料超多,够施219次]
+15:28:25.788 watchAd: scene=TRAP_RECHARGE, elapsed=30000ms/90000ms
+15:28:25.799 watchAd: recharge page trap detected, clicking close on recharge page
+15:28:25.896 clickCloseOnRechargePage: found close button by text='关闭', clicking
+15:28:25.897 performClickSafe: text='关闭' desc='' bounds=[1084,550][1185,651] clickable=false
+15:28:25.898 performClickSafe: ACTION_CLICK failed, trying gesture
+15:28:25.899 dispatchGesture: screen=[[1084,550][1185,651]] window=[[0,0][0,0]]
+15:28:25.900 dispatchGesture: not in popup, screen bounds valid, click at (1134.5, 600.5)
+15:28:28.173 watchAd: scene=AD_ENDED, elapsed=35000ms/90000ms
+15:28:28.251 watchAd: pkg 'com.ucmobile.lite' is farm platform pkg with no deep-link jump recorded, continue normal ad flow
+15:28:28.293 watchAd: checking ad end (35000ms/90000ms), pageType=unknown, adActivity=false, adPlaying=true, adContent=false, texts=[UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树, 任务超多,肥料超多,够施219次, 芭芭农场赚肥料,用UC就够了, 和淘宝,支付宝农场共种一棵树, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+15:28:33.912 watchAd: scene=AD_ENDED, elapsed=40000ms/90000ms
+15:28:34.042 watchAd: pkg 'com.ucmobile.lite' is farm platform pkg with no deep-link jump recorded, continue normal ad flow
+15:28:34.146 watchAd: checking ad end (40000ms/90000ms), pageType=unknown, adActivity=false, adPlaying=true, adContent=false, texts=[UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树, 任务超多,肥料超多,够施219次, 芭芭农场赚肥料,用UC就够了, 和淘宝,支付宝农场共种一棵树, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+15:28:39.784 [watchAd-45000ms] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=false, adActivity=false, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+15:28:39.800 [watchAd-45000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+15:28:40.086 watchAd: scene=AD_ENDED, elapsed=45000ms/90000ms
+15:28:40.232 watchAd: pkg 'com.ucmobile.lite' is farm platform pkg with no deep-link jump recorded, continue normal ad flow
+15:28:40.350 watchAd: checking ad end (45000ms/90000ms), pageType=unknown, adActivity=false, adPlaying=true, adContent=false, texts=[UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树, 任务超多,肥料超多,够施219次, 芭芭农场赚肥料,用UC就够了, 和淘宝,支付宝农场共种一棵树, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+15:28:46.671 watchAd: scene=AD_ENDED, elapsed=50000ms/90000ms
+15:28:46.818 watchAd: pkg 'com.ucmobile.lite' is farm platform pkg with no deep-link jump recorded, continue normal ad flow
+15:28:46.921 watchAd: checking ad end (50000ms/90000ms), pageType=unknown, adActivity=false, adPlaying=true, adContent=false, texts=[UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树, 任务超多,肥料超多,够施219次, 芭芭农场赚肥料,用UC就够了, 和淘宝,支付宝农场共种一棵树, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+15:28:51.592 watchAd: AI progress percent=0%, remaining=0s, hasBar=false
+15:28:53.232 watchAd: scene=AD_ENDED, elapsed=55000ms/90000ms
+15:28:53.367 watchAd: pkg 'com.ucmobile.lite' is farm platform pkg with no deep-link jump recorded, continue normal ad flow
+15:28:53.455 watchAd: checking ad end (55000ms/90000ms), pageType=unknown, adActivity=false, adPlaying=true, adContent=false, texts=[UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树, 任务超多,肥料超多,够施219次, 芭芭农场赚肥料,用UC就够了, 和淘宝,支付宝农场共种一棵树, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+15:28:59.201 [watchAd-60000ms] snapshot: pkg=com.ucmobile.lite, act=com.uc.browser.InnerUCMobile, onFarm=false, adActivity=false, adPlaying=true, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+15:28:59.216 [watchAd-60000ms] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+15:28:59.516 watchAd: scene=AD_ENDED, elapsed=60000ms/90000ms
+15:28:59.666 watchAd: pkg 'com.ucmobile.lite' is farm platform pkg with no deep-link jump recorded, continue normal ad flow
+15:28:59.766 watchAd: checking ad end (60000ms/90000ms), pageType=unknown, adActivity=false, adPlaying=true, adContent=false, texts=[UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树, 任务超多,肥料超多,够施219次, 芭芭农场赚肥料,用UC就够了, 和淘宝,支付宝农场共种一棵树, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+15:29:05.558 watchAd: scene=AD_ENDED, elapsed=65000ms/90000ms
+15:29:05.704 watchAd: pkg 'com.ucmobile.lite' is farm platform pkg with no deep-link jump recorded, continue normal ad flow
+15:29:05.798 watchAd: checking ad end (65000ms/90000ms), pageType=unknown, adActivity=false, adPlaying=true, adContent=false, texts=[UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树, 任务超多,肥料超多,够施219次, 芭芭农场赚肥料,用UC就够了, 和淘宝,支付宝农场共种一棵树, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+15:29:11.779 watchAd: scene=AD_ENDED, elapsed=70000ms/90000ms
+15:29:11.893 watchAd: pkg 'com.ucmobile.lite' is farm platform pkg with no deep-link jump recorded, continue normal ad flow
+15:29:11.990 watchAd: checking ad end (70000ms/90000ms), pageType=unknown, adActivity=false, adPlaying=true, adContent=false, texts=[UC芭芭农场, 芭芭农场，免费领水果，助果农增收, 一分钱领一箱水果, 和淘宝,支付宝农场共种一棵树, 任务超多,肥料超多,够施219次, 芭芭农场赚肥料,用UC就够了, 和淘宝,支付宝农场共种一棵树, BQA34+PvvSwEAAAAAElFTkSuQmCC]
+15:29:12.907 watchAd: AI progress percent=0%, remaining=0s, hasBar=false
+15:29:16.304 state: WATCHING_AD -> STOPPING
+15:29:16.309 cancelNavigation: all navigation callbacks cancelled
+15:29:16.311 state: STOPPING -> IDLE
+15:29:19.291 saveToken: saved (len=93, head='gith', tail='McKr')
+15:29:19.293 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+15:29:19.295 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260905_152919.log, localFile=debug.log (17560 bytes)
