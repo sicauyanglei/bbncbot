@@ -875,6 +875,18 @@ class FarmAccessibilityService : AccessibilityService() {
         if (activity.isNotEmpty() && AD_ACTIVITY_KEYWORDS.any { activity.contains(it) }) {
             return false
         }
+        // 1.5 build777 修复（debug_test_20260905_171627.log, 16:53:28）：
+        //   支付宝全局搜索页 activity=...globalsearch.ui.mainsearchactivity，搜索建议列表
+        //   含"芭芭农场施肥"等词条（命中"施肥"农场核心词），build749 内容兜底误判
+        //   onFarm=true → navigate 提前宣告"on farm page"。搜索页永远不是农场页，
+        //   直接返回 false，禁止进入下方内容兜底。三大平台 farmPageActivityKeywords
+        //   均不含 "search"，误伤风险为零。
+        if (activity.isNotEmpty() && activity.contains("search")) {
+            debugLog("isOnFarmPage: activity=$activity is a search page, never farm page (build777)")
+            farmPageCache = false
+            farmPageCacheTime = System.currentTimeMillis()
+            return false
+        }
         // 2. 如果当前活动已知且不在农场页 Activity 关键词列表中，则不在农场页
         // build749 修复（debug_test_20260829_084927.log, build747, 08:47:13-08:49:24 死循环2分11秒）：
         //   UC 极速版更新后新增容器 activity=h02.c（不在 UC farmPageActivityKeywords
@@ -4144,6 +4156,40 @@ class FarmAccessibilityService : AccessibilityService() {
             val combined = "$text $desc"
             return webErrorKeywords.any { kw -> combined.contains(kw) }
         }
+        // build777 修复（debug_test_20260905_171627.log, build776, 16:56:17 连锁灾难）：
+        // 支付宝/淘宝小程序框架右上角胶囊按钮(返回/更多/关闭)在每个小程序页面都存在,
+        // desc='关闭' bounds=[1040,150][1172,249] 被 findNodeByText("关闭") 命中,
+        // navigate generic popup 分支误点它 → 直接杀死农场小程序 → 系统弹窗(pkg=android)
+        // 占屏 → navigateAlipay 死循环 5 分钟。
+        // 胶囊"关闭"特征: text 为空 + desc 精确为"关闭" + 位于屏幕顶部 12% 胶囊条 +
+        // 右侧 80% 区域, 且同级存在 desc='更多' 胶囊节点(小程序框架特征,
+        // 广告 SDK 的关闭按钮没有该兄弟节点)。
+        fun isMiniProgramCapsuleCloseNode(node: AccessibilityNodeInfo): Boolean {
+            val text = node.text?.toString()?.trim().orEmpty()
+            val desc = node.contentDescription?.toString()?.trim().orEmpty()
+            if (text.isNotEmpty() || desc != "关闭") return false
+            val rect = android.graphics.Rect()
+            node.getBoundsInScreen(rect)
+            val scrW = resources.displayMetrics.widthPixels
+            val scrH = resources.displayMetrics.heightPixels
+            if (scrW <= 0 || scrH <= 0) return false
+            if (rect.top >= scrH * 0.12f || rect.right < scrW * 0.8f) return false
+            // 兄弟胶囊"更多"节点特征(同在顶部条)
+            fun hasMoreCapsule(n: AccessibilityNodeInfo): Boolean {
+                val d = n.contentDescription?.toString()?.trim().orEmpty()
+                if (d == "更多") {
+                    val r = android.graphics.Rect()
+                    n.getBoundsInScreen(r)
+                    if (r.top < scrH * 0.12f && r.left > scrW * 0.5f) return true
+                }
+                for (i in 0 until n.childCount) {
+                    val c = n.getChild(i) ?: continue
+                    if (hasMoreCapsule(c)) return true
+                }
+                return false
+            }
+            return hasMoreCapsule(root)
+        }
         // 检查 bounds 是否合法（top > bottom、width <= 0、height <= 0 都是非法矩形）
         // Honor 通知栏的控件 bounds 常出现 top > bottom 的非法矩形，必须过滤
         fun hasInvalidBounds(node: AccessibilityNodeInfo): Boolean {
@@ -4167,6 +4213,11 @@ class FarmAccessibilityService : AccessibilityService() {
                 return false
             }
             if (hasInvalidBounds(node)) return false
+            // build777: 小程序胶囊"关闭"按钮(杀死整个农场小程序)绝不可点
+            if (isMiniProgramCapsuleCloseNode(node)) {
+                debugLog("findAdCloseButton: drop mini-program capsule close node desc='${node.contentDescription?.toString()?.take(20)}'")
+                return false
+            }
             return true
         }
         // 优先按平台特有关闭文本查找（更精确，避免误匹配），且排除诱导按钮
@@ -7254,6 +7305,35 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build777: 点击系统弹窗(pkg=android/com.android.systemui)上的"安全"关闭按钮
+     *
+     * 修复（debug_test_20260905_171627.log, build776, 16:56:22-17:01:26 死循环 5 分钟）：
+     *   误点小程序胶囊"关闭"杀死农场后,系统弹窗(pkg=android)占屏,
+     *   navigateAlipay 只会 pressBack×2 + 干等×6 无限循环,从不点弹窗按钮。
+     *   系统弹窗(ANR/退出确认等)上的按钮是可点击节点,直接点"取消/等待/确定"可关闭。
+     *
+     * 安全约束：
+     * - 仅当 activeRoot 包名是 android/com.android.systemui 时才查找(绝不会误点农场页)
+     * - 只点"安全"文案(取消/等待/知道了/确定/好的),不点"允许/拒绝/关闭应用"
+     *   (避免误授权或误杀 app)
+     *
+     * @return true 表示成功点击了一个弹窗按钮
+     */
+    fun clickSystemDialogDismissButton(): Boolean {
+        val root = rootInActiveWindowSafe() ?: return false
+        val pkg = root.packageName?.toString().orEmpty()
+        if (pkg != "android" && pkg != "com.android.systemui") return false
+        for (kw in listOf("取消", "等待", "知道了", "确定", "好的")) {
+            val node = findNodeByTextInternal(root, kw) ?: continue
+            val rect = android.graphics.Rect()
+            node.getBoundsInScreen(rect)
+            debugLog("clickSystemDialogDismissButton: clicking '$kw' in system dialog (pkg=$pkg, bounds=${rect.toShortString()})")
+            if (performClickSafe(node)) return true
+        }
+        return false
+    }
+
+    /**
      * build716: 将后台的芭芭农场App切到前台（不重启）
      *
      * 用户需求："切换app后,芭芭农场app只是切换到后台,不是关闭,等待多少秒后,
@@ -7644,6 +7724,18 @@ class FarmAccessibilityService : AccessibilityService() {
             return
         }
 
+        // build777 修复（debug_test_20260905_171627.log, build776, 16:48:32-16:49:15 死循环 4 轮 abort）：
+        //   点"芭芭农场"入口成功后农场 H5 已加载,但下一轮 step 匹配到全屏不可点容器
+        //   ("芭芭农场游戏内容" bounds=[0,0][1202,2538]) → "not clickable, fallback to search"
+        //   → 策略3 pressBack → 把刚打开的农场退掉 → 回首页再点入口 → 死循环。
+        //   修复:每步先查 isOnFarmPage(XRiver+芭芭农场标题兜底覆盖 H5 加载中场景),
+        //   已在农场页直接成功返回,不再找入口/搜索/pressBack。
+        if (isOnFarmPage()) {
+            debugLog("navigateAlipay: already on farm page, navigation done (retry=$retry)")
+            clearNavigatingFlag()
+            return
+        }
+
         // 守卫：判断"用户实际看到的窗口"是不是 farm App
         //
         // 关键：必须用 rootInActiveWindowSafe().packageName 判断，不能用 getCurrentWindowPackage()。
@@ -7740,6 +7832,31 @@ class FarmAccessibilityService : AccessibilityService() {
             }
             // retry >= 2：pressBack 无效（Honor 系统弹窗），改为等待
             // 让支付宝自己启动完，或 systemui 弹窗自己消失，或用户手动处理
+            //
+            // build777 修复（debug_test_20260905_171627.log, build776, 16:56:22-17:01:26 死循环 5 分钟）：
+            //   系统弹窗(pkg=android)占屏,旧逻辑每轮 pressBack×2+干等×6 无限循环,
+            //   从不点弹窗按钮也不 kill 重开,直到用户 13 分钟后手动唤醒。
+            //   修复:① retry>=2 先试点弹窗上的安全按钮(取消/等待/确定等)
+            //        ② retry=4 若伴随锁屏则点亮+上滑解锁
+            //        ③ retry=6 forceKill+relaunch 农场app(杀掉弹窗所属进程,系统弹窗随进程消失)
+            if (clickSystemDialogDismissButton()) {
+                debugLog("navigateAlipay: clicked system dialog dismiss button (pkg=$activeRootPkg, retry=$retry)")
+                navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 2000L)
+                return
+            }
+            if (retry == 4 && isLockScreenShowing()) {
+                debugLog("navigateAlipay: system pkg + lock screen (retry=$retry), wake + swipe up to unlock")
+                ensureScreenOn()
+                swipeUpToUnlock()
+                navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 3000L)
+                return
+            }
+            if (retry == 6) {
+                debugLog("navigateAlipay: system pkg persists after $retry retries, force kill + relaunch farm app to dismiss stuck dialog (pkg=$activeRootPkg)")
+                reopenFarmByDeepLink(killCurrentFirst = true)
+                navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 3000L)
+                return
+            }
             debugLog("navigateAlipay: systemui still occupying screen after $retry retries, waiting (pkg=$activeRootPkg)")
             navHandler.postDelayed({ stepNavigateAlipayFarm(retry + 1) }, 3000L)
             return

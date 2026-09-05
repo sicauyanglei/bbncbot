@@ -7934,16 +7934,27 @@ object AutomationController {
             //
             // 修复：FERTILIZING 进入时检测任务列表是否展开，若展开先 pressBack 关闭弹窗。
             // 任务列表展开特征：dumpClickableNodes 含"做任务集肥料"/"关闭做任务集肥料弹窗"/
-            //   "任务列表"/"去完成"等关键词（任务列表弹窗独有）。
-            val taskListKeywords = listOf(
-                "做任务集肥料", "关闭做任务集肥料弹窗", "任务列表",
-                "去完成", "去逛逛", "去分享", "去邀请", "更多肥料"
-            )
+            //   "去完成"等关键词（任务列表弹窗独有）。
+            // build777 修复（debug_test_20260905_171627.log, 17:15:22）：
+            //   支付宝农场【主页】右下角入口按钮文本就是"任务列表"（bounds=[949,1942][1175,2168]），
+            //   旧关键词列表含"任务列表"→ isTaskListOpen 在主页误判=true → 找不到弹窗关闭按钮
+            //   → pressBack 直接退出农场到支付宝首页（sample=[松开刷新, 深圳, 阴 31℃...]）
+            //   → FERTILIZING→NAVIGATING 循环。
+            //   修复：移除过宽的"任务列表"单词，改为强信号判定——
+            //   弹窗标题/关闭按钮（"做任务集肥料"系）任一出现，或任务动作按钮
+            //   （"去完成"/"去逛逛"/"去分享"/"去邀请"/"更多肥料"）出现≥2个才算弹窗展开。
+            //   主页只有"任务列表"入口、无任务动作按钮，两种强信号都不命中。
+            val taskListTitleKeywords = listOf("做任务集肥料", "关闭做任务集肥料弹窗")
+            val taskListActionKeywords = listOf("去完成", "去逛逛", "去分享", "去邀请", "更多肥料")
             val root = service.getRootInFarmApp()
             val allText = if (root != null) service.collectAllText(root) else emptyList()
-            val isTaskListOpen = allText.any { text ->
-                taskListKeywords.any { kw -> text.contains(kw) }
+            val hasTaskListTitle = allText.any { text ->
+                taskListTitleKeywords.any { kw -> text.contains(kw) }
             }
+            val actionHitCount = taskListActionKeywords.count { kw ->
+                allText.any { text -> text.contains(kw) }
+            }
+            val isTaskListOpen = hasTaskListTitle || actionHitCount >= 2
             if (isTaskListOpen) {
                 // build555 修复（debug_test_20260719_143107.log, build553-0218141）：
                 //   14:25:19.989 fertilize: task list popup detected, pressBack to close it
@@ -8261,11 +8272,27 @@ object AutomationController {
 
             "FERTILIZE_TARGET" -> {
                 // 在目标平台点击施肥/集肥料按钮获取切换奖励
-                // 使用目标平台的 collectFertilizerCoords 候选坐标
-                val coords = switchTargetPlatform.config.collectFertilizerCoords
-                debugLog("switchPlatform: fertilizing on ${switchTargetPlatform}, ${coords.size} coord candidates")
-                for ((xRatio, yRatio) in coords) {
-                    clickAtRatio(service, xRatio, yRatio, "switchPlatform-fertilize")
+                // build777 修复（debug_test_20260905_171627.log, 17:14:58）：
+                //   淘宝农场页有可见可点节点"2000，肥料，点击领取"(clickable=true,
+                //   bounds=[966,1441][1179,1676])，但旧逻辑无视节点、盲点全部候选坐标，
+                //   顶部坐标(272,272)/(300,279)/(600,467)误触商品区跳进商品详情页。
+                //   修复：优先用 findDirectCollectButtons 找可见领取节点点击
+                //   （TAOBAO directCollectTexts 含"点击领取"，过滤施肥/已领取/还差），
+                //   找不到节点才回退盲点坐标。
+                val directButtons = service.findDirectCollectButtons()
+                if (directButtons.isNotEmpty()) {
+                    val btn = directButtons.first()
+                    val btnText = btn.text?.toString() ?: btn.contentDescription?.toString().orEmpty()
+                    debugLog("switchPlatform-fertilize: found visible direct-claim node '$btnText', clicking node instead of blind coords (build777)")
+                    Log.i(TAG, "switchPlatform-fertilize: found visible direct-claim node '$btnText', clicking node instead of blind coords (build777)")
+                    service.performClickSafe(btn)
+                } else {
+                    // 无可见领取节点，回退目标平台的 collectFertilizerCoords 候选坐标
+                    val coords = switchTargetPlatform.config.collectFertilizerCoords
+                    debugLog("switchPlatform: fertilizing on ${switchTargetPlatform}, no direct-claim node, ${coords.size} coord candidates")
+                    for ((xRatio, yRatio) in coords) {
+                        clickAtRatio(service, xRatio, yRatio, "switchPlatform-fertilize")
+                    }
                 }
                 // 等待施肥/领取完成
                 switchStage = "RETURN_ORIGINAL"

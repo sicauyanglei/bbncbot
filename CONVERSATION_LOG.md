@@ -32,6 +32,54 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build777 支付宝导航四连问题修复(小程序胶囊关闭误杀农场/系统弹窗back死循环5分钟/搜索建议页误判onFarm/fertilize主页误back退出+淘宝switch盲点坐标忽略可见领取节点)
+
+**用户需求**: "下载github日志，并解决所有问题"（debug_test_20260905_171627.log, build775-d7fc5b0, 16:17-17:15, ~1200行）
+
+**日志分析结论**:
+1. **P0 navigateAlipay误点小程序胶囊"关闭"按钮杀死农场(16:56:17 连锁灾难起点)**:
+   导航回退时把小程序右上角胶囊"关闭"(desc='关闭', bounds=[1040,150][1172,249])当普通关闭按钮点击
+   →整个农场小程序被杀→回支付宝首页→后续连环重导航
+   修复: FarmAccessibilityService 新增 `isMiniProgramCapsuleCloseNode()`(desc纯'关闭'+无文本
+   +位置在顶部12%且右侧80%区域+同树存在'更多'胶囊兄弟节点确认是胶囊栏),
+   `isValidCloseNode()` 过滤此类节点,任何关闭按钮查找路径都不可点胶囊关闭
+2. **P0 pkg=android系统弹窗back死循环5分钟(16:56:22-17:01:26)**:
+   系统弹窗(pkg=android,如"应用无响应")上pressBack无效,旧逻辑每5s back一次死循环5分钟
+   修复: 新增 `clickSystemDialogDismissButton()`(仅pkg=android/systemui窗口,点"取消/等待/
+   知道了/确定/好的");stepNavigateAlipayFarm 系统弹窗分支重试升级链=①点关闭按钮
+   ②锁屏则点亮+上滑解锁 ③retry=6仍存留→forceKill+relaunch农场app(弹窗随进程消失)
+3. **P1 navigateAlipay入口点击验证失败回退死循环(16:48:32-16:49:15 四轮abort)**:
+   点"芭芭农场"入口后验证期页面其实已进农场,但旧逻辑未提前检查 isOnFarmPage,
+   8s后误判"未导航"→pressBack退出→再点→再退→retry=7 abort
+   修复: stepNavigateAlipayFarm 每步开头先查 `isOnFarmPage()`,已在农场页直接返回成功
+4. **P1 isOnFarmPage内容兜底在支付宝搜索建议页误判onFarm(16:53:28)**:
+   全局搜索页 activity=...globalsearch.ui.mainsearchactivity,搜索建议列表含"芭芭农场施肥"
+   (命中"施肥"农场核心词)→build749内容兜底误判onFarm=true→navigate提前宣告成功
+   修复: isOnFarmPage 步骤1.5新增搜索页黑名单——activity含"search"直接返回false
+   (三平台farmPageActivityKeywords均不含search,零误伤)
+5. **P1 fertilize任务列表弹窗误判→pressBack退出农场到首页(17:15:22)**:
+   支付宝农场【主页】右下角入口按钮文本就是"任务列表"(bounds=[949,1942][1175,2168]),
+   旧关键词含"任务列表"→isTaskListOpen主页误判=true→找不到弹窗关闭按钮→pressBack
+   退出到支付宝首页(sample=[松开刷新,深圳,阴31℃...])→FERTILIZING→NAVIGATING循环
+   修复: 移除过宽"任务列表"单词,改强信号判定——标题系("做任务集肥料"/"关闭做任务集
+   肥料弹窗")任一出现,或动作按钮("去完成/去逛逛/去分享/去邀请/更多肥料")≥2个才算弹窗
+6. **P2 switchPlatform淘宝施肥盲点坐标跳进商品详情页(17:14:58)**:
+   淘宝农场页有可见可点节点"2000，肥料，点击领取"(clickable=true,bounds=[966,1441]
+   [1179,1676]),但FERTILIZE_TARGET无视节点盲点全部候选坐标,顶部坐标(272,272)/
+   (300,279)/(600,467)误触商品区跳进详情页
+   修复: FERTILIZE_TARGET优先 `findDirectCollectButtons()` 找可见领取节点点击
+   (TAOBAO directCollectTexts含"点击领取",已过滤施肥/已领取/还差),找不到才回退盲点坐标
+
+**修改文件**:
+- FarmAccessibilityService.kt: isMiniProgramCapsuleCloseNode/isValidCloseNode过滤/
+  clickSystemDialogDismissButton/stepNavigateAlipayFarm(早期isOnFarmPage+系统弹窗升级链)/
+  isOnFarmPage搜索activity黑名单
+- AutomationController.kt: fertilize isTaskListOpen强信号判定/FERTILIZE_TARGET优先节点点击
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### commit c7f770b - fix: build776 穿山甲"我要加速"广告结束落农场页adModeFlag死锁修复(非深链路径无出口清flag→isAdPlaying恒true/isOnFarmPage被强制false→结束信号全失效+农场页误判TRAP_RECHARGE误点关闭→AD_ENDED空转85s;scene=AD_ENDED+不在广告Activity+hasFarmContentLoaded(纯文本检测不受flag影响)→清adModeFlag按任务完成退出)
 
 **用户需求**: "请分析新日志"→"修复"（debug_test_20260905_152919.log, build775-157c34c, 15:26-15:29, 137行）
