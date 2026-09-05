@@ -1,0 +1,1172 @@
+=== cleared on app start (version=2.2, build=build775-d7fc5b0, time=16:17:47) ===
+16:17:47.561 killPlatformApps: killed com.ucmobile.lite for UC
+16:17:47.562 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+16:17:47.564 killPlatformApps: killed com.taobao.taobao for TAOBAO
+16:17:47.582 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+16:17:47.608 tryGestureSwitchToFarmApp: UC has no live window (killed?), fall back to deep link
+16:17:47.610 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:17:47.610 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+16:17:58.678 === Automation v2 Started === platform=UC
+16:17:58.681 cancelNavigation: all navigation callbacks cancelled
+16:17:58.685 reset platform complete: UC
+16:17:58.686 state: IDLE -> NAVIGATING
+16:17:58.784 [navigate-start] snapshot: pkg=null, act=null, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:17:58.866 tryGestureSwitchToFarmApp: UC has no live window (killed?), fall back to deep link
+16:17:58.867 navigate: farm app not in foreground (platform=UC, attempt=0), calling reopenFarmByDeepLink
+16:17:58.868 reopenFarmByDeepLink: skip duplicate fire, last fire was 11224ms ago (cold start takes ~6-13s), keep waiting
+16:18:03.881 navigate: still not in farm app after relaunch, calling navigateToFarm to push navigation
+16:18:05.393 navigate stepTab: click 芭芭农场 tab via node, platform=UC
+16:18:05.394 performClickSafe: text='UC 芭芭农场' desc='' bounds=[52,1072][1148,1229] clickable=true
+16:18:05.404 tryGestureSwitchToFarmApp: UC has no live window (killed?), fall back to deep link
+16:18:05.405 openFarmInUcBrowser: automation running, gesture-switch only (initiated=false), skip deep link to avoid extra tab
+16:18:05.410 performClickSafe: ACTION_CLICK success at depth=0
+16:18:14.885 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:18:15.222 navigate: farm app still not in foreground after relaunch (attempt=1), waiting for next retry
+16:18:20.699 isOnFarmPage: activeRootPkg='com.tencent.mm' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:18:21.080 navigate: farm app still not in foreground after relaunch (attempt=2), waiting for next retry
+16:18:26.101 isOnFarmPage: activeRootPkg='com.tencent.mm' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:18:26.210 tryGestureSwitchToFarmApp: UC has no live window (killed?), fall back to deep link
+16:18:26.211 navigate: farm app not in foreground (platform=UC, attempt=3), calling reopenFarmByDeepLink
+16:18:26.214 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:18:26.214 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching UC
+16:18:26.308 reopenFarmByDeepLink: opened https://broccoli.uc.cn/apps/ucfarm/routes/farm for UC (pkg=com.ucmobile.lite)
+16:18:27.368 state: NAVIGATING -> STOPPING
+16:18:27.388 cancelNavigation: all navigation callbacks cancelled
+16:18:27.389 state: STOPPING -> IDLE
+16:48:28.047 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:48:28.055 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+16:48:28.056 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+16:48:32.490 navigateAlipay: found 芭芭农场 entry at [484,941][716,1161], clickable=true, clicking
+16:48:32.492 performClickSafe: text='' desc='' bounds=[484,941][716,1161] clickable=true
+16:48:32.530 performClickSafe: ACTION_CLICK success at depth=0
+16:48:32.532 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+16:48:40.564 navigateAlipay: 芭芭农场 entry at [0,0][1202,2538] is not clickable (probably title text), skip and fallback to search
+16:48:41.156 navigateAlipay: no search or farm entry found, pressing back to exit sub-page (retry=1)
+16:48:43.494 navigateAlipay: found 芭芭农场 entry at [484,941][716,1161], clickable=true, clicking
+16:48:43.496 performClickSafe: text='' desc='' bounds=[484,941][716,1161] clickable=true
+16:48:43.531 performClickSafe: ACTION_CLICK success at depth=0
+16:48:43.533 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+16:48:51.567 navigateAlipay: 芭芭农场 entry at [0,0][1202,2538] is not clickable (probably title text), skip and fallback to search
+16:48:52.375 navigateAlipay: no search or farm entry found, pressing back to exit sub-page (retry=3)
+16:48:54.482 navigateAlipay: found 芭芭农场 entry at [484,941][716,1161], clickable=true, clicking
+16:48:54.482 performClickSafe: text='' desc='' bounds=[484,941][716,1161] clickable=true
+16:48:54.508 performClickSafe: ACTION_CLICK success at depth=0
+16:48:54.512 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+16:49:02.544 navigateAlipay: 芭芭农场 entry at [0,0][1202,2538] is not clickable (probably title text), skip and fallback to search
+16:49:02.932 navigateAlipay: no search or farm entry found, pressing back to exit sub-page (retry=5)
+16:49:05.210 navigateAlipay: found 芭芭农场 entry at [484,941][716,1161], clickable=true, clicking
+16:49:05.211 performClickSafe: text='' desc='' bounds=[484,941][716,1161] clickable=true
+16:49:05.248 performClickSafe: ACTION_CLICK success at depth=0
+16:49:05.249 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+16:49:13.276 navigateAlipay: 芭芭农场 entry at [0,0][1202,2538] is not clickable (probably title text), skip and fallback to search
+16:49:13.632 navigateAlipay: no search or farm entry found, pressing back to exit sub-page (retry=7)
+16:49:15.639 navigateAlipay: max retries reached, abort
+16:52:24.362 === Automation v2 Started === platform=ALIPAY
+16:52:24.387 cancelNavigation: all navigation callbacks cancelled
+16:52:24.388 reset platform complete: ALIPAY
+16:52:24.389 state: IDLE -> NAVIGATING
+16:52:24.460 [navigate-start] snapshot: pkg=null, act=null, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:52:24.525 tryGestureSwitchToFarmApp: ALIPAY has no live window (killed?), fall back to deep link
+16:52:24.526 navigate: farm app not in foreground (platform=ALIPAY, attempt=0), calling reopenFarmByDeepLink
+16:52:24.528 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:52:24.529 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching ALIPAY
+16:52:24.530 reopenFarmByDeepLink: no deep link for ALIPAY, killed + relaunch app, will navigate
+16:52:24.548 reopenFarmByDeepLink: relaunched ALIPAY (com.eg.android.AlipayGphone)
+16:52:30.527 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, trying content fallback (build749)
+16:52:30.569 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords and no farm core content, not on farm page
+16:52:30.594 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, trying content fallback (build749)
+16:52:30.741 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, trying content fallback (build749)
+16:52:30.858 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, trying content fallback (build749)
+16:52:30.996 navigate: calling navigateToFarm, platform=ALIPAY
+16:52:32.540 navigateAlipay: clicking search button
+16:52:32.543 performClickSafe: text='' desc='搜索' bounds=[196,173][248,226] clickable=false
+16:52:32.544 performClickSafe: ACTION_CLICK failed, trying gesture
+16:52:32.545 dispatchGesture: screen=[[196,173][248,226]] window=[[196,173][248,226]]
+16:52:32.546 dispatchGesture: not in popup, screen bounds valid, click at (222.0, 199.5)
+16:52:34.733 tryGestureSwitchToFarmApp: UC has no live window (killed?), fall back to deep link
+16:52:34.733 openFarmInUcBrowser: automation running, gesture-switch only (initiated=false), skip deep link to avoid extra tab
+16:52:35.574 navigateAlipay: entered search text '芭芭农场'
+16:52:38.587 navigateAlipay: clicking search result '芭芭农场' at [52,1072][1148,1229] (candidates=3)
+16:52:38.588 performClickSafe: text='UC 芭芭农场' desc='' bounds=[52,1072][1148,1229] clickable=true
+16:52:38.597 tryGestureSwitchToFarmApp: UC has no live window (killed?), fall back to deep link
+16:52:38.599 openFarmInUcBrowser: automation running, gesture-switch only (initiated=false), skip deep link to avoid extra tab
+16:52:38.604 performClickSafe: ACTION_CLICK success at depth=0
+16:52:41.615 navigateAlipay: search result click did not navigate, trying dispatchGesture at (600.0, 1150.5)
+16:52:41.826 tryGestureSwitchToFarmApp: UC has no live window (killed?), fall back to deep link
+16:52:41.826 openFarmInUcBrowser: automation running, gesture-switch only (initiated=false), skip deep link to avoid extra tab
+16:52:45.636 navigateAlipay: dispatchGesture also failed, pressBack and retry
+16:52:47.275 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:52:48.659 navigateAlipay: active root pkg=com.hihonor.android.launcher is launcher (app probably restarting), waiting for app to come to foreground (retry=1)
+16:52:50.673 navigateAlipay: active root pkg=com.hihonor.android.launcher is launcher (app probably restarting), waiting for app to come to foreground (retry=2)
+16:52:54.449 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:52:54.776 navigateAlipay: active root pkg=com.hihonor.android.launcher is launcher, retry=3, actively relaunching farm app
+16:52:54.783 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:52:54.786 reopenFarmByDeepLink: pressing HOME to background ALIPAY before kill
+16:52:54.792 forceKillApp: killing com.eg.android.AlipayGphone (pressBackFirst=false)
+16:52:54.796 forceKillApp: killBackgroundProcesses(com.eg.android.AlipayGphone) called, cleared currentActivityName/currentEventPkg
+16:52:54.797 reopenFarmByDeepLink: no deep link for ALIPAY, killed + relaunch app, will navigate
+16:52:54.836 reopenFarmByDeepLink: relaunched ALIPAY (com.eg.android.AlipayGphone)
+16:52:56.864 navigateAlipay: active root pkg=com.hihonor.android.launcher is launcher (app probably restarting), waiting for app to come to foreground (retry=4)
+16:52:58.873 navigateAlipay: active root pkg=com.hihonor.android.launcher is launcher (app probably restarting), waiting for app to come to foreground (retry=5)
+16:53:01.376 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:53:01.605 navigateAlipay: active root pkg=com.hihonor.android.launcher is launcher, retry=6, actively relaunching farm app
+16:53:01.606 reopenFarmByDeepLink: skip duplicate fire, last fire was 6770ms ago (cold start takes ~6-13s), keep waiting
+16:53:03.494 tryGestureSwitchToFarmApp: UC has no live window (killed?), fall back to deep link
+16:53:03.495 openFarmInUcBrowser: automation running, gesture-switch only (initiated=false), skip deep link to avoid extra tab
+16:53:03.624 navigateAlipay: active root pkg=com.bbncbot is another user app (not systemui/launcher), waiting silently for user to switch back to farm app
+16:53:05.232 tryGestureSwitchToFarmApp: UC has no live window (killed?), fall back to deep link
+16:53:05.233 openFarmInUcBrowser: automation running, gesture-switch only (initiated=false), skip deep link to avoid extra tab
+16:53:06.695 navigateAlipay: max retries reached, abort
+16:53:11.783 navigate: farm app still not in foreground after relaunch (attempt=2), waiting for next retry
+16:53:16.919 tryGestureSwitchToFarmApp: ALIPAY has no live window (killed?), fall back to deep link
+16:53:16.921 navigate: farm app not in foreground (platform=ALIPAY, attempt=3), calling reopenFarmByDeepLink
+16:53:16.925 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:53:16.926 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching ALIPAY
+16:53:16.927 reopenFarmByDeepLink: no deep link for ALIPAY, killed + relaunch app, will navigate
+16:53:16.951 reopenFarmByDeepLink: relaunched ALIPAY (com.eg.android.AlipayGphone)
+16:53:22.818 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, trying content fallback (build749)
+16:53:22.857 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords and no farm core content, not on farm page
+16:53:22.884 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, trying content fallback (build749)
+16:53:23.018 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, trying content fallback (build749)
+16:53:23.149 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, trying content fallback (build749)
+16:53:23.271 navigate: calling navigateToFarm, platform=ALIPAY
+16:53:24.807 navigateAlipay: clicking search button
+16:53:24.809 performClickSafe: text='' desc='搜索' bounds=[196,173][248,226] clickable=false
+16:53:24.810 performClickSafe: ACTION_CLICK failed, trying gesture
+16:53:24.811 dispatchGesture: screen=[[196,173][248,226]] window=[[196,173][248,226]]
+16:53:24.812 dispatchGesture: not in popup, screen bounds valid, click at (222.0, 199.5)
+16:53:27.899 navigateAlipay: entered search text '芭芭农场'
+16:53:28.378 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, trying content fallback (build749)
+16:53:28.386 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords but farm core content found, on farm page (content fallback)
+16:53:28.389 navigate: on farm page, platform=ALIPAY
+16:53:28.397 hasFarmContentLoaded: text count=24, sample=[芭芭农场, 品牌, 芭芭农场水果, 芭芭农场怎么兑换商品, 芭芭农场种水果, 芭芭农场怎么换10元红包, 芭芭农场施肥, 品牌, 芭芭农场领现金, 品牌]
+16:53:28.401 hasFarmContentLoaded: realContent count=21
+16:53:28.411 findCollectFertilizerButton: not found by text, root childCount=1
+16:53:28.412 navigate: hasFarmContentLoaded=false, hasCoreEntry=false, attempt=5
+16:53:31.002 navigateAlipay: clicking search result '芭芭农场' at [0,572][1200,719] (candidates=10)
+16:53:31.005 performClickSafe: text='' desc='' bounds=[0,572][1200,719] clickable=true
+16:53:31.020 performClickSafe: ACTION_CLICK success at depth=0
+16:53:33.958 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, trying content fallback (build749)
+16:53:33.984 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords and no farm core content, not on farm page
+16:53:34.048 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, trying content fallback (build749)
+16:53:34.181 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, trying content fallback (build749)
+16:53:34.282 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, trying content fallback (build749)
+16:53:34.327 isOnFarmPage: activity=com.alipay.android.phone.businesscommon.globalsearch.ui.mainsearchactivity not in farm keywords, trying content fallback (build749)
+16:53:34.333 navigateAlipay: search result click did not navigate, trying dispatchGesture at (600.0, 645.5)
+16:53:38.344 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:53:38.345 navigateAlipay: dispatchGesture also failed, pressBack and retry
+16:53:40.430 isOnFarmPage: activeRootPkg='com.hihonor.android.launcher' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:53:41.354 navigateAlipay: active root pkg=com.bbncbot is another user app (not systemui/launcher), waiting silently for user to switch back to farm app
+16:53:44.365 navigateAlipay: active root pkg=com.bbncbot is another user app (not systemui/launcher), waiting silently for user to switch back to farm app
+16:53:47.376 navigateAlipay: active root pkg=com.bbncbot is another user app (not systemui/launcher), waiting silently for user to switch back to farm app
+16:53:50.387 navigateAlipay: active root pkg=com.bbncbot is another user app (not systemui/launcher), waiting silently for user to switch back to farm app
+16:53:53.398 navigateAlipay: active root pkg=com.bbncbot is another user app (not systemui/launcher), waiting silently for user to switch back to farm app
+16:53:56.406 navigateAlipay: active root pkg=com.bbncbot is another user app (not systemui/launcher), waiting silently for user to switch back to farm app
+16:53:59.417 navigateAlipay: active root pkg=com.bbncbot is another user app (not systemui/launcher), waiting silently for user to switch back to farm app
+16:54:02.421 navigateAlipay: max retries reached, abort
+16:54:06.129 tryGestureSwitchToFarmApp: ALIPAY has no live window (killed?), fall back to deep link
+16:54:06.131 navigate: farm app not in foreground (platform=ALIPAY, attempt=6), calling reopenFarmByDeepLink
+16:54:06.133 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:54:06.134 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching ALIPAY
+16:54:06.135 reopenFarmByDeepLink: no deep link for ALIPAY, killed + relaunch app, will navigate
+16:54:06.156 reopenFarmByDeepLink: relaunched ALIPAY (com.eg.android.AlipayGphone)
+16:54:11.478 isFarmAppInForeground: windows miss farm pkg, but activity=com.eg.android.alipaygphone.alipaylogin matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:54:11.524 ensureScreenOn: screen was off (AOD/lock), wake lock acquired to turn screen on
+16:54:11.843 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:54:12.339 navigate: generic popup (no fertilizer), attempting to close
+16:54:12.341 navigate: 锁屏/熄屏检测命中(isLockScreenShowing),点亮+上滑解锁 attempt=1(不再按back)
+16:54:12.345 dispatchGestureSwipe: (600.0,2034.4) -> (600.0,635.75) duration=400ms
+16:54:12.348 swipeUpToUnlock: swipe-up unlock dispatched=true
+16:54:15.408 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:54:15.471 navigate: generic popup (no fertilizer), attempting to close
+16:54:15.472 navigate: 锁屏/熄屏检测命中(isLockScreenShowing),点亮+上滑解锁 attempt=2(不再按back)
+16:54:15.473 dispatchGestureSwipe: (600.0,2034.4) -> (600.0,635.75) duration=400ms
+16:54:15.474 swipeUpToUnlock: swipe-up unlock dispatched=true
+16:54:28.488 isOnFarmPage: activeRootPkg='com.hihonor.aod' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:54:28.547 isFarmAppInForeground: activeRootPkg='com.hihonor.aod' is foreign (launcher/3rd-party), activity weak signal ignored (stale window event)
+16:54:28.551 tryGestureSwitchToFarmApp: ALIPAY has no live window (killed?), fall back to deep link
+16:54:28.552 navigate: farm app not in foreground (platform=ALIPAY, attempt=9), calling reopenFarmByDeepLink
+16:54:28.555 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:54:28.556 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching ALIPAY
+16:54:28.557 reopenFarmByDeepLink: no deep link for ALIPAY, killed + relaunch app, will navigate
+16:54:28.579 reopenFarmByDeepLink: relaunched ALIPAY (com.eg.android.AlipayGphone)
+16:54:34.627 isOnFarmPage: no farm content, sample=[松开刷新, 深圳, 阴 31℃, 搜索框, 搜索, 哈啰顺风车车主, 更多操作, ]
+16:54:39.974 isOnFarmPage: no farm content, sample=[松开刷新, 深圳, 阴 31℃, 搜索框, 搜索, 哈啰顺风车车主, 更多操作, ]
+16:54:40.217 isNonAdTaskPage: YES, matched non-ad task in [松开刷新, 深圳, 阴 31℃, 搜索框, 搜索, 哈啰顺风车车主, 更多操作, ]
+16:54:40.353 [navigate-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.eg.android.AlipayGphone.AlipayLogin, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+16:54:40.381 [navigate-start] claim-text-nodes (count=3):
+16:54:40.382 [navigate-start]   text='' desc='消息盒子 芭芭农场 肥料领取提醒 2小时前 芝麻粒 芝麻粒收取提醒，超值租好物 2小时前 点击查看全部消息' bounds=[26,1796][1174,2108] clickable=true
+16:54:40.383 [navigate-start]   text='肥料领取提醒' desc='' bounds=[324,1920][582,1977] clickable=false
+16:54:40.384 [navigate-start]   text='去领取' desc='' bounds=[66,3018][195,2664] clickable=false
+16:54:40.980 navigate: calling navigateToFarm, platform=ALIPAY
+16:54:42.515 navigateAlipay: found 芭芭农场 entry at [484,941][716,1161], clickable=true, clicking
+16:54:42.518 performClickSafe: text='' desc='' bounds=[484,941][716,1161] clickable=true
+16:54:42.597 performClickSafe: ACTION_CLICK success at depth=0
+16:54:42.603 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+16:54:46.340 navigate: on farm page, platform=ALIPAY
+16:54:46.367 hasFarmContentLoaded: text count=91, sample=[松开刷新, 芭芭农场游戏内容, 还差4次领肥料, 游戏对象提示, 任务列表, 农场乐园入口, 农场页面控件, 切换摇钱树, 抽抽乐, 逛农货]
+16:54:46.369 hasFarmContentLoaded: realContent count=78
+16:54:46.385 findCollectFertilizerButton: found by text='任务列表' bounds=[949,1942][1175,2168]
+16:54:46.386 navigate: hasFarmContentLoaded=true, hasCoreEntry=true, attempt=1
+16:54:46.405 state: NAVIGATING -> COLLECTING_DIRECT
+16:54:48.856 [collectDirect-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:54:48.881 [collectDirect-start] claim-text-nodes (count=1):
+16:54:48.884 [collectDirect-start]   text='还差4次领肥料' desc='' bounds=[438,1509][763,1591] clickable=true
+16:54:48.913 collectDirect: found 0 direct buttons, attempt=0
+16:54:48.976 collectDirect: dump all text/desc nodes (count=90) for '点击领取' diagnosis:
+16:54:48.979 collectDirect:   text='松开刷新' desc='' bounds=[522,0][678,-45] clickable=false
+16:54:48.982 collectDirect:   text='芭芭农场游戏内容' desc='' bounds=[0,0][1202,2538] clickable=false
+16:54:48.984 collectDirect:   text='还差4次领肥料' desc='' bounds=[438,1509][763,1591] clickable=true
+16:54:48.985 collectDirect:   text='游戏对象提示' desc='' bounds=[0,0][1202,2538] clickable=false
+16:54:48.986 collectDirect:   text='任务列表' desc='' bounds=[949,1942][1175,2168] clickable=true
+16:54:48.986 collectDirect:   text='农场乐园入口' desc='' bounds=[39,1938][248,2168] clickable=true
+16:54:48.987 collectDirect:   text='农场页面控件' desc='' bounds=[0,0][1202,2538] clickable=false
+16:54:48.987 collectDirect:   text='切换摇钱树' desc='' bounds=[36,311][199,455] clickable=true
+16:54:48.988 collectDirect:   text='抽抽乐' desc='' bounds=[36,497][199,641] clickable=true
+16:54:48.988 collectDirect:   text='逛农货' desc='' bounds=[36,681][199,828] clickable=true
+16:54:48.989 collectDirect:   text='我的收获' desc='' bounds=[1048,311][1165,478] clickable=true
+16:54:48.989 collectDirect:   text='芭芭农场,种果树得水果，助农增收' desc='' bounds=[225,281][975,510] clickable=false
+16:54:48.989 collectDirect:   text='钓红包' desc='' bounds=[58,2259][258,2482] clickable=true
+16:54:48.990 collectDirect:   text='亲友树' desc='' bounds=[294,2259][465,2430] clickable=false
+16:54:48.990 collectDirect:   text='发起合种' desc='' bounds=[307,2420][451,2466] clickable=false
+16:54:48.991 collectDirect:   text='得1000肥 向僵尸开炮' desc='' bounds=[501,2259][700,2482] clickable=true
+16:54:48.991 collectDirect:   text='四季物语' desc='' bounds=[723,2259][920,2482] clickable=true
+16:54:48.992 collectDirect:   text='灵画师' desc='' bounds=[943,2259][1142,2482] clickable=true
+16:54:48.992 collectDirect:   text='玩60秒几何王国 肥料 +1000 玩游戏' desc='' bounds=[22,2561][589,2666] clickable=false
+16:54:48.992 collectDirect:   text='玩60秒几何王国' desc='' bounds=[49,3350][353,2666] clickable=false
+16:54:48.993 collectDirect:   text='肥料' desc='' bounds=[124,3461][209,2666] clickable=false
+16:54:48.993 collectDirect:   text='+' desc='' bounds=[206,3461][235,2666] clickable=false
+16:54:48.994 collectDirect:   text='1000' desc='' bounds=[232,3461][334,2666] clickable=false
+16:54:48.994 collectDirect:   text='玩游戏' desc='' bounds=[402,3461][533,2666] clickable=false
+16:54:48.994 collectDirect:   text='玩60秒青云诀 肥料 +1000 玩游戏' desc='' bounds=[605,2561][1172,2666] clickable=false
+16:54:48.995 collectDirect:   text='玩60秒青云诀' desc='' bounds=[632,3350][894,2666] clickable=false
+16:54:48.995 collectDirect:   text='肥料' desc='' bounds=[704,3461][792,2666] clickable=false
+16:54:48.996 collectDirect:   text='+' desc='' bounds=[789,3461][818,2666] clickable=false
+16:54:48.996 collectDirect:   text='1000' desc='' bounds=[815,3461][917,2666] clickable=false
+16:54:48.997 collectDirect:   text='玩游戏' desc='' bounds=[985,3461][1116,2666] clickable=false
+16:54:49.000 collectDirect:   text='玩60秒龙迹之城 肥料 +1000 玩游戏' desc='' bounds=[22,3586][589,2666] clickable=false
+16:54:49.000 collectDirect:   text='玩60秒龙迹之城' desc='' bounds=[49,4375][353,2666] clickable=false
+16:54:49.001 collectDirect:   text='肥料' desc='' bounds=[124,4486][209,2666] clickable=false
+16:54:49.001 collectDirect:   text='+' desc='' bounds=[206,4486][235,2666] clickable=false
+16:54:49.001 collectDirect:   text='1000' desc='' bounds=[232,4486][334,2666] clickable=false
+16:54:49.002 collectDirect:   text='玩游戏' desc='' bounds=[402,4486][533,2666] clickable=false
+16:54:49.002 collectDirect:   text='玩30秒小小英雄 肥料 +300 玩游戏' desc='' bounds=[605,3586][1172,2666] clickable=false
+16:54:49.002 collectDirect:   text='玩30秒小小英雄' desc='' bounds=[632,4375][933,2666] clickable=false
+16:54:49.002 collectDirect:   text='肥料' desc='' bounds=[704,4486][792,2666] clickable=false
+16:54:49.003 collectDirect:   text='+' desc='' bounds=[789,4486][818,2666] clickable=false
+16:54:49.003 collectDirect:   text='300' desc='' bounds=[815,4486][894,2666] clickable=false
+16:54:49.003 collectDirect:   text='玩游戏' desc='' bounds=[985,4486][1116,2666] clickable=false
+16:54:49.004 collectDirect:   text='玩30秒原始传奇 肥料 +300 玩游戏' desc='' bounds=[22,4611][589,2666] clickable=false
+16:54:49.004 collectDirect:   text='玩30秒原始传奇' desc='' bounds=[49,5400][353,2666] clickable=false
+16:54:49.004 collectDirect:   text='肥料' desc='' bounds=[124,5511][209,2666] clickable=false
+16:54:49.005 collectDirect:   text='+' desc='' bounds=[206,5511][235,2666] clickable=false
+16:54:49.005 collectDirect:   text='300' desc='' bounds=[232,5511][311,2666] clickable=false
+16:54:49.005 collectDirect:   text='玩游戏' desc='' bounds=[402,5511][533,2666] clickable=false
+16:54:49.005 collectDirect:   text='玩30秒春秋玄奇 肥料 +300 玩游戏' desc='' bounds=[605,4611][1172,2666] clickable=false
+16:54:49.006 collectDirect:   text='玩30秒春秋玄奇' desc='' bounds=[632,5400][933,2666] clickable=false
+16:54:49.006 collectDirect:   text='肥料' desc='' bounds=[704,5511][792,2666] clickable=false
+16:54:49.006 collectDirect:   text='+' desc='' bounds=[789,5511][818,2666] clickable=false
+16:54:49.007 collectDirect:   text='300' desc='' bounds=[815,5511][894,2666] clickable=false
+16:54:49.007 collectDirect:   text='玩游戏' desc='' bounds=[985,5511][1116,2666] clickable=false
+16:54:49.007 collectDirect:   text='玩30秒英雄冒险团 肥料 +300 玩游戏' desc='' bounds=[22,5636][589,2666] clickable=false
+16:54:49.008 collectDirect:   text='玩30秒英雄冒险团' desc='' bounds=[49,6425][393,2666] clickable=false
+16:54:49.008 collectDirect:   text='肥料' desc='' bounds=[124,6536][209,2666] clickable=false
+16:54:49.008 collectDirect:   text='+' desc='' bounds=[206,6536][235,2666] clickable=false
+16:54:49.008 collectDirect:   text='300' desc='' bounds=[232,6536][311,2666] clickable=false
+16:54:49.009 collectDirect:   text='玩游戏' desc='' bounds=[402,6536][533,2666] clickable=false
+16:54:49.009 collectDirect:   text='玩60秒向僵尸开炮 肥料 +1000 玩游戏' desc='' bounds=[605,5636][1172,2666] clickable=false
+16:54:49.009 collectDirect:   text='玩60秒向僵尸开炮' desc='' bounds=[632,6425][975,2666] clickable=false
+16:54:49.010 collectDirect:   text='肥料' desc='' bounds=[704,6536][792,2666] clickable=false
+16:54:49.010 collectDirect:   text='+' desc='' bounds=[789,6536][818,2666] clickable=false
+16:54:49.010 collectDirect:   text='1000' desc='' bounds=[815,6536][917,2666] clickable=false
+16:54:49.011 collectDirect:   text='玩游戏' desc='' bounds=[985,6536][1116,2666] clickable=false
+16:54:49.011 collectDirect:   text='玩60秒三国冰河 肥料 +1000 玩游戏' desc='' bounds=[22,6661][589,2666] clickable=false
+16:54:49.011 collectDirect:   text='玩60秒三国冰河' desc='' bounds=[49,7450][353,2666] clickable=false
+16:54:49.012 collectDirect:   text='肥料' desc='' bounds=[124,7561][209,2666] clickable=false
+16:54:49.012 collectDirect:   text='+' desc='' bounds=[206,7561][235,2666] clickable=false
+16:54:49.012 collectDirect:   text='1000' desc='' bounds=[232,7561][334,2666] clickable=false
+16:54:49.013 collectDirect:   text='玩游戏' desc='' bounds=[402,7561][533,2666] clickable=false
+16:54:49.013 collectDirect:   text='玩60秒四季物语 肥料 +1000 玩游戏' desc='' bounds=[605,6661][1172,2666] clickable=false
+16:54:49.014 collectDirect:   text='玩60秒四季物语' desc='' bounds=[632,7450][933,2666] clickable=false
+16:54:49.014 collectDirect:   text='肥料' desc='' bounds=[704,7561][792,2666] clickable=false
+16:54:49.014 collectDirect:   text='+' desc='' bounds=[789,7561][818,2666] clickable=false
+16:54:49.016 collectDirect:   text='1000' desc='' bounds=[815,7561][917,2666] clickable=false
+16:54:49.016 collectDirect:   text='玩游戏' desc='' bounds=[985,7561][1116,2666] clickable=false
+16:54:49.016 collectDirect:   text='玩游戏得肥' desc='' bounds=[111,2580][307,2620] clickable=false
+16:54:49.017 collectDirect:   text='+1000' desc='' bounds=[301,2580][422,2620] clickable=false
+16:54:49.017 collectDirect:   text='玩游戏得肥' desc='' bounds=[694,2580][890,2620] clickable=false
+16:54:49.017 collectDirect:   text='+1000' desc='' bounds=[887,2580][1008,2620] clickable=false
+16:54:49.018 collectDirect:   text='引导标语' desc='' bounds=[117,144][707,239] clickable=false
+16:54:49.018 collectDirect:   text='' desc='返回' bounds=[26,127][105,271] clickable=true
+16:54:49.018 collectDirect:   text='' desc='' bounds=[26,163][98,235] clickable=false
+16:54:49.019 collectDirect:   text='支付宝·芭芭农场' desc='' bounds=[125,156][567,242] clickable=true
+16:54:49.019 collectDirect:   text='' desc='更多' bounds=[907,150][1039,249] clickable=true
+16:54:49.019 collectDirect:   text='' desc='更多' bounds=[944,163][1016,235] clickable=false
+16:54:49.020 collectDirect:   text='' desc='关闭' bounds=[1040,150][1172,249] clickable=true
+16:54:49.020 collectDirect:   text='' desc='' bounds=[1070,163][1142,235] clickable=false
+16:54:49.033 collectDirect: no direct buttons found, trying AI vision to locate '点击领取' button (dailyClaimed=false)
+16:54:50.607 navigateAlipay: automation running (state=COLLECTING_DIRECT), abort
+16:55:04.049 collectDirect: AI vision timed out after 15000ms, fallback to task list
+16:55:04.308 [openTaskList-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:55:04.341 [openTaskList-start] claim-text-nodes (count=1):
+16:55:04.343 [openTaskList-start]   text='还差4次领肥料' desc='' bounds=[438,1509][763,1591] clickable=true
+16:55:04.404 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+16:55:04.406 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+16:55:04.455 findCollectFertilizerButton: found by text='任务列表' bounds=[949,1942][1175,2168]
+16:55:04.457 openTaskList: [ALIPAY闭环] clicking entry button by text (attempt=0)
+16:55:04.458 performClickSafe: text='任务列表' desc='' bounds=[949,1942][1175,2168] clickable=true
+16:55:04.466 performClickSafe: ACTION_CLICK success at depth=0
+16:55:10.482 findGoCompleteButtons: no clickable ancestor for '已领取', keep node itself for coordinate click (bounds=[923,1116][1120,1188])
+16:55:10.485 findGoCompleteButtons: drop already-claimed node text='已领取' (task completed)
+16:55:10.489 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3032][1113,2666]
+16:55:10.491 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3238][1113,2666]
+16:55:10.495 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3448][1113,2666]
+16:55:10.498 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3864][1113,2666]
+16:55:10.501 findGoCompleteButtons: drop zero-size node text='去逛逛' bounds=[884,4074][1113,2666]
+16:55:10.504 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4283][1113,2666]
+16:55:10.506 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4490][1113,2666]
+16:55:10.507 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4699][1113,2666]
+16:55:10.509 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4905][1113,2666]
+16:55:10.513 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5115][1113,2666]
+16:55:10.516 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5321][1113,2666]
+16:55:10.519 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5531][1113,2666]
+16:55:10.521 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5741][1113,2666]
+16:55:10.523 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5947][1113,2666]
+16:55:10.524 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6157][1113,2666]
+16:55:10.526 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6366][1113,2666]
+16:55:10.530 findGoCompleteButtons: drop zero-size node text='领取' bounds=[884,6605][1113,2666]
+16:55:10.531 checkTaskListOpened: found 7 goComplete buttons, checkAttempt=0, currentIndex=0
+16:55:10.532 taskButton[0]: text='去完成', desc='', bounds=[884,1365][1113,1450], clickable=true
+16:55:10.533 taskButton[1]: text='去完成', desc='', bounds=[884,1575][1113,1657], clickable=true
+16:55:10.534 taskButton[2]: text='去完成', desc='', bounds=[884,1781][1113,1866], clickable=true
+16:55:10.535 taskButton[3]: text='去完成', desc='', bounds=[884,1991][1113,2073], clickable=true
+16:55:10.536 taskButton[4]: text='去完成', desc='', bounds=[884,2200][1113,2282], clickable=true
+16:55:10.536 taskButton[5]: text='去完成', desc='', bounds=[884,2407][1113,2492], clickable=true
+16:55:10.537 taskButton[6]: text='去逛逛', desc='', bounds=[884,2616][1113,2666], clickable=true
+16:55:10.538 checkTaskListOpened: resetting currentTaskIndex to 0 (was 0, taskButtons was empty=true)
+16:55:10.539 collectTaskContextText: result=' 大圣顶住开10个宝箱当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+16:55:10.542 collectTaskContextText: result=' 大圣顶住开10个宝箱当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+16:55:10.544 collectTaskContextText: result=' 大圣顶住开10个宝箱当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+16:55:10.546 sortTaskButtons: idx=0 task='大圣顶住开10个宝箱当前进度0，总进度1 可得500肥' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+16:55:10.547 collectTaskContextText: result=' 看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+16:55:10.549 collectTaskContextText: result=' 看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+16:55:10.550 collectTaskContextText: result=' 看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+16:55:10.551 sortTaskButtons: idx=1 task='看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+16:55:10.553 collectTaskContextText: result=' 逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=197
+16:55:10.556 collectTaskContextText: result=' 逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=197
+16:55:10.557 collectTaskContextText: result=' 逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=197
+16:55:10.558 sortTaskButtons: idx=2 task='逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+16:55:10.559 collectTaskContextText: result=' 逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+16:55:10.561 collectTaskContextText: result=' 逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+16:55:10.563 collectTaskContextText: result=' 逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+16:55:10.564 sortTaskButtons: idx=3 task='逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+16:55:10.565 collectTaskContextText: result=' 限时抽100份足金金条当前进度0，总进度1 逛5秒即得500肥，更有30万肥料可得 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+16:55:10.566 collectTaskContextText: result=' 限时抽100份足金金条当前进度0，总进度1 逛5秒即得500肥，更有30万肥料可得 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+16:55:10.567 collectTaskContextText: result=' 限时抽100份足金金条当前进度0，总进度1 逛5秒即得500肥，更有30万肥料可得 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+16:55:10.568 sortTaskButtons: idx=4 task='' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+16:55:10.568 collectTaskContextText: result=' 农场对对碰匹配10组当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+16:55:10.569 collectTaskContextText: result=' 农场对对碰匹配10组当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+16:55:10.570 collectTaskContextText: result=' 农场对对碰匹配10组当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+16:55:10.570 sortTaskButtons: idx=5 task='农场对对碰匹配10组当前进度0，总进度1 可得500肥' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+16:55:10.571 collectTaskContextText: result=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得 去逛逛 ', buttonText='去逛逛', btnHeight=50, containerHeight=109
+16:55:10.572 collectTaskContextText: result=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得 去逛逛 ', buttonText='去逛逛', btnHeight=50, containerHeight=109
+16:55:10.572 collectTaskContextText: result=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得 去逛逛 ', buttonText='去逛逛', btnHeight=50, containerHeight=109
+16:55:10.573 sortTaskButtons: idx=6 task='去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去逛逛')
+16:55:10.573 state: OPENING_TASK_LIST -> PROCESSING_TASK
+16:55:12.819 [processTask-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:55:12.836 [processTask-start] claim-text-nodes (count=3):
+16:55:12.837 [processTask-start]   text='还差4次领肥料' desc='' bounds=[438,1509][763,1591] clickable=true
+16:55:12.839 [processTask-start]   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+16:55:12.840 [processTask-start]   text='领取' desc='' bounds=[884,6605][1113,2666] clickable=true
+16:55:12.863 processTask: current task #1/7, text='去完成', bounds=[884,1365][1113,1450], attempt=0
+16:55:12.866 collectTaskContextText: result=' 大圣顶住开10个宝箱当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+16:55:12.866 collectTaskContextText: result=' 大圣顶住开10个宝箱当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+16:55:12.868 collectTaskContextText: result=' 大圣顶住开10个宝箱当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+16:55:12.869 collectTaskContextText: result=' 大圣顶住开10个宝箱当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+16:55:12.869 isBrowseTask: buttonText='去完成', context=' 大圣顶住开10个宝箱当前进度0，总进度1 可得500肥 去完成 ', isBrowse=false
+16:55:12.870 parseDeepLinkStayMs: no duration hint (parsed=0), using default 15s, stay=20000ms
+16:55:12.871 performClickSafe: text='去完成' desc='' bounds=[884,1365][1113,1450] clickable=true
+16:55:12.875 performClickSafe: ACTION_CLICK success at depth=0
+16:55:17.933 isOnFarmPage: no farm content, sample=[初始化中, 更多, , 关闭, ]
+16:55:18.070 [checkTaskResult] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite1, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:55:18.077 [checkTaskResult] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+16:55:18.219 findFertilizerClaimButton: no fertilizer text, skip
+16:55:18.389 processTask: not on farm page but activeRoot='com.eg.android.AlipayGphone' is farm pkg, otherPkg='com.eg.android.AlipayGphone' (systemui false positive), skip WATCHING_AD, continue scene detection
+16:55:18.784 processTask: unknown page, pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite1, failCount=0/2
+16:55:18.791 processTask: unknown page, asking AI vision for action
+16:55:38.271 processTask: AI vision action=WAIT, reason='页面显示游戏正在加载，进度为20%，应等待'
+16:55:38.273 executeAiVisionAction: WAIT - will recheck scene after delay
+16:55:48.395 [checkTaskResult] snapshot: pkg=com.hihonor.secime, act=null, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:55:48.477 findFertilizerClaimButton: no fertilizer text, skip
+16:55:48.643 processTask: not on farm page but activeRoot='com.bbncbot' is farm pkg, otherPkg='com.hihonor.secime' (systemui false positive), skip WATCHING_AD, continue scene detection
+16:55:48.717 processTask: unknown page, pkg=com.hihonor.secime, act=null, failCount=1/2
+16:55:48.717 processTask: reached MAX_TASK_FAILS after AI exhausted, skipping task #1
+16:55:53.719 state: PROCESSING_TASK -> OPENING_TASK_LIST
+16:55:55.732 isOnFarmPage: activeRootPkg='com.android.settings' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:55:55.791 [openTaskList-start] snapshot: pkg=com.android.settings, act=null, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:55:55.794 openTaskList: reset taskListOpenedThisRound for new round (attempt=0)
+16:55:55.795 openTaskList: resetting currentTaskIndex to 0 for new round (was 1, taskButtons.size=7)
+16:55:55.800 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+16:55:55.801 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+16:55:55.803 findCollectFertilizerButton: root is null!
+16:55:55.805 openTaskList: [ALIPAY闭环] not on farm page (no entry button and not on farm), re-navigating instead of coordinate fallback
+16:55:55.806 state: OPENING_TASK_LIST -> NAVIGATING
+16:55:57.812 isOnFarmPage: activeRootPkg='com.android.settings' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:55:57.910 [navigate-start] snapshot: pkg=com.android.settings, act=null, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:55:58.009 tryGestureSwitchToFarmApp: ALIPAY has no live window (killed?), fall back to deep link
+16:55:58.010 navigate: farm app not in foreground (platform=ALIPAY, attempt=0), calling reopenFarmByDeepLink
+16:55:58.012 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:55:58.013 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching ALIPAY
+16:55:58.013 reopenFarmByDeepLink: no deep link for ALIPAY, killed + relaunch app, will navigate
+16:55:58.035 reopenFarmByDeepLink: relaunched ALIPAY (com.eg.android.AlipayGphone)
+16:56:03.629 navigate: on farm page, platform=ALIPAY
+16:56:03.639 hasFarmContentLoaded: text count=158, sample=[松开刷新, 芭芭农场游戏内容, 还差4次领肥料, 游戏对象提示, 任务列表, 农场乐园入口, 农场页面控件, 切换摇钱树, 抽抽乐, 逛农货]
+16:56:03.640 hasFarmContentLoaded: realContent count=145
+16:56:03.661 findCollectFertilizerButton: found by text='集肥料' bounds=[0,877][1202,1021]
+16:56:03.662 navigate: hasFarmContentLoaded=true, hasCoreEntry=true, attempt=1
+16:56:03.672 state: NAVIGATING -> COLLECTING_DIRECT
+16:56:05.830 [collectDirect-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:56:05.852 [collectDirect-start] claim-text-nodes (count=3):
+16:56:05.852 [collectDirect-start]   text='还差4次领肥料' desc='' bounds=[438,1509][763,1591] clickable=true
+16:56:05.853 [collectDirect-start]   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+16:56:05.854 [collectDirect-start]   text='领取' desc='' bounds=[884,6605][1113,2666] clickable=true
+16:56:05.869 collectDirect: found 0 direct buttons, attempt=0
+16:56:05.900 collectDirect: dump all text/desc nodes (count=157) for '点击领取' diagnosis:
+16:56:05.901 collectDirect:   text='松开刷新' desc='' bounds=[522,0][678,-45] clickable=false
+16:56:05.902 collectDirect:   text='芭芭农场游戏内容' desc='' bounds=[0,0][1202,2538] clickable=false
+16:56:05.902 collectDirect:   text='还差4次领肥料' desc='' bounds=[438,1509][763,1591] clickable=true
+16:56:05.903 collectDirect:   text='游戏对象提示' desc='' bounds=[0,0][1202,2538] clickable=false
+16:56:05.903 collectDirect:   text='任务列表' desc='' bounds=[949,1942][1175,2168] clickable=true
+16:56:05.905 collectDirect:   text='农场乐园入口' desc='' bounds=[39,1938][248,2168] clickable=true
+16:56:05.906 collectDirect:   text='农场页面控件' desc='' bounds=[0,0][1202,2538] clickable=false
+16:56:05.907 collectDirect:   text='切换摇钱树' desc='' bounds=[36,311][199,455] clickable=true
+16:56:05.908 collectDirect:   text='抽抽乐' desc='' bounds=[36,497][199,641] clickable=true
+16:56:05.908 collectDirect:   text='逛农货' desc='' bounds=[36,681][199,828] clickable=true
+16:56:05.909 collectDirect:   text='我的收获' desc='' bounds=[1048,311][1165,478] clickable=true
+16:56:05.910 collectDirect:   text='芭芭农场,种果树得水果，助农增收' desc='' bounds=[225,281][975,510] clickable=false
+16:56:05.911 collectDirect:   text='钓红包' desc='' bounds=[58,2259][258,2482] clickable=true
+16:56:05.914 collectDirect:   text='亲友树' desc='' bounds=[294,2259][465,2430] clickable=false
+16:56:05.915 collectDirect:   text='发起合种' desc='' bounds=[307,2420][451,2466] clickable=false
+16:56:05.915 collectDirect:   text='得1000肥 向僵尸开炮' desc='' bounds=[501,2259][700,2482] clickable=true
+16:56:05.916 collectDirect:   text='四季物语' desc='' bounds=[723,2259][920,2482] clickable=true
+16:56:05.916 collectDirect:   text='灵画师' desc='' bounds=[943,2259][1142,2482] clickable=true
+16:56:05.917 collectDirect:   text='玩60秒几何王国 肥料 +1000 玩游戏' desc='' bounds=[22,2561][589,2666] clickable=false
+16:56:05.918 collectDirect:   text='玩60秒几何王国' desc='' bounds=[49,3350][353,2666] clickable=false
+16:56:05.918 collectDirect:   text='肥料' desc='' bounds=[124,3461][209,2666] clickable=false
+16:56:05.919 collectDirect:   text='+' desc='' bounds=[206,3461][235,2666] clickable=false
+16:56:05.919 collectDirect:   text='1000' desc='' bounds=[232,3461][334,2666] clickable=false
+16:56:05.920 collectDirect:   text='玩游戏' desc='' bounds=[402,3461][533,2666] clickable=false
+16:56:05.920 collectDirect:   text='玩60秒青云诀 肥料 +1000 玩游戏' desc='' bounds=[605,2561][1172,2666] clickable=false
+16:56:05.921 collectDirect:   text='玩60秒青云诀' desc='' bounds=[632,3350][894,2666] clickable=false
+16:56:05.921 collectDirect:   text='肥料' desc='' bounds=[704,3461][792,2666] clickable=false
+16:56:05.921 collectDirect:   text='+' desc='' bounds=[789,3461][818,2666] clickable=false
+16:56:05.922 collectDirect:   text='1000' desc='' bounds=[815,3461][917,2666] clickable=false
+16:56:05.922 collectDirect:   text='玩游戏' desc='' bounds=[985,3461][1116,2666] clickable=false
+16:56:05.922 collectDirect:   text='玩60秒龙迹之城 肥料 +1000 玩游戏' desc='' bounds=[22,3586][589,2666] clickable=false
+16:56:05.923 collectDirect:   text='玩60秒龙迹之城' desc='' bounds=[49,4375][353,2666] clickable=false
+16:56:05.923 collectDirect:   text='肥料' desc='' bounds=[124,4486][209,2666] clickable=false
+16:56:05.924 collectDirect:   text='+' desc='' bounds=[206,4486][235,2666] clickable=false
+16:56:05.924 collectDirect:   text='1000' desc='' bounds=[232,4486][334,2666] clickable=false
+16:56:05.924 collectDirect:   text='玩游戏' desc='' bounds=[402,4486][533,2666] clickable=false
+16:56:05.925 collectDirect:   text='玩30秒小小英雄 肥料 +300 玩游戏' desc='' bounds=[605,3586][1172,2666] clickable=false
+16:56:05.925 collectDirect:   text='玩30秒小小英雄' desc='' bounds=[632,4375][933,2666] clickable=false
+16:56:05.926 collectDirect:   text='肥料' desc='' bounds=[704,4486][792,2666] clickable=false
+16:56:05.926 collectDirect:   text='+' desc='' bounds=[789,4486][818,2666] clickable=false
+16:56:05.927 collectDirect:   text='300' desc='' bounds=[815,4486][894,2666] clickable=false
+16:56:05.928 collectDirect:   text='玩游戏' desc='' bounds=[985,4486][1116,2666] clickable=false
+16:56:05.928 collectDirect:   text='玩30秒原始传奇 肥料 +300 玩游戏' desc='' bounds=[22,4611][589,2666] clickable=false
+16:56:05.929 collectDirect:   text='玩30秒原始传奇' desc='' bounds=[49,5400][353,2666] clickable=false
+16:56:05.929 collectDirect:   text='肥料' desc='' bounds=[124,5511][209,2666] clickable=false
+16:56:05.929 collectDirect:   text='+' desc='' bounds=[206,5511][235,2666] clickable=false
+16:56:05.930 collectDirect:   text='300' desc='' bounds=[232,5511][311,2666] clickable=false
+16:56:05.930 collectDirect:   text='玩游戏' desc='' bounds=[402,5511][533,2666] clickable=false
+16:56:05.931 collectDirect:   text='玩30秒春秋玄奇 肥料 +300 玩游戏' desc='' bounds=[605,4611][1172,2666] clickable=false
+16:56:05.931 collectDirect:   text='玩30秒春秋玄奇' desc='' bounds=[632,5400][933,2666] clickable=false
+16:56:05.932 collectDirect:   text='肥料' desc='' bounds=[704,5511][792,2666] clickable=false
+16:56:05.932 collectDirect:   text='+' desc='' bounds=[789,5511][818,2666] clickable=false
+16:56:05.932 collectDirect:   text='300' desc='' bounds=[815,5511][894,2666] clickable=false
+16:56:05.933 collectDirect:   text='玩游戏' desc='' bounds=[985,5511][1116,2666] clickable=false
+16:56:05.933 collectDirect:   text='玩30秒英雄冒险团 肥料 +300 玩游戏' desc='' bounds=[22,5636][589,2666] clickable=false
+16:56:05.934 collectDirect:   text='玩30秒英雄冒险团' desc='' bounds=[49,6425][393,2666] clickable=false
+16:56:05.935 collectDirect:   text='肥料' desc='' bounds=[124,6536][209,2666] clickable=false
+16:56:05.935 collectDirect:   text='+' desc='' bounds=[206,6536][235,2666] clickable=false
+16:56:05.935 collectDirect:   text='300' desc='' bounds=[232,6536][311,2666] clickable=false
+16:56:05.936 collectDirect:   text='玩游戏' desc='' bounds=[402,6536][533,2666] clickable=false
+16:56:05.936 collectDirect:   text='玩60秒向僵尸开炮 肥料 +1000 玩游戏' desc='' bounds=[605,5636][1172,2666] clickable=false
+16:56:05.937 collectDirect:   text='玩60秒向僵尸开炮' desc='' bounds=[632,6425][975,2666] clickable=false
+16:56:05.937 collectDirect:   text='肥料' desc='' bounds=[704,6536][792,2666] clickable=false
+16:56:05.938 collectDirect:   text='+' desc='' bounds=[789,6536][818,2666] clickable=false
+16:56:05.938 collectDirect:   text='1000' desc='' bounds=[815,6536][917,2666] clickable=false
+16:56:05.939 collectDirect:   text='玩游戏' desc='' bounds=[985,6536][1116,2666] clickable=false
+16:56:05.939 collectDirect:   text='玩60秒三国冰河 肥料 +1000 玩游戏' desc='' bounds=[22,6661][589,2666] clickable=false
+16:56:05.940 collectDirect:   text='玩60秒三国冰河' desc='' bounds=[49,7450][353,2666] clickable=false
+16:56:05.940 collectDirect:   text='肥料' desc='' bounds=[124,7561][209,2666] clickable=false
+16:56:05.940 collectDirect:   text='+' desc='' bounds=[206,7561][235,2666] clickable=false
+16:56:05.941 collectDirect:   text='1000' desc='' bounds=[232,7561][334,2666] clickable=false
+16:56:05.941 collectDirect:   text='玩游戏' desc='' bounds=[402,7561][533,2666] clickable=false
+16:56:05.941 collectDirect:   text='玩60秒四季物语 肥料 +1000 玩游戏' desc='' bounds=[605,6661][1172,2666] clickable=false
+16:56:05.941 collectDirect:   text='玩60秒四季物语' desc='' bounds=[632,7450][933,2666] clickable=false
+16:56:05.942 collectDirect:   text='肥料' desc='' bounds=[704,7561][792,2666] clickable=false
+16:56:05.942 collectDirect:   text='+' desc='' bounds=[789,7561][818,2666] clickable=false
+16:56:05.943 collectDirect:   text='1000' desc='' bounds=[815,7561][917,2666] clickable=false
+16:56:05.944 collectDirect:   text='玩游戏' desc='' bounds=[985,7561][1116,2666] clickable=false
+16:56:05.945 collectDirect:   text='玩游戏得肥' desc='' bounds=[111,2580][307,2620] clickable=false
+16:56:05.946 collectDirect:   text='+1000' desc='' bounds=[301,2580][422,2620] clickable=false
+16:56:05.947 collectDirect:   text='玩游戏得肥' desc='' bounds=[694,2580][890,2620] clickable=false
+16:56:05.947 collectDirect:   text='+1000' desc='' bounds=[887,2580][1008,2620] clickable=false
+16:56:05.948 collectDirect:   text='引导标语' desc='' bounds=[117,144][707,239] clickable=false
+16:56:05.949 collectDirect:   text='做任务集肥料' desc='' bounds=[0,877][1202,1021] clickable=false
+16:56:05.949 collectDirect:   text='关闭做任务集肥料弹窗' desc='' bounds=[998,854][1100,953] clickable=true
+16:56:05.949 collectDirect:   text='今天可领500肥料' desc='' bounds=[65,1044][229,1234] clickable=false
+16:56:05.950 collectDirect:   text='第2天可领600肥料' desc='' bounds=[225,1044][389,1234] clickable=false
+16:56:05.950 collectDirect:   text='第3天可领最多1万肥料' desc='' bounds=[386,1044][550,1234] clickable=false
+16:56:05.951 collectDirect:   text='第4天可领600肥料' desc='' bounds=[546,1044][710,1234] clickable=false
+16:56:05.951 collectDirect:   text='第5天可领600肥料' desc='' bounds=[707,1044][871,1234] clickable=false
+16:56:05.952 collectDirect:   text='第6天可领600肥料' desc='' bounds=[867,1044][1031,1234] clickable=false
+16:56:05.952 collectDirect:   text='第7天可领最多2万肥料' desc='' bounds=[1025,1044][1192,1234] clickable=false
+16:56:05.952 collectDirect:   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+16:56:05.953 collectDirect:   text='连续签到任务规则' desc='' bounds=[1087,1028][1136,1077] clickable=true
+16:56:05.953 collectDirect:   text='大圣顶住开10个宝箱当前进度0，总进度1 可得500肥' desc='' bounds=[72,1329][890,1486] clickable=false
+16:56:05.953 collectDirect:   text='去完成' desc='' bounds=[884,1365][1113,1450] clickable=true
+16:56:05.954 collectDirect:   text='看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥' desc='' bounds=[72,1539][890,1693] clickable=false
+16:56:05.954 collectDirect:   text='去完成' desc='' bounds=[884,1575][1113,1657] clickable=true
+16:56:05.955 collectDirect:   text='逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥' desc='' bounds=[72,1748][890,1902] clickable=false
+16:56:05.955 collectDirect:   text='去完成' desc='' bounds=[884,1781][1113,1866] clickable=true
+16:56:05.955 collectDirect:   text='逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金' desc='' bounds=[72,1955][890,2109] clickable=false
+16:56:05.956 collectDirect:   text='去完成' desc='' bounds=[884,1991][1113,2073] clickable=true
+16:56:05.956 collectDirect:   text='限时抽100份足金金条当前进度0，总进度1 逛5秒即得500肥，更有30万肥料可得' desc='' bounds=[72,2164][890,2318] clickable=false
+16:56:05.957 collectDirect:   text='去完成' desc='' bounds=[884,2200][1113,2282] clickable=true
+16:56:05.957 collectDirect:   text='农场对对碰匹配10组当前进度0，总进度1 可得500肥' desc='' bounds=[72,2371][890,2525] clickable=false
+16:56:05.957 collectDirect:   text='去完成' desc='' bounds=[884,2407][1113,2492] clickable=true
+16:56:05.958 collectDirect:   text='去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得' desc='' bounds=[72,2580][890,2666] clickable=false
+16:56:05.958 collectDirect:   text='去逛逛' desc='' bounds=[884,2616][1113,2666] clickable=true
+16:56:05.958 collectDirect:   text='蚂蚁庄园小鸡肥料 小鸡们产的肥料' desc='' bounds=[72,2787][890,2666] clickable=false
+16:56:05.959 collectDirect:   text='去喂鸡' desc='' bounds=[884,2823][1113,2666] clickable=true
+16:56:05.959 collectDirect:   text='逛一逛快手当前进度0，总进度1 成功打开得1200肥料' desc='' bounds=[72,2996][890,2666] clickable=false
+16:56:05.960 collectDirect:   text='去完成' desc='' bounds=[884,3032][1113,2666] clickable=true
+16:56:05.961 collectDirect:   text='添加农场到支付宝首页当前进度0，总进度1 添加成功得3000肥料' desc='' bounds=[72,3206][890,2666] clickable=false
+16:56:05.963 collectDirect:   text='去完成' desc='' bounds=[884,3238][1113,2666] clickable=true
+16:56:05.963 collectDirect:   text='去森林领落叶肥料 收落叶即得600肥料' desc='' bounds=[72,3412][890,2666] clickable=false
+16:56:05.964 collectDirect:   text='去完成' desc='' bounds=[884,3448][1113,2666] clickable=true
+16:56:05.964 collectDirect:   text='分享给好友当前进度0，总进度3 邀请好友助力得600肥料' desc='' bounds=[72,3622][890,2666] clickable=false
+16:56:05.964 collectDirect:   text='去分享' desc='' bounds=[884,3658][1113,2666] clickable=true
+16:56:05.965 collectDirect:   text='合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥' desc='' bounds=[72,3831][890,2666] clickable=false
+16:56:05.965 collectDirect:   text='去完成' desc='' bounds=[884,3864][1113,2666] clickable=true
+16:56:05.965 collectDirect:   text='逛一逛支付宝会员当前进度0，总进度1 奖励100肥料' desc='' bounds=[72,4038][890,2666] clickable=false
+16:56:05.966 collectDirect:   text='去逛逛' desc='' bounds=[884,4074][1113,2666] clickable=true
+16:56:05.966 collectDirect:   text='逛一逛点淘当前进度0，总进度1 奖励100肥料' desc='' bounds=[72,4247][890,2666] clickable=false
+16:56:05.966 collectDirect:   text='去完成' desc='' bounds=[884,4283][1113,2666] clickable=true
+16:56:05.967 collectDirect:   text='淘宝成就签到免费拿周边当前进度0，总进度1 奖励100肥料' desc='' bounds=[72,4454][890,2666] clickable=false
+16:56:05.967 collectDirect:   text='去完成' desc='' bounds=[884,4490][1113,2666] clickable=true
+16:56:05.968 collectDirect:   text='逛一逛今日头条当前进度0，总进度1 奖励900肥料' desc='' bounds=[72,4663][890,2666] clickable=false
+16:56:05.968 collectDirect:   text='去完成' desc='' bounds=[884,4699][1113,2666] clickable=true
+16:56:05.968 collectDirect:   text='逛一逛淘金币当前进度0，总进度1 奖励100肥料' desc='' bounds=[72,4869][890,2666] clickable=false
+16:56:05.968 collectDirect:   text='去完成' desc='' bounds=[884,4905][1113,2666] clickable=true
+16:56:05.969 collectDirect:   text='逛助农好货得肥料当前进度0，总进度1 浏览15秒助农专场，得100肥料' desc='' bounds=[72,5079][890,2666] clickable=false
+16:56:05.969 collectDirect:   text='去完成' desc='' bounds=[884,5115][1113,2666] clickable=true
+16:56:05.969 collectDirect:   text='砸蛋2次得500肥料当前进度0，总进度1 去玩小游戏得砸蛋机会' desc='' bounds=[72,5289][890,2666] clickable=false
+16:56:05.969 collectDirect:   text='去完成' desc='' bounds=[884,5321][1113,2666] clickable=true
+16:56:05.970 collectDirect:   text='玩一玩浪漫餐厅 访问即得，最多3500肥(0/3500)' desc='' bounds=[72,5495][890,2666] clickable=false
+16:56:05.970 collectDirect:   text='去完成' desc='' bounds=[884,5531][1113,2666] clickable=true
+16:56:05.970 collectDirect:   text='疯狂水世界探险船闯5关当前进度0，总进度1 可得500肥' desc='' bounds=[72,5705][890,2666] clickable=false
+16:56:05.970 collectDirect:   text='去完成' desc='' bounds=[884,5741][1113,2666] clickable=true
+16:56:05.971 collectDirect:   text='玩一玩生存33天 访问即得，最多3500肥(0/3500)' desc='' bounds=[72,5914][890,2666] clickable=false
+16:56:05.971 collectDirect:   text='去完成' desc='' bounds=[884,5947][1113,2666] clickable=true
+16:56:05.971 collectDirect:   text='逛一逛金豆乐园当前进度0，总进度1 访问即得200肥' desc='' bounds=[72,6120][890,2666] clickable=false
+16:56:05.972 collectDirect:   text='去完成' desc='' bounds=[884,6157][1113,2666] clickable=true
+16:56:05.972 collectDirect:   text='玩一玩我的花园世界 访问即得，最多3500肥(0/3500)' desc='' bounds=[72,6330][890,2666] clickable=false
+16:56:05.972 collectDirect:   text='去完成' desc='' bounds=[884,6366][1113,2666] clickable=true
+16:56:05.972 collectDirect:   text='到店支付1笔得100肥当前进度1，总进度1 今晚24点前可领奖' desc='' bounds=[72,6536][890,2666] clickable=false
+16:56:05.973 collectDirect:   text='100肥料' desc='' bounds=[884,6540][1113,2666] clickable=false
+16:56:05.973 collectDirect:   text='A*BlpJRJYmMOEAAAAAAAAAAAAAARQnAQ' desc='' bounds=[939,6546][982,2666] clickable=false
+16:56:05.973 collectDirect:   text='100' desc='' bounds=[989,6546][1061,2666] clickable=false
+16:56:05.973 collectDirect:   text='领取' desc='' bounds=[884,6605][1113,2666] clickable=true
+16:56:05.974 collectDirect:   text='前往手机淘宝-芭芭农场' desc='' bounds=[49,6726][1152,2666] clickable=true
+16:56:05.974 collectDirect:   text='' desc='返回' bounds=[26,127][105,271] clickable=true
+16:56:05.974 collectDirect:   text='' desc='' bounds=[26,163][98,235] clickable=false
+16:56:05.975 collectDirect:   text='支付宝·芭芭农场' desc='' bounds=[125,156][567,242] clickable=true
+16:56:05.975 collectDirect:   text='' desc='更多' bounds=[907,150][1039,249] clickable=true
+16:56:05.975 collectDirect:   text='' desc='更多' bounds=[944,163][1016,235] clickable=false
+16:56:05.976 collectDirect:   text='' desc='关闭' bounds=[1040,150][1172,249] clickable=true
+16:56:05.977 collectDirect:   text='' desc='' bounds=[1070,163][1142,235] clickable=false
+16:56:05.977 collectDirect: no direct buttons found at attempt=0, waiting 5000ms for page to fully load before retry
+16:56:11.505 collectDirect: found 0 direct buttons, attempt=1
+16:56:11.528 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+16:56:13.604 isOnFarmPage: no farm content, sample=[松开刷新, 蚂蚁庄园, 返回, , 蚂蚁庄园, 更多, , 更多]
+16:56:13.780 [openTaskList-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:56:13.791 [openTaskList-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+16:56:13.799 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+16:56:13.800 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+16:56:13.866 findCollectFertilizerButton: not found by text, root childCount=1
+16:56:13.891 openTaskList: [ALIPAY闭环] not on farm page (no entry button and not on farm), re-navigating instead of coordinate fallback
+16:56:13.893 state: OPENING_TASK_LIST -> NAVIGATING
+16:56:16.227 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:56:16.632 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:56:16.857 isOnFarmPage: root=null and no farm pkg window visible (activity fallback only, activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity), not on farm page
+16:56:16.887 [navigate-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:56:16.912 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:56:16.961 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:56:17.062 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:56:17.162 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:56:17.215 navigate: generic popup (no fertilizer), attempting to close
+16:56:17.262 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:56:17.346 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:56:17.428 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:56:17.465 navigate: clicking close button on generic popup (text='null')
+16:56:17.466 performClickSafe: text='' desc='关闭' bounds=[1040,150][1172,249] clickable=true
+16:56:17.490 performClickSafe: ACTION_CLICK success at depth=0
+16:56:22.506 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:56:22.559 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:56:22.562 navigate: calling navigateToFarm, platform=ALIPAY
+16:56:24.071 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=0)
+16:56:26.088 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=1)
+16:56:27.590 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:56:28.095 navigateAlipay: systemui still occupying screen after 2 retries, waiting (pkg=android)
+16:56:31.100 navigateAlipay: systemui still occupying screen after 3 retries, waiting (pkg=android)
+16:56:32.659 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:56:34.111 navigateAlipay: systemui still occupying screen after 4 retries, waiting (pkg=android)
+16:56:37.125 navigateAlipay: systemui still occupying screen after 5 retries, waiting (pkg=android)
+16:56:37.731 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:56:40.142 navigateAlipay: systemui still occupying screen after 6 retries, waiting (pkg=android)
+16:56:42.844 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:56:43.145 navigateAlipay: systemui still occupying screen after 7 retries, waiting (pkg=android)
+16:56:46.148 navigateAlipay: max retries reached, abort
+16:56:47.892 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:56:47.979 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:56:47.982 navigate: calling navigateToFarm, platform=ALIPAY
+16:56:49.492 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=0)
+16:56:51.510 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=1)
+16:56:52.993 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:56:53.516 navigateAlipay: systemui still occupying screen after 2 retries, waiting (pkg=android)
+16:56:56.519 navigateAlipay: systemui still occupying screen after 3 retries, waiting (pkg=android)
+16:56:58.053 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:56:59.531 navigateAlipay: systemui still occupying screen after 4 retries, waiting (pkg=android)
+16:57:02.536 navigateAlipay: systemui still occupying screen after 5 retries, waiting (pkg=android)
+16:57:03.120 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:57:05.545 navigateAlipay: systemui still occupying screen after 6 retries, waiting (pkg=android)
+16:57:08.201 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:57:08.549 navigateAlipay: systemui still occupying screen after 7 retries, waiting (pkg=android)
+16:57:11.551 navigateAlipay: max retries reached, abort
+16:57:13.263 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:57:13.316 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:57:13.322 navigate: calling navigateToFarm, platform=ALIPAY
+16:57:14.829 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=0)
+16:57:16.846 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=1)
+16:57:18.331 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:57:18.851 navigateAlipay: systemui still occupying screen after 2 retries, waiting (pkg=android)
+16:57:21.859 navigateAlipay: systemui still occupying screen after 3 retries, waiting (pkg=android)
+16:57:23.370 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:57:24.876 navigateAlipay: systemui still occupying screen after 4 retries, waiting (pkg=android)
+16:57:27.894 navigateAlipay: systemui still occupying screen after 5 retries, waiting (pkg=android)
+16:57:28.404 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:57:30.900 navigateAlipay: systemui still occupying screen after 6 retries, waiting (pkg=android)
+16:57:33.459 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:57:33.904 navigateAlipay: systemui still occupying screen after 7 retries, waiting (pkg=android)
+16:57:36.908 navigateAlipay: max retries reached, abort
+16:57:38.517 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:57:38.551 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:57:38.552 navigate: calling navigateToFarm, platform=ALIPAY
+16:57:40.058 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=0)
+16:57:42.065 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=1)
+16:57:43.561 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:57:44.068 navigateAlipay: systemui still occupying screen after 2 retries, waiting (pkg=android)
+16:57:47.071 navigateAlipay: systemui still occupying screen after 3 retries, waiting (pkg=android)
+16:57:48.616 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:57:50.080 navigateAlipay: systemui still occupying screen after 4 retries, waiting (pkg=android)
+16:57:53.085 navigateAlipay: systemui still occupying screen after 5 retries, waiting (pkg=android)
+16:57:53.653 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:57:56.094 navigateAlipay: systemui still occupying screen after 6 retries, waiting (pkg=android)
+16:57:58.715 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:57:59.097 navigateAlipay: systemui still occupying screen after 7 retries, waiting (pkg=android)
+16:58:02.102 navigateAlipay: max retries reached, abort
+16:58:03.780 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:58:03.821 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:58:03.824 navigate: calling navigateToFarm, platform=ALIPAY
+16:58:05.329 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=0)
+16:58:07.333 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=1)
+16:58:08.852 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:58:09.337 navigateAlipay: systemui still occupying screen after 2 retries, waiting (pkg=android)
+16:58:12.344 navigateAlipay: systemui still occupying screen after 3 retries, waiting (pkg=android)
+16:58:13.914 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:58:15.348 navigateAlipay: systemui still occupying screen after 4 retries, waiting (pkg=android)
+16:58:18.352 navigateAlipay: systemui still occupying screen after 5 retries, waiting (pkg=android)
+16:58:18.966 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:58:21.363 navigateAlipay: systemui still occupying screen after 6 retries, waiting (pkg=android)
+16:58:24.004 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:58:24.366 navigateAlipay: systemui still occupying screen after 7 retries, waiting (pkg=android)
+16:58:27.368 navigateAlipay: max retries reached, abort
+16:58:29.061 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:58:29.109 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:58:29.112 navigate: stepTab ineffective after 6 attempts (act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity), reopenFarmByDeepLink(killCurrentFirst=false)
+16:58:29.114 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+16:58:29.115 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching ALIPAY
+16:58:29.116 reopenFarmByDeepLink: no deep link for ALIPAY, killed + relaunch app, will navigate
+16:58:29.132 reopenFarmByDeepLink: relaunched ALIPAY (com.eg.android.AlipayGphone)
+16:58:34.143 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:58:34.179 [navigate-start] snapshot: pkg=null, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+16:58:34.218 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:58:34.220 navigate: calling navigateToFarm, platform=ALIPAY
+16:58:35.725 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=0)
+16:58:37.742 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=1)
+16:58:39.229 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:58:39.759 navigateAlipay: systemui still occupying screen after 2 retries, waiting (pkg=android)
+16:58:42.765 navigateAlipay: systemui still occupying screen after 3 retries, waiting (pkg=android)
+16:58:44.267 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:58:45.768 navigateAlipay: systemui still occupying screen after 4 retries, waiting (pkg=android)
+16:58:48.779 navigateAlipay: systemui still occupying screen after 5 retries, waiting (pkg=android)
+16:58:49.331 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:58:51.786 navigateAlipay: systemui still occupying screen after 6 retries, waiting (pkg=android)
+16:58:54.386 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:58:54.788 navigateAlipay: systemui still occupying screen after 7 retries, waiting (pkg=android)
+16:58:57.791 navigateAlipay: max retries reached, abort
+16:58:59.431 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:58:59.511 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:58:59.514 navigate: calling navigateToFarm, platform=ALIPAY
+16:59:01.027 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=0)
+16:59:03.036 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=1)
+16:59:04.537 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:59:05.050 navigateAlipay: systemui still occupying screen after 2 retries, waiting (pkg=android)
+16:59:08.060 navigateAlipay: systemui still occupying screen after 3 retries, waiting (pkg=android)
+16:59:09.613 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:59:11.069 navigateAlipay: systemui still occupying screen after 4 retries, waiting (pkg=android)
+16:59:14.079 navigateAlipay: systemui still occupying screen after 5 retries, waiting (pkg=android)
+16:59:14.663 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:59:17.083 navigateAlipay: systemui still occupying screen after 6 retries, waiting (pkg=android)
+16:59:19.703 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:59:20.085 navigateAlipay: systemui still occupying screen after 7 retries, waiting (pkg=android)
+16:59:23.089 navigateAlipay: max retries reached, abort
+16:59:24.756 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:59:24.818 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:59:24.820 navigate: calling navigateToFarm, platform=ALIPAY
+16:59:26.326 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=0)
+16:59:28.335 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=1)
+16:59:29.829 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:59:30.345 navigateAlipay: systemui still occupying screen after 2 retries, waiting (pkg=android)
+16:59:33.349 navigateAlipay: systemui still occupying screen after 3 retries, waiting (pkg=android)
+16:59:34.886 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:59:36.351 navigateAlipay: systemui still occupying screen after 4 retries, waiting (pkg=android)
+16:59:39.356 navigateAlipay: systemui still occupying screen after 5 retries, waiting (pkg=android)
+16:59:39.950 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:59:42.362 navigateAlipay: systemui still occupying screen after 6 retries, waiting (pkg=android)
+16:59:44.987 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:59:45.365 navigateAlipay: systemui still occupying screen after 7 retries, waiting (pkg=android)
+16:59:48.368 navigateAlipay: max retries reached, abort
+16:59:50.023 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:59:50.089 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+16:59:50.092 navigate: calling navigateToFarm, platform=ALIPAY
+16:59:51.599 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=0)
+16:59:53.604 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=1)
+16:59:55.101 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+16:59:55.610 navigateAlipay: systemui still occupying screen after 2 retries, waiting (pkg=android)
+16:59:58.613 navigateAlipay: systemui still occupying screen after 3 retries, waiting (pkg=android)
+17:00:00.131 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:00:01.633 navigateAlipay: systemui still occupying screen after 4 retries, waiting (pkg=android)
+17:00:04.639 navigateAlipay: systemui still occupying screen after 5 retries, waiting (pkg=android)
+17:00:05.188 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:00:07.647 navigateAlipay: systemui still occupying screen after 6 retries, waiting (pkg=android)
+17:00:10.266 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:00:10.652 navigateAlipay: systemui still occupying screen after 7 retries, waiting (pkg=android)
+17:00:13.655 navigateAlipay: max retries reached, abort
+17:00:15.332 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:00:15.417 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+17:00:15.421 navigate: calling navigateToFarm, platform=ALIPAY
+17:00:16.932 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=0)
+17:00:18.939 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=1)
+17:00:20.448 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:00:20.960 navigateAlipay: systemui still occupying screen after 2 retries, waiting (pkg=android)
+17:00:23.965 navigateAlipay: systemui still occupying screen after 3 retries, waiting (pkg=android)
+17:00:25.494 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:00:26.969 navigateAlipay: systemui still occupying screen after 4 retries, waiting (pkg=android)
+17:00:29.973 navigateAlipay: systemui still occupying screen after 5 retries, waiting (pkg=android)
+17:00:30.547 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:00:32.985 navigateAlipay: systemui still occupying screen after 6 retries, waiting (pkg=android)
+17:00:35.605 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:00:35.996 navigateAlipay: systemui still occupying screen after 7 retries, waiting (pkg=android)
+17:00:39.001 navigateAlipay: max retries reached, abort
+17:00:40.651 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:00:40.740 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+17:00:40.771 navigate: calling navigateToFarm, platform=ALIPAY
+17:00:42.279 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=0)
+17:00:44.288 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=1)
+17:00:45.786 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:00:46.301 navigateAlipay: systemui still occupying screen after 2 retries, waiting (pkg=android)
+17:00:49.306 navigateAlipay: systemui still occupying screen after 3 retries, waiting (pkg=android)
+17:00:50.852 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:00:52.316 navigateAlipay: systemui still occupying screen after 4 retries, waiting (pkg=android)
+17:00:55.334 navigateAlipay: systemui still occupying screen after 5 retries, waiting (pkg=com.android.systemui)
+17:00:55.924 ensureScreenOn: screen was off (AOD/lock), wake lock acquired to turn screen on
+17:00:56.072 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:00:58.344 navigateAlipay: systemui still occupying screen after 6 retries, waiting (pkg=android)
+17:01:01.349 navigateAlipay: systemui still occupying screen after 7 retries, waiting (pkg=android)
+17:01:01.552 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:01:04.352 navigateAlipay: max retries reached, abort
+17:01:06.600 ensureScreenOn: screen was off (AOD/lock), wake lock acquired to turn screen on
+17:01:06.746 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:01:07.196 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+17:01:07.200 navigate: stepTab ineffective after 6 attempts (act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity), reopenFarmByDeepLink(killCurrentFirst=false)
+17:01:07.203 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+17:01:07.204 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching ALIPAY
+17:01:07.204 reopenFarmByDeepLink: no deep link for ALIPAY, killed + relaunch app, will navigate
+17:01:07.230 reopenFarmByDeepLink: relaunched ALIPAY (com.eg.android.AlipayGphone)
+17:01:12.249 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:01:12.329 [navigate-start] snapshot: pkg=null, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+17:01:12.428 isFarmAppInForeground: windows miss farm pkg, but activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity matches farm keywords, treat as in farm app (weak signal, requires content check)
+17:01:12.431 navigate: calling navigateToFarm, platform=ALIPAY
+17:01:13.941 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=0)
+17:01:15.957 navigateAlipay: active root pkg=android (systemui popup), pressing back to dismiss (retry=1)
+17:01:17.460 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:01:17.967 navigateAlipay: systemui still occupying screen after 2 retries, waiting (pkg=android)
+17:01:20.977 navigateAlipay: systemui still occupying screen after 3 retries, waiting (pkg=android)
+17:01:22.566 isOnFarmPage: activeRootPkg='android' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:01:23.985 navigateAlipay: systemui still occupying screen after 4 retries, waiting (pkg=android)
+17:01:26.990 navigateAlipay: active root pkg=com.hihonor.aod is another user app (not systemui/launcher), waiting silently for user to switch back to farm app
+17:14:23.035 ensureScreenOn: screen was off (AOD/lock), wake lock acquired to turn screen on
+17:14:23.249 isOnFarmPage: activeRootPkg='com.android.systemui' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+17:14:24.113 navigateAlipay: systemui still occupying screen after 6 retries, waiting (pkg=com.android.systemui)
+17:14:27.251 navigateAlipay: no search or farm entry found, pressing back to exit sub-page (retry=7)
+17:14:30.167 navigate: on farm page, platform=ALIPAY
+17:14:30.188 hasFarmContentLoaded: text count=193, sample=[松开刷新, 芭芭农场游戏内容, 还差4次领肥料, 游戏对象提示, 任务列表, 农场乐园入口, 农场页面控件, 切换摇钱树, 抽抽乐, 逛农货]
+17:14:30.192 hasFarmContentLoaded: realContent count=174
+17:14:30.202 findCollectFertilizerButton: found by text='集肥料' bounds=[0,880][1202,1025]
+17:14:30.203 navigate: hasFarmContentLoaded=true, hasCoreEntry=true, attempt=1
+17:14:30.235 state: NAVIGATING -> COLLECTING_DIRECT
+17:14:30.237 navigateAlipay: automation running (state=COLLECTING_DIRECT), abort
+17:14:32.448 [collectDirect-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+17:14:32.466 [collectDirect-start] claim-text-nodes (count=4):
+17:14:32.468 [collectDirect-start]   text='还差4次领肥料' desc='' bounds=[438,589][763,671] clickable=true
+17:14:32.469 [collectDirect-start]   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+17:14:32.469 [collectDirect-start]   text='领取' desc='' bounds=[884,1817][1113,1902] clickable=true
+17:14:32.470 [collectDirect-start]   text='领取' desc='' bounds=[884,6608][1113,2666] clickable=true
+17:14:32.481 collectDirect: found 0 direct buttons, attempt=0
+17:14:32.538 collectDirect: dump all text/desc nodes (count=192) for '点击领取' diagnosis:
+17:14:32.539 collectDirect:   text='松开刷新' desc='' bounds=[522,0][678,-45] clickable=false
+17:14:32.539 collectDirect:   text='芭芭农场游戏内容' desc='' bounds=[0,0][1202,1617] clickable=false
+17:14:32.539 collectDirect:   text='还差4次领肥料' desc='' bounds=[438,589][763,671] clickable=true
+17:14:32.540 collectDirect:   text='游戏对象提示' desc='' bounds=[0,0][1202,1617] clickable=false
+17:14:32.540 collectDirect:   text='任务列表' desc='' bounds=[949,1021][1175,1247] clickable=true
+17:14:32.541 collectDirect:   text='农场乐园入口' desc='' bounds=[39,1018][248,1247] clickable=true
+17:14:32.541 collectDirect:   text='农场页面控件' desc='' bounds=[0,0][1202,1617] clickable=false
+17:14:32.541 collectDirect:   text='切换摇钱树' desc='' bounds=[36,0][199,-465] clickable=true
+17:14:32.542 collectDirect:   text='抽抽乐' desc='' bounds=[36,0][199,-278] clickable=true
+17:14:32.542 collectDirect:   text='逛农货' desc='' bounds=[36,0][199,-91] clickable=true
+17:14:32.542 collectDirect:   text='我的收获' desc='' bounds=[1048,0][1165,-442] clickable=true
+17:14:32.543 collectDirect:   text='芭芭农场,种果树得水果，助农增收' desc='' bounds=[225,0][975,-409] clickable=false
+17:14:32.544 collectDirect:   text='钓红包' desc='' bounds=[58,1339][258,1562] clickable=true
+17:14:32.546 collectDirect:   text='亲友树' desc='' bounds=[294,1339][465,1509] clickable=false
+17:14:32.547 collectDirect:   text='发起合种' desc='' bounds=[307,1499][451,1545] clickable=false
+17:14:32.548 collectDirect:   text='得1000肥 向僵尸开炮' desc='' bounds=[501,1339][700,1562] clickable=true
+17:14:32.548 collectDirect:   text='四季物语' desc='' bounds=[723,1339][920,1562] clickable=true
+17:14:32.549 collectDirect:   text='灵画师' desc='' bounds=[943,1339][1142,1562] clickable=true
+17:14:32.549 collectDirect:   text='玩60秒几何王国 肥料 +1000 玩游戏' desc='' bounds=[22,1640][589,2652] clickable=false
+17:14:32.550 collectDirect:   text='玩60秒几何王国' desc='' bounds=[49,2430][353,2482] clickable=false
+17:14:32.550 collectDirect:   text='肥料' desc='' bounds=[124,2541][209,2593] clickable=false
+17:14:32.551 collectDirect:   text='+' desc='' bounds=[206,2541][235,2593] clickable=false
+17:14:32.552 collectDirect:   text='1000' desc='' bounds=[232,2541][334,2593] clickable=false
+17:14:32.552 collectDirect:   text='玩游戏' desc='' bounds=[402,2541][533,2593] clickable=false
+17:14:32.553 collectDirect:   text='玩60秒青云诀 肥料 +1000 玩游戏' desc='' bounds=[605,1640][1172,2652] clickable=false
+17:14:32.553 collectDirect:   text='玩60秒青云诀' desc='' bounds=[632,2430][894,2482] clickable=false
+17:14:32.554 collectDirect:   text='肥料' desc='' bounds=[704,2541][792,2593] clickable=false
+17:14:32.554 collectDirect:   text='+' desc='' bounds=[789,2541][818,2593] clickable=false
+17:14:32.555 collectDirect:   text='1000' desc='' bounds=[815,2541][917,2593] clickable=false
+17:14:32.556 collectDirect:   text='玩游戏' desc='' bounds=[985,2541][1116,2593] clickable=false
+17:14:32.556 collectDirect:   text='玩60秒龙迹之城 肥料 +1000 玩游戏' desc='' bounds=[22,2665][589,2666] clickable=false
+17:14:32.557 collectDirect:   text='玩60秒龙迹之城' desc='' bounds=[49,3455][353,2666] clickable=false
+17:14:32.557 collectDirect:   text='肥料' desc='' bounds=[124,3566][209,2666] clickable=false
+17:14:32.558 collectDirect:   text='+' desc='' bounds=[206,3566][235,2666] clickable=false
+17:14:32.558 collectDirect:   text='1000' desc='' bounds=[232,3566][334,2666] clickable=false
+17:14:32.558 collectDirect:   text='玩游戏' desc='' bounds=[402,3566][533,2666] clickable=false
+17:14:32.558 collectDirect:   text='玩30秒小小英雄 肥料 +300 玩游戏' desc='' bounds=[605,2665][1172,2666] clickable=false
+17:14:32.559 collectDirect:   text='玩30秒小小英雄' desc='' bounds=[632,3455][933,2666] clickable=false
+17:14:32.559 collectDirect:   text='肥料' desc='' bounds=[704,3566][792,2666] clickable=false
+17:14:32.559 collectDirect:   text='+' desc='' bounds=[789,3566][818,2666] clickable=false
+17:14:32.559 collectDirect:   text='300' desc='' bounds=[815,3566][894,2666] clickable=false
+17:14:32.560 collectDirect:   text='玩游戏' desc='' bounds=[985,3566][1116,2666] clickable=false
+17:14:32.560 collectDirect:   text='玩30秒原始传奇 肥料 +300 玩游戏' desc='' bounds=[22,3690][589,2666] clickable=false
+17:14:32.560 collectDirect:   text='玩30秒原始传奇' desc='' bounds=[49,4480][353,2666] clickable=false
+17:14:32.561 collectDirect:   text='肥料' desc='' bounds=[124,4591][209,2666] clickable=false
+17:14:32.561 collectDirect:   text='+' desc='' bounds=[206,4591][235,2666] clickable=false
+17:14:32.562 collectDirect:   text='300' desc='' bounds=[232,4591][311,2666] clickable=false
+17:14:32.563 collectDirect:   text='玩游戏' desc='' bounds=[402,4591][533,2666] clickable=false
+17:14:32.563 collectDirect:   text='玩30秒春秋玄奇 肥料 +300 玩游戏' desc='' bounds=[605,3690][1172,2666] clickable=false
+17:14:32.563 collectDirect:   text='玩30秒春秋玄奇' desc='' bounds=[632,4480][933,2666] clickable=false
+17:14:32.564 collectDirect:   text='肥料' desc='' bounds=[704,4591][792,2666] clickable=false
+17:14:32.564 collectDirect:   text='+' desc='' bounds=[789,4591][818,2666] clickable=false
+17:14:32.565 collectDirect:   text='300' desc='' bounds=[815,4591][894,2666] clickable=false
+17:14:32.565 collectDirect:   text='玩游戏' desc='' bounds=[985,4591][1116,2666] clickable=false
+17:14:32.565 collectDirect:   text='玩30秒英雄冒险团 肥料 +300 玩游戏' desc='' bounds=[22,4716][589,2666] clickable=false
+17:14:32.566 collectDirect:   text='玩30秒英雄冒险团' desc='' bounds=[49,5505][393,2666] clickable=false
+17:14:32.566 collectDirect:   text='肥料' desc='' bounds=[124,5616][209,2666] clickable=false
+17:14:32.566 collectDirect:   text='+' desc='' bounds=[206,5616][235,2666] clickable=false
+17:14:32.567 collectDirect:   text='300' desc='' bounds=[232,5616][311,2666] clickable=false
+17:14:32.567 collectDirect:   text='玩游戏' desc='' bounds=[402,5616][533,2666] clickable=false
+17:14:32.567 collectDirect:   text='玩60秒向僵尸开炮 肥料 +1000 玩游戏' desc='' bounds=[605,4716][1172,2666] clickable=false
+17:14:32.568 collectDirect:   text='玩60秒向僵尸开炮' desc='' bounds=[632,5505][975,2666] clickable=false
+17:14:32.568 collectDirect:   text='肥料' desc='' bounds=[704,5616][792,2666] clickable=false
+17:14:32.568 collectDirect:   text='+' desc='' bounds=[789,5616][818,2666] clickable=false
+17:14:32.569 collectDirect:   text='1000' desc='' bounds=[815,5616][917,2666] clickable=false
+17:14:32.569 collectDirect:   text='玩游戏' desc='' bounds=[985,5616][1116,2666] clickable=false
+17:14:32.569 collectDirect:   text='玩60秒三国冰河 肥料 +1000 玩游戏' desc='' bounds=[22,5741][589,2666] clickable=false
+17:14:32.570 collectDirect:   text='玩60秒三国冰河' desc='' bounds=[49,6530][353,2666] clickable=false
+17:14:32.570 collectDirect:   text='肥料' desc='' bounds=[124,6641][209,2666] clickable=false
+17:14:32.570 collectDirect:   text='+' desc='' bounds=[206,6641][235,2666] clickable=false
+17:14:32.570 collectDirect:   text='1000' desc='' bounds=[232,6641][334,2666] clickable=false
+17:14:32.571 collectDirect:   text='玩游戏' desc='' bounds=[402,6641][533,2666] clickable=false
+17:14:32.571 collectDirect:   text='玩60秒四季物语 肥料 +1000 玩游戏' desc='' bounds=[605,5741][1172,2666] clickable=false
+17:14:32.571 collectDirect:   text='玩60秒四季物语' desc='' bounds=[632,6530][933,2666] clickable=false
+17:14:32.572 collectDirect:   text='肥料' desc='' bounds=[704,6641][792,2666] clickable=false
+17:14:32.572 collectDirect:   text='+' desc='' bounds=[789,6641][818,2666] clickable=false
+17:14:32.572 collectDirect:   text='1000' desc='' bounds=[815,6641][917,2666] clickable=false
+17:14:32.573 collectDirect:   text='玩游戏' desc='' bounds=[985,6641][1116,2666] clickable=false
+17:14:32.573 collectDirect:   text='玩60秒约战沙城 肥料 +1000 玩游戏' desc='' bounds=[22,6762][589,2666] clickable=false
+17:14:32.573 collectDirect:   text='玩60秒约战沙城' desc='' bounds=[49,7555][353,2666] clickable=false
+17:14:32.573 collectDirect:   text='肥料' desc='' bounds=[124,7663][209,2666] clickable=false
+17:14:32.574 collectDirect:   text='+' desc='' bounds=[206,7663][235,2666] clickable=false
+17:14:32.574 collectDirect:   text='1000' desc='' bounds=[232,7663][334,2666] clickable=false
+17:14:32.575 collectDirect:   text='玩游戏' desc='' bounds=[402,7666][533,2666] clickable=false
+17:14:32.575 collectDirect:   text='玩30秒山海北荒卷 肥料 +300 玩游戏' desc='' bounds=[605,6762][1172,2666] clickable=false
+17:14:32.576 collectDirect:   text='玩30秒山海北荒卷' desc='' bounds=[632,7555][975,2666] clickable=false
+17:14:32.576 collectDirect:   text='肥料' desc='' bounds=[704,7663][792,2666] clickable=false
+17:14:32.576 collectDirect:   text='+' desc='' bounds=[789,7663][818,2666] clickable=false
+17:14:32.577 collectDirect:   text='300' desc='' bounds=[815,7663][894,2666] clickable=false
+17:14:32.577 collectDirect:   text='玩游戏' desc='' bounds=[985,7666][1116,2666] clickable=false
+17:14:32.578 collectDirect:   text='玩30秒武侠大明星 肥料 +300 玩游戏' desc='' bounds=[22,7787][589,2666] clickable=false
+17:14:32.578 collectDirect:   text='玩30秒武侠大明星' desc='' bounds=[49,8580][393,2666] clickable=false
+17:14:32.578 collectDirect:   text='肥料' desc='' bounds=[124,8688][209,2666] clickable=false
+17:14:32.579 collectDirect:   text='+' desc='' bounds=[206,8688][235,2666] clickable=false
+17:14:32.579 collectDirect:   text='300' desc='' bounds=[232,8688][311,2666] clickable=false
+17:14:32.580 collectDirect:   text='玩游戏' desc='' bounds=[402,8688][533,2666] clickable=false
+17:14:32.580 collectDirect:   text='玩60秒寻道大千 肥料 +1000 玩游戏' desc='' bounds=[605,7787][1172,2666] clickable=false
+17:14:32.581 collectDirect:   text='玩60秒寻道大千' desc='' bounds=[632,8580][933,2666] clickable=false
+17:14:32.581 collectDirect:   text='肥料' desc='' bounds=[704,8688][792,2666] clickable=false
+17:14:32.581 collectDirect:   text='+' desc='' bounds=[789,8688][818,2666] clickable=false
+17:14:32.582 collectDirect:   text='1000' desc='' bounds=[815,8688][917,2666] clickable=false
+17:14:32.582 collectDirect:   text='玩游戏' desc='' bounds=[985,8688][1116,2666] clickable=false
+17:14:32.582 collectDirect:   text='玩60秒快来当领主 肥料 +1000 玩游戏' desc='' bounds=[22,8813][589,2666] clickable=false
+17:14:32.583 collectDirect:   text='玩60秒快来当领主' desc='' bounds=[49,9605][393,2666] clickable=false
+17:14:32.583 collectDirect:   text='肥料' desc='' bounds=[124,9713][209,2666] clickable=false
+17:14:32.583 collectDirect:   text='+' desc='' bounds=[206,9713][235,2666] clickable=false
+17:14:32.583 collectDirect:   text='1000' desc='' bounds=[232,9713][334,2666] clickable=false
+17:14:32.584 collectDirect:   text='玩游戏' desc='' bounds=[402,9713][533,2666] clickable=false
+17:14:32.584 collectDirect:   text='玩30秒英雄没有闪 肥料 +300 玩游戏' desc='' bounds=[605,8813][1172,2666] clickable=false
+17:14:32.585 collectDirect:   text='玩30秒英雄没有闪' desc='' bounds=[632,9605][975,2666] clickable=false
+17:14:32.585 collectDirect:   text='肥料' desc='' bounds=[704,9713][792,2666] clickable=false
+17:14:32.585 collectDirect:   text='+' desc='' bounds=[789,9713][818,2666] clickable=false
+17:14:32.585 collectDirect:   text='300' desc='' bounds=[815,9713][894,2666] clickable=false
+17:14:32.586 collectDirect:   text='玩游戏' desc='' bounds=[985,9713][1116,2666] clickable=false
+17:14:32.586 collectDirect:   text='引导标语' desc='' bounds=[117,147][707,242] clickable=false
+17:14:32.586 collectDirect:   text='做任务集肥料' desc='' bounds=[0,880][1202,1025] clickable=false
+17:14:32.587 collectDirect:   text='关闭做任务集肥料弹窗' desc='' bounds=[998,858][1100,956] clickable=true
+17:14:32.587 collectDirect:   text='今天可领500肥料' desc='' bounds=[65,1048][229,1237] clickable=false
+17:14:32.587 collectDirect:   text='第2天可领600肥料' desc='' bounds=[225,1048][389,1237] clickable=false
+17:14:32.587 collectDirect:   text='第3天可领最多1万肥料' desc='' bounds=[386,1048][550,1237] clickable=false
+17:14:32.588 collectDirect:   text='第4天可领600肥料' desc='' bounds=[546,1048][710,1237] clickable=false
+17:14:32.588 collectDirect:   text='第5天可领600肥料' desc='' bounds=[707,1048][871,1237] clickable=false
+17:14:32.588 collectDirect:   text='第6天可领600肥料' desc='' bounds=[867,1048][1031,1237] clickable=false
+17:14:32.589 collectDirect:   text='第7天可领最多2万肥料' desc='' bounds=[1025,1048][1192,1237] clickable=false
+17:14:32.589 collectDirect:   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+17:14:32.589 collectDirect:   text='连续签到任务规则' desc='' bounds=[1087,1031][1136,1080] clickable=true
+17:14:32.589 collectDirect:   text='大圣顶住开10个宝箱当前进度0，总进度1 可得500肥' desc='' bounds=[72,1332][890,1486] clickable=false
+17:14:32.590 collectDirect:   text='去完成' desc='' bounds=[884,1368][1113,1450] clickable=true
+17:14:32.590 collectDirect:   text='看精选商品得肥料当前进度0，总进度3 每浏览15s最高得2000肥' desc='' bounds=[72,1542][890,1696] clickable=false
+17:14:32.590 collectDirect:   text='去完成' desc='' bounds=[884,1578][1113,1660] clickable=true
+17:14:32.590 collectDirect:   text='逛一逛蚂蚁庄园当前进度1，总进度1 限时加倍，浏览即得500肥' desc='' bounds=[72,1748][890,1902] clickable=false
+17:14:32.591 collectDirect:   text='500肥料' desc='' bounds=[884,1752][1113,1814] clickable=false
+17:14:32.591 collectDirect:   text='A*BlpJRJYmMOEAAAAAAAAAAAAAARQnAQ' desc='' bounds=[939,1758][982,1807] clickable=false
+17:14:32.591 collectDirect:   text='500' desc='' bounds=[989,1758][1061,1807] clickable=false
+17:14:32.591 collectDirect:   text='领取' desc='' bounds=[884,1817][1113,1902] clickable=true
+17:14:32.592 collectDirect:   text='逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金' desc='' bounds=[72,1958][890,2112] clickable=false
+17:14:32.592 collectDirect:   text='去完成' desc='' bounds=[884,1994][1113,2076] clickable=true
+17:14:32.592 collectDirect:   text='限时抽100份足金金条当前进度0，总进度1 逛5秒即得500肥，更有30万肥料可得' desc='' bounds=[72,2164][890,2321] clickable=false
+17:14:32.592 collectDirect:   text='去完成' desc='' bounds=[884,2200][1113,2285] clickable=true
+17:14:32.593 collectDirect:   text='农场对对碰匹配10组当前进度0，总进度1 可得500肥' desc='' bounds=[72,2374][890,2528] clickable=false
+17:14:32.593 collectDirect:   text='去完成' desc='' bounds=[884,2410][1113,2495] clickable=true
+17:14:32.593 collectDirect:   text='去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得' desc='' bounds=[72,2583][890,2666] clickable=false
+17:14:32.594 collectDirect:   text='去逛逛' desc='' bounds=[884,2616][1113,2666] clickable=true
+17:14:32.595 collectDirect:   text='蚂蚁庄园小鸡肥料 小鸡们产的肥料' desc='' bounds=[72,2790][890,2666] clickable=false
+17:14:32.596 collectDirect:   text='去喂鸡' desc='' bounds=[884,2826][1113,2666] clickable=true
+17:14:32.597 collectDirect:   text='逛一逛快手当前进度0，总进度1 成功打开得1200肥料' desc='' bounds=[72,2999][890,2666] clickable=false
+17:14:32.597 collectDirect:   text='去完成' desc='' bounds=[884,3035][1113,2666] clickable=true
+17:14:32.598 collectDirect:   text='添加农场到支付宝首页当前进度0，总进度1 添加成功得3000肥料' desc='' bounds=[72,3209][890,2666] clickable=false
+17:14:32.598 collectDirect:   text='去完成' desc='' bounds=[884,3242][1113,2666] clickable=true
+17:14:32.599 collectDirect:   text='去森林领落叶肥料 收落叶即得600肥料' desc='' bounds=[72,3415][890,2666] clickable=false
+17:14:32.599 collectDirect:   text='去完成' desc='' bounds=[884,3451][1113,2666] clickable=true
+17:14:32.600 collectDirect:   text='分享给好友当前进度0，总进度3 邀请好友助力得600肥料' desc='' bounds=[72,3625][890,2666] clickable=false
+17:14:32.600 collectDirect:   text='去分享' desc='' bounds=[884,3661][1113,2666] clickable=true
+17:14:32.600 collectDirect:   text='合种/帮帮种多人施肥当前进度0，总进度1 得500肥，需2人施肥' desc='' bounds=[72,3831][890,2666] clickable=false
+17:14:32.601 collectDirect:   text='去完成' desc='' bounds=[884,3867][1113,2666] clickable=true
+17:14:32.601 collectDirect:   text='逛一逛支付宝会员当前进度0，总进度1 奖励100肥料' desc='' bounds=[72,4041][890,2666] clickable=false
+17:14:32.601 collectDirect:   text='去逛逛' desc='' bounds=[884,4077][1113,2666] clickable=true
+17:14:32.602 collectDirect:   text='逛一逛点淘当前进度0，总进度1 奖励100肥料' desc='' bounds=[72,4247][890,2666] clickable=false
+17:14:32.602 collectDirect:   text='去完成' desc='' bounds=[884,4283][1113,2666] clickable=true
+17:14:32.602 collectDirect:   text='淘宝成就签到免费拿周边当前进度0，总进度1 奖励100肥料' desc='' bounds=[72,4457][890,2666] clickable=false
+17:14:32.602 collectDirect:   text='去完成' desc='' bounds=[884,4493][1113,2666] clickable=true
+17:14:32.603 collectDirect:   text='逛一逛今日头条当前进度0，总进度1 奖励900肥料' desc='' bounds=[72,4666][890,2666] clickable=false
+17:14:32.603 collectDirect:   text='去完成' desc='' bounds=[884,4699][1113,2666] clickable=true
+17:14:32.603 collectDirect:   text='逛一逛淘金币当前进度0，总进度1 奖励100肥料' desc='' bounds=[72,4873][890,2666] clickable=false
+17:14:32.603 collectDirect:   text='去完成' desc='' bounds=[884,4909][1113,2666] clickable=true
+17:14:32.604 collectDirect:   text='逛助农好货得肥料当前进度0，总进度1 浏览15秒助农专场，得100肥料' desc='' bounds=[72,5082][890,2666] clickable=false
+17:14:32.604 collectDirect:   text='去完成' desc='' bounds=[884,5118][1113,2666] clickable=true
+17:14:32.604 collectDirect:   text='砸蛋2次得500肥料当前进度0，总进度1 去玩小游戏得砸蛋机会' desc='' bounds=[72,5292][890,2666] clickable=false
+17:14:32.605 collectDirect:   text='去完成' desc='' bounds=[884,5325][1113,2666] clickable=true
+17:14:32.605 collectDirect:   text='玩一玩浪漫餐厅 访问即得，最多3500肥(0/3500)' desc='' bounds=[72,5498][890,2666] clickable=false
+17:14:32.605 collectDirect:   text='去完成' desc='' bounds=[884,5534][1113,2666] clickable=true
+17:14:32.605 collectDirect:   text='疯狂水世界探险船闯5关当前进度0，总进度1 可得500肥' desc='' bounds=[72,5708][890,2666] clickable=false
+17:14:32.605 collectDirect:   text='去完成' desc='' bounds=[884,5744][1113,2666] clickable=true
+17:14:32.606 collectDirect:   text='玩一玩生存33天 访问即得，最多3500肥(0/3500)' desc='' bounds=[72,5914][890,2666] clickable=false
+17:14:32.606 collectDirect:   text='去完成' desc='' bounds=[884,5950][1113,2666] clickable=true
+17:14:32.606 collectDirect:   text='逛一逛金豆乐园当前进度0，总进度1 访问即得200肥' desc='' bounds=[72,6124][890,2666] clickable=false
+17:14:32.607 collectDirect:   text='去完成' desc='' bounds=[884,6160][1113,2666] clickable=true
+17:14:32.607 collectDirect:   text='玩一玩我的花园世界 访问即得，最多3500肥(0/3500)' desc='' bounds=[72,6333][890,2666] clickable=false
+17:14:32.607 collectDirect:   text='去完成' desc='' bounds=[884,6366][1113,2666] clickable=true
+17:14:32.607 collectDirect:   text='到店支付1笔得100肥当前进度1，总进度1 今晚24点前可领奖' desc='' bounds=[72,6540][890,2666] clickable=false
+17:14:32.608 collectDirect:   text='100肥料' desc='' bounds=[884,6543][1113,2666] clickable=false
+17:14:32.608 collectDirect:   text='A*BlpJRJYmMOEAAAAAAAAAAAAAARQnAQ' desc='' bounds=[939,6550][982,2666] clickable=false
+17:14:32.608 collectDirect:   text='100' desc='' bounds=[989,6550][1061,2666] clickable=false
+17:14:32.608 collectDirect:   text='领取' desc='' bounds=[884,6608][1113,2666] clickable=true
+17:14:32.609 collectDirect:   text='前往手机淘宝-芭芭农场' desc='' bounds=[49,6726][1152,2666] clickable=true
+17:14:32.609 collectDirect:   text='' desc='返回' bounds=[26,127][105,271] clickable=true
+17:14:32.609 collectDirect:   text='' desc='' bounds=[26,163][98,235] clickable=false
+17:14:32.609 collectDirect:   text='支付宝·芭芭农场' desc='' bounds=[125,156][567,242] clickable=true
+17:14:32.610 collectDirect:   text='' desc='更多' bounds=[907,150][1039,249] clickable=true
+17:14:32.612 collectDirect:   text='' desc='更多' bounds=[944,163][1016,235] clickable=false
+17:14:32.613 collectDirect:   text='' desc='关闭' bounds=[1040,150][1172,249] clickable=true
+17:14:32.613 collectDirect:   text='' desc='' bounds=[1070,163][1142,235] clickable=false
+17:14:32.614 collectDirect: no direct buttons found at attempt=0, waiting 5000ms for page to fully load before retry
+17:14:37.643 collectDirect: found 0 direct buttons, attempt=1
+17:14:37.671 findCrossPlatformJumpButton: found text=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得' bounds=[72,2583][890,2666] clickable=false
+17:14:37.674 collectDirect: cross-platform jump ' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得' → TAOBAO, entering SWITCHING_PLATFORM
+17:14:37.677 performClickSafe: text=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即' desc='' bounds=[72,2583][890,2666] clickable=false
+17:14:37.680 performClickSafe: ACTION_CLICK failed, trying gesture
+17:14:37.681 dispatchGesture: screen=[[72,2583][890,2666]] window=[[0,0][0,0]]
+17:14:37.682 dispatchGesture: not in popup, screen bounds valid, click at (481.0, 2624.5)
+17:14:37.689 state: COLLECTING_DIRECT -> SWITCHING_PLATFORM
+17:14:43.479 [switchPlatform-LAUNCH_TARGET] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+17:14:43.496 [switchPlatform-LAUNCH_TARGET] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+17:14:43.498 switchPlatform: stage=LAUNCH_TARGET, retry=0, target=TAOBAO, original=ALIPAY
+17:14:43.512 switchPlatform: target TAOBAO already loaded (auto-jump), navigating to farm
+17:14:43.513 cancelNavigation: all navigation callbacks cancelled
+17:14:54.749 [switchPlatform-NAVIGATE_TARGET_FARM] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+17:14:54.763 [switchPlatform-NAVIGATE_TARGET_FARM] claim-text-nodes (count=3):
+17:14:54.765 [switchPlatform-NAVIGATE_TARGET_FARM]   text='2000，肥料，点击领取' desc='' bounds=[966,1441][1179,1676] clickable=true
+17:14:54.768 [switchPlatform-NAVIGATE_TARGET_FARM]   text='领取' desc='' bounds=[733,1424][844,1477] clickable=true
+17:14:54.769 [switchPlatform-NAVIGATE_TARGET_FARM]   text='下单领肥料仅限大于0.5元订单' desc='' bounds=[163,29][799,140] clickable=false
+17:14:54.771 switchPlatform: stage=NAVIGATE_TARGET_FARM, retry=0, target=TAOBAO, original=ALIPAY
+17:14:54.830 switchPlatform: target farm page loaded, fertilizing
+17:14:58.330 [switchPlatform-FERTILIZE_TARGET] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+17:14:58.365 [switchPlatform-FERTILIZE_TARGET] claim-text-nodes (count=2):
+17:14:58.367 [switchPlatform-FERTILIZE_TARGET]   text='2000，肥料，点击领取' desc='' bounds=[966,1441][1179,1676] clickable=true
+17:14:58.370 [switchPlatform-FERTILIZE_TARGET]   text='下单领肥料仅限大于0.5元订单' desc='' bounds=[163,137][799,245] clickable=false
+17:14:58.371 switchPlatform: stage=FERTILIZE_TARGET, retry=0, target=TAOBAO, original=ALIPAY
+17:14:58.373 switchPlatform: fertilizing on TAOBAO, 4 coord candidates
+17:14:58.381 switchPlatform-fertilize: click at (272.4, 272.101), ratio=(0.227, 0.107), screen=1200x2543
+17:14:58.385 switchPlatform-fertilize: click at (300.0, 279.73), ratio=(0.25, 0.11), screen=1200x2543
+17:14:58.390 switchPlatform-fertilize: click at (600.0, 467.912), ratio=(0.5, 0.184), screen=1200x2543
+17:14:58.397 switchPlatform-fertilize: click at (600.0, 2288.7), ratio=(0.5, 0.9), screen=1200x2543
+17:15:03.454 isOnFarmPage: activity=com.taobao.android.detail.alittdetail.ttdetailactivity not in farm keywords, trying content fallback (build749)
+17:15:04.155 isOnFarmPage: activity=com.taobao.android.detail.alittdetail.ttdetailactivity not in farm keywords and no farm core content, not on farm page
+17:15:04.186 isOnFarmPage: activity=com.taobao.android.detail.alittdetail.ttdetailactivity not in farm keywords, trying content fallback (build749)
+17:15:04.225 isOnAbnormalPage: YES, activity=com.taobao.android.detail.alittdetail.ttdetailactivity
+17:15:04.253 isOnFarmPage: activity=com.taobao.android.detail.alittdetail.ttdetailactivity not in farm keywords, trying content fallback (build749)
+17:15:04.302 isOnFarmPage: activity=com.taobao.android.detail.alittdetail.ttdetailactivity not in farm keywords, trying content fallback (build749)
+17:15:04.338 isNonAdTaskPage: YES, matched non-ad task in [直播中，按钮, 直播讲解, 视频, 视频, 图集, 图集, 商品视频, 播放]
+17:15:04.369 isOnFarmPage: activity=com.taobao.android.detail.alittdetail.ttdetailactivity not in farm keywords, trying content fallback (build749)
+17:15:04.422 [switchPlatform-RETURN_ORIGINAL] snapshot: pkg=com.taobao.taobao, act=com.taobao.android.detail.alittdetail.TTDetailActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=true, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+17:15:04.445 [switchPlatform-RETURN_ORIGINAL] claim-text-nodes (count=2):
+17:15:04.447 [switchPlatform-RETURN_ORIGINAL]   text='' desc='您的专属红包正在发放中，点击领取>>>,' bounds=[0,1980][1200,2076] clickable=true
+17:15:04.448 [switchPlatform-RETURN_ORIGINAL]   text='' desc='您的专属红包正在发放中，点击领取>>>' bounds=[125,1980][881,2075] clickable=false
+17:15:04.449 switchPlatform: stage=RETURN_ORIGINAL, retry=0, target=TAOBAO, original=ALIPAY
+17:15:04.450 switchPlatform: returning to original ALIPAY
+17:15:04.451 cancelNavigation: all navigation callbacks cancelled
+17:15:04.455 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+17:15:04.455 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching ALIPAY
+17:15:04.456 reopenFarmByDeepLink: no deep link for ALIPAY, killed + relaunch app, will navigate
+17:15:04.477 reopenFarmByDeepLink: relaunched ALIPAY (com.eg.android.AlipayGphone)
+17:15:04.478 launchPlatformApp: opened ALIPAY via deep link
+17:15:07.325 [switchPlatform-RETURN_ORIGINAL] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+17:15:07.346 [switchPlatform-RETURN_ORIGINAL] claim-text-nodes (count=4):
+17:15:07.346 [switchPlatform-RETURN_ORIGINAL]   text='还差4次领肥料' desc='' bounds=[438,589][763,671] clickable=true
+17:15:07.347 [switchPlatform-RETURN_ORIGINAL]   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+17:15:07.347 [switchPlatform-RETURN_ORIGINAL]   text='领取' desc='' bounds=[884,1817][1113,1902] clickable=true
+17:15:07.348 [switchPlatform-RETURN_ORIGINAL]   text='领取' desc='' bounds=[884,6608][1113,2666] clickable=true
+17:15:07.348 switchPlatform: stage=RETURN_ORIGINAL, retry=1, target=TAOBAO, original=ALIPAY
+17:15:07.352 switchPlatform: original platform loaded (activeRootPkg=com.eg.android.AlipayGphone), resuming farm navigation
+17:15:07.356 cancelNavigation: all navigation callbacks cancelled
+17:15:08.887 navigateAlipay: 芭芭农场 entry at [0,0][1202,1617] is not clickable (probably title text), skip and fallback to search
+17:15:08.890 navigateAlipay: no search or farm entry found, retry=0
+17:15:10.923 navigateAlipay: 芭芭农场 entry at [0,0][1202,1617] is not clickable (probably title text), skip and fallback to search
+17:15:10.927 navigateAlipay: no search or farm entry found, pressing back to exit sub-page (retry=1)
+17:15:13.142 navigateAlipay: found 芭芭农场 entry at [484,941][716,1161], clickable=true, clicking
+17:15:13.145 performClickSafe: text='' desc='' bounds=[484,941][716,1161] clickable=true
+17:15:13.181 performClickSafe: ACTION_CLICK success at depth=0
+17:15:13.183 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+17:15:17.838 [switchPlatform-RESUME_ORIGINAL_FARM] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+17:15:17.853 [switchPlatform-RESUME_ORIGINAL_FARM] claim-text-nodes (count=1):
+17:15:17.854 [switchPlatform-RESUME_ORIGINAL_FARM]   text='还差4次领肥料' desc='' bounds=[438,1509][763,1591] clickable=true
+17:15:17.854 switchPlatform: stage=RESUME_ORIGINAL_FARM, retry=0, target=TAOBAO, original=ALIPAY
+17:15:17.877 switchPlatform: original farm page loaded, resuming task list
+17:15:17.879 state: SWITCHING_PLATFORM -> PROCESSING_TASK
+17:15:20.081 [processTask-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+17:15:20.094 [processTask-start] claim-text-nodes (count=1):
+17:15:20.095 [processTask-start]   text='还差4次领肥料' desc='' bounds=[438,1509][763,1591] clickable=true
+17:15:20.096 processTask: all ads/tasks done on ALIPAY, collected=0
+17:15:20.097 marked platform complete: ALIPAY
+17:15:20.098 platform status: UC=false, ALIPAY=true, TAOBAO=true
+17:15:20.098 state: PROCESSING_TASK -> FERTILIZING
+17:15:21.185 navigateAlipay: automation running (state=FERTILIZING), abort
+17:15:22.293 [fertilize-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+17:15:22.313 [fertilize-start] claim-text-nodes (count=1):
+17:15:22.315 [fertilize-start]   text='还差4次领肥料' desc='' bounds=[438,1509][763,1591] clickable=true
+17:15:22.331 [fertilize-start] clickable nodes (count=15):
+17:15:22.332 [fertilize-start]   text='还差4次领肥料' desc='' bounds=[438,1509][763,1591]
+17:15:22.332 [fertilize-start]   text='任务列表' desc='' bounds=[949,1942][1175,2168]
+17:15:22.333 [fertilize-start]   text='农场乐园入口' desc='' bounds=[39,1938][248,2168]
+17:15:22.333 [fertilize-start]   text='切换摇钱树' desc='' bounds=[36,311][199,455]
+17:15:22.333 [fertilize-start]   text='抽抽乐' desc='' bounds=[36,497][199,641]
+17:15:22.334 [fertilize-start]   text='逛农货' desc='' bounds=[36,681][199,828]
+17:15:22.334 [fertilize-start]   text='我的收获' desc='' bounds=[1048,311][1165,478]
+17:15:22.334 [fertilize-start]   text='钓红包' desc='' bounds=[58,2259][258,2482]
+17:15:22.335 [fertilize-start]   text='得1000肥 向僵尸开炮' desc='' bounds=[501,2259][700,2482]
+17:15:22.335 [fertilize-start]   text='四季物语' desc='' bounds=[723,2259][920,2482]
+17:15:22.336 [fertilize-start]   text='灵画师' desc='' bounds=[943,2259][1142,2482]
+17:15:22.337 [fertilize-start]   text='' desc='返回' bounds=[26,127][105,271]
+17:15:22.338 [fertilize-start]   text='支付宝·芭芭农场' desc='' bounds=[125,156][567,242]
+17:15:22.338 [fertilize-start]   text='' desc='更多' bounds=[907,150][1039,249]
+17:15:22.339 [fertilize-start]   text='' desc='关闭' bounds=[1040,150][1172,249]
+17:15:22.359 fertilize: task list popup detected but no close button, pressBack to close it
+17:15:28.928 fertilize: findFertilizeButton=false, clickCount=1
+17:15:28.980 isOnFarmPage: no farm content, sample=[松开刷新, 深圳, 阴 31℃, 搜索框, 搜索, 疯狂碰友节, 更多操作, ]
+17:15:28.981 fertilize: not on farm page, re-navigate
+17:15:28.982 state: FERTILIZING -> NAVIGATING
+17:15:34.066 isOnFarmPage: no farm content, sample=[松开刷新, 深圳, 阴 31℃, 搜索框, 搜索, 疯狂碰友节, 更多操作, ]
+17:15:34.244 isNonAdTaskPage: YES, matched non-ad task in [松开刷新, 深圳, 阴 31℃, 搜索框, 搜索, 疯狂碰友节, 更多操作, ]
+17:15:34.319 [navigate-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.eg.android.AlipayGphone.AlipayLogin, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+17:15:34.343 [navigate-start] claim-text-nodes (count=3):
+17:15:34.345 [navigate-start]   text='' desc='消息盒子 芭芭农场 肥料领取提醒 2小时前 芝麻粒 芝麻粒收取提醒，超值租好物 2小时前 点击查看全部消息' bounds=[26,1770][1174,2082] clickable=true
+17:15:34.346 [navigate-start]   text='肥料领取提醒' desc='' bounds=[324,1894][582,1951] clickable=false
+17:15:34.348 [navigate-start]   text='去领取' desc='' bounds=[66,2992][195,2664] clickable=false
+17:15:34.687 navigate: calling navigateToFarm, platform=ALIPAY
+17:15:36.137 state: NAVIGATING -> STOPPING
+17:15:36.140 cancelNavigation: all navigation callbacks cancelled
+17:15:36.141 state: STOPPING -> IDLE
+17:15:47.395 saveToken: saved (len=5, head='芭芭农场', tail='芭农场1')
+17:15:47.399 upload start: tag=test, token=***len=5, head='芭芭农场', tail='芭农场1', hasNewline=false, hasSpace=false
+17:15:47.401 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260905_171547.log, localFile=debug.log (131265 bytes)
+17:15:48.894 uploadFile resp: code=401, url=logs/debug_test_20260905_171547.log, errBody={
+  "message": "Bad credentials",
+  "documentation_url": "https://docs.github.com/rest",
+  "status": "401"
+}
+17:15:48.897 upload: FAILED, err=401 Token 无效或已过期。GitHub 返回: {
+  "message": "Bad credentials",
+  "documentation_url": "https://docs.github.com/rest",
+  "status": "401"
+}, tokenDiag=len=5, head='芭芭农场', tail='芭农场1', hasNewline=false, hasSpace=false
+17:15:48.899 upload done: 0 files uploaded (tag=test), errors=[debug.log: 401 Token 无效或已过期。GitHub 返回: {
+  "message": "Bad credentials",
+  "documentation_url": "https://docs.github.com/rest",
+  "status": "401"
+} [token: len=5, head='芭芭农场', tail='芭农场1', hasNewline=false, hasSpace=false]]
+17:16:24.469 saveToken: saved (len=93, head='gith', tail='McKr')
+17:16:27.399 saveToken: saved (len=93, head='gith', tail='McKr')
+17:16:27.404 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+17:16:27.406 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260905_171627.log, localFile=debug.log (132476 bytes)
