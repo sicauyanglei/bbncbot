@@ -32,6 +32,35 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build793 UC"浏览广告赚肥料"跨App零进展死循环——no_progress退出计失败+会话跳过
+
+**用户需求**: "分析日志"（debug_test_20260906_174533.log，build791 运行，UC，17:32-17:45）
+
+**验证结论**：
+
+build790 修复生效：trapAdExit streak=2 后视频守卫激活（"连续2次陷阱广告退出无进展,
+跳过视频类任务"），任务#1"看视频得巨额肥料"被正确跳过。
+
+**新死循环**（66s/圈×6圈，零收获，17:35-17:45）：
+
+任务#2"浏览广告赚肥料(0/10)"点击后跨App跳淘宝精选页（com.taobao.taobao），
+页面"30秒"是静态文字非动态倒计时 → 刷 52s 后 no_progress_signals 退出 →
+**UC 从不计进度（每圈 context 仍为 0/10）→ 此退出旧逻辑不计任何失败** →
+OPENING_TASK_LIST 重置索引后每圈重做 #2（#1 被视频守卫跳过）→ 无限循环。
+
+**修复方案**（AutomationController.kt）：
+
+1. 新增 `browseNoProgressCounts: MutableMap<String,Int>`（按任务 key 计零进展次数）
+2. runBrowsingTask 的 no_progress_signals 退出分支：按 currentTaskKey 计失败，
+   达 MAX_TASK_FAILS(2) 入 `sessionSkippedTaskKeys` → 后续轮次被 build789 的
+   1a-ter0 检查秒过该任务，循环断开。
+
+**修改文件**: AutomationController.kt(browseNoProgressCounts 字段 + no_progress_signals 分支计失败)
+
+**编译验证**: gradle :app:compileFullDebugKotlin BUILD SUCCESSFUL（JDK17+SDK34）。
+
+---
+
 ### fix: build792 施肥循环中优先检测"可立即领取"——施肥几次后及时领取
 
 **用户需求**: "芭芭农场首页施肥和领取奖励都可以完成，施肥几次后提示可立即领取"

@@ -553,6 +553,9 @@ object AutomationController {
     @Volatile
     private var currentTaskKey: String? = null
 
+    /** build793: 浏览任务 no_progress_signals 零进展退出次数（按任务 key），达 MAX_TASK_FAILS 入会话跳过名单 */
+    private val browseNoProgressCounts = mutableMapOf<String, Int>()
+
     private fun normalizeTaskKey(text: String): String =
         text.replace(Regex("\\d+"), "").replace(Regex("\\s+"), "")
 
@@ -3652,6 +3655,24 @@ object AutomationController {
                 countdownSeconds == 0 && !hasProgressHint && !hasRemainingProgress) {
                 Log.i(TAG, "browseTask: target swipes reached but no progress signals (countdown=0, progress=false, remaining=false), exiting (swipes=$swipeCount/$browseTaskTargetSwipes)")
                 debugLog("browseTask: no progress signals after target swipes, exiting browse page (swipes=$swipeCount/$browseTaskTargetSwipes)")
+                // build793 修复（debug_test_20260906_174533.log, build791, UC）：
+                //   "浏览广告赚肥料"跨App跳淘宝精选页("30秒"静态文字,非动态倒计时),
+                //   刷52s后 no_progress_signals 退出,UC 不计进度(每圈 context 仍 0/10)
+                //   → 此退出旧逻辑不计任何失败,OPENING_TASK_LIST 重置索引后每圈重做
+                //   → 66s/圈零奖励死循环6圈(任务#1被视频守卫跳过,#2永远卡这里)。
+                //   修复：no_progress_signals 退出按任务 key 计失败,达 MAX_TASK_FAILS
+                //   入会话级永久跳过名单,后续轮次直接秒过该任务。
+                currentTaskKey?.let { key ->
+                    val n = (browseNoProgressCounts[key] ?: 0) + 1
+                    browseNoProgressCounts[key] = n
+                    if (n >= MAX_TASK_FAILS && key !in sessionSkippedTaskKeys) {
+                        sessionSkippedTaskKeys.add(key)
+                        Log.w(TAG, "browseTask: no-progress browse failed $n times for task key='$key', added to session skip list (build793)")
+                        debugLog("browseTask: 浏览任务零进展 $n 次,加入会话永久跳过名单(build793)")
+                    } else {
+                        debugLog("browseTask: no-progress browse fail count=$n/$MAX_TASK_FAILS for key='$key' (build793)")
+                    }
+                }
                 currentTaskIndex++
                 collectedCount++
                 exitBrowsePage(service, reason = "no_progress_signals")
