@@ -32,6 +32,29 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build792 施肥循环中优先检测"可立即领取"——施肥几次后及时领取
+
+**用户需求**: "芭芭农场首页施肥和领取奖励都可以完成，施肥几次后提示可立即领取"
+
+**根因**（runFertilizing 分支顺序缺陷）：
+
+施肥循环里只要"施肥"按钮节点还存在就只点施肥（L8541+），领取检查（L8576 旧位置）
+只在施肥按钮**消失后**才做。若施肥几次后"可立即领取"提示已出现、但施肥按钮节点
+仍暴露在无障碍树里（点击无效或弹"肥料不足"toast），bot 会一直点施肥直到
+MAX_FERTILIZE_CLICKS，永远走不到领取步骤。
+
+**修复方案**（AutomationController.runFertilizing）：
+
+每轮施肥前先检查领取类按钮：findDirectCollectButtons 过滤为"含'领取'且非视频入口"
+（isVideoAdTask 排除"看广告领奖"；"去支付宝农场领肥料"含"领肥"不含"领取"不命中），
+出现即切 COLLECTING_DIRECT 先领取，再回任务流程。
+
+**修改文件**: AutomationController.kt(runFertilizing 施肥前领取检查)
+
+**编译验证**: gradle :app:compileFullDebugKotlin BUILD SUCCESSFUL（JDK17+SDK34）。
+
+---
+
 ### fix: build791 更快拿奖手势切回失败增加 pressBack 兜底——修复荣耀设备整场 0 肥料总根因
 
 **用户需求**: "解决所有问题"（承接 build790 分析，debug_test_20260906_170400.log）

@@ -8515,6 +8515,26 @@ object AutomationController {
             return
         }
 
+        // build792 修复（用户需求"施肥几次后提示可立即领取"）：
+        //   旧逻辑：只要"施肥"按钮节点还存在就只点施肥，领取检查（下方 L8576+）
+        //   只在施肥按钮消失后才做。若施肥几次后"可立即领取"已出现但施肥按钮
+        //   节点仍暴露（点击无效或弹"肥料不足"toast），bot 会一直点施肥直到
+        //   MAX_FERTILIZE_CLICKS，永远不到领取步骤。
+        //   修复：每轮施肥前先检查领取类按钮（含"领取"且非视频入口），
+        //   出现即切 COLLECTING_DIRECT 先领取。"去支付宝农场领肥料"含"领肥"
+        //   不含"领取"不命中；"看广告领奖"被 isVideoAdTask 排除。
+        val claimButtons = service.findDirectCollectButtons().filter { node ->
+            val combined = (node.text?.toString().orEmpty()) + (node.contentDescription?.toString().orEmpty())
+            combined.contains("领取") && !isVideoAdTask(combined)
+        }
+        if (claimButtons.isNotEmpty()) {
+            debugLog("fertilize: claim button appeared after $clickCount fertilize clicks, switch to COLLECTING_DIRECT to claim (build792)")
+            Log.i(TAG, "fertilize: claim button found (${claimButtons.size}), switch to COLLECTING_DIRECT to claim (build792)")
+            moveTo(AutomationState.COLLECTING_DIRECT)
+            handler.postDelayed({ runCollectingDirect(attempt = 0) }, INTERVAL_CLICK_MS)
+            return
+        }
+
         // 查找并点击"施肥"按钮（主页上若可见 / 点击 hint 后弹出的"施肥"大按钮）
         val fertilizeButton = service.findFertilizeButton()
         debugLog("fertilize: findFertilizeButton=${fertilizeButton != null}, clickCount=$clickCount")
