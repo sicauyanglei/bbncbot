@@ -2147,8 +2147,20 @@ class FarmAccessibilityService : AccessibilityService() {
             "奖励已到账", "奖励已发放", "领取成功", "已领取奖励",
             "肥料已到账", "肥料已发放", "获得肥料"
         )
+        // build779 修复（debug_test_20260905_133337.log, 13:33:33.242）：
+        //   京东快手广告（KsRewardVideoActivity）仍在前台播放，但 windows 列表里残留
+        //   UC 农场页上一个任务的"任务完成, 1900肥料已发放"toast → "肥料已发放"命中
+        //   → 误判广告结束（强信号2'）。农场结算文案（肥料已发放/已到账/获得肥料）
+        //   只在农场前台时可信；广告仍活跃时这些文案必是来自后台农场窗口的残留。
+        //   修复：广告活跃期间跳过农场结算类关键词（广告弹窗的"恭喜获得奖励"/
+        //   "领取成功"等不受影响）。广告真结束时 isAdActivity/isAdPlaying 变 false，
+        //   关键词检测自动恢复。
+        val adActiveNow = isAdActivity() || isAdPlaying()
         for (texts in allTexts) {
             for (text in texts) {
+                if (adActiveNow && (text.contains("肥料已发放") || text.contains("肥料已到账") || text.contains("获得肥料"))) {
+                    continue
+                }
                 if (adEndedKeywords.any { text.contains(it) }) {
                     debugLog("isAdEndedMultiSignal: YES (ad ended text detected: '$text')")
                     return true
@@ -4794,6 +4806,17 @@ class FarmAccessibilityService : AccessibilityService() {
         //   但实际是农场任务列表的任务描述,不是充值页。
         //   修复:若页面同时是农场页(isOnFarmPage),不识别为充值页。
         if (isOnFarmPage()) {
+            return false
+        }
+        // build779 修复（debug_test_20260905_133337.log, 13:33:32.788）：
+        //   UC 农场页任务文案含"去下单得肥料"等，命中下方"去下单"关键词。
+        //   当时活动窗口是京东快手广告（com.jingdong.app.mall/KsRewardVideoActivity），
+        //   isOnFarmPage() 因 activeRoot 非农场包名（build747 严格规则）返回 false，守卫失效；
+        //   而 rootInActiveWindowSafe() 取到的窗口文本是 UC 农场页内容 → 误判充值页。
+        //   修复：页面文本含农场品牌文案（"芭芭农场"）时，是农场内容，不识别为充值页。
+        //   （真正的充值/支付陷阱页不会带"芭芭农场"品牌文案；build701 精神：农场内容≠充值页）
+        if (allText.any { it.contains("芭芭农场") }) {
+            debugLog("isRechargePage: NO (text contains 芭芭农场, farm content)")
             return false
         }
         val isRecharge = allText.any { text ->

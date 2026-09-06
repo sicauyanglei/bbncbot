@@ -32,6 +32,39 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build779 UC会话三问题修复(任务全部完成无短路re-navigate+isRechargePage广告窗口下误判农场内容+isAdEndedMultiSignal残留农场toast误判广告结束)
+
+**用户需求**: "分析日志"（debug_test_20260905_133337.log, UC平台会话13:20-13:33, 此前从未分析过）
+
+**日志概况**: UC会话整体健康——14个广告任务循环正常（每个~60s: PROCESSING_TASK→WATCHING_AD(京东快手KsRewardVideoActivity ~32s)→forceKillApp(京东)→奖励到账）,导航31s到位。结尾(13:33:08-13:33:35)暴露3个问题:
+
+1. **P2 任务全部完成无完成短路(13:33:10.313-13:33:10.722)**:
+   UC农场页 isTaskCompletePage=YES(matched=[已完成]),claim节点=已领取/明天领肥料,
+   页面已无"去完成"按钮。openTaskList UC闭环路径不检查完成态,继续启发式开任务列表,
+   findCollectFertilizerButton遇瞬时root null→rootGuard rootChildCount=0→误判
+   "WebView not ready"→re-navigate。修复: AutomationController.openTaskList UC闭环
+   `visibleGoComplete.isEmpty()`分支(activity页检查之后),isRealTaskCompletePage()
+   (完成关键词+农场上下文双重确认)且无去完成按钮→markPlatformAdsComplete→FERTILIZING
+2. **P2 isRechargePage广告窗口下误判农场内容(13:33:32.788)**:
+   活动窗口=京东快手广告,isOnFarmPage()因activeRoot非农场包名(build747严格规则)
+   返回false守卫失效;rootInActiveWindowSafe()取到UC农场页文本("去下单得肥料"类
+   任务文案)→命中"去下单"→误判充值页(后续clickCloseOnRechargePage会误关农场页)。
+   修复: FarmAccessibilityService.isRechargePage 补充文本含"芭芭农场"→非充值页
+3. **P3 isAdEndedMultiSignal残留农场toast误判广告结束(13:33:33.242)**:
+   强信号2'遍历所有windows文本,京东广告仍在前台播放,但窗口列表残留UC农场页上一个
+   任务的"任务完成, 1900肥料已发放"toast→"肥料已发放"命中→误判广告结束。
+   修复: 广告活跃期间(isAdActivity||isAdPlaying)跳过农场结算类关键词
+   (肥料已发放/肥料已到账/获得肥料),广告弹窗类关键词(恭喜获得奖励/领取成功)不受影响;
+   广告真结束时isAdActivity变false检测自动恢复
+
+**修改文件**:
+- AutomationController.kt: openTaskList UC闭环任务全部完成短路
+- FarmAccessibilityService.kt: isRechargePage农场内容守卫 + isAdEndedMultiSignal广告活跃期跳过农场结算文案
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### fix: build778 两个P3健壮性问题修复(瞬时IME窗口误计任务失败+手势点击坐标越界未钳制)
 
 **用户需求**: "继续扫描日志剩余段落，确认是否有 build777 未覆盖的问题"→"好的，修复这两个 P3 问题并构建 build778"（debug_test_20260905_171627.log 全量复查）

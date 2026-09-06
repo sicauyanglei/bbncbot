@@ -2095,6 +2095,21 @@ object AutomationController {
                     }, INTERVAL_PAGE_LOAD_MS)
                     return
                 }
+                // build779 修复（debug_test_20260905_133337.log, 13:33:10-13:33:15）：
+                //   UC 全部任务完成（isTaskCompletePage=YES matched=[已完成]，节点=已领取/明天领肥料），
+                //   页面上已无"去完成"按钮。原流程不识别完成态，继续走启发式开任务列表，
+                //   findCollectFertilizerButton 遇瞬时 root null → 误判 WebView not ready → re-navigate，
+                //   重新导航撞见京东快手广告空等 15s，直到用户手动停止。
+                //   修复：无"去完成"按钮且 isRealTaskCompletePage()（完成关键词+农场上下文双重确认）
+                //   时判定任务全部完成，标记平台完成并进入施肥阶段，不再重新打开任务列表。
+                if (service.isRealTaskCompletePage()) {
+                    Log.i(TAG, "openTaskList: [${service.currentPlatform}闭环] real task complete page & no goComplete buttons, all tasks done → FERTILIZING (build779)")
+                    debugLog("openTaskList: [${service.currentPlatform}闭环] isRealTaskCompletePage=YES & no goComplete buttons, mark platform complete → FERTILIZING (build779)")
+                    markPlatformAdsComplete(service)
+                    moveTo(AutomationState.FERTILIZING)
+                    handler.postDelayed({ runFertilizing(clickCount = 0) }, INTERVAL_CLICK_MS)
+                    return
+                }
                 // 任务列表未打开：用文本查找 + 坐标兜底调出任务列表
                 taskListOpenedThisRound = true  // 标记本轮已尝试调出，避免重复进入死循环
                 debugLog("openTaskList: [${service.currentPlatform}闭环] no goComplete buttons visible, opening task list (attempt=$attempt, using heuristic)")
