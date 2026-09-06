@@ -772,7 +772,8 @@ object AutomationController {
      * 示例："去头条极速版浏览15秒得1000肥料" → 15000+5000=20000ms
      */
     private fun parseDeepLinkStayMs(taskText: String): Long {
-        val match = Regex("""(?:浏览|逛|停留|观看|滑动|看)\s*(\d+)\s*[秒sS]""").find(taskText)
+        // build783: 关键词补"体验"——"去体验15秒可立即领奖"类文案的"体验15秒"也要能解析
+        val match = Regex("""(?:浏览|逛|停留|观看|滑动|看|体验)\s*(\d+)\s*[秒sS]""").find(taskText)
         val parsedSec = match?.groupValues?.get(1)?.toIntOrNull() ?: 0
         val baseSec = if (parsedSec in 1..300) parsedSec else (DEEP_LINK_DEFAULT_STAY_MS / 1000L).toInt()
         if (parsedSec in 1..300) {
@@ -5388,6 +5389,7 @@ object AutomationController {
      * @return true=本周期已执行动作(点击/重试/退出),调用方应直接return
      */
     private fun tryClickAdClaimButton(elapsedMs: Long, adEndCheckIntervalMs: Long, bottomBandOnly: Boolean = false): Boolean {
+        val service = getService() ?: return false
         // 1) 无跳转重试/死广告退出判定
         if (interactiveAdClickClaimClicked && interactiveAdJumpPending) {
             val sinceClick = System.currentTimeMillis() - interactiveAdClickClaimTimeMs
@@ -5444,6 +5446,14 @@ object AutomationController {
         if (ccText.contains("跳转") || ccText.contains("拿奖励") ||
             ccText.contains("领奖") || ccText.contains("体验")) {
             interactiveAdJumpPending = true
+            // build783: 用户要求"不是9秒,多少秒页面上有写,根据具体要求的秒数等待"——
+            // 从按钮/页面文案解析体验秒数("去体验15秒可立即领奖"→15s,"去体验9秒可直接拿奖励"→9s),
+            // 覆盖 deepLinkTaskStayMs,深链分支按页面要求时长停留后保留现场切回农场
+            val claimStayMs = parseAdClaimStayMs(ccText)
+            if (claimStayMs > 0L) {
+                deepLinkTaskStayMs = claimStayMs
+                debugLog("watchAd: 领奖体验时长按页面要求等待 ${claimStayMs}ms (非固定值, build783)")
+            }
             debugLog("watchAd: 跳转类拿奖励/领奖按钮, 点击后将拉起第三方App, 跳转守卫已置位(interactiveAdJumpPending=true)")
         }
         Log.i(TAG, "watchAd: ad claim button '$ccText' found, gesture click to get reward (build782)")
@@ -5464,6 +5474,58 @@ object AutomationController {
             if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
         }, INTERVAL_PAGE_LOAD_MS)
         return true
+    }
+
+    /**
+     * build783: 解析广告领奖按钮要求的体验停留时长（毫秒）。
+     * 用户需求："不是9秒，多少秒页面上有写，根据具体要求的秒数等待"——不写死固定秒数。
+     *
+     * 解析顺序：
+     * 1. 按钮自身文案："去体验15秒可立即领奖"/"去体验9秒可直接拿奖励" → 按钮上唯一数字即秒数
+     * 2. 按钮文案无数字时扫页面文本：找含"体验"的文本，其自身或其后3条内找"N秒"
+     *    （穿山甲 TTRewardVideo 会把"去体验"和"15秒"拆成两个相邻节点,
+     *    日志证据 texts=[..., 点我加速, 限时福利, 13秒后失效, 去体验, 15秒]——
+     *    只向后扫描,不会误取前面的"13秒后失效"）
+     *
+     * @return >0 = 解析秒数*1000+[DEEP_LINK_STAY_BUFFER_MS]；0 = 页面未写秒数（调用方保持默认）
+     */
+    private fun parseAdClaimStayMs(btnText: String): Long {
+        val numRegex = Regex("""(\d+)\s*[秒sS]""")
+        fun validSecToStayMs(sec: Int): Long? =
+            if (sec in 1..300) sec * 1000L + DEEP_LINK_STAY_BUFFER_MS else null
+        // 1) 按钮文案自身
+        numRegex.find(btnText)?.groupValues?.get(1)?.toIntOrNull()?.let { sec ->
+            validSecToStayMs(sec)?.let { stayMs ->
+                debugLog("parseAdClaimStayMs: parsed ${sec}s from button text '$btnText' (build783)")
+                return stayMs
+            }
+        }
+        // 2) 页面扫描："体验"文本自身或其相邻后续文本的"N秒"（拆分节点兜底）
+        val service = getService() ?: return 0L
+        val root = service.rootInActiveWindowSafe() ?: return 0L
+        val texts = try {
+            service.collectAllText(root).map { it.trim() }.filter { it.isNotEmpty() }
+        } catch (e: Exception) {
+            return 0L
+        }
+        for (i in texts.indices) {
+            if (!texts[i].contains("体验")) continue
+            numRegex.find(texts[i])?.groupValues?.get(1)?.toIntOrNull()?.let { sec ->
+                validSecToStayMs(sec)?.let { stayMs ->
+                    debugLog("parseAdClaimStayMs: parsed ${sec}s from page text '${texts[i]}' (build783)")
+                    return stayMs
+                }
+            }
+            for (j in (i + 1)..minOf(i + 3, texts.size - 1)) {
+                val sec = numRegex.find(texts[j])?.groupValues?.get(1)?.toIntOrNull() ?: continue
+                validSecToStayMs(sec)?.let { stayMs ->
+                    debugLog("parseAdClaimStayMs: parsed ${sec}s from adjacent page text '${texts[j]}' after '${texts[i]}' (build783)")
+                    return stayMs
+                }
+            }
+        }
+        debugLog("parseAdClaimStayMs: no duration hint on page, keep default stay (build783)")
+        return 0L
     }
 
     private fun runWatchingAd(elapsedMs: Long) {

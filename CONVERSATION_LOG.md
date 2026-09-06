@@ -32,6 +32,36 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build783 领奖体验时长按页面秒数等待(非固定9s)+build782编译错误修复(service未声明)
+
+**用户需求**: "不是9秒，多少秒页面上有写，根据具体要求的秒数等待"
+
+**问题分析**:
+- build782 点击"去体验X秒可立即领奖"后,跳转第三方App的停留时长用的是 deepLinkTaskStayMs
+  (任务文案解析,无提示默认15s+5s缓冲),**没有从领奖按钮/广告页解析实际要求秒数**。
+  百度广告"去体验9秒可直接拿奖励"与穿山甲"去体验15秒可立即领奖"秒数不同,写死会
+  停留不足(不发奖)或过长(浪费时间)。
+- **build782 编译错误(未流出,提交692cc48仅在本地未推送)**: tryClickAdClaimButton
+  内12处裸用 `service.` 但函数未声明局部 service(全类无此属性,getService()才是入口),
+  若推送 CI 必编译失败。本次一并修复(函数顶部 `val service = getService() ?: return false`)。
+
+**修复方案**:
+1. 新增 parseAdClaimStayMs(btnText): ①按钮文案自身正则 `(\d+)\s*[秒sS]`
+   ("去体验15秒可立即领奖"→15s); ②按钮无数字时扫广告页文本,找含"体验"的文本自身或
+   **其后3条内**的"N秒"(穿山甲把"去体验"/"15秒"拆成相邻节点,日志 texts=[...,13秒后失效,
+   去体验,15秒]——只向后扫,不误取前面"13秒后失效");合法范围1..300s。
+   返回 秒数*1000+DEEP_LINK_STAY_BUFFER_MS(5s),0=页面未写保持默认。
+2. tryClickAdClaimButton 点击时: jumpPending置位分支调用 parseAdClaimStayMs(ccText),
+   >0则覆盖 deepLinkTaskStayMs——深链分支按页面要求时长停留后保留现场切回农场。
+3. parseDeepLinkStayMs 正则关键词补"体验"(任务文案"体验15秒"也能解析)。
+4. parseAdClaimStayMs 同样补 `val service = getService() ?: return 0L`。
+
+**修改文件**: AutomationController.kt(parseAdClaimStayMs新增+点击处接线+正则补体验+2处service声明修复)
+
+**编译验证**: sandbox 无 Android SDK; 括号平衡检查通过; 等 CI 构建验证。
+
+---
+
 ### fix: build782 广告领奖按钮必须点击修复(手势优先点击+重试2次+AD_PLAYING场景接线+关键词补全)
 
 **用户需求**: "分析日志 '我要直接拿奖励'是需要点击的任务"
