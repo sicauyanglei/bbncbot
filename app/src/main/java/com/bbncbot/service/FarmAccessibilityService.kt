@@ -988,6 +988,24 @@ class FarmAccessibilityService : AccessibilityService() {
         }
         val allText = collectAllText(root)
 
+        // build788 修复（debug_test_20260906_140927.log）：游戏任务页黑名单。
+        // 1. gameTaskSuspend 游戏推广中间页（点"三国冰河招募武将"类任务后进入）：
+        //    URL 含 gametasksuspend，页面文本含"芭芭农场充值用户专属奖励"等"芭芭农场"字样
+        //    → 误中下方 XRiver 标题兜底（14:03:31 判为农场页→在推广页找任务列表→误点胶囊"更多"）。
+        // 2. Smallfish 小游戏容器页（游戏加载页）：标题"Smallfish App"+"玩30秒 得肥料"
+        //    → "得肥料"误中 hasFarmContent（14:05:20 被判农场页卡 25s）。
+        // 这两类是游戏任务打开的小游戏/推广页，不是农场主页，判 false 走未知页返回流程。
+        val isGameTaskPage = allText.any {
+            it.contains("gametasksuspend", ignoreCase = true) ||
+                it.contains("smallfish app", ignoreCase = true)
+        }
+        if (isGameTaskPage) {
+            debugLog("isOnFarmPage: game task page detected (gameTaskSuspend/Smallfish), not farm page (build788)")
+            farmPageCache = false
+            farmPageCacheTime = now
+            return false
+        }
+
         // 排除搜索推荐页（"下单得肥料"等搜索推荐页面不是种植页）
         // 注意：任务列表弹窗中也包含"下单得肥料"等任务描述文字，
         // 所以只有在没有种植页核心元素（"集肥料"、"施肥"等）时才判断为搜索推荐页
@@ -3278,6 +3296,21 @@ class FarmAccessibilityService : AccessibilityService() {
                 debugLog("findGoCompleteButtons: drop already-claimed node text='$buttonText' (task completed)")
                 return@mapNotNull null
             }
+            // build788 修复（debug_test_20260906_140927.log, 14:06:24/14:07:40/14:08:02）：
+            // ALIPAY goCompleteTexts 含裸"领取"关键词，contains 匹配命中状态/提示文本：
+            //   "丰收礼包已领取"（含"已领取"但非精确等值，绕过上方过滤）、
+            //   "肥料领取成功"（领奖 toast）、"可领取肥料100"（礼包状态标签）、
+            //   "你已经添加到首页了，快领取奖励吧"（引导 toast）。
+            // 这些不是任务按钮，被当任务点击后空耗 10-30s（gesture 点击无效文本）。
+            // 修复：含"领取"的节点，只有以动作词开头（领取/立即领取/点击领取/去领取）
+            // 的按钮文案才保留，其余一律 drop（"去领取奖励"等 startsWith 变体不受影响）。
+            if (buttonText.contains("领取")) {
+                val claimPrefixes = listOf("领取", "立即领取", "点击领取", "去领取")
+                if (claimPrefixes.none { buttonText.startsWith(it) }) {
+                    debugLog("findGoCompleteButtons: drop status-text node text='$buttonText' (contains 领取 but not a claim button, build788)")
+                    return@mapNotNull null
+                }
+            }
             // build540 修复（用户反馈"'明日7点可领'这种就不要点击了，这是明天的"）：
             // 历史问题：ALIPAY goCompleteTexts 含"领取"（contains 匹配），会匹配到
             // "明日7点可领取"/"明日可领取"/"明天可领取"等未来时间按钮，被当成任务按钮点击。
@@ -4243,32 +4276,13 @@ class FarmAccessibilityService : AccessibilityService() {
         // 胶囊"关闭"特征: text 为空 + desc 精确为"关闭" + 位于屏幕顶部 12% 胶囊条 +
         // 右侧 80% 区域, 且同级存在 desc='更多' 胶囊节点(小程序框架特征,
         // 广告 SDK 的关闭按钮没有该兄弟节点)。
-        fun isMiniProgramCapsuleCloseNode(node: AccessibilityNodeInfo): Boolean {
-            val text = node.text?.toString()?.trim().orEmpty()
-            val desc = node.contentDescription?.toString()?.trim().orEmpty()
-            if (text.isNotEmpty() || desc != "关闭") return false
-            val rect = android.graphics.Rect()
-            node.getBoundsInScreen(rect)
-            val scrW = resources.displayMetrics.widthPixels
-            val scrH = resources.displayMetrics.heightPixels
-            if (scrW <= 0 || scrH <= 0) return false
-            if (rect.top >= scrH * 0.12f || rect.right < scrW * 0.8f) return false
-            // 兄弟胶囊"更多"节点特征(同在顶部条)
-            fun hasMoreCapsule(n: AccessibilityNodeInfo): Boolean {
-                val d = n.contentDescription?.toString()?.trim().orEmpty()
-                if (d == "更多") {
-                    val r = android.graphics.Rect()
-                    n.getBoundsInScreen(r)
-                    if (r.top < scrH * 0.12f && r.left > scrW * 0.5f) return true
-                }
-                for (i in 0 until n.childCount) {
-                    val c = n.getChild(i) ?: continue
-                    if (hasMoreCapsule(c)) return true
-                }
-                return false
-            }
-            return hasMoreCapsule(root)
-        }
+        // build788: 泛化为类级 isMiniProgramCapsuleNode（覆盖 返回/更多/关闭 三种胶囊）。
+        // 历史问题（debug_test_20260906_140927.log, 14:03:39/14:03:45）：navigate generic popup
+        // 分支在 gameTaskSuspend 页面上,胶囊"关闭"被 build777 正确丢弃后,右上角图标兜底
+        // findTopRightClickableIcon 又命中相邻的胶囊"更多"按钮(desc='更多' [907,150][1039,249])
+        // → 误点打开胶囊菜单。旧检测只认 desc='关闭'，管不到"更多"。
+        fun isMiniProgramCapsuleCloseNode(node: AccessibilityNodeInfo): Boolean =
+            isMiniProgramCapsuleNode(root, node)
         // 检查 bounds 是否合法（top > bottom、width <= 0、height <= 0 都是非法矩形）
         // Honor 通知栏的控件 bounds 常出现 top > bottom 的非法矩形，必须过滤
         fun hasInvalidBounds(node: AccessibilityNodeInfo): Boolean {
@@ -5741,20 +5755,87 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build788: 节点是否为支付宝/淘宝小程序框架胶囊按钮（返回/更多/关闭）。
+     * 胶囊条常驻每个小程序页面顶部（左=返回，右=更多+关闭），特征：
+     * text 为空 + desc 精确为"返回"/"更多"/"关闭" + 位于屏幕顶部 12% 胶囊条 +
+     * 同页顶部存在 desc='更多' 胶囊节点（小程序框架签名，广告 SDK/网页内容不具备）。
+     * 点击代价："关闭"杀死农场小程序（build777），"返回"在农场主页会退出 H5，
+     * "更多"打开胶囊菜单（debug_test_20260906_140927.log 14:03:39 误点）——都不应点。
+     */
+    private fun isMiniProgramCapsuleNode(root: AccessibilityNodeInfo, node: AccessibilityNodeInfo): Boolean {
+        val text = node.text?.toString()?.trim().orEmpty()
+        val desc = node.contentDescription?.toString()?.trim().orEmpty()
+        if (text.isNotEmpty()) return false
+        if (desc != "返回" && desc != "更多" && desc != "关闭") return false
+        val rect = android.graphics.Rect()
+        node.getBoundsInScreen(rect)
+        val scrW = resources.displayMetrics.widthPixels
+        val scrH = resources.displayMetrics.heightPixels
+        if (scrW <= 0 || scrH <= 0) return false
+        if (rect.top >= scrH * 0.12f) return false
+        // 关闭/更多在右侧胶囊簇，返回在左上角
+        if (desc == "返回") {
+            if (rect.right >= scrW * 0.3f) return false
+        } else {
+            if (rect.left <= scrW * 0.5f) return false
+        }
+        // 小程序框架签名：顶部胶囊条存在 desc='更多' 节点
+        fun hasMoreCapsule(n: AccessibilityNodeInfo): Boolean {
+            val d = n.contentDescription?.toString()?.trim().orEmpty()
+            if (d == "更多") {
+                val r = android.graphics.Rect()
+                n.getBoundsInScreen(r)
+                if (r.top < scrH * 0.12f && r.left > scrW * 0.5f) return true
+            }
+            for (i in 0 until n.childCount) {
+                val c = n.getChild(i) ?: continue
+                if (hasMoreCapsule(c)) return true
+            }
+            return false
+        }
+        return hasMoreCapsule(root)
+    }
+
+    /**
      * 查找"返回首页"按钮（任务完成弹窗）
      * @return 按钮节点或null
      */
     fun findBackToHomeButton(): AccessibilityNodeInfo? {
         val root = getRootInFarmApp() ?: return null
-        val keywords = listOf("返回首页", "回首页", "返回")
-        for (kw in keywords) {
+        // 明确的弹窗按钮文案优先（任务完成弹窗）
+        for (kw in listOf("返回首页", "回首页")) {
             val node = findNodeByText(root, kw)
             if (node != null) {
                 Log.d(TAG, "findBackToHomeButton: found by text='$kw'")
                 return node
             }
         }
-        return null
+        // build788 修复（debug_test_20260906_140927.log, 14:02:52/14:06:33/14:07:27/14:07:54）：
+        //   processTask 在农场主页调本函数，裸"返回"关键词命中支付宝小程序胶囊返回按钮
+        //   (text='' desc='返回' bounds=[26,127][105,271]，每个小程序页面顶部常驻)，
+        //   点击后直接退出农场 H5 回支付宝首页 → 重新导航 → 任务索引重置 → 死循环。
+        //   修复：裸"返回"匹配时排除小程序胶囊节点（框架签名=顶部胶囊条含 desc='更多' 节点）。
+        var result: AccessibilityNodeInfo? = null
+        fun walk(node: AccessibilityNodeInfo) {
+            if (result != null) return
+            val text = node.text?.toString()?.trim().orEmpty()
+            val desc = node.contentDescription?.toString()?.trim().orEmpty()
+            if (text.contains("返回") || desc.contains("返回")) {
+                val clickable = findClickableSelfOrParentInternal(node)
+                if (clickable != null && !isMiniProgramCapsuleNode(root, clickable)) {
+                    result = clickable
+                    return
+                }
+            }
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                walk(child)
+                if (result != null) return
+            }
+        }
+        walk(root)
+        if (result != null) Log.d(TAG, "findBackToHomeButton: found non-capsule '返回' button")
+        return result
     }
 
     /**

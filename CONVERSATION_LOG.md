@@ -32,6 +32,59 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build788 支付宝三国冰河招募武将死循环+小程序胶囊按钮误点+游戏推广页误判+状态文本误点
+
+**用户需求**: "分析日志。解决支付宝芭芭农场肥料获取问题"（debug_test_20260906_140927.log, 支付宝会话 14:02-14:09）
+
+**日志分析与根因**:
+
+1. **P0-1 "三国冰河常规招募武将1次"死循环 7 分钟（14:02:20→14:09:17，循环 3 轮零收益）**：
+   点任务#1"去完成"→gameTaskSuspend.html 游戏推广页→AI 视觉 20s 后 PRESS_BACK 回农场
+   →processTask 点"返回首页"实际命中胶囊"返回"→退出农场 H5 回支付宝首页→重新导航
+   →任务列表重开 currentTaskIndex=0→又点同一任务。根因：skipTaskTexts 只有
+   "招募英雄"（build622），游戏文案改为"招募武将"后不命中。
+2. **P0-2 农场页误点胶囊"返回"退出农场（14:02:52/14:06:33/14:07:27/14:07:54）**：
+   findBackToHomeButton 裸"返回"匹配命中支付宝小程序胶囊按钮
+   (text='' desc='返回' bounds=[26,127][105,271]，每个小程序页顶部常驻)，
+   点击直接退出农场 H5。
+3. **P1-3 胶囊"更多"被当弹窗关闭按钮误点（14:03:39/14:03:45）**：
+   navigate generic popup 分支，胶囊"关闭"被 build777 正确丢弃后，右上角图标兜底
+   findTopRightClickableIcon 又命中相邻胶囊"更多"(desc='更多' [907,150][1039,249])
+   →误点打开胶囊菜单。旧检测只认 desc='关闭'，管不到"更多"。
+4. **P1-4 gameTaskSuspend/Smallfish 游戏页被误判农场页（14:03:31/14:05:20 卡 25s）**：
+   gameTaskSuspend 推广页含"芭芭农场充值用户专属奖励"等"芭芭农场"字样→误中
+   XRiver 标题兜底判为农场页；Smallfish 小游戏容器页标题"Smallfish App"+"玩30秒
+   得肥料"→"得肥料"误中 hasFarmContent。
+5. **P2-5 状态文本被当任务按钮点击（14:06:24/14:07:40/14:08:02，各空耗 10-30s）**：
+   ALIPAY goCompleteTexts 含裸"领取"，contains 匹配命中"丰收礼包已领取"/
+   "肥料领取成功"(toast)/"可领取肥料100"(标签)/"快领取奖励吧"(引导)，
+   这些非任务按钮被当任务点击，gesture 点击无效文本空耗。
+
+**修复方案**:
+
+- **P0-1**（AutomationController）：skipTaskTexts 新增"招募武将"关键词（与"招募英雄"
+  同类，需在游戏内完成招募动作，bot 无法完成，直接跳过不点击）。
+- **P0-2**（FarmAccessibilityService）：新增 isMiniProgramCapsuleNode()——
+  text 为空+desc 精确为"返回"/"更多"/"关闭"+位于屏幕顶部 12% 胶囊条+
+  同页顶部存在 desc='更多' 胶囊节点（小程序框架签名）；findBackToHomeButton
+  裸"返回"匹配时排除胶囊节点。
+- **P1-3**（FarmAccessibilityService）：build777 的胶囊"关闭"局部检测泛化为类级
+  isMiniProgramCapsuleNode（覆盖返回/更多/关闭三种），广告关闭按钮校验链路复用。
+- **P1-4**（FarmAccessibilityService isOnFarmPage）：游戏任务页黑名单——页面文本含
+  "gametasksuspend"（忽略大小写）或"smallfish app"→判 false 走未知页返回流程。
+- **P2-5**（FarmAccessibilityService findGoCompleteButtons）：含"领取"的节点，
+  只有以动作词开头（领取/立即领取/点击领取/去领取）的按钮文案才保留，其余一律 drop。
+
+**修改文件**: AutomationController.kt(skipTaskTexts+"招募武将")、
+FarmAccessibilityService.kt(isMiniProgramCapsuleNode+findBackToHomeButton胶囊排除+
+findGoCompleteButtons领取前缀过滤+isOnFarmPage游戏页黑名单+广告关闭链路胶囊泛化)
+
+**编译验证**: 本机 gradle 8.14.5 + JDK17 + Android SDK 34 编译通过
+(:app:compileFullDebugKotlin BUILD SUCCESSFUL; assembleDebug 仅缺 debug.keystore
+签名文件，gitignored 预期行为，CI 有签名)。
+
+---
+
 ### fix: build787 21分钟doze假死+看广告领奖跳淘宝乒乓死循环+0ms误判奖励已到账
 
 **用户需求**: "分析日志"（debug_test_20260906_121029.log, build785 运行 40min）→"修复"（全部修复）
