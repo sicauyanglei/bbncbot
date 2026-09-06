@@ -32,6 +32,46 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build790 UC"看广告领奖"静态倒计时广告死循环+stall-exit误推进任务索引+死广告恢复慢
+
+**用户需求**: "分析日志"（debug_test_20260906_170400.log, build789 首次运行验证 16:58:54-17:03:56 用户手动停止, UC 平台）
+
+**build789 验证结果**：会话级跳过名单未触发属正常——本轮 UC 任务正常处理无 skip；
+任务#1"看视频得巨额肥料"第一条广告走"我要更快拿奖"完整流程（跳 com.phoenix.read 停留15s）。
+
+**日志分析与根因（看广告领奖死循环，每轮约90s零奖励，循环2轮）**：
+
+1. 任务#1 广告的手势切回失败（荣耀设备最近任务手势无效）→ build780 会话级禁用
+   "我要更快拿奖"入口（fasterRewardRecentsFailed=true）。
+2. 主页"看广告领奖"按钮的广告是"15秒更快拿奖"型：倒计时"29"是**静态文本**，
+   奖励只能走"我要更快拿奖"跳转。入口已禁 → 此类广告必零奖励。
+3. 15s stall 检测退出时存在三个缺陷：
+   - **未计 recordTrapAdExit**：streak 永远停在 collectDirect give-up 的 1 < 阈值2，
+     build755 视频入口守卫永不激活 → openTaskList 又把"看广告领奖"当 direct 按钮
+     切回 COLLECTING_DIRECT（give-up 时已清空 lastDirectClickedText）→ 再点 → 循环。
+   - **无条件 currentTaskIndex++**：collectDirect 跳转按钮引来的广告不属于任何任务，
+     ++ 把还剩 9 次 replay 的任务#1 错误跳过。
+   - **pressBack 对优量汇 PortraitADActivity 无效**（17:01:37 pressBack → 17:02:11 仍在
+     广告前台）→ NAVIGATING "waiting instead of pressBack" 等 6 次（~30s）才强杀重开，
+     单次恢复 62s。
+
+**修复方案**（AutomationController.kt）：
+
+- **新增 watchingAdFromCollectDirect 标记**：WATCHING_AD 三个入口同步赋值
+  （collectDirect 跳转=true，任务广告/深链任务=false）。
+- **stall-exit 计 recordTrapAdExit()**：静态倒计时广告退出=未发奖，计入陷阱退出，
+  连续无进展 2 次后 build755 守卫激活，openTaskList 不再切回视频类入口，循环断开。
+- **stall-exit 仅任务来源广告才 currentTaskIndex++**：collectDirect 来源不推进索引。
+- **stall-exit 后不在农场页时直接深链重开**（已知是死广告，跳过 NAVIGATING 6 次等待）。
+
+**修改文件**: AutomationController.kt(watchingAdFromCollectDirect标记+stall-exit三处修复)
+
+**编译验证**: gradle :app:compileFullDebugKotlin BUILD SUCCESSFUL（JDK17+SDK34）。
+注：新终端需 export JAVA_HOME=$HOME/.local/share/mise/installs/java/17.0.2
+和 ANDROID_HOME=$HOME/android-sdk（mise 默认 JDK25 与 AGP 不兼容）。
+
+---
+
 ### fix: build789 任务死循环2.0——会话级永久跳过名单+对对碰游戏任务+淘宝跨平台奖励领取
 
 **用户需求**: "分析日志"（debug_test_20260906_154317.log, build788 运行验证 15:35:46-15:43:14 用户手动停止）

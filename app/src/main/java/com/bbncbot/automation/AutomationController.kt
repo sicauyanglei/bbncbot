@@ -369,6 +369,15 @@ object AutomationController {
     private var watchingAdFromDeepLinkTask: Boolean = false
 
     /**
+     * build790: WATCHING_AD 来源标记——广告由 collectDirect 跳转按钮（"看广告领奖"类）触发。
+     * 用于 stall-exit（静态倒计时退出）路径区分广告来源：collectDirect 来源的广告
+     * 不推进 currentTaskIndex（广告不属于任何任务，++ 会错误跳过一个任务）。
+     * 在 WATCHING_AD 三个入口处赋值（与 watchingAdFromDeepLinkTask 同步维护）。
+     */
+    @Volatile
+    private var watchingAdFromCollectDirect: Boolean = false
+
+    /**
      * build744: 连续"下载安装类广告放弃"计数与基线（防无限循环）
      *
      * debug_test_20260822_182904.log（build743, 18:27:06-18:29:01）：
@@ -1942,6 +1951,7 @@ object AutomationController {
                     Log.i(TAG, "collectDirect: jump button led to ad activity, entering WATCHING_AD")
                     debugLog("collectDirect: jump button '$btnText' led to ad (act=${service.getCurrentActivityName()}), entering WATCHING_AD")
                     watchingAdFromDeepLinkTask = false  // build743: 广告入口，非深链任务
+                    watchingAdFromCollectDirect = true  // build790: collectDirect 跳转按钮来源
                     service.setAdMode(true)
                     moveTo(AutomationState.WATCHING_AD)
                     handler.postDelayed({ runWatchingAd(elapsedMs = 0L) }, INTERVAL_CLICK_MS)
@@ -4694,6 +4704,7 @@ object AutomationController {
             Log.i(TAG, "processTask: ad opened! watching ad (activity=${service.isAdActivity()}, playing=${service.isAdPlaying()}, content=${service.isAdContentShown()})")
             debugLog("processTask: ad detected, entering WATCHING_AD")
             watchingAdFromDeepLinkTask = false  // build743: 广告入口，非深链任务
+            watchingAdFromCollectDirect = false  // build790: 任务广告，非 collectDirect 来源
             service.setAdMode(true)
             moveTo(AutomationState.WATCHING_AD)
             handler.postDelayed({ runWatchingAd(elapsedMs = 0L) }, INTERVAL_CLICK_MS)
@@ -4795,6 +4806,7 @@ object AutomationController {
                     Log.i(TAG, "processTask: deep-linked to another app (otherPkg=$otherPkg, activeRoot=$activeRootPkg), treating as ad task")
                     debugLog("processTask: deep-link ad task, otherPkg=$otherPkg, activeRoot=$activeRootPkg, entering WATCHING_AD to wait for return to farm")
                     watchingAdFromDeepLinkTask = true  // build743: 深链任务入口，trap 分支放行交给深链分支处理
+                    watchingAdFromCollectDirect = false  // build790: 深链任务，非 collectDirect 来源
                     service.setAdMode(true)
                     moveTo(AutomationState.WATCHING_AD)
                     handler.postDelayed({ runWatchingAd(elapsedMs = 0L) }, INTERVAL_CLICK_MS)
@@ -7173,7 +7185,19 @@ object AutomationController {
                 debugLog("watchAd: countdown stuck at ${adInitialCountdownSeconds}s (static text, not real ad), pressing back to exit")
                 service.setAdMode(false)
                 service.pressBack()
-                currentTaskIndex++  // 跳过任务,不重玩
+                // build790 修复（debug_test_20260906_170400.log, build789, 17:01:10-17:03:30 死循环2轮）：
+                //   1. stall-exit 未计陷阱退出：UC"看广告领奖"静态倒计时广告(奖励只能走
+                //      "我要更快拿奖"跳转,而 build780 已会话级禁用该入口)必零奖励退出,
+                //      streak 永远停在 collectDirect give-up 的 1 < 阈值2 → build755 守卫
+                //      永不激活 → openTaskList 又把"看广告领奖"切回 COLLECTING_DIRECT 再点。
+                //      修复:静态倒计时广告退出=未发奖,计入陷阱退出,连续无进展后守卫激活。
+                recordTrapAdExit()
+                //   2. stall-exit 无条件 currentTaskIndex++:collectDirect 跳转按钮
+                //      ("看广告领奖")引来的广告不属于任何任务,++ 会错误跳过一个任务
+                //      (17:01:37 task#1 还剩9次 replay 被跳过)。修复:仅任务来源广告才推进索引。
+                if (!watchingAdFromCollectDirect) {
+                    currentTaskIndex++  // 跳过任务,不重玩
+                }
                 // build676 修复（debug_test_20260801_100054.log, build675）：
                 // 原逻辑只 pressBack 一次,如果退出后仍在淘宝页（非农场页）,
                 // 会直接进入 OPENING_TASK_LIST,导致 openTaskList 误把淘宝页当农场页 reset 任务进度。
@@ -7182,8 +7206,14 @@ object AutomationController {
                     if (state == AutomationState.WATCHING_AD) {
                         if (!service.isOnFarmPage()) {
                             // 仍在非农场页（如淘宝）,走 NAVIGATING 重新回农场页
-                            Log.i(TAG, "watchAd: not on farm page after exit, navigating back to farm")
-                            debugLog("watchAd: not on farm after stall exit, go NAVIGATING")
+                            // build790 修复（同上日志 17:01:42-17:02:40,恢复耗时62s）：
+                            //   stall-exit 的广告是已卡死的静态广告,pressBack 对优量汇
+                            //   PortraitADActivity 无效(17:01:37 pressBack → 17:02:11 仍在前台),
+                            //   NAVIGATING "waiting instead of pressBack"等6次(~30s)才强杀重开。
+                            //   修复:已知是死广告,直接深链重开,跳过 6 次等待。
+                            Log.i(TAG, "watchAd: not on farm page after exit, force reopen farm (dead static ad)")
+                            debugLog("watchAd: not on farm after stall exit, dead static ad, force reopen instead of NAVIGATING wait (build790)")
+                            service.reopenFarmByDeepLink()
                             moveTo(AutomationState.NAVIGATING)
                             handler.postDelayed({ runNavigating(attempt = 0) }, INTERVAL_CLICK_MS)
                         } else {
