@@ -1,0 +1,1200 @@
+=== cleared on app start (version=2.2, build=build786-493b2dc, time=14:01:17) ===
+14:01:17.239 killPlatformApps: killed com.ucmobile.lite for UC
+14:01:17.241 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+14:01:17.242 killPlatformApps: killed com.taobao.taobao for TAOBAO
+14:01:28.442 FarmAccessibilityService connected, API=36
+14:01:30.028 onResume: first resume & permissions ready & automation idle, default to opening UC farm
+14:01:30.039 tryGestureSwitchToFarmApp: UC has no live window (killed?), fall back to deep link
+14:01:30.041 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+14:01:30.041 openFarmInUcBrowser: shortcut unavailable, fallback to UC browser
+14:01:43.120 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+14:01:43.121 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+14:01:43.122 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+14:01:49.920 isOnFarmPage: no farm content, sample=[松开刷新, 深圳, 搜索框, 搜索, 哈啰出行顺风车, 更多操作, , 扫一扫]
+14:01:49.984 navigateAlipay: found 芭芭农场 entry at [484,538][716,758], clickable=true, clicking
+14:01:49.985 performClickSafe: text='' desc='' bounds=[484,538][716,758] clickable=true
+14:01:50.128 performClickSafe: ACTION_CLICK success at depth=0
+14:01:50.129 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+14:01:58.521 isOnFarmPage: XRiver H5 fallback triggered (activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity, has Farm title), assuming farm H5 page (content not loaded yet)
+14:01:58.525 navigateAlipay: already on farm page, navigation done (retry=1)
+14:01:58.545 === Automation v2 Started === platform=ALIPAY
+14:01:58.564 automationWakeLock: acquired PARTIAL_WAKE_LOCK (keep CPU alive during automation)
+14:01:58.566 cancelNavigation: all navigation callbacks cancelled
+14:01:58.582 reset platform complete: ALIPAY
+14:01:58.583 state: IDLE -> NAVIGATING
+14:01:58.951 [navigate-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:01:58.963 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+14:01:58.996 navigate: on farm page, platform=ALIPAY
+14:01:59.007 hasFarmContentLoaded: text count=17, sample=[松开刷新, 芭芭农场游戏内容, 游戏对象提示, 任务列表, 农场乐园入口, 农场页面控件, 切换摇钱树, 抽抽乐, 芭芭农场,种果树得水果，助农增收, 返回]
+14:01:59.010 hasFarmContentLoaded: realContent count=14
+14:01:59.027 findCollectFertilizerButton: found by text='任务列表' bounds=[949,2069][1175,2295]
+14:01:59.027 navigate: hasFarmContentLoaded=false, hasCoreEntry=true, attempt=0
+14:01:59.052 state: NAVIGATING -> COLLECTING_DIRECT
+14:02:01.895 [collectDirect-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:02:01.911 [collectDirect-start] claim-text-nodes (count=3):
+14:02:01.912 [collectDirect-start]   text='还差4次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:02:01.912 [collectDirect-start]   text='1400肥料 待领取' desc='' bounds=[281,831][920,917] clickable=false
+14:02:01.913 [collectDirect-start]   text='签到领肥 1s' desc='' bounds=[271,1676][930,1837] clickable=false
+14:02:01.926 collectDirect: found 0 direct buttons, attempt=0
+14:02:02.005 collectDirect: dump all text/desc nodes (count=35) for '点击领取' diagnosis:
+14:02:02.006 collectDirect:   text='松开刷新' desc='' bounds=[522,0][678,-45] clickable=false
+14:02:02.014 collectDirect:   text='芭芭农场游戏内容' desc='' bounds=[0,0][1202,2666] clickable=false
+14:02:02.017 collectDirect:   text='还差4次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:02:02.018 collectDirect:   text='游戏对象提示' desc='' bounds=[0,0][1202,2666] clickable=false
+14:02:02.020 collectDirect:   text='任务列表' desc='' bounds=[949,2069][1175,2295] clickable=true
+14:02:02.026 collectDirect:   text='农场乐园入口' desc='' bounds=[39,2069][248,2295] clickable=true
+14:02:02.030 collectDirect:   text='农场页面控件' desc='' bounds=[0,0][1202,2666] clickable=false
+14:02:02.034 collectDirect:   text='切换摇钱树' desc='' bounds=[36,311][199,455] clickable=true
+14:02:02.035 collectDirect:   text='抽抽乐' desc='' bounds=[36,497][199,641] clickable=true
+14:02:02.036 collectDirect:   text='逛农货' desc='' bounds=[36,681][199,815] clickable=true
+14:02:02.040 collectDirect:   text='我的收获' desc='' bounds=[1048,311][1165,478] clickable=true
+14:02:02.042 collectDirect:   text='芭芭农场,种果树得水果，助农增收' desc='' bounds=[225,281][975,510] clickable=false
+14:02:02.043 collectDirect:   text='钓红包' desc='' bounds=[58,2387][258,2610] clickable=true
+14:02:02.043 collectDirect:   text='亲友树' desc='' bounds=[294,2387][465,2557] clickable=false
+14:02:02.044 collectDirect:   text='发起合种' desc='' bounds=[307,2547][451,2597] clickable=false
+14:02:02.044 collectDirect:   text='得1000肥 向僵尸开炮' desc='' bounds=[501,2387][700,2610] clickable=true
+14:02:02.050 collectDirect:   text='四季物语' desc='' bounds=[723,2387][920,2610] clickable=true
+14:02:02.051 collectDirect:   text='灵画师' desc='' bounds=[943,2387][1142,2610] clickable=true
+14:02:02.052 collectDirect:   text='1400肥料 待领取' desc='' bounds=[281,831][920,917] clickable=false
+14:02:02.052 collectDirect:   text='300' desc='' bounds=[131,1041][347,1162] clickable=false
+14:02:02.053 collectDirect:   text='宫格每日奖励' desc='' bounds=[55,1447][422,1503] clickable=false
+14:02:02.053 collectDirect:   text='500' desc='' bounds=[491,1041][710,1162] clickable=false
+14:02:02.054 collectDirect:   text='明日肥料' desc='' bounds=[415,1447][786,1503] clickable=false
+14:02:02.054 collectDirect:   text='600' desc='' bounds=[854,1041][1074,1162] clickable=false
+14:02:02.055 collectDirect:   text='每日签到' desc='' bounds=[779,1447][1146,1503] clickable=false
+14:02:02.055 collectDirect:   text='签到领肥 1s' desc='' bounds=[271,1676][930,1837] clickable=false
+14:02:02.056 collectDirect:   text='大额肥料' desc='' bounds=[740,1637][1034,1722] clickable=false
+14:02:02.056 collectDirect:   text='关闭' desc='' bounds=[962,573][1051,664] clickable=true
+14:02:02.057 collectDirect:   text='' desc='返回' bounds=[26,127][105,271] clickable=true
+14:02:02.058 collectDirect:   text='' desc='' bounds=[26,163][98,235] clickable=false
+14:02:02.058 collectDirect:   text='支付宝·芭芭农场' desc='' bounds=[125,156][567,242] clickable=true
+14:02:02.060 collectDirect:   text='' desc='更多' bounds=[907,150][1039,249] clickable=true
+14:02:02.060 collectDirect:   text='' desc='更多' bounds=[944,163][1016,235] clickable=false
+14:02:02.061 collectDirect:   text='' desc='关闭' bounds=[1040,150][1172,249] clickable=true
+14:02:02.070 collectDirect:   text='' desc='' bounds=[1070,163][1142,235] clickable=false
+14:02:02.102 collectDirect: no direct buttons found, trying AI vision to locate '点击领取' button (dailyClaimed=false)
+14:02:17.121 collectDirect: AI vision timed out after 15000ms, fallback to task list
+14:02:17.736 [openTaskList-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:02:17.755 [openTaskList-start] claim-text-nodes (count=3):
+14:02:17.756 [openTaskList-start]   text='还差4次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:02:17.757 [openTaskList-start]   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+14:02:17.758 [openTaskList-start]   text='领取' desc='' bounds=[884,7021][1113,2666] clickable=true
+14:02:17.788 findGoCompleteButtons: no clickable ancestor for '已领取', keep node itself for coordinate click (bounds=[923,1116][1120,1188])
+14:02:17.789 findGoCompleteButtons: drop already-claimed node text='已领取' (task completed)
+14:02:17.790 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,2823][1113,2666]
+14:02:17.791 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3032][1113,2666]
+14:02:17.792 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3238][1113,2666]
+14:02:17.796 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3448][1113,2666]
+14:02:17.797 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3864][1113,2666]
+14:02:17.798 findGoCompleteButtons: drop zero-size node text='去逛逛' bounds=[884,4074][1113,2666]
+14:02:17.799 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4283][1113,2666]
+14:02:17.800 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4490][1113,2666]
+14:02:17.801 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4699][1113,2666]
+14:02:17.802 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4905][1113,2666]
+14:02:17.802 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5115][1113,2666]
+14:02:17.803 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5321][1113,2666]
+14:02:17.803 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5531][1113,2666]
+14:02:17.804 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5741][1113,2666]
+14:02:17.805 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5947][1113,2666]
+14:02:17.805 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6157][1113,2666]
+14:02:17.806 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6366][1113,2666]
+14:02:17.806 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6572][1113,2666]
+14:02:17.807 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6782][1113,2666]
+14:02:17.807 findGoCompleteButtons: drop zero-size node text='领取' bounds=[884,7021][1113,2666]
+14:02:17.808 openTaskList: [ALIPAY闭环] 6 goComplete buttons already visible, task list open, processing directly
+14:02:17.823 findGoCompleteButtons: no clickable ancestor for '已领取', keep node itself for coordinate click (bounds=[923,1116][1120,1188])
+14:02:17.824 findGoCompleteButtons: drop already-claimed node text='已领取' (task completed)
+14:02:17.825 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,2823][1113,2666]
+14:02:17.826 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3032][1113,2666]
+14:02:17.827 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3238][1113,2666]
+14:02:17.830 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3448][1113,2666]
+14:02:17.831 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3864][1113,2666]
+14:02:17.831 findGoCompleteButtons: drop zero-size node text='去逛逛' bounds=[884,4074][1113,2666]
+14:02:17.832 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4283][1113,2666]
+14:02:17.833 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4490][1113,2666]
+14:02:17.834 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4699][1113,2666]
+14:02:17.835 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4905][1113,2666]
+14:02:17.835 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5115][1113,2666]
+14:02:17.836 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5321][1113,2666]
+14:02:17.837 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5531][1113,2666]
+14:02:17.837 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5741][1113,2666]
+14:02:17.838 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5947][1113,2666]
+14:02:17.839 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6157][1113,2666]
+14:02:17.839 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6366][1113,2666]
+14:02:17.840 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6572][1113,2666]
+14:02:17.840 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6782][1113,2666]
+14:02:17.841 findGoCompleteButtons: drop zero-size node text='领取' bounds=[884,7021][1113,2666]
+14:02:17.841 openTaskList: 6 goComplete buttons already visible, processing directly (attempt=0)
+14:02:17.842 taskButton[0]: text='去完成', desc='', bounds=[884,1365][1113,1450], clickable=true
+14:02:17.842 taskButton[1]: text='去完成', desc='', bounds=[884,1575][1113,1657], clickable=true
+14:02:17.844 taskButton[2]: text='去完成', desc='', bounds=[884,1781][1113,1866], clickable=true
+14:02:17.845 taskButton[3]: text='去完成', desc='', bounds=[884,1991][1113,2073], clickable=true
+14:02:17.846 taskButton[4]: text='去逛逛', desc='', bounds=[884,2200][1113,2282], clickable=true
+14:02:17.846 taskButton[5]: text='去完成', desc='', bounds=[884,2407][1113,2492], clickable=true
+14:02:17.847 openTaskList: resetting currentTaskIndex to 0 (was 0)
+14:02:17.848 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:02:17.849 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:02:17.850 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:02:17.851 sortTaskButtons: idx=0 task='三国冰河常规招募武将1次当前进度0，总进度1 可得500肥' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:02:17.852 collectTaskContextText: result=' 逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:02:17.852 collectTaskContextText: result=' 逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:02:17.853 collectTaskContextText: result=' 逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:02:17.853 sortTaskButtons: idx=1 task='逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:02:17.854 collectTaskContextText: result=' 逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=197
+14:02:17.855 collectTaskContextText: result=' 逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=197
+14:02:17.855 collectTaskContextText: result=' 逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=197
+14:02:17.856 sortTaskButtons: idx=2 task='逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:02:17.856 collectTaskContextText: result=' 限时抽100份足金金条当前进度0，总进度1 逛5秒即得500肥，更有30万肥料可得 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:02:17.857 collectTaskContextText: result=' 限时抽100份足金金条当前进度0，总进度1 逛5秒即得500肥，更有30万肥料可得 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:02:17.858 collectTaskContextText: result=' 限时抽100份足金金条当前进度0，总进度1 逛5秒即得500肥，更有30万肥料可得 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:02:17.858 sortTaskButtons: idx=3 task='' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:02:17.860 collectTaskContextText: result=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得 去逛逛 ', buttonText='去逛逛', btnHeight=82, containerHeight=197
+14:02:17.861 collectTaskContextText: result=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得 去逛逛 ', buttonText='去逛逛', btnHeight=82, containerHeight=197
+14:02:17.863 collectTaskContextText: result=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得 去逛逛 ', buttonText='去逛逛', btnHeight=82, containerHeight=197
+14:02:17.864 sortTaskButtons: idx=4 task='去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去逛逛')
+14:02:17.865 collectTaskContextText: result=' 农场对对碰匹配10组当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:02:17.866 collectTaskContextText: result=' 农场对对碰匹配10组当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:02:17.867 collectTaskContextText: result=' 农场对对碰匹配10组当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:02:17.868 sortTaskButtons: idx=5 task='农场对对碰匹配10组当前进度0，总进度1 可得500肥' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:02:17.869 state: OPENING_TASK_LIST -> PROCESSING_TASK
+14:02:20.049 [processTask-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:02:20.073 [processTask-start] claim-text-nodes (count=3):
+14:02:20.076 [processTask-start]   text='还差4次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:02:20.078 [processTask-start]   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+14:02:20.080 [processTask-start]   text='领取' desc='' bounds=[884,7021][1113,2666] clickable=true
+14:02:20.112 processTask: current task #1/6, text='去完成', bounds=[884,1365][1113,1450], attempt=0
+14:02:20.113 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:02:20.114 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:02:20.115 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:02:20.116 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:02:20.117 isBrowseTask: buttonText='去完成', context=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', isBrowse=false
+14:02:20.118 parseDeepLinkStayMs: no duration hint (parsed=0), using default 15s, stay=20000ms
+14:02:20.118 performClickSafe: text='去完成' desc='' bounds=[884,1365][1113,1450] clickable=true
+14:02:20.126 performClickSafe: ACTION_CLICK success at depth=0
+14:02:25.197 isOnFarmPage: no farm content, sample=[更多, , 关闭, , https://render.alipay.com/p/yuyan/180020010001260977/gameTaskSuspend.html?caprMode=sync]
+14:02:25.291 [checkTaskResult] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite1, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:02:25.297 [checkTaskResult] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+14:02:25.513 findFertilizerClaimButton: no fertilizer text, skip
+14:02:25.787 processTask: not on farm page but activeRoot='com.eg.android.AlipayGphone' is farm pkg, otherPkg='com.eg.android.AlipayGphone' (systemui false positive), skip WATCHING_AD, continue scene detection
+14:02:26.014 processTask: unknown page, pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite1, failCount=0/2
+14:02:26.037 processTask: unknown page, asking AI vision for action
+14:02:46.312 processTask: AI vision action=PRESS_BACK, reason='页面内容与任务无关'
+14:02:46.317 executeAiVisionAction: PRESS_BACK
+14:02:51.975 [checkTaskResult] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:02:51.984 [checkTaskResult] claim-text-nodes (count=3):
+14:02:51.985 [checkTaskResult]   text='还差4次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:02:51.986 [checkTaskResult]   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+14:02:51.987 [checkTaskResult]   text='领取' desc='' bounds=[884,7021][1113,2666] clickable=true
+14:02:52.042 findFertilizerClaimButton: on farm page, skip (avoid clicking 集肥料 button)
+14:02:52.414 processTask: found 返回首页 button, clicking
+14:02:52.415 performClickSafe: text='' desc='返回' bounds=[26,127][105,271] clickable=true
+14:02:52.433 performClickSafe: ACTION_CLICK success at depth=0
+14:02:57.437 state: PROCESSING_TASK -> OPENING_TASK_LIST
+14:03:00.511 isOnFarmPage: no farm content, sample=[松开刷新, 深圳, 多云 28℃, 搜索框, 搜索, 疯狂碰友节, 更多操作, ]
+14:03:00.758 isNonAdTaskPage: YES, matched non-ad task in [松开刷新, 深圳, 多云 28℃, 搜索框, 搜索, 疯狂碰友节, 更多操作, ]
+14:03:00.855 [openTaskList-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.eg.android.AlipayGphone.AlipayLogin, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+14:03:00.896 [openTaskList-start] claim-text-nodes (count=1):
+14:03:00.897 [openTaskList-start]   text='去领取' desc='' bounds=[66,3324][195,2664] clickable=false
+14:03:00.899 openTaskList: reset taskListOpenedThisRound for new round (attempt=0)
+14:03:00.899 openTaskList: resetting currentTaskIndex to 0 for new round (was 0, taskButtons.size=6)
+14:03:00.914 findGoCompleteButtons: drop zero-size node text='' bounds=[26,3048][587,2664]
+14:03:00.951 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+14:03:00.952 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+14:03:00.973 findCollectFertilizerButton: drop invalid-bounds node text='去领取' bounds=[26,3048][587,2664]
+14:03:00.978 findCollectFertilizerButton: not found by text, root childCount=1
+14:03:01.033 openTaskList: [ALIPAY闭环] not on farm page (no entry button and not on farm), re-navigating instead of coordinate fallback
+14:03:01.035 state: OPENING_TASK_LIST -> NAVIGATING
+14:03:03.100 isOnFarmPage: no farm content, sample=[松开刷新, 深圳, 多云 28℃, 搜索框, 搜索, 疯狂碰友节, 更多操作, ]
+14:03:03.306 isNonAdTaskPage: YES, matched non-ad task in [松开刷新, 深圳, 多云 28℃, 搜索框, 搜索, 疯狂碰友节, 更多操作, ]
+14:03:03.437 [navigate-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.eg.android.AlipayGphone.AlipayLogin, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+14:03:03.478 [navigate-start] claim-text-nodes (count=1):
+14:03:03.481 [navigate-start]   text='去领取' desc='' bounds=[66,3324][195,2664] clickable=false
+14:03:03.628 isRechargePage: NO (text contains 芭芭农场, farm content)
+14:03:04.060 navigate: calling navigateToFarm, platform=ALIPAY
+14:03:05.627 navigateAlipay: found 芭芭农场 entry at [484,941][716,1161], clickable=true, clicking
+14:03:05.629 performClickSafe: text='' desc='' bounds=[484,941][716,1161] clickable=true
+14:03:05.672 performClickSafe: ACTION_CLICK success at depth=0
+14:03:05.675 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+14:03:09.261 navigate: on farm page, platform=ALIPAY
+14:03:09.281 hasFarmContentLoaded: text count=28, sample=[松开刷新, 芭芭农场游戏内容, 还差4次领肥料, 游戏对象提示, 任务列表, 农场乐园入口, 农场页面控件, 切换摇钱树, 抽抽乐, 逛农货]
+14:03:09.282 hasFarmContentLoaded: realContent count=25
+14:03:09.291 findCollectFertilizerButton: found by text='任务列表' bounds=[949,2069][1175,2295]
+14:03:09.292 navigate: hasFarmContentLoaded=false, hasCoreEntry=true, attempt=1
+14:03:09.304 state: NAVIGATING -> COLLECTING_DIRECT
+14:03:11.477 [collectDirect-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:03:11.486 [collectDirect-start] claim-text-nodes (count=1):
+14:03:11.486 [collectDirect-start]   text='还差4次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:03:11.492 collectDirect: found 0 direct buttons, attempt=0
+14:03:11.527 collectDirect: dump all text/desc nodes (count=27) for '点击领取' diagnosis:
+14:03:11.528 collectDirect:   text='松开刷新' desc='' bounds=[522,0][678,-45] clickable=false
+14:03:11.529 collectDirect:   text='芭芭农场游戏内容' desc='' bounds=[0,0][1202,2666] clickable=false
+14:03:11.530 collectDirect:   text='还差4次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:03:11.530 collectDirect:   text='游戏对象提示' desc='' bounds=[0,0][1202,2666] clickable=false
+14:03:11.531 collectDirect:   text='任务列表' desc='' bounds=[949,2069][1175,2295] clickable=true
+14:03:11.531 collectDirect:   text='农场乐园入口' desc='' bounds=[39,2069][248,2295] clickable=true
+14:03:11.531 collectDirect:   text='农场页面控件' desc='' bounds=[0,0][1202,2666] clickable=false
+14:03:11.532 collectDirect:   text='切换摇钱树' desc='' bounds=[36,311][199,455] clickable=true
+14:03:11.532 collectDirect:   text='抽抽乐' desc='' bounds=[36,497][199,641] clickable=true
+14:03:11.533 collectDirect:   text='逛农货' desc='' bounds=[36,681][199,828] clickable=true
+14:03:11.533 collectDirect:   text='我的收获' desc='' bounds=[1048,311][1165,478] clickable=true
+14:03:11.533 collectDirect:   text='芭芭农场,种果树得水果，助农增收' desc='' bounds=[225,281][975,510] clickable=false
+14:03:11.534 collectDirect:   text='钓红包' desc='' bounds=[58,2387][258,2610] clickable=true
+14:03:11.534 collectDirect:   text='亲友树' desc='' bounds=[294,2387][465,2557] clickable=false
+14:03:11.535 collectDirect:   text='发起合种' desc='' bounds=[307,2547][451,2597] clickable=false
+14:03:11.535 collectDirect:   text='得1000肥 向僵尸开炮' desc='' bounds=[501,2387][700,2610] clickable=true
+14:03:11.535 collectDirect:   text='四季物语' desc='' bounds=[723,2387][920,2610] clickable=true
+14:03:11.536 collectDirect:   text='灵画师' desc='' bounds=[943,2387][1142,2610] clickable=true
+14:03:11.536 collectDirect:   text='玩寻道大千砍树20次即得' desc='' bounds=[150,1473][1051,1545] clickable=false
+14:03:11.537 collectDirect:   text='关闭' desc='' bounds=[546,1948][655,2056] clickable=true
+14:03:11.537 collectDirect:   text='' desc='返回' bounds=[26,127][105,271] clickable=true
+14:03:11.537 collectDirect:   text='' desc='' bounds=[26,163][98,235] clickable=false
+14:03:11.538 collectDirect:   text='支付宝·芭芭农场' desc='' bounds=[125,156][567,242] clickable=true
+14:03:11.538 collectDirect:   text='' desc='更多' bounds=[907,150][1039,249] clickable=true
+14:03:11.538 collectDirect:   text='' desc='更多' bounds=[944,163][1016,235] clickable=false
+14:03:11.539 collectDirect:   text='' desc='关闭' bounds=[1040,150][1172,249] clickable=true
+14:03:11.539 collectDirect:   text='' desc='' bounds=[1070,163][1142,235] clickable=false
+14:03:11.540 collectDirect: no direct buttons found at attempt=0, waiting 5000ms for page to fully load before retry
+14:03:13.680 navigateAlipay: automation running (state=COLLECTING_DIRECT), abort
+14:03:16.566 collectDirect: found 0 direct buttons, attempt=1
+14:03:16.584 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+14:03:18.786 [openTaskList-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:03:18.803 [openTaskList-start] claim-text-nodes (count=1):
+14:03:18.805 [openTaskList-start]   text='还差4次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:03:18.853 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+14:03:18.855 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+14:03:18.878 findCollectFertilizerButton: found by text='任务列表' bounds=[949,2069][1175,2295]
+14:03:18.883 openTaskList: [ALIPAY闭环] clicking entry button by text (attempt=0)
+14:03:18.886 performClickSafe: text='任务列表' desc='' bounds=[949,2069][1175,2295] clickable=true
+14:03:18.900 performClickSafe: ACTION_CLICK success at depth=0
+14:03:24.410 findGoCompleteButtons: no clickable ancestor for '已领取', keep node itself for coordinate click (bounds=[923,1116][1120,1188])
+14:03:24.414 findGoCompleteButtons: drop already-claimed node text='已领取' (task completed)
+14:03:24.417 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,2823][1113,2666]
+14:03:24.418 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3032][1113,2666]
+14:03:24.420 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3238][1113,2666]
+14:03:24.425 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3448][1113,2666]
+14:03:24.427 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3864][1113,2666]
+14:03:24.430 findGoCompleteButtons: drop zero-size node text='去逛逛' bounds=[884,4074][1113,2666]
+14:03:24.431 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4283][1113,2666]
+14:03:24.433 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4490][1113,2666]
+14:03:24.434 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4699][1113,2666]
+14:03:24.435 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4905][1113,2666]
+14:03:24.435 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5115][1113,2666]
+14:03:24.436 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5321][1113,2666]
+14:03:24.436 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5531][1113,2666]
+14:03:24.438 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5741][1113,2666]
+14:03:24.440 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5947][1113,2666]
+14:03:24.442 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6157][1113,2666]
+14:03:24.443 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6366][1113,2666]
+14:03:24.444 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6572][1113,2666]
+14:03:24.445 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6782][1113,2666]
+14:03:24.445 findGoCompleteButtons: drop zero-size node text='领取' bounds=[884,7021][1113,2666]
+14:03:24.446 checkTaskListOpened: found 6 goComplete buttons, checkAttempt=0, currentIndex=0
+14:03:24.446 taskButton[0]: text='去完成', desc='', bounds=[884,1365][1113,1450], clickable=true
+14:03:24.447 taskButton[1]: text='去完成', desc='', bounds=[884,1575][1113,1657], clickable=true
+14:03:24.447 taskButton[2]: text='去完成', desc='', bounds=[884,1781][1113,1866], clickable=true
+14:03:24.448 taskButton[3]: text='去完成', desc='', bounds=[884,1991][1113,2073], clickable=true
+14:03:24.448 taskButton[4]: text='去逛逛', desc='', bounds=[884,2200][1113,2282], clickable=true
+14:03:24.449 taskButton[5]: text='去完成', desc='', bounds=[884,2407][1113,2492], clickable=true
+14:03:24.449 checkTaskListOpened: resetting currentTaskIndex to 0 (was 0, taskButtons was empty=true)
+14:03:24.450 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:03:24.450 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:03:24.451 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:03:24.452 sortTaskButtons: idx=0 task='三国冰河常规招募武将1次当前进度0，总进度1 可得500肥' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:03:24.452 collectTaskContextText: result=' 逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:03:24.453 collectTaskContextText: result=' 逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:03:24.455 collectTaskContextText: result=' 逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:03:24.456 sortTaskButtons: idx=1 task='逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:03:24.457 collectTaskContextText: result=' 逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=197
+14:03:24.459 collectTaskContextText: result=' 逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=197
+14:03:24.460 collectTaskContextText: result=' 逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=197
+14:03:24.460 sortTaskButtons: idx=2 task='逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:03:24.461 collectTaskContextText: result=' 限时抽100份足金金条当前进度0，总进度1 逛5秒即得500肥，更有30万肥料可得 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:03:24.462 collectTaskContextText: result=' 限时抽100份足金金条当前进度0，总进度1 逛5秒即得500肥，更有30万肥料可得 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:03:24.463 collectTaskContextText: result=' 限时抽100份足金金条当前进度0，总进度1 逛5秒即得500肥，更有30万肥料可得 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:03:24.464 sortTaskButtons: idx=3 task='' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:03:24.464 collectTaskContextText: result=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得 去逛逛 ', buttonText='去逛逛', btnHeight=82, containerHeight=197
+14:03:24.465 collectTaskContextText: result=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得 去逛逛 ', buttonText='去逛逛', btnHeight=82, containerHeight=197
+14:03:24.466 collectTaskContextText: result=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得 去逛逛 ', buttonText='去逛逛', btnHeight=82, containerHeight=197
+14:03:24.467 sortTaskButtons: idx=4 task='去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去逛逛')
+14:03:24.467 collectTaskContextText: result=' 农场对对碰匹配10组当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:03:24.468 collectTaskContextText: result=' 农场对对碰匹配10组当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:03:24.468 collectTaskContextText: result=' 农场对对碰匹配10组当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:03:24.469 sortTaskButtons: idx=5 task='农场对对碰匹配10组当前进度0，总进度1 可得500肥' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:03:24.469 state: OPENING_TASK_LIST -> PROCESSING_TASK
+14:03:26.673 [processTask-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:03:26.688 [processTask-start] claim-text-nodes (count=3):
+14:03:26.690 [processTask-start]   text='还差4次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:03:26.690 [processTask-start]   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+14:03:26.691 [processTask-start]   text='领取' desc='' bounds=[884,7021][1113,2666] clickable=true
+14:03:26.705 processTask: current task #1/6, text='去完成', bounds=[884,1365][1113,1450], attempt=0
+14:03:26.707 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:03:26.708 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:03:26.710 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:03:26.711 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:03:26.711 isBrowseTask: buttonText='去完成', context=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', isBrowse=false
+14:03:26.712 parseDeepLinkStayMs: no duration hint (parsed=0), using default 15s, stay=20000ms
+14:03:26.713 performClickSafe: text='去完成' desc='' bounds=[884,1365][1113,1450] clickable=true
+14:03:26.719 performClickSafe: ACTION_CLICK success at depth=0
+14:03:31.789 isOnFarmPage: XRiver H5 fallback triggered (activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity$xriverlite1, has Farm title), assuming farm H5 page (content not loaded yet)
+14:03:31.868 [checkTaskResult] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite1, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:03:31.877 [checkTaskResult] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+14:03:31.918 findFertilizerClaimButton: on farm page, skip (avoid clicking 集肥料 button)
+14:03:32.261 findClaimRewardButton: scene not allowed for claim (scene=FARM_PAGE), skip
+14:03:32.264 processTask: still on farm page, retry task click attempt=0
+14:03:32.276 state: PROCESSING_TASK -> OPENING_TASK_LIST
+14:03:34.378 [openTaskList-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite1, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:03:34.387 [openTaskList-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+14:03:34.390 openTaskList: reset taskListOpenedThisRound for new round (attempt=0)
+14:03:34.392 openTaskList: resetting currentTaskIndex to 0 for new round (was 0, taskButtons.size=6)
+14:03:34.408 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+14:03:34.409 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+14:03:34.420 findCollectFertilizerButton: not found by text, root childCount=1
+14:03:34.435 openTaskList: [ALIPAY闭环] WebView not ready (rootChildCount=1, descendantEstimate=2), skip coordinate click, re-navigate
+14:03:34.436 state: OPENING_TASK_LIST -> NAVIGATING
+14:03:39.499 isOnFarmPage: no farm content, sample=[更多, , 关闭, , https://render.alipay.com/p/yuyan/180020010001260977/gameTaskSuspend.html?caprMode=sync]
+14:03:39.581 [navigate-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite1, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:03:39.586 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+14:03:39.705 navigate: generic popup (no fertilizer), attempting to close
+14:03:39.809 findAdCloseButton: drop mini-program capsule close node desc='关闭'
+14:03:39.815 findTopCornerIcon: found right icon at [907,150][1039,249] (screen=1200x2543)
+14:03:39.815 findAdCloseButton: found top-right close icon
+14:03:39.816 navigate: clicking close button on generic popup (text='null')
+14:03:39.817 performClickSafe: text='' desc='更多' bounds=[907,150][1039,249] clickable=true
+14:03:39.882 performClickSafe: ACTION_CLICK success at depth=0
+14:03:44.909 isOnFarmPage: no farm content, sample=[更多, , 关闭, , https://render.alipay.com/p/yuyan/180020010001260977/gameTaskSuspend.html?caprMode=sync]
+14:03:45.034 navigate: generic popup (no fertilizer), attempting to close
+14:03:45.134 findAdCloseButton: drop mini-program capsule close node desc='关闭'
+14:03:45.136 findTopCornerIcon: found right icon at [907,150][1039,249] (screen=1200x2543)
+14:03:45.138 findAdCloseButton: found top-right close icon
+14:03:45.139 navigate: clicking close button on generic popup (text='null')
+14:03:45.139 performClickSafe: text='' desc='更多' bounds=[907,150][1039,249] clickable=true
+14:03:45.167 performClickSafe: ACTION_CLICK success at depth=0
+14:03:50.249 isOnFarmPage: XRiver H5 fallback triggered (activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity$xriverlite1, has Farm title), assuming farm H5 page (content not loaded yet)
+14:03:50.257 navigate: on farm page, platform=ALIPAY
+14:03:50.262 hasFarmContentLoaded: text count=40, sample=[https://render.alipay.com/p/yuyan/180020010001260977/gameTaskSuspend.html?caprMode=sync, original, fmt, 规则入口图标, 来玩游戏吧～, original, 标题图片, 做任务得奖励，冲冲冲～～, 惊喜任务, 三国冰河常规招募武将1...]
+14:03:50.263 hasFarmContentLoaded: realContent count=38
+14:03:50.273 findCollectFertilizerButton: not found by text, root childCount=1
+14:03:50.274 navigate: hasFarmContentLoaded=true, hasCoreEntry=false, attempt=2
+14:03:50.282 state: NAVIGATING -> COLLECTING_DIRECT
+14:03:52.374 [collectDirect-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite1, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:03:52.382 [collectDirect-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+14:03:52.391 collectDirect: found 0 direct buttons, attempt=0
+14:03:52.402 collectDirect: dump all text/desc nodes (count=40) for '点击领取' diagnosis:
+14:03:52.402 collectDirect:   text='' desc='https://render.alipay.com/p/yuyan/180020010001260977/gameTaskSuspend.html?caprMode=sync' bounds=[0,0][1200,2664] clickable=false
+14:03:52.403 collectDirect:   text='original' desc='' bounds=[0,1454][1202,2325] clickable=false
+14:03:52.404 collectDirect:   text='fmt' desc='' bounds=[0,1578][298,1899] clickable=false
+14:03:52.404 collectDirect:   text='规则入口图标' desc='' bounds=[1057,1840][1169,1896] clickable=false
+14:03:52.405 collectDirect:   text='来玩游戏吧～' desc='' bounds=[337,1670][569,1745] clickable=false
+14:03:52.405 collectDirect:   text='original' desc='' bounds=[288,1804][913,1925] clickable=false
+14:03:52.406 collectDirect:   text='标题图片' desc='' bounds=[36,1968][389,2030] clickable=false
+14:03:52.406 collectDirect:   text='做任务得奖励，冲冲冲～～' desc='' bounds=[406,1971][867,2023] clickable=false
+14:03:52.407 collectDirect:   text='惊喜任务' desc='' bounds=[75,2105][271,2168] clickable=false
+14:03:52.407 collectDirect:   text='三国冰河常规招募武将1...' desc='' bounds=[281,2105][854,2168] clickable=false
+14:03:52.407 collectDirect:   text='可得500肥' desc='' bounds=[75,2164][854,2246] clickable=false
+14:03:52.408 collectDirect:   text='奖品图' desc='' bounds=[1002,2115][1103,2217] clickable=false
+14:03:52.408 collectDirect:   text='肥料' desc='' bounds=[985,2194][1126,2246] clickable=false
+14:03:52.409 collectDirect:   text='+500' desc='' bounds=[979,2079][1080,2122] clickable=false
+14:03:52.409 collectDirect:   text='完成5次烽火台任务' desc='' bounds=[75,2351][700,2410] clickable=false
+14:03:52.410 collectDirect:   text='主界面左下' desc='' bounds=[75,2407][700,2469] clickable=false
+14:03:52.410 collectDirect:   text='奖品图' desc='' bounds=[1002,2380][1103,2479] clickable=false
+14:03:52.411 collectDirect:   text='肥料' desc='' bounds=[985,2456][1126,2511] clickable=false
+14:03:52.411 collectDirect:   text='+500' desc='' bounds=[979,2344][1080,2384] clickable=false
+14:03:52.411 collectDirect:   text='完成1次资源采集' desc='' bounds=[75,2600][700,2662] clickable=false
+14:03:52.412 collectDirect:   text='右下角野外采集' desc='' bounds=[75,2659][700,2666] clickable=false
+14:03:52.412 collectDirect:   text='奖品图' desc='' bounds=[1002,2629][1103,2666] clickable=false
+14:03:52.412 collectDirect:   text='肥料' desc='' bounds=[985,2708][1126,2666] clickable=false
+14:03:52.413 collectDirect:   text='+500' desc='' bounds=[979,2593][1080,2636] clickable=false
+14:03:52.413 collectDirect:   text='完成10次烽火台任务' desc='' bounds=[75,2852][700,2666] clickable=false
+14:03:52.414 collectDirect:   text='主界面左下' desc='' bounds=[75,2908][700,2666] clickable=false
+14:03:52.414 collectDirect:   text='奖品图' desc='' bounds=[1002,2882][1103,2666] clickable=false
+14:03:52.414 collectDirect:   text='肥料' desc='' bounds=[985,2957][1126,2666] clickable=false
+14:03:52.415 collectDirect:   text='+1000' desc='' bounds=[979,2845][1097,2666] clickable=false
+14:03:52.415 collectDirect:   text='限时任务' desc='' bounds=[75,3114][271,2666] clickable=false
+14:03:52.415 collectDirect:   text='游戏内充值任意金额' desc='' bounds=[281,3114][743,2666] clickable=false
+14:03:52.416 collectDirect:   text='icon' desc='' bounds=[746,3121][795,2666] clickable=false
+14:03:52.416 collectDirect:   text='芭芭农场充值用户专属奖励，可得50000肥' desc='' bounds=[75,3173][841,2666] clickable=false
+14:03:52.417 collectDirect:   text='奖品图' desc='' bounds=[1002,3147][1103,2666] clickable=false
+14:03:52.417 collectDirect:   text='肥料' desc='' bounds=[985,3225][1126,2666] clickable=false
+14:03:52.417 collectDirect:   text='+50000' desc='' bounds=[979,3111][1113,2666] clickable=false
+14:03:52.418 collectDirect:   text='' desc='更多' bounds=[907,150][1039,249] clickable=true
+14:03:52.418 collectDirect:   text='' desc='' bounds=[944,163][1016,235] clickable=false
+14:03:52.418 collectDirect:   text='' desc='关闭' bounds=[1040,150][1172,249] clickable=true
+14:03:52.419 collectDirect:   text='' desc='' bounds=[1070,163][1142,235] clickable=false
+14:03:52.419 collectDirect: no direct buttons found at attempt=0, waiting 5000ms for page to fully load before retry
+14:03:59.022 collectDirect: found 0 direct buttons, attempt=1
+14:03:59.064 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+14:04:01.212 isOnFarmPage: XRiver H5 fallback triggered (activity=com.alipay.mobile.nebulax.xriver.activity.xriveractivity, has Farm title), assuming farm H5 page (content not loaded yet)
+14:04:01.404 [openTaskList-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:04:01.415 [openTaskList-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+14:04:01.472 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+14:04:01.476 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+14:04:01.488 findCollectFertilizerButton: found by text='任务列表' bounds=[949,2069][1175,2295]
+14:04:01.489 openTaskList: [ALIPAY闭环] clicking entry button by text (attempt=0)
+14:04:01.489 performClickSafe: text='任务列表' desc='' bounds=[949,2069][1175,2295] clickable=true
+14:04:01.493 performClickSafe: ACTION_CLICK success at depth=0
+14:04:07.251 findGoCompleteButtons: no clickable ancestor for '已领取', keep node itself for coordinate click (bounds=[923,1116][1120,1188])
+14:04:07.253 findGoCompleteButtons: drop already-claimed node text='已领取' (task completed)
+14:04:07.254 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,2823][1113,2666]
+14:04:07.255 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3032][1113,2666]
+14:04:07.256 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3238][1113,2666]
+14:04:07.257 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3448][1113,2666]
+14:04:07.258 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3864][1113,2666]
+14:04:07.258 findGoCompleteButtons: drop zero-size node text='去逛逛' bounds=[884,4074][1113,2666]
+14:04:07.259 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4283][1113,2666]
+14:04:07.259 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4490][1113,2666]
+14:04:07.260 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4699][1113,2666]
+14:04:07.261 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4905][1113,2666]
+14:04:07.261 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5115][1113,2666]
+14:04:07.262 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5321][1113,2666]
+14:04:07.262 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5531][1113,2666]
+14:04:07.262 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5741][1113,2666]
+14:04:07.263 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5947][1113,2666]
+14:04:07.263 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6157][1113,2666]
+14:04:07.263 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6366][1113,2666]
+14:04:07.264 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6572][1113,2666]
+14:04:07.264 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6782][1113,2666]
+14:04:07.265 findGoCompleteButtons: drop zero-size node text='领取' bounds=[884,7021][1113,2666]
+14:04:07.265 checkTaskListOpened: found 6 goComplete buttons, checkAttempt=0, currentIndex=0
+14:04:07.265 taskButton[0]: text='去完成', desc='', bounds=[884,1365][1113,1450], clickable=true
+14:04:07.267 taskButton[1]: text='去完成', desc='', bounds=[884,1575][1113,1657], clickable=true
+14:04:07.267 taskButton[2]: text='去完成', desc='', bounds=[884,1781][1113,1866], clickable=true
+14:04:07.268 taskButton[3]: text='去完成', desc='', bounds=[884,1991][1113,2073], clickable=true
+14:04:07.269 taskButton[4]: text='去逛逛', desc='', bounds=[884,2200][1113,2282], clickable=true
+14:04:07.270 taskButton[5]: text='去完成', desc='', bounds=[884,2407][1113,2492], clickable=true
+14:04:07.271 checkTaskListOpened: resetting currentTaskIndex to 0 (was 0, taskButtons was empty=true)
+14:04:07.271 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:04:07.272 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:04:07.273 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:04:07.273 sortTaskButtons: idx=0 task='三国冰河常规招募武将1次当前进度0，总进度1 可得500肥' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:04:07.274 collectTaskContextText: result=' 逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:04:07.275 collectTaskContextText: result=' 逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:04:07.275 collectTaskContextText: result=' 逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:04:07.276 sortTaskButtons: idx=1 task='逛一逛蚂蚁庄园当前进度0，总进度1 限时加倍，浏览即得500肥' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:04:07.276 collectTaskContextText: result=' 逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=197
+14:04:07.277 collectTaskContextText: result=' 逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=197
+14:04:07.277 collectTaskContextText: result=' 逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=197
+14:04:07.278 sortTaskButtons: idx=2 task='逛支付宝金豆夺宝当前进度0，总进度1 奖励300肥料，攒支金豆兑现金' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:04:07.278 collectTaskContextText: result=' 限时抽100份足金金条当前进度0，总进度1 逛5秒即得500肥，更有30万肥料可得 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:04:07.279 collectTaskContextText: result=' 限时抽100份足金金条当前进度0，总进度1 逛5秒即得500肥，更有30万肥料可得 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:04:07.279 collectTaskContextText: result=' 限时抽100份足金金条当前进度0，总进度1 逛5秒即得500肥，更有30万肥料可得 去完成 ', buttonText='去完成', btnHeight=82, containerHeight=197
+14:04:07.279 sortTaskButtons: idx=3 task='' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:04:07.280 collectTaskContextText: result=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得 去逛逛 ', buttonText='去逛逛', btnHeight=82, containerHeight=197
+14:04:07.280 collectTaskContextText: result=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得 去逛逛 ', buttonText='去逛逛', btnHeight=82, containerHeight=197
+14:04:07.281 collectTaskContextText: result=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得 去逛逛 ', buttonText='去逛逛', btnHeight=82, containerHeight=197
+14:04:07.281 sortTaskButtons: idx=4 task='去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去逛逛')
+14:04:07.281 collectTaskContextText: result=' 农场对对碰匹配10组当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:04:07.282 collectTaskContextText: result=' 农场对对碰匹配10组当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:04:07.283 collectTaskContextText: result=' 农场对对碰匹配10组当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:04:07.284 sortTaskButtons: idx=5 task='农场对对碰匹配10组当前进度0，总进度1 可得500肥' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:04:07.286 state: OPENING_TASK_LIST -> PROCESSING_TASK
+14:04:10.274 [processTask-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:04:10.287 [processTask-start] claim-text-nodes (count=3):
+14:04:10.289 [processTask-start]   text='还差4次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:04:10.290 [processTask-start]   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+14:04:10.290 [processTask-start]   text='领取' desc='' bounds=[884,7021][1113,2666] clickable=true
+14:04:10.314 processTask: current task #1/6, text='去完成', bounds=[884,1365][1113,1450], attempt=0
+14:04:10.318 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:04:10.321 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:04:10.323 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:04:10.324 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:04:10.325 isBrowseTask: buttonText='去完成', context=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', isBrowse=false
+14:04:10.327 parseDeepLinkStayMs: no duration hint (parsed=0), using default 15s, stay=20000ms
+14:04:10.328 performClickSafe: text='去完成' desc='' bounds=[884,1365][1113,1450] clickable=true
+14:04:10.333 performClickSafe: ACTION_CLICK success at depth=0
+14:04:15.361 isOnFarmPage: no farm content, sample=[更多, , 关闭, ]
+14:04:15.423 [checkTaskResult] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite1, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:04:15.427 [checkTaskResult] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+14:04:15.528 findFertilizerClaimButton: no fertilizer text, skip
+14:04:15.629 processTask: not on farm page but activeRoot='com.eg.android.AlipayGphone' is farm pkg, otherPkg='com.eg.android.AlipayGphone' (systemui false positive), skip WATCHING_AD, continue scene detection
+14:04:15.701 processTask: unknown page, pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite1, failCount=0/2
+14:04:15.707 processTask: unknown page, asking AI vision for action
+14:04:27.594 processTask: AI vision action=PRESS_BACK, reason='{"action": "CLICK'
+14:04:27.598 executeAiVisionAction: PRESS_BACK
+14:04:32.662 isOnFarmPage: no farm content, sample=[松开刷新, 稍等片刻, 返回, , 更多, , 更多, 关闭]
+14:04:32.813 [checkTaskResult] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:04:32.828 [checkTaskResult] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+14:04:32.924 isRechargePage: NO (text contains 芭芭农场, farm content)
+14:04:33.033 findFertilizerClaimButton: no fertilizer text, skip
+14:04:33.406 processTask: not on farm page but activeRoot='com.eg.android.AlipayGphone' is farm pkg, otherPkg='com.eg.android.AlipayGphone' (systemui false positive), skip WATCHING_AD, continue scene detection
+14:04:33.473 isRechargePage: NO (text contains 芭芭农场, farm content)
+14:04:33.763 processTask: unknown page, pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, failCount=1/2
+14:04:33.788 processTask: reached MAX_TASK_FAILS after AI exhausted, skipping task #1
+14:04:37.532 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+14:04:37.533 openApp: shortcut unavailable for ALIPAY, fallback to deep link / navigation
+14:04:37.534 killPlatformApps: killed com.eg.android.AlipayGphone for ALIPAY
+14:04:38.794 state: PROCESSING_TASK -> OPENING_TASK_LIST
+14:04:39.556 navigateToFarm: automation running (state=OPENING_TASK_LIST), skip navigation
+14:04:41.072 isFarmAppInForeground: windows miss farm pkg, but activity=com.eg.android.alipaygphone.alipaylogin matches farm keywords, treat as in farm app (weak signal, requires content check)
+14:04:41.102 isOnFarmPage: root=null and no farm pkg window visible (activity fallback only, activity=com.eg.android.alipaygphone.alipaylogin), not on farm page
+14:04:41.208 isFarmAppInForeground: windows miss farm pkg, but activity=com.eg.android.alipaygphone.alipaylogin matches farm keywords, treat as in farm app (weak signal, requires content check)
+14:04:41.271 isFarmAppInForeground: windows miss farm pkg, but activity=com.eg.android.alipaygphone.alipaylogin matches farm keywords, treat as in farm app (weak signal, requires content check)
+14:04:41.343 isFarmAppInForeground: windows miss farm pkg, but activity=com.eg.android.alipaygphone.alipaylogin matches farm keywords, treat as in farm app (weak signal, requires content check)
+14:04:41.378 [openTaskList-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.eg.android.AlipayGphone.AlipayLogin, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:04:41.389 openTaskList: reset taskListOpenedThisRound for new round (attempt=0)
+14:04:41.390 openTaskList: resetting currentTaskIndex to 0 for new round (was 1, taskButtons.size=6)
+14:04:41.456 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+14:04:41.460 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+14:04:41.468 findCollectFertilizerButton: root is null!
+14:04:41.494 isFarmAppInForeground: windows miss farm pkg, but activity=com.eg.android.alipaygphone.alipaylogin matches farm keywords, treat as in farm app (weak signal, requires content check)
+14:04:41.511 openTaskList: [ALIPAY闭环] not on farm page (no entry button and not on farm), re-navigating instead of coordinate fallback
+14:04:41.515 state: OPENING_TASK_LIST -> NAVIGATING
+14:04:43.557 isOnFarmPage: activity=com.alipay.android.phone.xriver.bundlex.csgapushactivity not in farm keywords, trying content fallback (build749)
+14:04:43.598 isOnFarmPage: activity=com.alipay.android.phone.xriver.bundlex.csgapushactivity not in farm keywords, trying content fallback (build749)
+14:04:43.826 isOnFarmPage: activity=com.alipay.android.phone.xriver.bundlex.csgapushactivity not in farm keywords, trying content fallback (build749)
+14:04:43.847 isOnFarmPage: activity=com.alipay.android.phone.xriver.bundlex.csgapushactivity not in farm keywords, trying content fallback (build749)
+14:04:43.882 isOnFarmPage: activity=com.alipay.android.phone.xriver.bundlex.csgapushactivity not in farm keywords, trying content fallback (build749)
+14:04:43.934 [navigate-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.android.phone.xriver.bundlex.CSGAPushActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:04:43.972 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+14:04:44.054 isOnFarmPage: activity=com.alipay.android.phone.xriver.bundlex.csgapushactivity not in farm keywords, trying content fallback (build749)
+14:04:44.090 isOnFarmPage: activity=com.alipay.android.phone.xriver.bundlex.csgapushactivity not in farm keywords, trying content fallback (build749)
+14:04:44.109 isOnFarmPage: activity=com.alipay.android.phone.xriver.bundlex.csgapushactivity not in farm keywords and no farm core content, not on farm page
+14:04:44.225 isOnFarmPage: activity=com.alipay.android.phone.xriver.bundlex.csgapushactivity not in farm keywords, trying content fallback (build749)
+14:04:44.470 isOnFarmPage: activity=com.alipay.android.phone.xriver.bundlex.csgapushactivity not in farm keywords, trying content fallback (build749)
+14:04:44.646 navigate: calling navigateToFarm, platform=ALIPAY
+14:04:46.183 isOnFarmPage: activity=com.alipay.android.phone.xriver.bundlex.csgapushactivity not in farm keywords, trying content fallback (build749)
+14:04:46.698 navigateAlipay: no search or farm entry found, retry=0
+14:04:48.734 isOnFarmPage: activity=com.alipay.android.phone.xriver.bundlex.csgapushactivity not in farm keywords, trying content fallback (build749)
+14:04:48.999 isOnFarmPage: activity=com.alipay.android.phone.xriver.bundlex.csgapushactivity not in farm keywords and no farm core content, not on farm page
+14:04:49.037 navigateAlipay: no search or farm entry found, pressing back to exit sub-page (retry=1)
+14:04:50.814 isRechargePage: NO (text contains 芭芭农场, farm content)
+14:04:51.351 navigateAlipay: found 芭芭农场 entry at [484,941][716,1161], clickable=true, clicking
+14:04:51.354 performClickSafe: text='' desc='' bounds=[484,941][716,1161] clickable=true
+14:04:51.388 performClickSafe: ACTION_CLICK success at depth=0
+14:04:51.392 navigateAlipay: 芭芭农场 entry click result=true (will verify navigation)
+14:04:56.271 navigate: on farm page, platform=ALIPAY
+14:04:56.302 hasFarmContentLoaded: text count=26, sample=[松开刷新, 芭芭农场游戏内容, 还差4次领肥料, 游戏对象提示, 任务列表, 农场乐园入口, 农场页面控件, 切换摇钱树, 抽抽乐, 逛农货]
+14:04:56.305 hasFarmContentLoaded: realContent count=23
+14:04:56.336 findCollectFertilizerButton: found by text='任务列表' bounds=[949,2069][1175,2295]
+14:04:56.338 navigate: hasFarmContentLoaded=false, hasCoreEntry=true, attempt=1
+14:04:56.370 state: NAVIGATING -> COLLECTING_DIRECT
+14:04:58.600 [collectDirect-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:04:58.611 [collectDirect-start] claim-text-nodes (count=1):
+14:04:58.611 [collectDirect-start]   text='还差4次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:04:58.634 collectDirect: found 0 direct buttons, attempt=0
+14:04:58.696 collectDirect: dump all text/desc nodes (count=25) for '点击领取' diagnosis:
+14:04:58.697 collectDirect:   text='松开刷新' desc='' bounds=[522,0][678,-45] clickable=false
+14:04:58.700 collectDirect:   text='芭芭农场游戏内容' desc='' bounds=[0,0][1202,2666] clickable=false
+14:04:58.701 collectDirect:   text='还差4次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:04:58.703 collectDirect:   text='游戏对象提示' desc='' bounds=[0,0][1202,2666] clickable=false
+14:04:58.704 collectDirect:   text='任务列表' desc='' bounds=[949,2069][1175,2295] clickable=true
+14:04:58.705 collectDirect:   text='农场乐园入口' desc='' bounds=[39,2069][248,2295] clickable=true
+14:04:58.706 collectDirect:   text='农场页面控件' desc='' bounds=[0,0][1202,2666] clickable=false
+14:04:58.706 collectDirect:   text='切换摇钱树' desc='' bounds=[36,311][199,455] clickable=true
+14:04:58.707 collectDirect:   text='抽抽乐' desc='' bounds=[36,497][199,641] clickable=true
+14:04:58.708 collectDirect:   text='逛农货' desc='' bounds=[36,681][199,828] clickable=true
+14:04:58.709 collectDirect:   text='我的收获' desc='' bounds=[1048,311][1165,478] clickable=true
+14:04:58.710 collectDirect:   text='芭芭农场,种果树得水果，助农增收' desc='' bounds=[225,281][975,510] clickable=false
+14:04:58.711 collectDirect:   text='钓红包' desc='' bounds=[58,2387][258,2610] clickable=true
+14:04:58.712 collectDirect:   text='亲友树' desc='' bounds=[294,2387][465,2557] clickable=false
+14:04:58.713 collectDirect:   text='发起合种' desc='' bounds=[307,2547][451,2597] clickable=false
+14:04:58.714 collectDirect:   text='得1000肥 向僵尸开炮' desc='' bounds=[501,2387][700,2610] clickable=true
+14:04:58.715 collectDirect:   text='四季物语' desc='' bounds=[723,2387][920,2610] clickable=true
+14:04:58.715 collectDirect:   text='灵画师' desc='' bounds=[943,2387][1142,2610] clickable=true
+14:04:58.716 collectDirect:   text='' desc='返回' bounds=[26,127][105,271] clickable=true
+14:04:58.717 collectDirect:   text='' desc='' bounds=[26,163][98,235] clickable=false
+14:04:58.717 collectDirect:   text='支付宝·芭芭农场' desc='' bounds=[125,156][567,242] clickable=true
+14:04:58.718 collectDirect:   text='' desc='更多' bounds=[907,150][1039,249] clickable=true
+14:04:58.718 collectDirect:   text='' desc='更多' bounds=[944,163][1016,235] clickable=false
+14:04:58.718 collectDirect:   text='' desc='关闭' bounds=[1040,150][1172,249] clickable=true
+14:04:58.719 collectDirect:   text='' desc='' bounds=[1070,163][1142,235] clickable=false
+14:04:58.719 collectDirect: no direct buttons found at attempt=0, waiting 5000ms for page to fully load before retry
+14:04:59.395 navigateAlipay: automation running (state=COLLECTING_DIRECT), abort
+14:05:03.937 collectDirect: found 1 direct buttons, attempt=1
+14:05:03.940 collectDirect: clicking button[0] text='立即领肥' desc='' bounds=[471,1640][730,1719] (attempt 2)
+14:05:03.943 performClickSafe: text='立即领肥' desc='' bounds=[471,1640][730,1719] clickable=true
+14:05:03.954 performClickSafe: ACTION_CLICK success at depth=0
+14:05:08.971 collectDirect: claim button not found, retrying (retry left=2)
+14:05:11.507 collectDirect: claim button not found, retrying (retry left=1)
+14:05:13.554 collectDirect: claim button not found after 3 retries, moving to next direct button
+14:05:13.578 collectDirect: found 0 direct buttons, attempt=2
+14:05:13.582 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+14:05:15.686 [openTaskList-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite2, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:05:15.691 [openTaskList-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+14:05:15.702 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+14:05:15.703 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+14:05:15.709 findCollectFertilizerButton: not found by text, root childCount=1
+14:05:15.723 openTaskList: [ALIPAY闭环] WebView not ready (rootChildCount=1, descendantEstimate=2), skip coordinate click, re-navigate
+14:05:15.724 state: OPENING_TASK_LIST -> NAVIGATING
+14:05:20.828 [navigate-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite2, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:05:20.840 [navigate-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+14:05:20.875 navigate: on farm page, platform=ALIPAY
+14:05:20.881 hasFarmContentLoaded: text count=9, sample=[更多, , 关闭, , https://render.alipay.com/p/c/180020570000060569/index.html?caprMode=sync, Smallfish App, 玩30秒, 得肥料, https://render.alipay.com/p/yuyan/180020010001260977/gameTaskSuspend.html?caprMode=sync]
+14:05:20.883 hasFarmContentLoaded: realContent count=7
+14:05:20.894 findCollectFertilizerButton: not found by text, root childCount=1
+14:05:20.895 navigate: hasFarmContentLoaded=false, hasCoreEntry=false, attempt=0
+14:05:25.981 navigate: on farm page, platform=ALIPAY
+14:05:25.990 hasFarmContentLoaded: text count=9, sample=[更多, , 关闭, , https://render.alipay.com/p/c/180020570000060569/index.html?caprMode=sync, Smallfish App, 玩30秒, 得肥料, https://render.alipay.com/p/yuyan/180020010001260977/gameTaskSuspend.html?caprMode=sync]
+14:05:25.993 hasFarmContentLoaded: realContent count=7
+14:05:26.010 findCollectFertilizerButton: not found by text, root childCount=1
+14:05:26.012 navigate: hasFarmContentLoaded=false, hasCoreEntry=false, attempt=1
+14:05:31.066 navigate: on farm page, platform=ALIPAY
+14:05:31.077 hasFarmContentLoaded: text count=9, sample=[更多, , 关闭, , https://render.alipay.com/p/c/180020570000060569/index.html?caprMode=sync, Smallfish App, 玩30秒, 得肥料, https://render.alipay.com/p/yuyan/180020010001260977/gameTaskSuspend.html?caprMode=sync]
+14:05:31.079 hasFarmContentLoaded: realContent count=7
+14:05:31.096 findCollectFertilizerButton: not found by text, root childCount=1
+14:05:31.098 navigate: hasFarmContentLoaded=false, hasCoreEntry=false, attempt=2
+14:05:36.149 navigate: on farm page, platform=ALIPAY
+14:05:36.156 hasFarmContentLoaded: text count=9, sample=[更多, , 关闭, , https://render.alipay.com/p/c/180020570000060569/index.html?caprMode=sync, Smallfish App, 玩30秒, 得肥料, https://render.alipay.com/p/yuyan/180020010001260977/gameTaskSuspend.html?caprMode=sync]
+14:05:36.158 hasFarmContentLoaded: realContent count=7
+14:05:36.169 findCollectFertilizerButton: not found by text, root childCount=1
+14:05:36.170 navigate: hasFarmContentLoaded=false, hasCoreEntry=false, attempt=3
+14:05:41.220 navigate: on farm page, platform=ALIPAY
+14:05:41.229 hasFarmContentLoaded: text count=9, sample=[更多, , 关闭, , https://render.alipay.com/p/c/180020570000060569/index.html?caprMode=sync, Smallfish App, 玩30秒, 得肥料, https://render.alipay.com/p/yuyan/180020010001260977/gameTaskSuspend.html?caprMode=sync]
+14:05:41.231 hasFarmContentLoaded: realContent count=7
+14:05:41.250 findCollectFertilizerButton: not found by text, root childCount=1
+14:05:41.252 navigate: hasFarmContentLoaded=false, hasCoreEntry=false, attempt=4
+14:05:46.342 isOnFarmPage: no farm content, sample=[更多, , 关闭, , https://render.alipay.com/p/c/180020570000060569/index.html?caprMode=sync, Smallfish App, 肥料奖励, 已发放]
+14:05:46.549 navigate: calling navigateToFarm, platform=ALIPAY
+14:05:48.110 navigateAlipay: 芭芭农场 entry at [0,0][1202,2666] is not clickable (probably title text), skip and fallback to search
+14:05:48.248 navigateAlipay: no search or farm entry found, retry=0
+14:05:50.295 navigateAlipay: already on farm page, navigation done (retry=1)
+14:05:51.834 navigate: on farm page, platform=ALIPAY
+14:05:51.860 hasFarmContentLoaded: text count=61, sample=[松开刷新, 芭芭农场游戏内容, 还差5次领肥料, 游戏对象提示, 任务列表, 农场乐园入口, 农场页面控件, 切换摇钱树, 抽抽乐, 逛农货]
+14:05:51.863 hasFarmContentLoaded: realContent count=44
+14:05:51.878 findCollectFertilizerButton: found by text='任务列表' bounds=[949,2069][1175,2295]
+14:05:51.879 navigate: hasFarmContentLoaded=true, hasCoreEntry=true, attempt=6
+14:05:51.908 state: NAVIGATING -> COLLECTING_DIRECT
+14:05:54.205 [collectDirect-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:05:54.224 [collectDirect-start] claim-text-nodes (count=1):
+14:05:54.226 [collectDirect-start]   text='还差5次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:05:54.237 collectDirect: found 0 direct buttons, attempt=0
+14:05:54.291 collectDirect: dump all text/desc nodes (count=28) for '点击领取' diagnosis:
+14:05:54.294 collectDirect:   text='松开刷新' desc='' bounds=[522,0][678,-45] clickable=false
+14:05:54.295 collectDirect:   text='芭芭农场游戏内容' desc='' bounds=[0,0][1202,2666] clickable=false
+14:05:54.297 collectDirect:   text='还差5次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:05:54.298 collectDirect:   text='游戏对象提示' desc='' bounds=[0,0][1202,2666] clickable=false
+14:05:54.300 collectDirect:   text='任务列表' desc='' bounds=[949,2069][1175,2295] clickable=true
+14:05:54.302 collectDirect:   text='农场乐园入口' desc='' bounds=[39,2069][248,2295] clickable=true
+14:05:54.306 collectDirect:   text='农场页面控件' desc='' bounds=[0,0][1202,2666] clickable=false
+14:05:54.307 collectDirect:   text='切换摇钱树' desc='' bounds=[36,311][199,455] clickable=true
+14:05:54.309 collectDirect:   text='抽抽乐' desc='' bounds=[36,497][199,641] clickable=true
+14:05:54.309 collectDirect:   text='逛农货' desc='' bounds=[36,681][199,828] clickable=true
+14:05:54.310 collectDirect:   text='我的收获' desc='' bounds=[1048,311][1165,478] clickable=true
+14:05:54.310 collectDirect:   text='芭芭农场,种果树得水果，助农增收' desc='' bounds=[225,281][975,510] clickable=false
+14:05:54.310 collectDirect:   text='钓红包' desc='' bounds=[58,2387][258,2610] clickable=true
+14:05:54.311 collectDirect:   text='亲友树' desc='' bounds=[294,2387][465,2557] clickable=false
+14:05:54.311 collectDirect:   text='发起合种' desc='' bounds=[307,2547][451,2597] clickable=false
+14:05:54.311 collectDirect:   text='得1000肥 向僵尸开炮' desc='' bounds=[501,2387][700,2610] clickable=true
+14:05:54.312 collectDirect:   text='四季物语' desc='' bounds=[723,2387][920,2610] clickable=true
+14:05:54.312 collectDirect:   text='灵画师' desc='' bounds=[943,2387][1142,2610] clickable=true
+14:05:54.312 collectDirect:   text='关闭农场乐园弹窗' desc='' bounds=[1070,481][1172,582] clickable=true
+14:05:54.313 collectDirect:   text='农场乐园' desc='' bounds=[0,540][1202,684] clickable=false
+14:05:54.313 collectDirect:   text='请稍候...' desc='' bounds=[520,1650][681,1716] clickable=false
+14:05:54.314 collectDirect:   text='' desc='返回' bounds=[26,127][105,271] clickable=true
+14:05:54.314 collectDirect:   text='' desc='' bounds=[26,163][98,235] clickable=false
+14:05:54.314 collectDirect:   text='支付宝·芭芭农场' desc='' bounds=[125,156][567,242] clickable=true
+14:05:54.315 collectDirect:   text='' desc='更多' bounds=[907,150][1039,249] clickable=true
+14:05:54.315 collectDirect:   text='' desc='更多' bounds=[944,163][1016,235] clickable=false
+14:05:54.315 collectDirect:   text='' desc='关闭' bounds=[1040,150][1172,249] clickable=true
+14:05:54.316 collectDirect:   text='' desc='' bounds=[1070,163][1142,235] clickable=false
+14:05:54.316 collectDirect: no direct buttons found at attempt=0, waiting 5000ms for page to fully load before retry
+14:05:59.337 collectDirect: found 0 direct buttons, attempt=1
+14:05:59.353 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+14:06:02.546 isOnFarmPage: no farm content, sample=[松开刷新, 深圳, 多云 28℃, 搜索框, 搜索, 疯狂碰友节, 更多操作, ]
+14:06:02.727 isNonAdTaskPage: YES, matched non-ad task in [松开刷新, 深圳, 多云 28℃, 搜索框, 搜索, 疯狂碰友节, 更多操作, ]
+14:06:02.833 [openTaskList-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.eg.android.AlipayGphone.AlipayLogin, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+14:06:02.858 [openTaskList-start] claim-text-nodes (count=1):
+14:06:02.861 [openTaskList-start]   text='去领取' desc='' bounds=[66,2921][195,2664] clickable=false
+14:06:02.890 collectTaskContextText: result='', buttonText='null', btnHeight=19, containerHeight=493
+14:06:02.891 openTaskList: drop ghost button (no text/desc, context has no task info besides '去完成', build785)
+14:06:02.930 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+14:06:02.931 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+14:06:02.954 findCollectFertilizerButton: found by text='去领取' bounds=[26,2645][587,2664]
+14:06:02.955 openTaskList: [ALIPAY闭环] clicking entry button by text (attempt=0)
+14:06:02.956 performClickSafe: text='' desc='' bounds=[26,2645][587,2664] clickable=true
+14:06:02.967 performClickSafe: ACTION_CLICK success at depth=0
+14:06:08.018 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+14:06:10.135 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+14:06:12.721 collectTaskContextText: result='', buttonText='null', btnHeight=19, containerHeight=493
+14:06:12.722 openTaskList: drop ghost button (no text/desc, context has no task info besides '去完成', build785)
+14:06:12.722 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+14:06:14.778 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=3, currentIndex=0
+14:06:16.908 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=4, currentIndex=0
+14:06:19.058 findCollectFertilizerButton: found by text='任务列表' bounds=[949,2069][1175,2295]
+14:06:19.060 openTaskList: findCollectFertilizerButton=true, attempt=1
+14:06:19.061 performClickSafe: text='任务列表' desc='' bounds=[949,2069][1175,2295] clickable=true
+14:06:19.065 performClickSafe: ACTION_CLICK success at depth=0
+14:06:24.135 findGoCompleteButtons: no clickable ancestor for '你已经添加到首页了，快领取奖励吧', keep node itself for coordinate click (bounds=[256,1268][943,1396])
+14:06:24.136 checkTaskListOpened: found 1 goComplete buttons, checkAttempt=0, currentIndex=0
+14:06:24.137 taskButton[0]: text='你已经添加到首页了，快领取奖励吧', desc='', bounds=[256,1268][943,1396], clickable=false
+14:06:24.138 checkTaskListOpened: resetting currentTaskIndex to 0 (was 0, taskButtons was empty=true)
+14:06:24.139 state: OPENING_TASK_LIST -> PROCESSING_TASK
+14:06:27.232 [processTask-start] snapshot: pkg=com.eg.android.AlipayGphone, act=android.widget.FrameLayout, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:06:27.252 [processTask-start] claim-text-nodes (count=4):
+14:06:27.254 [processTask-start]   text='还差4次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:06:27.255 [processTask-start]   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+14:06:27.257 [processTask-start]   text='领取' desc='' bounds=[884,1955][1113,2040] clickable=true
+14:06:27.259 [processTask-start]   text='领取' desc='' bounds=[884,7021][1113,2666] clickable=true
+14:06:27.297 processTask: current task #1/1, text='你已经添加到首页了，快领取奖励吧', bounds=[256,1268][943,1396], attempt=0
+14:06:27.313 collectTaskContextText: fallback triggered, btnTop=1268 btnBottom=1396 fallbackResult=''
+14:06:27.315 collectTaskContextText: result='你已经添加到首页了，快领取奖励吧 ', buttonText='你已经添加到首页了，快领取奖励吧', btnHeight=128, containerHeight=-1
+14:06:27.329 collectTaskContextText: fallback triggered, btnTop=1268 btnBottom=1396 fallbackResult=''
+14:06:27.329 collectTaskContextText: result='你已经添加到首页了，快领取奖励吧 ', buttonText='你已经添加到首页了，快领取奖励吧', btnHeight=128, containerHeight=-1
+14:06:27.344 collectTaskContextText: fallback triggered, btnTop=1268 btnBottom=1396 fallbackResult=''
+14:06:27.345 collectTaskContextText: result='你已经添加到首页了，快领取奖励吧 ', buttonText='你已经添加到首页了，快领取奖励吧', btnHeight=128, containerHeight=-1
+14:06:27.352 collectTaskContextText: fallback triggered, btnTop=1268 btnBottom=1396 fallbackResult=''
+14:06:27.353 collectTaskContextText: result='你已经添加到首页了，快领取奖励吧 ', buttonText='你已经添加到首页了，快领取奖励吧', btnHeight=128, containerHeight=-1
+14:06:27.353 isBrowseTask: buttonText='你已经添加到首页了，快领取奖励吧', context='你已经添加到首页了，快领取奖励吧 ', isBrowse=false
+14:06:27.354 parseDeepLinkStayMs: no duration hint (parsed=0), using default 15s, stay=20000ms
+14:06:27.355 performClickSafe: text='你已经添加到首页了，快领取奖励吧' desc='' bounds=[256,1268][943,1396] clickable=false
+14:06:27.356 performClickSafe: ACTION_CLICK failed, trying gesture
+14:06:27.357 dispatchGesture: screen=[[256,1268][943,1396]] window=[[52,39][739,167]]
+14:06:27.358 dispatchGesture: not in popup, screen bounds valid, click at (599.5, 1332.0)
+14:06:33.227 [checkTaskResult] snapshot: pkg=com.eg.android.AlipayGphone, act=android.widget.FrameLayout, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:06:33.244 [checkTaskResult] claim-text-nodes (count=4):
+14:06:33.246 [checkTaskResult]   text='还差4次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:06:33.247 [checkTaskResult]   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+14:06:33.248 [checkTaskResult]   text='已领取' desc='' bounds=[884,0][1113,-1647] clickable=true
+14:06:33.249 [checkTaskResult]   text='领取' desc='' bounds=[884,7021][1113,2666] clickable=true
+14:06:33.336 findFertilizerClaimButton: on farm page, skip (avoid clicking 集肥料 button)
+14:06:33.901 processTask: found 返回首页 button, clicking
+14:06:33.904 performClickSafe: text='' desc='返回' bounds=[26,127][105,271] clickable=true
+14:06:33.918 performClickSafe: ACTION_CLICK success at depth=0
+14:06:38.920 state: PROCESSING_TASK -> OPENING_TASK_LIST
+14:06:41.213 [openTaskList-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:06:41.231 [openTaskList-start] claim-text-nodes (count=1):
+14:06:41.233 [openTaskList-start]   text='立即领肥' desc='' bounds=[471,1640][730,1719] clickable=true
+14:06:41.235 openTaskList: reset taskListOpenedThisRound for new round (attempt=0)
+14:06:41.236 openTaskList: resetting currentTaskIndex to 0 for new round (was 0, taskButtons.size=1)
+14:06:41.274 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+14:06:41.277 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+14:06:41.286 findCollectFertilizerButton: found by text='任务列表' bounds=[949,2069][1175,2295]
+14:06:41.287 openTaskList: [ALIPAY闭环] clicking entry button by text (attempt=0)
+14:06:41.287 performClickSafe: text='任务列表' desc='' bounds=[949,2069][1175,2295] clickable=true
+14:06:41.294 performClickSafe: ACTION_CLICK success at depth=0
+14:06:46.344 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+14:06:48.389 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+14:06:50.437 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+14:06:52.481 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=3, currentIndex=0
+14:06:54.865 findGoCompleteButtons: drop zero-size node text='玩对对碰乐园完成20次消除 可得90g饲料和1个小鸡乐园宝箱 去完成' bounds=[29,2773][887,2666]
+14:06:54.867 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,2885][1120,2666]
+14:06:54.869 findGoCompleteButtons: drop long-text node (len=59, text='IP抽抽乐｜布朗熊装扮 8.9-9.6限时抽LINE FRI...')
+14:06:54.870 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,3193][1120,2666]
+14:06:54.871 findGoCompleteButtons: drop zero-size node text='试玩庄园火爆小游戏 打开即得30g饲料，玩一玩最多可得240g饲料(0/240) 去完成' bounds=[29,3389][887,2666]
+14:06:54.872 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,3500][1120,2666]
+14:06:54.873 findGoCompleteButtons: drop zero-size node text='装扮商城更新啦！ 七夕主题装扮返场啦，本期时间截止到9.7日哦～去看看还可获得美食奖励 去完成' bounds=[29,3697][887,2666]
+14:06:54.873 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,3808][1120,2666]
+14:06:54.874 findGoCompleteButtons: drop zero-size node text='玩三冰完成常规招募英雄3次 可得90g饲料和1个小鸡乐园宝箱 去完成' bounds=[29,4005][887,2666]
+14:06:54.874 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,4116][1120,2666]
+14:06:54.875 findGoCompleteButtons: drop zero-size node text='去快手逛一逛 和小鸡一起去快手逛一逛，看视频得金币，完成即可获得90g饲料哦 去完成' bounds=[29,4313][887,2666]
+14:06:54.877 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,4424][1120,2666]
+14:06:54.878 findGoCompleteButtons: drop zero-size node text='家庭×阿福新活动上线 参与活动赢「运动健康季」活动主题小盲盒，去家庭还可获得90g饲料哦 去完成' bounds=[29,4621][887,2666]
+14:06:54.879 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,4732][1120,2666]
+14:06:54.881 findGoCompleteButtons: drop zero-size node text='小鸡厨房 去爱心小屋厨房让小鸡做美食得肥料，吃美食可以加速产蛋，还可以获得90g饲料哦 去完成' bounds=[29,4928][887,2666]
+14:06:54.882 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,5036][1120,2666]
+14:06:54.882 findGoCompleteButtons: drop zero-size node text='玩奇遇西行完成十个主线任务 可得90g饲料和1个小鸡乐园宝箱 去完成' bounds=[29,5236][887,2666]
+14:06:54.883 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,5344][1120,2666]
+14:06:54.883 findGoCompleteButtons: drop long-text node (len=51, text='小鸡磁吸徽章实拍图来啦 可戴可磁吸可收藏，到手仅需2.9元哦...')
+14:06:54.884 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,5652][1120,2666]
+14:06:54.884 findGoCompleteButtons: drop zero-size node text='白露红莓酥任务 每天单笔捐赠满1元，可获得3份白露红莓酥爱心美食，吃下立刻加速产爱心蛋 去完成' bounds=[29,5849][887,2666]
+14:06:54.885 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,5960][1120,2666]
+14:06:54.885 findGoCompleteButtons: drop zero-size node text='去小鸡乐园开2次宝箱 玩小游戏得宝箱，完成可得90g饲料 去完成' bounds=[29,6157][887,2666]
+14:06:54.886 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,6268][1120,2666]
+14:06:54.886 findGoCompleteButtons: drop zero-size node text='爱心捐赠（每天2次）(0/2) 捐任意金额可得180g饲料 去完成' bounds=[29,6464][887,2666]
+14:06:54.886 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,6576][1120,2666]
+14:06:54.887 findGoCompleteButtons: drop long-text node (len=68, text='添加蚂蚁庄园到支付宝首页 添加蚂蚁庄园到支付宝首页，设置成功...')
+14:06:54.887 findGoCompleteButtons: drop zero-size node text='添加庄园到桌面小组件 桌面直达庄园，小鸡更近距离，添加后可得270g饲料 去完成' bounds=[29,7080][887,2666]
+14:06:54.887 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,7191][1120,2666]
+14:06:54.888 findGoCompleteButtons: drop long-text node (len=55, text='雇佣小鸡拿饲料 在任务指定页面中雇佣小鸡可获得90g饲料，雇...')
+14:06:54.888 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,7499][1120,2666]
+14:06:54.888 findGoCompleteButtons: drop zero-size node text='去美团逛一逛领金币 和小鸡一起去美团看视频，完成任务还可获得90g饲料哦 去完成' bounds=[29,7696][887,2666]
+14:06:54.889 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,7807][1120,2666]
+14:06:54.889 findGoCompleteButtons: drop non-button sign-in node text='去一淘APP逛一逛 去一淘APP逛逛，签到打卡领现金，完成即可获得90g饲料哦 去完成' (only allow pure '签到'/'去签到' etc.)
+14:06:54.890 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,8112][1120,2666]
+14:06:54.890 findGoCompleteButtons: drop zero-size node text='去芝麻攒粒攻略逛一逛 和小鸡一起去我的芝麻分评估信用，完成即可获得90g饲料哦 去完成' bounds=[29,8311][887,2666]
+14:06:54.890 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,8420][1120,2666]
+14:06:54.891 findGoCompleteButtons: drop zero-size node text='去淘宝芭芭农场逛一逛 和小鸡一起去淘宝芭芭农场施肥种树，完成即可获得90g饲料哦 去完成' bounds=[29,8616][887,2666]
+14:06:54.891 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,8727][1120,2666]
+14:06:54.892 findGoCompleteButtons: drop zero-size node text='逛头条刷热点领现金 和小鸡一起逛头条，看资讯赚钱，还可获得90g饲料哦 去完成' bounds=[29,8924][887,2666]
+14:06:54.892 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,9035][1120,2666]
+14:06:54.893 findGoCompleteButtons: drop zero-size node text='去点淘逛一逛 逛点淘可获得90g饲料，逛15秒以上看更多优惠内容哦 去完成' bounds=[29,9232][887,2666]
+14:06:54.893 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,9343][1120,2666]
+14:06:54.894 findGoCompleteButtons: drop zero-size node text='逛闪购外卖1元起吃 实付3元即可获得180g饲料哦 去完成' bounds=[29,9540][887,2666]
+14:06:54.895 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,9651][1120,2666]
+14:06:54.896 findGoCompleteButtons: drop zero-size node text='领取180克饲料' bounds=[884,9847][1172,2666]
+14:06:54.896 findGoCompleteButtons: drop zero-size node text='线上支付 线上支付用支付宝，每天可获赠1次小鸡饲料（推荐转账、充值缴费、余额宝等） 去完成' bounds=[29,10155][887,2666]
+14:06:54.897 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[936,10267][1120,2666]
+14:06:54.897 findGoCompleteButtons: drop non-clickable node text='完成任务后会获赠饲料，超过当天24点未领取会消失哦' (no clickable ancestor within 10 levels and invalid bounds=[45,10787][1156,2666])
+14:06:54.898 checkTaskListOpened: found 11 goComplete buttons, checkAttempt=4, currentIndex=0
+14:06:54.898 taskButton[0]: text='领取30克饲料', desc='', bounds=[884,949][1172,1211], clickable=true
+14:06:54.898 taskButton[1]: text='庄园小课堂 每天和小鸡一起答题，可获得1次小鸡饲料哦 去答题', desc='', bounds=[29,1237][887,1516], clickable=true
+14:06:54.899 taskButton[2]: text='去答题', desc='', bounds=[936,1349][1120,1421], clickable=true
+14:06:54.899 taskButton[3]: text='看庄园小视频 和小鸡一起看15s公益小视频，可获得90g饲料哦 去完成', desc='', bounds=[29,1545][887,1824], clickable=true
+14:06:54.899 taskButton[4]: text='去完成', desc='', bounds=[936,1657][1120,1729], clickable=true
+14:06:54.900 taskButton[5]: text='去杂货铺逛一逛 和小鸡一起逛15s杂货铺，可获得90g饲料哦 去完成', desc='', bounds=[29,1853][887,2132], clickable=true
+14:06:54.900 taskButton[6]: text='去完成', desc='', bounds=[936,1965][1120,2037], clickable=true
+14:06:54.900 taskButton[7]: text='【抽抽乐】桃花为信来啦 每日抽1次小鸡装扮可得90g饲料 去完成', desc='', bounds=[29,2161][887,2439], clickable=true
+14:06:54.901 taskButton[8]: text='去完成', desc='', bounds=[936,2272][1120,2344], clickable=true
+14:06:54.901 taskButton[9]: text='继续玩爆款新游 通过1关可得180g饲料 去完成', desc='', bounds=[29,2469][887,2666], clickable=true
+14:06:54.901 taskButton[10]: text='去完成', desc='', bounds=[936,2580][1120,2652], clickable=true
+14:06:54.902 checkTaskListOpened: resetting currentTaskIndex to 0 (was 0, taskButtons was empty=true)
+14:06:54.902 collectTaskContextText: result='x30 今天 x60 第2天 x90 第3天 x120 第4天 x180 第5天 领取30克饲料 ', buttonText='领取30克饲料', btnHeight=262, containerHeight=262
+14:06:54.903 collectTaskContextText: result='x30 今天 x60 第2天 x90 第3天 x120 第4天 x180 第5天 领取30克饲料 ', buttonText='领取30克饲料', btnHeight=262, containerHeight=262
+14:06:54.904 collectTaskContextText: result='x30 今天 x60 第2天 x90 第3天 x120 第4天 x180 第5天 领取30克饲料 ', buttonText='领取30克饲料', btnHeight=262, containerHeight=262
+14:06:54.905 sortTaskButtons: idx=0 task='' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='领取30克饲料')
+14:06:54.905 collectTaskContextText: result='庄园小课堂 每天和小鸡一起答题，可获得1次小鸡饲料哦 去答题 去答题 ', buttonText='庄园小课堂 每天和小鸡一起答题，可获得1次小鸡饲料哦 去答题', btnHeight=279, containerHeight=279
+14:06:54.906 collectTaskContextText: result='庄园小课堂 每天和小鸡一起答题，可获得1次小鸡饲料哦 去答题 去答题 ', buttonText='庄园小课堂 每天和小鸡一起答题，可获得1次小鸡饲料哦 去答题', btnHeight=279, containerHeight=279
+14:06:54.907 collectTaskContextText: result='庄园小课堂 每天和小鸡一起答题，可获得1次小鸡饲料哦 去答题 去答题 ', buttonText='庄园小课堂 每天和小鸡一起答题，可获得1次小鸡饲料哦 去答题', btnHeight=279, containerHeight=279
+14:06:54.907 sortTaskButtons: idx=1 task='庄园小课堂 每天和小鸡一起答题，可获得1次小鸡饲料哦 去答题 去答题' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='庄园小课堂 每天和小鸡一起答题，可获得1次小鸡饲料哦 去答题')
+14:06:54.908 collectTaskContextText: result='庄园小课堂 每天和小鸡一起答题，可获得1次小鸡饲料哦 去答题 去答题 ', buttonText='去答题', btnHeight=72, containerHeight=279
+14:06:54.909 collectTaskContextText: result='庄园小课堂 每天和小鸡一起答题，可获得1次小鸡饲料哦 去答题 去答题 ', buttonText='去答题', btnHeight=72, containerHeight=279
+14:06:54.912 collectTaskContextText: result='庄园小课堂 每天和小鸡一起答题，可获得1次小鸡饲料哦 去答题 去答题 ', buttonText='去答题', btnHeight=72, containerHeight=279
+14:06:54.912 sortTaskButtons: idx=2 task='庄园小课堂 每天和小鸡一起答题，可获得1次小鸡饲料哦 去答题 去答题' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去答题')
+14:06:54.913 collectTaskContextText: result='看庄园小视频 和小鸡一起看15s公益小视频，可获得90g饲料哦 去完成 去完成 ', buttonText='看庄园小视频 和小鸡一起看15s公益小视频，可获得90g饲料哦 去完成', btnHeight=279, containerHeight=279
+14:06:54.914 collectTaskContextText: result='看庄园小视频 和小鸡一起看15s公益小视频，可获得90g饲料哦 去完成 去完成 ', buttonText='看庄园小视频 和小鸡一起看15s公益小视频，可获得90g饲料哦 去完成', btnHeight=279, containerHeight=279
+14:06:54.915 collectTaskContextText: result='看庄园小视频 和小鸡一起看15s公益小视频，可获得90g饲料哦 去完成 去完成 ', buttonText='看庄园小视频 和小鸡一起看15s公益小视频，可获得90g饲料哦 去完成', btnHeight=279, containerHeight=279
+14:06:54.915 sortTaskButtons: idx=3 task='看庄园小视频 和小鸡一起看15s公益小视频，可获得90g饲料哦' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='看庄园小视频 和小鸡一起看15s公益小视频，可获得90g饲料哦 去完成')
+14:06:54.916 collectTaskContextText: result='看庄园小视频 和小鸡一起看15s公益小视频，可获得90g饲料哦 去完成 去完成 ', buttonText='去完成', btnHeight=72, containerHeight=279
+14:06:54.917 collectTaskContextText: result='看庄园小视频 和小鸡一起看15s公益小视频，可获得90g饲料哦 去完成 去完成 ', buttonText='去完成', btnHeight=72, containerHeight=279
+14:06:54.917 collectTaskContextText: result='看庄园小视频 和小鸡一起看15s公益小视频，可获得90g饲料哦 去完成 去完成 ', buttonText='去完成', btnHeight=72, containerHeight=279
+14:06:54.918 sortTaskButtons: idx=4 task='看庄园小视频 和小鸡一起看15s公益小视频，可获得90g饲料哦' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:06:54.919 collectTaskContextText: result='去杂货铺逛一逛 和小鸡一起逛15s杂货铺，可获得90g饲料哦 去完成 去完成 ', buttonText='去杂货铺逛一逛 和小鸡一起逛15s杂货铺，可获得90g饲料哦 去完成', btnHeight=279, containerHeight=279
+14:06:54.919 collectTaskContextText: result='去杂货铺逛一逛 和小鸡一起逛15s杂货铺，可获得90g饲料哦 去完成 去完成 ', buttonText='去杂货铺逛一逛 和小鸡一起逛15s杂货铺，可获得90g饲料哦 去完成', btnHeight=279, containerHeight=279
+14:06:54.920 collectTaskContextText: result='去杂货铺逛一逛 和小鸡一起逛15s杂货铺，可获得90g饲料哦 去完成 去完成 ', buttonText='去杂货铺逛一逛 和小鸡一起逛15s杂货铺，可获得90g饲料哦 去完成', btnHeight=279, containerHeight=279
+14:06:54.921 sortTaskButtons: idx=5 task='去杂货铺逛一逛 和小鸡一起逛15s杂货铺，可获得90g饲料哦' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去杂货铺逛一逛 和小鸡一起逛15s杂货铺，可获得90g饲料哦 去完成')
+14:06:54.921 collectTaskContextText: result='去杂货铺逛一逛 和小鸡一起逛15s杂货铺，可获得90g饲料哦 去完成 去完成 ', buttonText='去完成', btnHeight=72, containerHeight=279
+14:06:54.922 collectTaskContextText: result='去杂货铺逛一逛 和小鸡一起逛15s杂货铺，可获得90g饲料哦 去完成 去完成 ', buttonText='去完成', btnHeight=72, containerHeight=279
+14:06:54.923 collectTaskContextText: result='去杂货铺逛一逛 和小鸡一起逛15s杂货铺，可获得90g饲料哦 去完成 去完成 ', buttonText='去完成', btnHeight=72, containerHeight=279
+14:06:54.923 sortTaskButtons: idx=6 task='去杂货铺逛一逛 和小鸡一起逛15s杂货铺，可获得90g饲料哦' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:06:54.924 collectTaskContextText: result='【抽抽乐】桃花为信来啦 每日抽1次小鸡装扮可得90g饲料 去完成 去完成 ', buttonText='【抽抽乐】桃花为信来啦 每日抽1次小鸡装扮可得90g饲料 去完成', btnHeight=278, containerHeight=278
+14:06:54.925 collectTaskContextText: result='【抽抽乐】桃花为信来啦 每日抽1次小鸡装扮可得90g饲料 去完成 去完成 ', buttonText='【抽抽乐】桃花为信来啦 每日抽1次小鸡装扮可得90g饲料 去完成', btnHeight=278, containerHeight=278
+14:06:54.926 collectTaskContextText: result='【抽抽乐】桃花为信来啦 每日抽1次小鸡装扮可得90g饲料 去完成 去完成 ', buttonText='【抽抽乐】桃花为信来啦 每日抽1次小鸡装扮可得90g饲料 去完成', btnHeight=278, containerHeight=278
+14:06:54.926 sortTaskButtons: idx=7 task='【抽抽乐】桃花为信来啦 每日抽1次小鸡装扮可得90g饲料' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='【抽抽乐】桃花为信来啦 每日抽1次小鸡装扮可得90g饲料 去完成')
+14:06:54.927 collectTaskContextText: result='【抽抽乐】桃花为信来啦 每日抽1次小鸡装扮可得90g饲料 去完成 去完成 ', buttonText='去完成', btnHeight=72, containerHeight=278
+14:06:54.928 collectTaskContextText: result='【抽抽乐】桃花为信来啦 每日抽1次小鸡装扮可得90g饲料 去完成 去完成 ', buttonText='去完成', btnHeight=72, containerHeight=278
+14:06:54.929 collectTaskContextText: result='【抽抽乐】桃花为信来啦 每日抽1次小鸡装扮可得90g饲料 去完成 去完成 ', buttonText='去完成', btnHeight=72, containerHeight=278
+14:06:54.930 sortTaskButtons: idx=8 task='【抽抽乐】桃花为信来啦 每日抽1次小鸡装扮可得90g饲料' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:06:54.930 collectTaskContextText: result='继续玩爆款新游 通过1关可得180g饲料 去完成 去完成 ', buttonText='继续玩爆款新游 通过1关可得180g饲料 去完成', btnHeight=197, containerHeight=197
+14:06:54.931 collectTaskContextText: result='继续玩爆款新游 通过1关可得180g饲料 去完成 去完成 ', buttonText='继续玩爆款新游 通过1关可得180g饲料 去完成', btnHeight=197, containerHeight=197
+14:06:54.932 collectTaskContextText: result='继续玩爆款新游 通过1关可得180g饲料 去完成 去完成 ', buttonText='继续玩爆款新游 通过1关可得180g饲料 去完成', btnHeight=197, containerHeight=197
+14:06:54.932 sortTaskButtons: idx=9 task='继续玩爆款新游 通过1关可得180g饲料' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='继续玩爆款新游 通过1关可得180g饲料 去完成')
+14:06:54.933 collectTaskContextText: result='继续玩爆款新游 通过1关可得180g饲料 去完成 去完成 ', buttonText='去完成', btnHeight=72, containerHeight=197
+14:06:54.934 collectTaskContextText: result='继续玩爆款新游 通过1关可得180g饲料 去完成 去完成 ', buttonText='去完成', btnHeight=72, containerHeight=197
+14:06:54.935 collectTaskContextText: result='继续玩爆款新游 通过1关可得180g饲料 去完成 去完成 ', buttonText='去完成', btnHeight=72, containerHeight=197
+14:06:54.935 sortTaskButtons: idx=10 task='继续玩爆款新游 通过1关可得180g饲料' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:06:54.936 state: OPENING_TASK_LIST -> PROCESSING_TASK
+14:06:57.659 [processTask-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:06:57.687 [processTask-start] claim-text-nodes (count=5):
+14:06:57.689 [processTask-start]   text='立即领肥' desc='' bounds=[471,1640][730,1719] clickable=true
+14:06:57.694 [processTask-start]   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+14:06:57.694 [processTask-start]   text='领取' desc='' bounds=[884,1604][1113,1689] clickable=true
+14:06:57.695 [processTask-start]   text='已领取' desc='' bounds=[884,3032][1113,2666] clickable=true
+14:06:57.695 [processTask-start]   text='已领取' desc='' bounds=[884,6988][1113,2666] clickable=true
+14:06:57.715 processTask: current task #1/11, text='领取30克饲料', bounds=[884,949][1172,1211], attempt=0
+14:06:57.723 collectTaskContextText: fallback triggered, btnTop=949 btnBottom=1211 fallbackResult=''
+14:06:57.724 collectTaskContextText: result='领取30克饲料 ', buttonText='领取30克饲料', btnHeight=262, containerHeight=-1
+14:06:57.727 collectTaskContextText: fallback triggered, btnTop=949 btnBottom=1211 fallbackResult=''
+14:06:57.728 collectTaskContextText: result='领取30克饲料 ', buttonText='领取30克饲料', btnHeight=262, containerHeight=-1
+14:06:57.731 collectTaskContextText: fallback triggered, btnTop=949 btnBottom=1211 fallbackResult=''
+14:06:57.732 collectTaskContextText: result='领取30克饲料 ', buttonText='领取30克饲料', btnHeight=262, containerHeight=-1
+14:06:57.741 collectTaskContextText: fallback triggered, btnTop=949 btnBottom=1211 fallbackResult=''
+14:06:57.743 collectTaskContextText: result='领取30克饲料 ', buttonText='领取30克饲料', btnHeight=262, containerHeight=-1
+14:06:57.743 isBrowseTask: buttonText='领取30克饲料', context='领取30克饲料 ', isBrowse=false
+14:06:57.744 parseDeepLinkStayMs: no duration hint (parsed=0), using default 15s, stay=20000ms
+14:06:57.746 performClickSafe: text='领取30克饲料' desc='' bounds=[884,949][1172,1211] clickable=true
+14:06:57.748 performClickSafe: ACTION_CLICK failed, trying gesture
+14:06:57.749 dispatchGesture: screen=[[884,949][1172,1211]] window=[[0,0][0,0]]
+14:06:57.750 dispatchGesture: not in popup, screen bounds valid, click at (1028.0, 1080.0)
+14:07:02.818 isOnFarmPage: no farm content, sample=[松开刷新, 加载中…, 返回, , 更多, , 更多, 关闭]
+14:07:03.020 [checkTaskResult] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:07:03.036 [checkTaskResult] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+14:07:03.304 findFertilizerClaimButton: no fertilizer text, skip
+14:07:03.742 processTask: not on farm page but activeRoot='com.eg.android.AlipayGphone' is farm pkg, otherPkg='com.eg.android.AlipayGphone' (systemui false positive), skip WATCHING_AD, continue scene detection
+14:07:03.991 processTask: unknown page, pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, failCount=0/2
+14:07:04.016 processTask: unknown page, asking AI vision for action
+14:07:15.737 processTask: AI vision action=WAIT, reason='页面显示加载中，处于加载状态，应等待页面加载完成。'
+14:07:15.738 executeAiVisionAction: WAIT - will recheck scene after delay
+14:07:26.724 [checkTaskResult] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:07:26.756 [checkTaskResult] claim-text-nodes (count=6):
+14:07:26.759 [checkTaskResult]   text='立即领肥' desc='' bounds=[471,1640][730,1719] clickable=true
+14:07:26.760 [checkTaskResult]   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+14:07:26.762 [checkTaskResult]   text='已领取' desc='' bounds=[884,1575][1113,1657] clickable=true
+14:07:26.764 [checkTaskResult]   text='领取' desc='' bounds=[884,1814][1113,1899] clickable=true
+14:07:26.765 [checkTaskResult]   text='已领取' desc='' bounds=[884,3032][1113,2666] clickable=true
+14:07:26.766 [checkTaskResult]   text='已领取' desc='' bounds=[884,6782][1113,2666] clickable=true
+14:07:26.842 findFertilizerClaimButton: on farm page, skip (avoid clicking 集肥料 button)
+14:07:27.556 processTask: found 返回首页 button, clicking
+14:07:27.557 performClickSafe: text='' desc='返回' bounds=[26,127][105,271] clickable=true
+14:07:27.577 performClickSafe: ACTION_CLICK success at depth=0
+14:07:32.580 state: PROCESSING_TASK -> OPENING_TASK_LIST
+14:07:34.970 [openTaskList-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:07:34.986 [openTaskList-start] claim-text-nodes (count=1):
+14:07:34.988 [openTaskList-start]   text='立即领肥' desc='' bounds=[471,1640][730,1719] clickable=true
+14:07:34.995 openTaskList: reset taskListOpenedThisRound for new round (attempt=0)
+14:07:34.999 openTaskList: resetting currentTaskIndex to 0 for new round (was 0, taskButtons.size=11)
+14:07:35.043 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+14:07:35.044 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+14:07:35.065 findCollectFertilizerButton: found by text='任务列表' bounds=[949,2069][1175,2295]
+14:07:35.067 openTaskList: [ALIPAY闭环] clicking entry button by text (attempt=0)
+14:07:35.068 performClickSafe: text='任务列表' desc='' bounds=[949,2069][1175,2295] clickable=true
+14:07:35.074 performClickSafe: ACTION_CLICK success at depth=0
+14:07:40.229 findGoCompleteButtons: no clickable ancestor for '丰收礼包已领取', keep node itself for coordinate click (bounds=[284,756][917,894])
+14:07:40.234 findGoCompleteButtons: no clickable ancestor for '可领取肥料100', keep node itself for coordinate click (bounds=[438,1159][763,1483])
+14:07:40.236 checkTaskListOpened: found 2 goComplete buttons, checkAttempt=0, currentIndex=0
+14:07:40.238 taskButton[0]: text='丰收礼包已领取', desc='', bounds=[284,756][917,894], clickable=false
+14:07:40.239 taskButton[1]: text='可领取肥料100', desc='', bounds=[438,1159][763,1483], clickable=false
+14:07:40.241 checkTaskListOpened: resetting currentTaskIndex to 0 (was 0, taskButtons was empty=true)
+14:07:40.246 collectTaskContextText: fallback triggered, btnTop=756 btnBottom=894 fallbackResult=''
+14:07:40.247 collectTaskContextText: result='丰收礼包已领取 ', buttonText='丰收礼包已领取', btnHeight=138, containerHeight=-1
+14:07:40.250 collectTaskContextText: fallback triggered, btnTop=756 btnBottom=894 fallbackResult=''
+14:07:40.251 collectTaskContextText: result='丰收礼包已领取 ', buttonText='丰收礼包已领取', btnHeight=138, containerHeight=-1
+14:07:40.287 collectTaskContextText: fallback triggered, btnTop=756 btnBottom=894 fallbackResult=''
+14:07:40.289 collectTaskContextText: result='丰收礼包已领取 ', buttonText='丰收礼包已领取', btnHeight=138, containerHeight=-1
+14:07:40.292 sortTaskButtons: idx=0 task='丰收礼包已' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='丰收礼包已领取')
+14:07:40.310 collectTaskContextText: fallback triggered, btnTop=1159 btnBottom=1483 fallbackResult=''
+14:07:40.312 collectTaskContextText: result='可领取肥料100 ', buttonText='可领取肥料100', btnHeight=324, containerHeight=-1
+14:07:40.332 collectTaskContextText: fallback triggered, btnTop=1159 btnBottom=1483 fallbackResult=''
+14:07:40.334 collectTaskContextText: result='可领取肥料100 ', buttonText='可领取肥料100', btnHeight=324, containerHeight=-1
+14:07:40.398 collectTaskContextText: fallback triggered, btnTop=1159 btnBottom=1483 fallbackResult=''
+14:07:40.403 collectTaskContextText: result='可领取肥料100 ', buttonText='可领取肥料100', btnHeight=324, containerHeight=-1
+14:07:40.407 sortTaskButtons: idx=1 task='可肥料100' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='可领取肥料100')
+14:07:40.409 state: OPENING_TASK_LIST -> PROCESSING_TASK
+14:07:42.851 isOnFarmPage: activity=com.alipay.mobile.liteprocess.liteprocessactivity$liteprocessactivity3 not in farm keywords, trying content fallback (build749)
+14:07:42.898 isOnFarmPage: activity=com.alipay.mobile.liteprocess.liteprocessactivity$liteprocessactivity3 not in farm keywords and no farm core content, not on farm page
+14:07:42.922 isOnFarmPage: activity=com.alipay.mobile.liteprocess.liteprocessactivity$liteprocessactivity3 not in farm keywords, trying content fallback (build749)
+14:07:42.990 isOnFarmPage: activity=com.alipay.mobile.liteprocess.liteprocessactivity$liteprocessactivity3 not in farm keywords, trying content fallback (build749)
+14:07:43.039 isOnFarmPage: activity=com.alipay.mobile.liteprocess.liteprocessactivity$liteprocessactivity3 not in farm keywords, trying content fallback (build749)
+14:07:43.070 isOnFarmPage: activity=com.alipay.mobile.liteprocess.liteprocessactivity$liteprocessactivity3 not in farm keywords, trying content fallback (build749)
+14:07:43.136 [processTask-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.liteprocess.LiteProcessActivity$LiteProcessActivity3, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:07:43.165 [processTask-start] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+14:07:43.173 isOnFarmPage: activity=com.alipay.mobile.liteprocess.liteprocessactivity$liteprocessactivity3 not in farm keywords, trying content fallback (build749)
+14:07:48.397 processTask: current task #1/2, text='丰收礼包已领取', bounds=[284,756][917,894], attempt=1
+14:07:48.430 collectTaskContextText: fallback triggered, btnTop=756 btnBottom=894 fallbackResult=''
+14:07:48.431 collectTaskContextText: result='丰收礼包已领取 ', buttonText='丰收礼包已领取', btnHeight=138, containerHeight=-1
+14:07:48.438 collectTaskContextText: fallback triggered, btnTop=756 btnBottom=894 fallbackResult=''
+14:07:48.441 collectTaskContextText: result='丰收礼包已领取 ', buttonText='丰收礼包已领取', btnHeight=138, containerHeight=-1
+14:07:48.453 collectTaskContextText: fallback triggered, btnTop=756 btnBottom=894 fallbackResult=''
+14:07:48.455 collectTaskContextText: result='丰收礼包已领取 ', buttonText='丰收礼包已领取', btnHeight=138, containerHeight=-1
+14:07:48.468 collectTaskContextText: fallback triggered, btnTop=756 btnBottom=894 fallbackResult=''
+14:07:48.469 collectTaskContextText: result='丰收礼包已领取 ', buttonText='丰收礼包已领取', btnHeight=138, containerHeight=-1
+14:07:48.471 isBrowseTask: buttonText='丰收礼包已领取', context='丰收礼包已领取 ', isBrowse=false
+14:07:48.472 parseDeepLinkStayMs: no duration hint (parsed=0), using default 15s, stay=20000ms
+14:07:48.473 performClickSafe: text='丰收礼包已领取' desc='' bounds=[284,756][917,894] clickable=false
+14:07:48.480 performClickSafe: ACTION_CLICK failed, trying gesture
+14:07:48.481 dispatchGesture: screen=[[284,756][917,894]] window=[[0,0][0,0]]
+14:07:48.483 dispatchGesture: not in popup, screen bounds valid, click at (600.5, 825.0)
+14:07:53.826 [checkTaskResult] snapshot: pkg=com.eg.android.AlipayGphone, act=android.widget.FrameLayout, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:07:53.842 [checkTaskResult] claim-text-nodes (count=1):
+14:07:53.845 [checkTaskResult]   text='还差1次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:07:53.956 findFertilizerClaimButton: on farm page, skip (avoid clicking 集肥料 button)
+14:07:54.511 processTask: found 返回首页 button, clicking
+14:07:54.513 performClickSafe: text='' desc='返回' bounds=[26,127][105,271] clickable=true
+14:07:54.526 performClickSafe: ACTION_CLICK success at depth=0
+14:07:59.530 state: PROCESSING_TASK -> OPENING_TASK_LIST
+14:08:01.591 isOnFarmPage: no farm content, sample=[肥料领取成功]
+14:08:01.864 isNonAdTaskPage: YES, matched non-ad task in [松开刷新, 芭芭农场游戏内容, 还差3次领肥料, 游戏对象提示, 任务列表, 农场乐园入口, 农场页面控件, 切换摇钱树]
+14:08:01.946 [openTaskList-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+14:08:01.975 [openTaskList-start] claim-text-nodes (count=1):
+14:08:01.979 [openTaskList-start]   text='肥料领取成功' desc='' bounds=[453,1300][747,1364] clickable=false
+14:08:01.982 openTaskList: reset taskListOpenedThisRound for new round (attempt=0)
+14:08:01.984 openTaskList: resetting currentTaskIndex to 0 for new round (was 0, taskButtons.size=2)
+14:08:02.039 findGoCompleteButtons: no clickable ancestor for '肥料领取成功', keep node itself for coordinate click (bounds=[453,1300][747,1364])
+14:08:02.045 openTaskList: [ALIPAY闭环] 1 goComplete buttons already visible, task list open, processing directly
+14:08:02.060 findGoCompleteButtons: no clickable ancestor for '肥料领取成功', keep node itself for coordinate click (bounds=[453,1300][747,1364])
+14:08:02.062 openTaskList: 1 goComplete buttons already visible, processing directly (attempt=0)
+14:08:02.064 taskButton[0]: text='肥料领取成功', desc='', bounds=[453,1300][747,1364], clickable=false
+14:08:02.066 openTaskList: resetting currentTaskIndex to 0 (was 0)
+14:08:02.066 state: OPENING_TASK_LIST -> PROCESSING_TASK
+14:08:04.379 isNonAdTaskPage: YES, matched non-ad task in [松开刷新, 芭芭农场游戏内容, 还差3次领肥料, 游戏对象提示, 任务列表, 农场乐园入口, 农场页面控件, 切换摇钱树]
+14:08:04.456 [processTask-start] snapshot: pkg=com.eg.android.AlipayGphone, act=android.widget.FrameLayout, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+14:08:04.473 [processTask-start] claim-text-nodes (count=1):
+14:08:04.473 [processTask-start]   text='还差3次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:08:09.641 processTask: current task #1/1, text='肥料领取成功', bounds=[453,1300][747,1364], attempt=1
+14:08:09.655 collectTaskContextText: fallback triggered, btnTop=1300 btnBottom=1364 fallbackResult=''
+14:08:09.657 collectTaskContextText: result='肥料领取成功 ', buttonText='肥料领取成功', btnHeight=64, containerHeight=-1
+14:08:09.664 collectTaskContextText: fallback triggered, btnTop=1300 btnBottom=1364 fallbackResult=''
+14:08:09.665 collectTaskContextText: result='肥料领取成功 ', buttonText='肥料领取成功', btnHeight=64, containerHeight=-1
+14:08:09.681 collectTaskContextText: fallback triggered, btnTop=1300 btnBottom=1364 fallbackResult=''
+14:08:09.682 collectTaskContextText: result='肥料领取成功 ', buttonText='肥料领取成功', btnHeight=64, containerHeight=-1
+14:08:09.688 collectTaskContextText: fallback triggered, btnTop=1300 btnBottom=1364 fallbackResult=''
+14:08:09.689 collectTaskContextText: result='肥料领取成功 ', buttonText='肥料领取成功', btnHeight=64, containerHeight=-1
+14:08:09.690 isBrowseTask: buttonText='肥料领取成功', context='肥料领取成功 ', isBrowse=false
+14:08:09.691 parseDeepLinkStayMs: no duration hint (parsed=0), using default 15s, stay=20000ms
+14:08:09.692 performClickSafe: text='肥料领取成功' desc='' bounds=[453,1300][747,1364] clickable=false
+14:08:09.693 performClickSafe: ACTION_CLICK failed, trying gesture
+14:08:09.694 dispatchGesture: screen=[[453,1300][747,1364]] window=[[52,39][346,103]]
+14:08:09.697 dispatchGesture: not in popup, screen bounds valid, click at (600.0, 1332.0)
+14:08:15.017 [checkTaskResult] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:08:15.045 [checkTaskResult] claim-text-nodes (count=5):
+14:08:15.047 [checkTaskResult]   text='立即领肥' desc='' bounds=[471,1640][730,1719] clickable=true
+14:08:15.048 [checkTaskResult]   text='丰收礼包待领取' desc='' bounds=[298,782][903,913] clickable=false
+14:08:15.049 [checkTaskResult]   text='2027.12.31前可领取肥料礼包' desc='' bounds=[232,910][969,998] clickable=false
+14:08:15.050 [checkTaskResult]   text='可领取肥料600' desc='' bounds=[445,1165][756,1477] clickable=false
+14:08:15.050 [checkTaskResult]   text='立即领取' desc='' bounds=[291,1647][910,1784] clickable=true
+14:08:15.124 findFertilizerClaimButton: on farm page, skip (avoid clicking 集肥料 button)
+14:08:15.245 findRedPacketCloseButton: found '立即领取' in red packet popup
+14:08:15.246 processTask: closing red packet popup (attempt 1/3)
+14:08:15.248 performClickSafe: text='立即领取' desc='' bounds=[291,1647][910,1784] clickable=true
+14:08:15.256 performClickSafe: ACTION_CLICK success at depth=0
+14:08:15.257 dispatchGesture: screen=[[291,1647][910,1784]] window=[[0,0][0,0]]
+14:08:15.258 dispatchGesture: in popup but screen bounds valid, click at (600.5, 1715.5) (no popup offset)
+14:08:17.628 [checkTaskResult] snapshot: pkg=com.eg.android.AlipayGphone, act=android.widget.FrameLayout, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:08:17.658 [checkTaskResult] claim-text-nodes (count=1):
+14:08:17.660 [checkTaskResult]   text='肥料领取成功' desc='' bounds=[453,1300][747,1364] clickable=false
+14:08:17.812 isOnFarmPage: no farm content, sample=[肥料领取成功]
+14:08:17.857 isRechargePage: NO (text contains 芭芭农场, farm content)
+14:08:18.062 findFertilizerClaimButton: task list detected, skip (not a claim popup)
+14:08:18.375 isNonAdTaskPage: YES, matched non-ad task in [松开刷新, 芭芭农场游戏内容, 还差5次领肥料, 游戏对象提示, 任务列表, 农场乐园入口, 农场页面控件, 切换摇钱树]
+14:08:18.376 processTask: non-ad task page, skipping task #$1
+14:08:23.377 state: PROCESSING_TASK -> OPENING_TASK_LIST
+14:08:25.741 [openTaskList-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:08:25.753 [openTaskList-start] claim-text-nodes (count=1):
+14:08:25.754 [openTaskList-start]   text='还差1次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:08:25.754 openTaskList: reset taskListOpenedThisRound for new round (attempt=0)
+14:08:25.755 openTaskList: resetting currentTaskIndex to 0 for new round (was 1, taskButtons.size=1)
+14:08:25.804 openTaskList: [ALIPAY闭环] no goComplete buttons visible, opening task list (attempt=0, using heuristic)
+14:08:25.806 openTaskList: [ALIPAY闭环] heuristic text search (attempt=0)
+14:08:25.823 findCollectFertilizerButton: found by text='任务列表' bounds=[949,2069][1175,2295]
+14:08:25.824 openTaskList: [ALIPAY闭环] clicking entry button by text (attempt=0)
+14:08:25.824 performClickSafe: text='任务列表' desc='' bounds=[949,2069][1175,2295] clickable=true
+14:08:25.838 performClickSafe: ACTION_CLICK success at depth=0
+14:08:30.871 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=0, currentIndex=0
+14:08:32.950 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=1, currentIndex=0
+14:08:34.984 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=2, currentIndex=0
+14:08:37.019 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=3, currentIndex=0
+14:08:39.048 checkTaskListOpened: found 0 goComplete buttons, checkAttempt=4, currentIndex=0
+14:08:41.093 findCollectFertilizerButton: root is null!
+14:08:41.097 openTaskList: findCollectFertilizerButton=false, attempt=1
+14:08:41.110 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+14:08:41.111 openTaskList: [坐标兜底] not on farm page (findCollectFertilizerButton=null), re-navigating instead of coordinate fallback
+14:08:41.113 state: OPENING_TASK_LIST -> NAVIGATING
+14:08:43.170 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+14:08:44.291 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+14:08:44.336 isNonAdTaskPage: YES, matched non-ad task in [芭芭农场, 12级, 2500，肥料，明日7点可领, 现金瓜分活动中断, 再施肥62.42%就快拿到啦, 去邀请, 去邀请, 换种]
+14:08:44.428 [navigate-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+14:08:44.522 isRechargePage: NO (text contains 芭芭农场, farm content)
+14:08:44.956 tryGestureSwitchToFarmApp: ALIPAY has no live window (killed?), fall back to deep link
+14:08:44.959 navigate: farm app not in foreground (platform=ALIPAY, attempt=0), calling reopenFarmByDeepLink
+14:08:44.966 FarmShortcut: isDefaultLauncher: false (resolver=com.hihonor.android.launcher)
+14:08:44.970 reopenFarmByDeepLink: skip kill (killCurrentFirst=false), directly relaunching ALIPAY
+14:08:44.974 reopenFarmByDeepLink: no deep link for ALIPAY, killed + relaunch app, will navigate
+14:08:45.037 reopenFarmByDeepLink: relaunched ALIPAY (com.eg.android.AlipayGphone)
+14:08:50.226 isOnFarmPage: no farm content, sample=[返回, , , https://render.alipay.com/p/c/180020570000060569/index.html?caprMode=sync, Smallfish App, 浏览5s, 可得奖励]
+14:08:50.628 navigate: calling navigateToFarm, platform=ALIPAY
+14:08:52.409 navigateAlipay: no search or farm entry found, retry=0
+14:08:54.456 isOnFarmPage: no farm content, sample=[再抽100次必得, 再抽30次必得, 还有, 1, 次机会, 一键连抽, 抽奖明细, 活动截止时间]
+14:08:54.495 navigateAlipay: no search or farm entry found, pressing back to exit sub-page (retry=1)
+14:08:56.328 isRechargePage: NO (text contains 芭芭农场, farm content)
+14:08:56.378 navigate: sign-in popup detected (scene=SIGN_IN), attempting to close
+14:08:56.413 isRechargePage: NO (text contains 芭芭农场, farm content)
+14:08:56.437 navigate: clicking sign-in button (text='连续签到任务规则')
+14:08:56.438 performClickSafe: text='连续签到任务规则' desc='' bounds=[1087,1028][1136,1077] clickable=true
+14:08:56.443 performClickSafe: ACTION_CLICK success at depth=0
+14:08:56.644 navigateAlipay: no search or farm entry found, pressing back to exit sub-page (retry=2)
+14:08:59.181 navigateAlipay: already on farm page, navigation done (retry=3)
+14:09:01.956 navigate: on farm page, platform=ALIPAY
+14:09:01.970 hasFarmContentLoaded: text count=92, sample=[松开刷新, 芭芭农场游戏内容, 还差1次领肥料, 游戏对象提示, 任务列表, 农场乐园入口, 农场页面控件, 切换摇钱树, 抽抽乐, 逛农货]
+14:09:01.971 hasFarmContentLoaded: realContent count=89
+14:09:01.987 findCollectFertilizerButton: found by text='集肥料' bounds=[0,877][1202,1021]
+14:09:01.989 navigate: hasFarmContentLoaded=true, hasCoreEntry=true, attempt=3
+14:09:02.021 state: NAVIGATING -> COLLECTING_DIRECT
+14:09:04.031 isOnFarmPage: activeRootPkg='com.taobao.taobao' is not farm app, not on farm page (systemui/lock screen/other app overlay)
+14:09:04.643 isNonAdTaskPage: YES, matched non-ad task in [芭芭农场, 12级, 2500，肥料，明日7点可领, 现金瓜分活动中断, 再施肥62.42%就快拿到啦, 去邀请, 去邀请, 换种]
+14:09:05.168 [collectDirect-start] snapshot: pkg=com.taobao.taobao, act=com.taobao.themis.container.app.TMSActivity, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=true, nonAdPkg=false, taskComplete=false, searchRec=false
+14:09:05.231 collectDirect: found 0 direct buttons, attempt=0
+14:09:05.270 collectDirect: no direct buttons found at attempt=0, waiting 5000ms for page to fully load before retry
+14:09:10.471 collectDirect: found 0 direct buttons, attempt=1
+14:09:10.664 state: COLLECTING_DIRECT -> OPENING_TASK_LIST
+14:09:14.076 [openTaskList-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:09:14.103 [openTaskList-start] claim-text-nodes (count=6):
+14:09:14.107 [openTaskList-start]   text='还差1次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:09:14.107 [openTaskList-start]   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+14:09:14.108 [openTaskList-start]   text='已领取' desc='' bounds=[884,1575][1113,1657] clickable=true
+14:09:14.110 [openTaskList-start]   text='已领取' desc='' bounds=[884,1781][1113,1866] clickable=true
+14:09:14.114 [openTaskList-start]   text='已领取' desc='' bounds=[884,3032][1113,2666] clickable=true
+14:09:14.115 [openTaskList-start]   text='已领取' desc='' bounds=[884,6782][1113,2666] clickable=true
+14:09:14.133 findGoCompleteButtons: no clickable ancestor for '已领取', keep node itself for coordinate click (bounds=[923,1116][1120,1188])
+14:09:14.135 findGoCompleteButtons: drop already-claimed node text='已领取' (task completed)
+14:09:14.135 findGoCompleteButtons: drop already-claimed node text='已领取' (task completed)
+14:09:14.136 findGoCompleteButtons: drop already-claimed node text='已领取' (task completed)
+14:09:14.137 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,2823][1113,2666]
+14:09:14.139 findGoCompleteButtons: drop already-claimed node text='已领取' (task completed)
+14:09:14.140 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3238][1113,2666]
+14:09:14.140 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3658][1113,2666]
+14:09:14.141 findGoCompleteButtons: drop zero-size node text='去逛逛' bounds=[884,3864][1113,2666]
+14:09:14.141 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4074][1113,2666]
+14:09:14.142 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4283][1113,2666]
+14:09:14.142 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4490][1113,2666]
+14:09:14.143 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4699][1113,2666]
+14:09:14.143 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4905][1113,2666]
+14:09:14.144 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5115][1113,2666]
+14:09:14.144 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5321][1113,2666]
+14:09:14.146 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5531][1113,2666]
+14:09:14.147 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5741][1113,2666]
+14:09:14.147 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5947][1113,2666]
+14:09:14.148 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6157][1113,2666]
+14:09:14.150 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6366][1113,2666]
+14:09:14.151 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6572][1113,2666]
+14:09:14.152 findGoCompleteButtons: drop already-claimed node text='已领取' (task completed)
+14:09:14.153 openTaskList: [ALIPAY闭环] 3 goComplete buttons already visible, task list open, processing directly
+14:09:14.170 findGoCompleteButtons: no clickable ancestor for '已领取', keep node itself for coordinate click (bounds=[923,1116][1120,1188])
+14:09:14.171 findGoCompleteButtons: drop already-claimed node text='已领取' (task completed)
+14:09:14.171 findGoCompleteButtons: drop already-claimed node text='已领取' (task completed)
+14:09:14.172 findGoCompleteButtons: drop already-claimed node text='已领取' (task completed)
+14:09:14.173 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,2823][1113,2666]
+14:09:14.173 findGoCompleteButtons: drop already-claimed node text='已领取' (task completed)
+14:09:14.174 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3238][1113,2666]
+14:09:14.174 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,3658][1113,2666]
+14:09:14.175 findGoCompleteButtons: drop zero-size node text='去逛逛' bounds=[884,3864][1113,2666]
+14:09:14.175 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4074][1113,2666]
+14:09:14.176 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4283][1113,2666]
+14:09:14.176 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4490][1113,2666]
+14:09:14.177 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4699][1113,2666]
+14:09:14.178 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,4905][1113,2666]
+14:09:14.178 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5115][1113,2666]
+14:09:14.179 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5321][1113,2666]
+14:09:14.179 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5531][1113,2666]
+14:09:14.180 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5741][1113,2666]
+14:09:14.186 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,5947][1113,2666]
+14:09:14.187 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6157][1113,2666]
+14:09:14.187 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6366][1113,2666]
+14:09:14.188 findGoCompleteButtons: drop zero-size node text='去完成' bounds=[884,6572][1113,2666]
+14:09:14.189 findGoCompleteButtons: drop already-claimed node text='已领取' (task completed)
+14:09:14.191 openTaskList: 3 goComplete buttons already visible, processing directly (attempt=0)
+14:09:14.192 taskButton[0]: text='去完成', desc='', bounds=[884,1365][1113,1450], clickable=true
+14:09:14.192 taskButton[1]: text='去逛逛', desc='', bounds=[884,2200][1113,2282], clickable=true
+14:09:14.194 taskButton[2]: text='去完成', desc='', bounds=[884,2407][1113,2492], clickable=true
+14:09:14.195 openTaskList: resetting currentTaskIndex to 0 (was 0)
+14:09:14.196 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:09:14.199 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:09:14.200 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:09:14.200 sortTaskButtons: idx=0 task='三国冰河常规招募武将1次当前进度0，总进度1 可得500肥' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:09:14.202 collectTaskContextText: result=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得 去逛逛 ', buttonText='去逛逛', btnHeight=82, containerHeight=197
+14:09:14.206 collectTaskContextText: result=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得 去逛逛 ', buttonText='去逛逛', btnHeight=82, containerHeight=197
+14:09:14.207 collectTaskContextText: result=' 去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得 去逛逛 ', buttonText='去逛逛', btnHeight=82, containerHeight=197
+14:09:14.207 sortTaskButtons: idx=1 task='去淘宝农场得肥料当前进度0，总进度1 得4500肥，打开即得' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去逛逛')
+14:09:14.209 collectTaskContextText: result=' 农场对对碰匹配10组当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:09:14.210 collectTaskContextText: result=' 农场对对碰匹配10组当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:09:14.211 collectTaskContextText: result=' 农场对对碰匹配10组当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:09:14.212 sortTaskButtons: idx=2 task='农场对对碰匹配10组当前进度0，总进度1 可得500肥' priority=1 (easyClaim=false, paid=false, paidHint=false, pureClaim=false, button='去完成')
+14:09:14.213 state: OPENING_TASK_LIST -> PROCESSING_TASK
+14:09:16.912 [processTask-start] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity, onFarm=true, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:09:16.918 [processTask-start] claim-text-nodes (count=6):
+14:09:16.919 [processTask-start]   text='还差1次领肥料' desc='' bounds=[438,1640][763,1719] clickable=true
+14:09:16.919 [processTask-start]   text='已领取' desc='' bounds=[923,1116][1120,1188] clickable=false
+14:09:16.920 [processTask-start]   text='已领取' desc='' bounds=[884,1575][1113,1657] clickable=true
+14:09:16.920 [processTask-start]   text='已领取' desc='' bounds=[884,1781][1113,1866] clickable=true
+14:09:16.920 [processTask-start]   text='已领取' desc='' bounds=[884,3032][1113,2666] clickable=true
+14:09:16.921 [processTask-start]   text='已领取' desc='' bounds=[884,6782][1113,2666] clickable=true
+14:09:16.943 processTask: current task #1/3, text='去完成', bounds=[884,1365][1113,1450], attempt=0
+14:09:16.945 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:09:16.946 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:09:16.947 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:09:16.947 collectTaskContextText: result=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', buttonText='去完成', btnHeight=85, containerHeight=196
+14:09:16.948 isBrowseTask: buttonText='去完成', context=' 三国冰河常规招募武将1次当前进度0，总进度1 可得500肥 去完成 ', isBrowse=false
+14:09:16.951 parseDeepLinkStayMs: no duration hint (parsed=0), using default 15s, stay=20000ms
+14:09:16.952 performClickSafe: text='去完成' desc='' bounds=[884,1365][1113,1450] clickable=true
+14:09:16.956 performClickSafe: ACTION_CLICK success at depth=0
+14:09:21.983 isOnFarmPage: no farm content, sample=[更多, , 关闭, ]
+14:09:22.048 [checkTaskResult] snapshot: pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite1, onFarm=false, adActivity=false, adPlaying=false, adContent=false, abnormal=false, nonAdTask=false, nonAdPkg=false, taskComplete=false, searchRec=false
+14:09:22.056 [checkTaskResult] claim-text-nodes: NONE (no node text contains 领取/领肥/立即领/点击领/可领取)
+14:09:22.188 findFertilizerClaimButton: no fertilizer text, skip
+14:09:22.329 processTask: not on farm page but activeRoot='com.eg.android.AlipayGphone' is farm pkg, otherPkg='com.eg.android.AlipayGphone' (systemui false positive), skip WATCHING_AD, continue scene detection
+14:09:22.409 processTask: unknown page, pkg=com.eg.android.AlipayGphone, act=com.alipay.mobile.nebulax.xriver.activity.XRiverActivity$XRiverLite1, failCount=0/2
+14:09:22.415 processTask: unknown page, asking AI vision for action
+14:09:23.414 state: PROCESSING_TASK -> STOPPING
+14:09:23.415 cancelNavigation: all navigation callbacks cancelled
+14:09:23.415 state: STOPPING -> IDLE
+14:09:23.418 automationWakeLock: released
+14:09:27.418 saveToken: saved (len=93, head='gith', tail='McKr')
+14:09:27.421 upload start: tag=test, token=***len=93, head='gith', tail='McKr', hasNewline=false, hasSpace=false
+14:09:27.423 uploadFile: PUT https://api.github.com/repos/sicauyanglei/bbncbot/contents/logs/debug_test_20260906_140927.log, localFile=debug.log (148079 bytes)
