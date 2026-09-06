@@ -32,6 +32,36 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build786 补 build785 覆盖漏洞——幽灵按钮4条漏网路径+深链失败路径重复推进
+
+**用户需求**: "请帮我检查 build785 的修复是否覆盖了新场景"
+
+**覆盖审查结论**:
+- P0-1 isLauncherRoot 分段匹配: 无漏洞。fasterReward("我要更快拿奖")流程走 service 内同一
+  isLauncherRoot，一并受益。残留理论风险: 包名含精确 ".home" 段的智能家居App(如 com.vendor.home)
+  仍会被误判桌面——当前任务池未出现，暂不处理。
+- P0-2 stage2 切回宽限: 无漏洞。宽限期(12s)内唯一 kill 外来App的路径就是陷阱分支
+  (stage-1块仅 stage==1 时激活,fasterReward 有独立状态机)。
+- **P1-3 有漏洞(失败路径)**: one-shot 切回彻底失败(>8s settle 窗后仍在外来App)时,
+  build785 允许重新武装定时器重试切回(必要),但第二次触发会再次 collectedCount++/
+  advanceTaskIndex() → 同一任务重复推进。自然返回分支 >8s 后才发生同理。
+- **P2-4 有漏洞(4条漏网路径)**: findGoCompleteButtons 共6处消费点, build785 只过滤了
+  openTaskList 的 visibleGoComplete/existingButtons 两处。漏网: L2554 checkTaskListOpened
+  (日志中幽灵按钮真正流入 taskButtons 的通道)、L4356/L4993 processTask 重试点击、
+  L8172 runReturning。L7728 runDeepLinkReturnToFarm 仅可见性判断,影响小。
+
+**修复方案**:
+- P2-4补: 4条漏网路径+L7728 全部接入 filterGhostTaskButtons(共6处调用点全覆盖)。
+- P1-3补: 新增 deepLinkAdvanceDone 标记(进入 WATCHING_AD 时重置); one-shot 定时器触发
+  与自然返回分支两处推进点都先检查——已推进则跳过 collectedCount++/advanceTaskIndex()
+  (自然返回分支仍保留清理+runDeepLinkReturnToFarm 恢复流程)。
+
+**修改文件**: AutomationController.kt(deepLinkAdvanceDone 变量+重置+2处推进点守卫+5处幽灵过滤接入)
+
+**编译验证**: sandbox 无 Android SDK; 括号平衡检查通过({}/()/[]差值均为0); 等 CI 构建验证。
+
+---
+
 ### fix: build785 汽车之家误判桌面致切回失败+"我要加速"切回期陷阱误杀+深链重复武装+幽灵按钮
 
 **用户需求**: "分析日志"（debug_test_20260906_102248.log, build782 运行）→"是的"（全部修复）

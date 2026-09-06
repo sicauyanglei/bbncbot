@@ -311,6 +311,15 @@ object AutomationController {
     private var deepLinkBringFrontFiredMs: Long = 0L
 
     /**
+     * build786: 本次 WATCHING_AD 会话内深链任务是否已推进过（collectedCount++/advanceTaskIndex）。
+     * 补 build785 的失败路径漏洞：one-shot 切回彻底失败(>8s 仍在外来App)时允许重新武装
+     * 定时器重试切回是必要的，但第二次触发不得再次推进同一任务；同理自然返回分支
+     * 在 >8s 后才发生也不能重复推进。进入 WATCHING_AD 时重置。
+     */
+    @Volatile
+    private var deepLinkAdvanceDone: Boolean = false
+
+    /**
      * build784: 深链停留期间的滑动计数（上下交替模拟真实浏览）。
      * 用户需求："浏览任务需要上下滑动窗口"——光停留不滑动会被判挂机不发奖。
      * 进入 WATCHING_AD 时及首次记录 [deepLinkAppPkg] 时重置。
@@ -2551,7 +2560,9 @@ object AutomationController {
         }
 
         // 查找"去完成"按钮
-        val buttons = service.findGoCompleteButtons()
+        // build786: 补过滤幽灵按钮(build785 只覆盖了 openTaskList 两处,本路径是
+        //   debug_test_20260906_102248.log 幽灵按钮真正流入 taskButtons 的通道)
+        val buttons = filterGhostTaskButtons(service, service.findGoCompleteButtons())
         debugLog("checkTaskListOpened: found ${buttons.size} goComplete buttons, checkAttempt=$taskListCheckAttempt, currentIndex=$currentTaskIndex")
         if (buttons.isNotEmpty()) {
             Log.i(TAG, "openTaskList: task list opened with ${buttons.size} tasks")
@@ -4353,7 +4364,7 @@ object AutomationController {
                 if (attempt < MAX_TASK_ATTEMPTS) {
                     Log.w(TAG, "processTask: task click no-effect (still on farm, never left, ad not loaded), retry attempt=$attempt")
                     debugLog("processTask: 任务点击无效果(未离开农场页,广告未拉出), 重试点击 attempt=$attempt")
-                    val buttons = service.findGoCompleteButtons()
+                    val buttons = filterGhostTaskButtons(service, service.findGoCompleteButtons())  // build786: 过滤幽灵按钮
                     if (buttons.isNotEmpty() && currentTaskIndex < buttons.size) {
                         taskButtons = buttons
                         // build758: 重试点击后刷新记录的 activity（以重试点击时为基准）
@@ -4990,7 +5001,7 @@ object AutomationController {
                 Log.i(TAG, "processTask: still on farm page (attempt $attempt), retry clicking task button")
                 debugLog("processTask: still on farm page, retry task click attempt=$attempt")
                 // 重新获取任务按钮并点击（可能列表已刷新）
-                val buttons = service.findGoCompleteButtons()
+                val buttons = filterGhostTaskButtons(service, service.findGoCompleteButtons())  // build786: 过滤幽灵按钮
                 if (buttons.isNotEmpty() && currentTaskIndex < buttons.size) {
                     taskButtons = buttons
                     service.performClickSafe(buttons[currentTaskIndex])
@@ -5593,6 +5604,7 @@ object AutomationController {
         if (elapsedMs == 0L) {
             deepLinkAppPkg = null       // 重置深链跳转跟踪，等待检测是否进入其他 App
             deepLinkBringFrontFiredMs = 0L  // build785: 重置 one-shot 切回触发时间戳
+            deepLinkAdvanceDone = false     // build786: 重置深链任务推进标记
             deepLinkStaySwipeCount = 0  // build784: 重置深链停留滑动计数
             fasterRewardStage = 0       // 重置"更快拿奖"弹窗处理状态
             fasterRewardAppPkg = null   // 重置新 App 包名记录
@@ -7219,8 +7231,14 @@ object AutomationController {
                     debugLog("watchAd: farm app back in foreground on task landing page, task complete, recovering to farm page")
                     deepLinkAppPkg = null  // 清除后已调度的切回定时器会自动取消
                     service.setAdMode(false)
-                    collectedCount++
-                    advanceTaskIndex()
+                    // build786: one-shot 已推进过(如切回失败重武装后自然返回)则只清理恢复,不重复推进
+                    if (deepLinkAdvanceDone) {
+                        debugLog("watchAd: deep-link task already advanced this session, skip duplicate advance in natural-return branch (build786)")
+                    } else {
+                        collectedCount++
+                        advanceTaskIndex()
+                        deepLinkAdvanceDone = true
+                    }
                     runDeepLinkReturnToFarm(0)
                     return
                 }
@@ -7292,8 +7310,14 @@ object AutomationController {
                         // 重新记录 deepLinkAppPkg 重新武装定时器，自然返回分支不得重复 advance
                         deepLinkBringFrontFiredMs = System.currentTimeMillis()
                         // 等够任务时长视为任务完成（同自然返回分支），计入收集数并推进任务
-                        collectedCount++
-                        advanceTaskIndex()
+                        // build786: 失败重试路径下本定时器可能第二次触发——不得重复推进同一任务
+                        if (deepLinkAdvanceDone) {
+                            debugLog("watchAd: deep-link task already advanced this session, skip duplicate advance in re-fired timer (build786)")
+                        } else {
+                            collectedCount++
+                            advanceTaskIndex()
+                            deepLinkAdvanceDone = true
+                        }
                         // build742: 保留现场切回后，WebView 可能停在任务落地页
                         // （点击"去完成"时 H5 先导航到落地页再拉起App）而非农场主页 →
                         // runDeepLinkReturnToFarm 确保回农场主页再开任务列表。
@@ -7725,7 +7749,8 @@ object AutomationController {
         val service = getService() ?: run { stop(); return }
 
         // 1. 已回到真农场页（任务列表开着 或 农场标题+核心元素齐全）
-        val taskListVisible = service.findGoCompleteButtons().isNotEmpty()
+        // build786: 可见性判断同样过滤幽灵按钮,避免幽灵容器误判"任务列表已开"
+        val taskListVisible = filterGhostTaskButtons(service, service.findGoCompleteButtons()).isNotEmpty()
         if (taskListVisible || isOnRealFarmPageForDeepLinkReturn(service)) {
             debugLog("deepLinkReturn: on farm page now (taskListVisible=$taskListVisible), opening task list")
             handler.postDelayed({
@@ -8169,7 +8194,7 @@ object AutomationController {
         // 已回到农场页，检查是否在任务列表
         if (service.isOnFarmPage()) {
             // 查找任务按钮，确认是否在任务列表
-            val buttons = service.findGoCompleteButtons()
+            val buttons = filterGhostTaskButtons(service, service.findGoCompleteButtons())  // build786: 过滤幽灵按钮
             if (buttons.isNotEmpty()) {
                 Log.i(TAG, "return: back on task list with ${buttons.size} tasks, next task")
                 taskButtons = buttons
