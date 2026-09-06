@@ -556,6 +556,12 @@ object AutomationController {
     /** build793: 浏览任务 no_progress_signals 零进展退出次数（按任务 key），达 MAX_TASK_FAILS 入会话跳过名单 */
     private val browseNoProgressCounts = mutableMapOf<String, Int>()
 
+    /** build794: 进入浏览任务时从任务上下文解析到的 (N/M) 进度 N（按任务 key），供回列表后对比服务器是否入账 */
+    private val browseProgressSnapshot = mutableMapOf<String, Int>()
+
+    /** build794: 上次浏览以 no_progress_signals 退出、等待回任务列表核对 (N/M) 进度的任务 key */
+    private val browseNoProgressPending = mutableSetOf<String>()
+
     private fun normalizeTaskKey(text: String): String =
         text.replace(Regex("\\d+"), "").replace(Regex("\\s+"), "")
 
@@ -834,6 +840,18 @@ object AutomationController {
             return remaining
         }
         return 0
+    }
+
+    /**
+     * build794: 从任务上下文解析浏览任务进度计数器 (N/M)，返回已完成次数 N。
+     * 仅认 N<=M 且 M 在 1..50 的计数器（如 "(7/10)"），避免误配肥料数值等其它数字。
+     * 无计数器返回 null（单次浏览任务）。
+     */
+    private fun parseBrowseTaskProgress(contextText: String): Int? {
+        val match = Regex("""(\d+)\s*/\s*(\d+)""").find(contextText) ?: return null
+        val completed = match.groupValues[1].toIntOrNull() ?: return null
+        val total = match.groupValues[2].toIntOrNull() ?: return null
+        return if (total in 1..50 && completed in 0..total) completed else null
     }
 
     /**
@@ -3177,6 +3195,43 @@ object AutomationController {
 
         // 4. 滑动浏览任务：模拟滑动而非点击进入
         if (service.isBrowseTask(button)) {
+            // build794 修复（debug_test_20260906_174533.log 复盘）：
+            // build793 把"no_progress_signals 退出"直接计失败，但实测 UC"浏览广告赚肥料"
+            // 跨App跳淘宝精选页时 30s 计时在服务器端进行、页面无任何进度节点，
+            // 且奖励延迟约一圈才刷新到任务列表 (N/10)——本地"零进展"≠零产出
+            // （实测 0/10→7/10，每次浏览服务器都入账 +900）。
+            // 修复：进入浏览任务时解析 (N/M) 进度快照；若上次浏览以 no_progress 退出
+            // （key 在 browseNoProgressPending），对比最新 N：
+            //   N 增长 → 服务器已入账，重置零进展计数；
+            //   N 不变 → 确认计一次失败，达 MAX_TASK_FAILS 入会话跳过名单。
+            run {
+                val key = taskKey
+                val currentProgress = parseBrowseTaskProgress(taskContextText)
+                if (key in browseNoProgressPending) {
+                    browseNoProgressPending.remove(key)
+                    val lastProgress = browseProgressSnapshot[key]
+                    if (currentProgress != null && lastProgress != null && currentProgress > lastProgress) {
+                        browseNoProgressCounts.remove(key)
+                        Log.i(TAG, "processTask: browse task progress credited server-side ($lastProgress->$currentProgress), reset no-progress count (build794)")
+                        debugLog("processTask: 浏览任务服务器已入账进度 $lastProgress->$currentProgress,重置零进展计数(build794)")
+                    } else {
+                        val n = (browseNoProgressCounts[key] ?: 0) + 1
+                        browseNoProgressCounts[key] = n
+                        if (n >= MAX_TASK_FAILS && key !in sessionSkippedTaskKeys) {
+                            sessionSkippedTaskKeys.add(key)
+                            Log.w(TAG, "processTask: browse task no server progress after $n rounds (progress=$currentProgress), added to session skip list (build794)")
+                            debugLog("processTask: 浏览任务连续 $n 圈服务器零入账(进度仍=$currentProgress),加入会话永久跳过名单(build794)")
+                            currentTaskIndex++
+                            handler.postDelayed({
+                                if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
+                            }, 500L)
+                            return
+                        }
+                        debugLog("processTask: 浏览任务服务器零入账 count=$n/$MAX_TASK_FAILS (progress=$currentProgress, build794)")
+                    }
+                }
+                if (currentProgress != null) browseProgressSnapshot[key] = currentProgress
+            }
             Log.i(TAG, "processTask: task #${currentTaskIndex + 1} is browse task, swiping (text='$buttonText')")
             debugLog("processTask: browse task #${currentTaskIndex + 1}, text='$buttonText', entering BROWSING_TASK")
             moveTo(AutomationState.BROWSING_TASK)
@@ -3657,20 +3712,29 @@ object AutomationController {
                 debugLog("browseTask: no progress signals after target swipes, exiting browse page (swipes=$swipeCount/$browseTaskTargetSwipes)")
                 // build793 修复（debug_test_20260906_174533.log, build791, UC）：
                 //   "浏览广告赚肥料"跨App跳淘宝精选页("30秒"静态文字,非动态倒计时),
-                //   刷52s后 no_progress_signals 退出,UC 不计进度(每圈 context 仍 0/10)
-                //   → 此退出旧逻辑不计任何失败,OPENING_TASK_LIST 重置索引后每圈重做
-                //   → 66s/圈零奖励死循环6圈(任务#1被视频守卫跳过,#2永远卡这里)。
-                //   修复：no_progress_signals 退出按任务 key 计失败,达 MAX_TASK_FAILS
-                //   入会话级永久跳过名单,后续轮次直接秒过该任务。
+                //   刷52s后 no_progress_signals 退出 → 旧逻辑不计任何失败,
+                //   OPENING_TASK_LIST 重置索引后每圈重做 → 66s/圈死循环。
+                // build794 修正（同日志复盘）：实测该任务每次浏览服务器都入账
+                //   (0/10→7/10,每次+900),只是淘宝页无进度节点+奖励延迟约一圈刷新,
+                //   本地"零进展"≠零产出。build793 的"退出即计失败"会误杀产出中任务。
+                //   修复：带 (N/M) 进度计数器的任务（browseProgressSnapshot 有快照），
+                //   退出时只挂起核对标记(browseNoProgressPending)，回任务列表重读进度后
+                //   在 processTask 浏览分支对比 N 再判定成败；
+                //   无进度计数器的任务保持 build793 旧行为，退出即计失败。
                 currentTaskKey?.let { key ->
-                    val n = (browseNoProgressCounts[key] ?: 0) + 1
-                    browseNoProgressCounts[key] = n
-                    if (n >= MAX_TASK_FAILS && key !in sessionSkippedTaskKeys) {
-                        sessionSkippedTaskKeys.add(key)
-                        Log.w(TAG, "browseTask: no-progress browse failed $n times for task key='$key', added to session skip list (build793)")
-                        debugLog("browseTask: 浏览任务零进展 $n 次,加入会话永久跳过名单(build793)")
+                    if (browseProgressSnapshot.containsKey(key)) {
+                        browseNoProgressPending.add(key)
+                        debugLog("browseTask: 本地零进展退出,进度待回任务列表核对(N/M)后再判定(build794)")
                     } else {
-                        debugLog("browseTask: no-progress browse fail count=$n/$MAX_TASK_FAILS for key='$key' (build793)")
+                        val n = (browseNoProgressCounts[key] ?: 0) + 1
+                        browseNoProgressCounts[key] = n
+                        if (n >= MAX_TASK_FAILS && key !in sessionSkippedTaskKeys) {
+                            sessionSkippedTaskKeys.add(key)
+                            Log.w(TAG, "browseTask: no-progress browse failed $n times for task key='$key' (no counter), added to session skip list (build793)")
+                            debugLog("browseTask: 浏览任务(无进度计数)零进展 $n 次,加入会话永久跳过名单(build793)")
+                        } else {
+                            debugLog("browseTask: no-progress browse fail count=$n/$MAX_TASK_FAILS for key='$key' (no counter, build793)")
+                        }
                     }
                 }
                 currentTaskIndex++

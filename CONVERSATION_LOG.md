@@ -32,6 +32,41 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build794 浏览任务成败改判服务器 (N/10) 进度——纠正 build793 误杀产出中任务
+
+**用户需求**: "解释为什么浏览广告任务没有产出肥料" → 确认修改方案
+
+**复盘结论**（debug_test_20260906_174533.log 数据修正 build793 前提）：
+
+build793 假设"no_progress_signals 退出=零产出"，但全程跟踪任务列表 `(N/10)` 计数器：
+(0/10)→(2/10)→(3/10)→…→(7/10)，7 次浏览×+900≈6300 肥料，**服务器每次都入账**。
+"看似零产出"的两个叠加原因：
+1. 跨App落地页（com.taobao.taobao 淘宝精选）无任何进度节点，30s 计时在服务器端，
+   本地每次滑动都 countdown=0/progress=false → 误判"零进展"。
+2. 奖励延迟约一圈才刷新到列表：第1次退出后立刻读列表仍 (0/10)，
+   下一圈才跳到 (2/10)（两次奖励一起到账）。
+build793"退出即计失败,2次永久跳过"会把正在稳定产出的任务误杀。
+
+**修复方案**（AutomationController.kt）：
+
+1. 新增 `browseProgressSnapshot: MutableMap<String,Int>`——进入浏览任务时解析
+   `(N/M)` 进度 N 存快照（`parseBrowseTaskProgress`，仅认 N<=M 且 M≤50）。
+2. 新增 `browseNoProgressPending: MutableSet<String>`——no_progress_signals 退出时
+   **不再立即计失败**，只挂起核对标记（无计数器的任务保持 build793 旧行为）。
+3. processTask 浏览任务入口：key 在 pending 中则对比最新 N——
+   N 增长→服务器已入账，`browseNoProgressCounts.remove(key)` 重置；
+   N 不变→确认计一次失败，连续 MAX_TASK_FAILS(2) 圈零入账才入会话跳过名单。
+   因入账延迟约一圈、失败需连续 2 圈，产出中任务永远不会被误跳过。
+
+**修改文件**: AutomationController.kt(2字段+parseBrowseTaskProgress+processTask浏览入口+no_progress退出分支)
+
+**编译验证**: gradle 8.14.5 :app:compileFullDebugKotlin BUILD SUCCESSFUL（JDK17+SDK34）。
+注：本沙箱为全新环境，已重建 ANDROID_HOME=/root/android-sdk（cmdline-tools+
+platforms;android-34+build-tools;34.0.0），Gradle 代理写入 ~/.gradle/gradle.properties，
+编译须绕开 mise shim 直接调 installs/gradle/8.14.5/gradle-8.14.5/bin/gradle（shim 强制 JDK25）。
+
+---
+
 ### fix: build793 UC"浏览广告赚肥料"跨App零进展死循环——no_progress退出计失败+会话跳过
 
 **用户需求**: "分析日志"（debug_test_20260906_174533.log，build791 运行，UC，17:32-17:45）
