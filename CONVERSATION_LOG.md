@@ -32,6 +32,57 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build787 21分钟doze假死+看广告领奖跳淘宝乒乓死循环+0ms误判奖励已到账
+
+**用户需求**: "分析日志"（debug_test_20260906_121029.log, build785 运行 40min）→"修复"（全部修复）
+
+**日志分析与根因**:
+
+1. **P0-1 NAVIGATING 假死 21 分钟（11:46:57→12:07:41，期间零日志）**：
+   点"看广告领奖"→跳淘宝商详(ttdetailactivity)→collectDirect build694 逻辑
+   forceKillApp(taobao)，但 killBackgroundProcesses 杀不掉前台 App，淘宝反复回前台
+   →NAVIGATING→stepTab 按 back×3 未退出商详→retry6 后 abort on UC 只 clearNavigatingFlag
+   不调度恢复→屏幕超时熄灭→设备 doze→Handler 回调全部冻结。12:07:41 锁屏 systemui 上
+   回调队列爆发式 flush（3条日志<35ms）后靠 build775 锁屏解锁恢复。
+   根因：自动化运行期无保活（ensureScreenOn 仅 3s 点亮；广告期 KEEP_SCREEN_ON 由广告SDK
+   持有，卡在外来App时无任何保活）。
+2. **P0-2 "看广告领奖"跳淘宝浏览任务乒乓死循环 7 轮（12:08:05→12:10:26 手动停止）**：
+   该按钮实为逛淘宝浏览任务(需停留发奖)，被当陷阱杀掉→任务永远完不成→按钮永存。
+   循环机制：collectDirect give-up 时清 lastDirectClickedText 但不计 recordTrapAdExit
+   →openTaskList 又把同一按钮当新 direct 按钮切回 COLLECTING_DIRECT（build755 视频
+   跳过守卫因 streak=0 永不激活）→再点同一按钮，每 22s 一轮。
+3. **P1-3 首广告 0ms 误判"奖励已到账"（11:35:40）**：
+   detectRewardGrantedText 在 elapsed=0ms 匹配到激励视频模板预载/广告创意诱饵文案
+   "奖励已到账"→秒点'跳过'→触发"确定要退出吗？"留存弹窗→3次温和退出失败→杀 UC
+   宿主重开，浪费 26s，该广告奖励大概率未发放。
+
+**修复方案**:
+
+- **P0-1a**（FarmAccessibilityService）：新增 automationWakeLock 字段+
+  acquireAutomationWakeLock()/releaseAutomationWakeLock()（PARTIAL_WAKE_LOCK 只保 CPU）。
+  AutomationController.start() 获取；moveTo(IDLE) 统一释放（覆盖手动停止与施肥耗尽
+  自动停止两条路径）。CPU 存活后 Handler 轮询继续，ensureScreenOn(build753)+
+  锁屏解锁(build775)照常工作。
+- **P0-1b**（FarmAccessibilityService stepClickFarmTab）：UC/ALIPAY abort 分支
+  clearNavigatingFlag 后追加 reopenFarmByDeepLink(killCurrentFirst=false) 主动深链
+  拉起农场 App 覆盖外来 App（12s 防重窗口内自动跳过，不多开标签页）。
+- **P0-2**（AutomationController collectDirect）：两处放弃路径补 recordTrapAdExit()
+  ——"10s 后仍在农场=点击无效"路径 + "所有按钮与上次相同"give-up 路径。
+  streak>=TRAP_AD_SKIP_THRESHOLD(2) 且无进展后，openTaskList 的 build755 视频入口
+  跳过守卫激活，不再切回 COLLECTING_DIRECT，乒乓循环终止。
+- **P1-3**（AutomationController）：detectRewardGrantedText 增加 elapsedMs 参数+
+  REWARD_GRANT_MIN_ELAPSED_MS=8000 门限（开播 8s 内命中视为诱饵不领奖），
+  4 处调用点全部传入 elapsedMs（汇川商家页守卫/interactiveAdJumpPending/
+  点击商品阶段2/主检测路径）。
+
+**修改文件**: FarmAccessibilityService.kt(唤醒锁字段+2方法+abort深链兜底)、
+AutomationController.kt(常量+detectRewardGrantedText门限+4调用点+2处recordTrapAdExit+
+start获取锁+moveTo释放锁)
+
+**编译验证**: sandbox 无 Android SDK; 括号平衡检查通过({}/()/[]差值均为0); 等 CI 构建验证。
+
+---
+
 ### fix: build786 补 build785 覆盖漏洞——幽灵按钮4条漏网路径+深链失败路径重复推进
 
 **用户需求**: "请帮我检查 build785 的修复是否覆盖了新场景"

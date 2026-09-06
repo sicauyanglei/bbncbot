@@ -96,6 +96,47 @@ class FarmAccessibilityService : AccessibilityService() {
     private var currentEventPkg: String? = null
 
     /**
+     * build787: 自动化运行期间持有的 PARTIAL_WAKE_LOCK（只保 CPU,不强制亮屏）
+     * 问题（debug_test_20260906_121029.log, build785, 11:46:57-12:07:41 假死21分钟）：
+     *   自动化卡在外来App(淘宝商详页)时屏幕超时熄灭→设备 doze→
+     *   所有 Handler.postDelayed 回调被冻结,NAVIGATING 轮询完全停止,
+     *   21分钟后被外部唤醒才爆发式恢复(锁屏界面 systemui 上回调队列集中 flush)。
+     *   唤醒锁只有 ensureScreenOn 的 3s 点亮辅助;广告期的 FLAG_KEEP_SCREEN_ON
+     *   由广告 SDK 持有,卡在外来 App 时无任何保活。
+     * 修复:start 时持有,进入 IDLE 时释放。CPU 存活后 Handler 轮询继续,
+     *   ensureScreenOn(build753)+锁屏上滑解锁(build775)照常工作。
+     */
+    @Volatile
+    private var automationWakeLock: android.os.PowerManager.WakeLock? = null
+
+    /** build787: 自动化开始时持有唤醒锁（需 WAKE_LOCK 权限,manifest 已加） */
+    fun acquireAutomationWakeLock() {
+        if (automationWakeLock?.isHeld == true) return
+        try {
+            val pm = getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+            val wl = pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "bbncbot:automation")
+            wl.acquire()
+            automationWakeLock = wl
+            debugLog("automationWakeLock: acquired PARTIAL_WAKE_LOCK (keep CPU alive during automation)")
+        } catch (e: Exception) {
+            debugLog("automationWakeLock: acquire failed, ${e.message}")
+        }
+    }
+
+    /** build787: 自动化停止时释放唤醒锁 */
+    fun releaseAutomationWakeLock() {
+        try {
+            if (automationWakeLock?.isHeld == true) {
+                automationWakeLock?.release()
+                debugLog("automationWakeLock: released")
+            }
+        } catch (e: Exception) {
+            debugLog("automationWakeLock: release failed, ${e.message}")
+        }
+        automationWakeLock = null
+    }
+
+    /**
      * 当前检测到的平台（自动更新）
      * - 通过 [getCurrentWindowPackage] 在需要时刷新
      * - UNKNOWN 表示未识别到任何支持的平台
@@ -7882,6 +7923,13 @@ class FarmAccessibilityService : AccessibilityService() {
             Log.w(TAG, "navigate stepTab: 芭芭农场 tab not found after 6 retries on $platform, abort (stepClickFarmTabByGesture is taobao-only)")
             debugLog("navigate stepTab: abort on $platform (taobao-only gesture fallback skipped)")
             clearNavigatingFlag()
+            // build787 修复（debug_test_20260906_121029.log, build785, 11:46:57 假死21分钟）：
+            //   UC abort 后只清标志不调度任何恢复动作,此时卡在外来App(淘宝商详页),
+            //   屏幕超时熄屏→doze 冻结回调→自动化假死,直到外部唤醒。
+            //   修复:abort 时主动深链拉起农场App覆盖外来App(12s 防重窗口内自动跳过,
+            //   不会重复多开标签页;killCurrentFirst=false 避免 Honor 后台启动限制)。
+            debugLog("navigate stepTab: abort fallback, reopenFarmByDeepLink(killCurrentFirst=false) to recover farm foreground")
+            reopenFarmByDeepLink(killCurrentFirst = false)
         }
     }
 

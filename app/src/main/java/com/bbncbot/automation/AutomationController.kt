@@ -93,6 +93,15 @@ object AutomationController {
      * 一旦有进展（collectedCount 增加）视频入口自动恢复
      */
     private const val TRAP_AD_SKIP_THRESHOLD = 2
+    /**
+     * build787: "奖励已发放/奖励已到账"领奖文案的最小观看时长门限
+     * 问题（debug_test_20260906_121029.log, build785, 11:35:40）：
+     *   激励视频开播 0ms 就匹配到广告创意里的诱饵文案"奖励已到账"
+     *   （SDK 模板预载/落地页营销词），秒点'跳过'→触发"确定要退出吗？"留存弹窗
+     *   →3 次温和退出失败→杀 UC 宿主进程，奖励大概率未发放。
+     *   开播 8s 内不可能真实发奖（激励视频奖励条件通常 >=15s），视为诱饵不领奖。
+     */
+    private const val REWARD_GRANT_MIN_ELAPSED_MS = 8000L
     /** 施肥按钮最大点击次数（防止无限点击） */
     private const val MAX_FERTILIZE_CLICKS = 30
     /** 滑动浏览任务最大滑动次数 */
@@ -884,6 +893,8 @@ object AutomationController {
         }
         Log.i(TAG, "=== Automation v2 Started ===")
         debugLog("=== Automation v2 Started === platform=${service.currentPlatform}")
+        // build787: 持有 PARTIAL_WAKE_LOCK,防止熄屏 doze 冻结 Handler 回调导致假死
+        service.acquireAutomationWakeLock()
         // 取消所有导航回调，避免 stepClickFarmTab 在后台干扰自动化
         service.cancelNavigation()
         collectedCount = 0
@@ -1018,6 +1029,10 @@ object AutomationController {
         Log.d(TAG, "state: $state -> $newState")
         debugLog("state: $state -> $newState")
         state = newState
+        // build787: 回到 IDLE（手动停止/施肥耗尽自动停止）统一释放自动化唤醒锁
+        if (newState == AutomationState.IDLE) {
+            getService()?.releaseAutomationWakeLock()
+        }
         onStateChanged?.invoke(newState)
     }
 
@@ -1827,6 +1842,12 @@ object AutomationController {
             // 所有按钮都和上次点击相同（页面无任何变化），放弃 direct 阶段
             Log.i(TAG, "collectDirect: all buttons same as last clicked (no progress), opening task list")
             debugLog("collectDirect: all ${buttons.size} buttons match last clicked, give up direct collect")
+            // build787 修复（debug_test_20260906_121029.log, build785, 12:08-12:10 乒乓死循环7轮）：
+            //   此放弃路径清除记忆但不计陷阱退出,streak 不增长,openTaskList 的
+            //   build755 视频入口跳过守卫永不激活 → openTaskList 又把同一按钮当新
+            //   direct 按钮切回 COLLECTING_DIRECT,每 22s 一轮直到用户手动停止。
+            //   修复:计一次陷阱退出,streak>=阈值后 openTaskList 不再切回视频类入口。
+            recordTrapAdExit()
             lastDirectClickedText = ""
             lastDirectClickedBounds = ""
             moveTo(AutomationState.OPENING_TASK_LIST)
@@ -1975,6 +1996,10 @@ object AutomationController {
                 //   09:52:45 activity=com.bbncbot.mainactivity ← pressBack 退出 UC 农场回到 bbncbot!
                 //   根因：本来就在农场主页,pressBack 反而后退一步退出 UC 农场 H5 页面。
                 //   修复：在农场页面时不 pressBack,直接继续下一轮 COLLECTING_DIRECT。
+                // build787 修复（debug_test_20260906_121029.log, build785, 12:08-12:10）：
+                //   点击无任何效果（按钮失效/跳转配额耗尽）时不计陷阱退出,streak 不增长,
+                //   shouldSkipVideoAdEntries 守卫永不激活 → 乒乓死循环。此处计一次。
+                recordTrapAdExit()
                 debugLog("collectDirect: 10s elapsed, already on farm page, continue next round (no pressBack)")
                 handler.postDelayed({
                     if (state == AutomationState.COLLECTING_DIRECT) runCollectingDirect(attempt + 1)
@@ -5387,7 +5412,9 @@ object AutomationController {
      * 关键词与 isAdEndedMultiSignal 的 adEndedKeywords 保持一致(取无歧义子集,
      * 排除"恭喜获得"/"获取奖励"/"获得肥料"等易误判落地页营销文案的泛化词)。
      */
-    private fun detectRewardGrantedText(service: FarmAccessibilityService): Boolean {
+    private fun detectRewardGrantedText(service: FarmAccessibilityService, elapsedMs: Long = Long.MAX_VALUE): Boolean {
+        // build787: 开播 REWARD_GRANT_MIN_ELAPSED_MS 内的命中视为广告诱饵文案，不领奖
+        if (elapsedMs < REWARD_GRANT_MIN_ELAPSED_MS) return false
         val root = service.getRootInFarmApp() ?: return false
         val texts = service.collectAllText(root)
         return texts.any {
@@ -6364,7 +6391,7 @@ object AutomationController {
         if (huichuanMerchantPending && service.isAdActivity() && (trapLikeScene ||
             (!service.isClickProductAd() && (scene == PageScene.AD_PLAYING || scene == PageScene.UNKNOWN ||
              scene == PageScene.AD_ENDED)))) {
-            if (detectRewardGrantedText(service)) {
+            if (detectRewardGrantedText(service, elapsedMs)) {
                 claimRewardViaCloseIcon(service, elapsedMs)
                 return
             }
@@ -6391,7 +6418,7 @@ object AutomationController {
         //   守卫: interactiveAdJumpPending=true 时陷阱场景降级为UNKNOWN（预期跳转
         //   落地页,非陷阱）,让下方深链分支处理停留计时+保留现场切回农场+任务推进;
         //   同时每轮检测"奖励已发放"（出现在农场App WebView时点击关闭图标拿奖励）。
-        if (interactiveAdJumpPending && detectRewardGrantedText(service)) {
+        if (interactiveAdJumpPending && detectRewardGrantedText(service, elapsedMs)) {
             claimRewardViaCloseIcon(service, elapsedMs)
             return
         }
@@ -6847,7 +6874,7 @@ object AutomationController {
                     // build731: 汇川"返回点击商家"后已点击商家(阶段1再点的商品),
                     // 等待"奖励已发放"出现(build729: 检测到后点右上角关闭图标领奖),
                     // 不再 2s 自动关闭(185130 日志证明纯等待也无效,必须点击商家+等待)。
-                    if (detectRewardGrantedText(service)) {
+                    if (detectRewardGrantedText(service, elapsedMs)) {
                         claimRewardViaCloseIcon(service, elapsedMs)
                         return
                     }
@@ -6916,7 +6943,7 @@ object AutomationController {
         // build730: 检测与领奖逻辑提取为 detectRewardGrantedText()/claimRewardViaCloseIcon()
         //   供下方 huichuanMerchantPending 守卫块复用。
         if (service.isAdActivity() || service.isAdPlaying()) {
-            if (detectRewardGrantedText(service)) {
+            if (detectRewardGrantedText(service, elapsedMs)) {
                 claimRewardViaCloseIcon(service, elapsedMs)
                 return
             }
