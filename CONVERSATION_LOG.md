@@ -32,6 +32,38 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build782 广告领奖按钮必须点击修复(手势优先点击+重试2次+AD_PLAYING场景接线+关键词补全)
+
+**用户需求**: "分析日志 '我要直接拿奖励'是需要点击的任务"
+
+**日志分析（debug_test_20260906_094516.log, build781实测, UC会话09:42-09:45）**:
+- ✅ build780几何兜底验证通过: 09:43:38 geometry fallback per-tab × → 09:43:39 cleanup done,
+  15个标签清掉,导航35s完成
+- **P1 穿山甲"去体验15秒可立即领奖"50s无人点击(09:44:19-09:45:13)**: TTRewardVideoActivity
+  scene=AD_PLAYING,领奖按钮0ms起全程存在(底部[65,2560][537,2619]clickable=false),视频静态
+  (AI percent=0%),findClaimRewardButton场景白名单+广告Activity内直接null,interactive-claim
+  只在TRAP_INTERACTIVE → 无任何代码路径点击它。用户确认:这类按钮是必须点击的领奖任务
+- **092636 P1补充**: 百度"去体验9秒可直接拿奖励"点击无效根因=按钮clickable=false时
+  ACTION_CLICK爬depth=3祖先,广告SDK只响应真实触摸事件
+
+**修复方案**:
+1. 抽出 tryClickAdClaimButton() 公共方法(手势优先点击按钮中心dispatchGestureClick真实触摸,
+   bounds无效回退performClickSafe; jumpPending扩展"领奖/体验"文案; 12s无跳转手势重试最多2次
+   (原1次); 重试耗尽recordTrapAdExit+点"跳过"/pressBack退出死广告)
+2. AD_PLAYING场景接线: min wait过后+广告Activity内调用(bottomBandOnly=true只点底部带
+   y>0.6H按钮,防误点中部提示文案;百度互动广告顶部按钮走TRAP_INTERACTIVE不受影响)
+3. findInteractiveAdClickToClaimButton关键词补全: exactTexts+"我要直接拿奖励/直接拿奖励/
+   我要加速领奖/加速领奖"; fallback contains+"直接拿奖励/加速领奖"("我要加速领奖"原不含
+   拿奖励/立即领奖会漏匹配)
+4. interactiveAdClaimRetried(Boolean)改为interactiveAdClaimRetryCount(Int),重置点同步
+
+**修改文件**: AutomationController.kt(tryClickAdClaimButton+TRAP_INTERACTIVE调用替换+
+AD_PLAYING接线+retryCount), FarmAccessibilityService.kt(关键词)
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### fix: build781 互动广告"去体验"点击无跳转死等90s修复(12s无跳转重试一次+再失败点跳过退出死广告)
 
 **用户需求**: "分析日志"（debug_test_20260906_092636.log, build780首提交实测, UC会话09:23-09:26, 用户3.4分钟手动停）

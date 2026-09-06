@@ -2556,7 +2556,12 @@ class FarmAccessibilityService : AccessibilityService() {
             "点击立即领奖",
             "点击跳转拿奖励",
             "跳转拿奖励",
-            "点击拿奖励"
+            "点击拿奖励",
+            // build782: 用户确认"我要直接拿奖励"是必须点击的领奖任务(百度MobRewardVideo家族)
+            "我要直接拿奖励",
+            "直接拿奖励",
+            "我要加速领奖",
+            "加速领奖"
         )
         for (kw in exactTexts) {
             val node = findNodeByText(root, kw)
@@ -2573,7 +2578,8 @@ class FarmAccessibilityService : AccessibilityService() {
             for (s in listOf(text, desc)) {
                 if (s.isEmpty()) continue
                 val hasClaimKeyword = s.contains("立即获取") || s.contains("立即领奖") ||
-                    s.contains("拿奖励") || s.contains("领取奖励")
+                    s.contains("拿奖励") || s.contains("领取奖励") ||
+                    s.contains("直接拿奖励") || s.contains("加速领奖")  // build782: 百度广告领奖按钮变体
                 val isJumpTrap = s.contains("跳转详情页") || s.contains("第三方应用")
                 if (hasClaimKeyword && !isJumpTrap && s.length <= 30) {
                     debugLog("findInteractiveAdClickToClaimButton: found by contains='$s'")
