@@ -76,6 +76,16 @@
 - AutomationController.kt: fasterRewardRecentsFailed标志+stage=0入口门禁+stage=1失败置位+start()复位;
   三处补recordTrapAdExit(): "ad button trap"退出分支/collectDirect跳非广告App放弃分支/广告90s超时强关分支
 
+**追加修复（同 build780，用户"全部修复"）**:
+- **P3 UC标签清理失效→几何兜底**: UC新版多窗口面板无"关闭全部"文本,标签"×"和底部
+  "清除"图标均无text/desc → 关键词+desc兜底全失败,标签累积到15个。
+  clickCloseAllInMultiWindow attempt>=2 面板确认后新增两级几何兜底:
+  ①findUcPanelTabCloseIconByGeometry: 大标签卡片(>0.5W×0.25H)内部右上角40-180px无文本
+  图标(中心x>卡片60%宽,y<卡片35%高)→逐标签关闭(语义最安全,优先)
+  ②findUcPanelClearAllIconByGeometry: 底部带(top>0.88H)水平居中(0.3-0.7W)无文本小图标
+  →一次全清(确认框由下一轮关键词搜索命中)
+  ③关完后面板自动退出(无痕浏览/返回消失,attempt>=3)→判定清理完成onDone(true)
+
 **编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
 
 ---

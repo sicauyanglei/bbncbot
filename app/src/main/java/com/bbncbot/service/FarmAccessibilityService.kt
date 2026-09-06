@@ -6576,12 +6576,43 @@ class FarmAccessibilityService : AccessibilityService() {
                 // 防止面板未打开时在农场页/其他页误点 H5 里的"关闭"节点
                 val panelTexts = collectAllText(root)
                 val panelShowing = panelTexts.any { it.contains("无痕浏览") || it.trim() == "返回" }
+                // build780: 几何兜底关完全部标签后面板自动退出(无痕浏览/返回特征消失)→判定清理完成。
+                // （attempt>=3 说明至少点过一次关闭；若面板压根没打开,调用方按 isOnFarmPage 决策,无害）
+                if (!panelShowing && attempt >= 3) {
+                    debugLog("clickCloseAllInMultiWindow: panel no longer showing after geometry closes, cleanup done (attempt=$attempt, build780)")
+                    onDone?.invoke(true)
+                    return
+                }
                 if (panelShowing) {
                     val perTabClose = findClickableByDescContains(root, "关闭")
                     if (perTabClose != null) {
                         debugLog("clickCloseAllInMultiWindow: no close-all text, clicking per-tab '关闭' desc node (attempt=$attempt)")
                         if (performClickSafe(perTabClose)) {
                             // 关了一个标签后面板仍在,继续轮询清理剩余的
+                            navHandler.postDelayed({ clickCloseAllInMultiWindow(attempt + 1, onDone) }, 500L)
+                            return
+                        }
+                    }
+                    // build780 修复（debug_test_20260906_085438.log, 08:52:58-08:53:04, 标签累积到15个）：
+                    //   UC 新版多窗口面板:无"关闭全部"文本,且标签"×"和底部"清除"图标
+                    //   均无 text/desc → 关键词与 desc 兜底全失败,"close-all button NOT
+                    //   found"×8 放弃。dump:底部行[无痕浏览][无文本图标x537-662居中][返回],
+                    //   每标签卡片右上角有~100x100无文本图标(x>0.78W)。
+                    //   修复:几何特征兜底——先点标签卡片右上角"×"(逐标签,语义最安全),
+                    //   找不到再试底部居中"清除全部"图标(一次全清)。
+                    val tabCloseIcon = findUcPanelTabCloseIconByGeometry()
+                    if (tabCloseIcon != null) {
+                        debugLog("clickCloseAllInMultiWindow: geometry fallback, clicking per-tab × icon (attempt=$attempt, build780)")
+                        if (performClickSafe(tabCloseIcon)) {
+                            navHandler.postDelayed({ clickCloseAllInMultiWindow(attempt + 1, onDone) }, 500L)
+                            return
+                        }
+                    }
+                    val clearAllIcon = findUcPanelClearAllIconByGeometry()
+                    if (clearAllIcon != null) {
+                        debugLog("clickCloseAllInMultiWindow: geometry fallback, clicking bottom clear-all icon (attempt=$attempt, build780)")
+                        if (performClickSafe(clearAllIcon)) {
+                            // 若弹出"关闭全部窗口?"确认框,下一轮关键词搜索(关闭全部/关闭所有)会命中确认
                             navHandler.postDelayed({ clickCloseAllInMultiWindow(attempt + 1, onDone) }, 500L)
                             return
                         }
@@ -6636,6 +6667,114 @@ class FarmAccessibilityService : AccessibilityService() {
             if (found != null) return found
         }
         return null
+    }
+
+    /**
+     * build780: UC 多窗口面板"标签×关闭"图标几何查找（图标无 text/desc 时的兜底）。
+     * 特征：可点击、无文本无desc、40-180px 小方块、位于大标签卡片(>0.5W×0.25H)内部右上角
+     * （中心 x > 卡片 60% 宽度处，中心 y < 卡片 35% 高度处）。
+     * 依据 dump（debug_test_20260906_085438.log 08:53:04）：卡片[123,131][1077,1439]
+     * 右上角图标[946,177][1043,273]/[974,254][1079,359]/[996,501][1107,612]。
+     */
+    private fun findUcPanelTabCloseIconByGeometry(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        val dm = resources.displayMetrics
+        val scrW = dm.widthPixels
+        val scrH = dm.heightPixels
+        if (scrW <= 0 || scrH <= 0) return null
+        // 1) 收集屏幕内的大标签卡片（排除屏幕外垃圾节点和底部导航容器）
+        val cards = mutableListOf<android.graphics.Rect>()
+        fun collectCards(n: AccessibilityNodeInfo, depth: Int) {
+            if (depth > 14 || cards.size >= 20) return
+            if (n.isClickable) {
+                val r = android.graphics.Rect()
+                n.getBoundsInScreen(r)
+                if (r.left >= 0 && r.top >= 0 && r.width() > scrW * 0.5f &&
+                    r.height() > scrH * 0.25f && r.bottom < scrH * 0.9f
+                ) {
+                    cards.add(r)
+                }
+            }
+            for (i in 0 until n.childCount) {
+                val c = n.getChild(i) ?: continue
+                collectCards(c, depth + 1)
+            }
+        }
+        collectCards(root, 0)
+        if (cards.isEmpty()) return null
+        // 2) 找卡片内右上角小图标
+        var found: AccessibilityNodeInfo? = null
+        fun dfs(n: AccessibilityNodeInfo, depth: Int) {
+            if (found != null || depth > 14) return
+            val t = n.text?.toString()?.trim().orEmpty()
+            val d = n.contentDescription?.toString()?.trim().orEmpty()
+            if (n.isClickable && t.isEmpty() && d.isEmpty()) {
+                val r = android.graphics.Rect()
+                n.getBoundsInScreen(r)
+                val w = r.width()
+                val h = r.height()
+                if (w in 40..180 && h in 40..180 && r.left >= 0 && r.top >= 0) {
+                    val cx = (r.left + r.right) / 2f
+                    val cy = (r.top + r.bottom) / 2f
+                    for (card in cards) {
+                        if (card.contains(cx.toInt(), cy.toInt()) &&
+                            cx > card.left + card.width() * 0.6f &&
+                            cy < card.top + card.height() * 0.35f
+                        ) {
+                            found = n
+                            return
+                        }
+                    }
+                }
+            }
+            for (i in 0 until n.childCount) {
+                val c = n.getChild(i) ?: continue
+                dfs(c, depth + 1)
+            }
+        }
+        dfs(root, 0)
+        return found
+    }
+
+    /**
+     * build780: UC 多窗口面板底部"清除全部"图标几何查找（图标无 text/desc 时的兜底）。
+     * 特征：可点击、无文本无desc、底部带(top>0.88H)、水平居中(0.3W-0.7W)、小尺寸。
+     * 依据 dump（debug_test_20260906_085438.log 08:53:04）：
+     * 底部行 [无痕浏览 x178-452] [图标 x537-662 居中] [返回 x747-917]，居中图标即清除全部。
+     * 注意：可能弹出"关闭全部窗口?"确认框，由调用方下一轮关键词搜索命中确认。
+     */
+    private fun findUcPanelClearAllIconByGeometry(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindowSafe() ?: return null
+        val dm = resources.displayMetrics
+        val scrW = dm.widthPixels
+        val scrH = dm.heightPixels
+        if (scrW <= 0 || scrH <= 0) return null
+        var found: AccessibilityNodeInfo? = null
+        fun dfs(n: AccessibilityNodeInfo, depth: Int) {
+            if (found != null || depth > 14) return
+            val t = n.text?.toString()?.trim().orEmpty()
+            val d = n.contentDescription?.toString()?.trim().orEmpty()
+            if (n.isClickable && t.isEmpty() && d.isEmpty()) {
+                val r = android.graphics.Rect()
+                n.getBoundsInScreen(r)
+                val w = r.width()
+                val h = r.height()
+                val cx = (r.left + r.right) / 2f
+                if (r.top > scrH * 0.88f && w in 40..(scrW / 6).coerceAtLeast(40) &&
+                    h in 40..(scrH / 12).coerceAtLeast(40) &&
+                    cx > scrW * 0.3f && cx < scrW * 0.7f
+                ) {
+                    found = n
+                    return
+                }
+            }
+            for (i in 0 until n.childCount) {
+                val c = n.getChild(i) ?: continue
+                dfs(c, depth + 1)
+            }
+        }
+        dfs(root, 0)
+        return found
     }
 
     /** build773: dump 节点文本/desc（多窗口面板诊断用），限深限量防刷屏 */
