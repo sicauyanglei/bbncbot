@@ -32,6 +32,32 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build791 更快拿奖手势切回失败增加 pressBack 兜底——修复荣耀设备整场 0 肥料总根因
+
+**用户需求**: "解决所有问题"（承接 build790 分析，debug_test_20260906_170400.log）
+
+**根因（build790 修复后剩余的最大问题）**：
+
+荣耀设备最近任务手势无效（17:00:39 swipeUp 后 root=com.hihonor.android.pushagent，
+recents 未打开）→ stage=1 手势切回 UC 必失败 → 直接深链兜底 → 原广告被弃、奖励必丢
+（build780 注释明确"深链兜底重开的是农场主页而非广告页"）→ 且 fasterRewardRecentsFailed
+会话级禁用"我要更快拿奖"入口 → 后续所有"15秒更快拿奖"静态倒计时广告必零奖励。
+build789 整场 5 分钟会话 0 肥料的总根因。
+
+**修复方案**（AutomationController.kt stage=1 手势切回失败分支）：
+
+深链兜底前插入 pressBack 兜底：跳转 App（com.phoenix.read 等）是被 UC 广告页
+startActivity 拉起的，pressBack 大概率退回原广告页（广告会话保留，可继续领奖）。
+1.5s 后验证前台包名：回 UC → 继续广告等待；仍在外来 App → 才走深链放弃
++ fasterRewardRecentsFailed 会话级禁用（原 build780 路径，作为最终兜底）。
+同时删除 else 块外残留的原深链兜底死代码（否则会无条件重复执行）。
+
+**修改文件**: AutomationController.kt(stage=1 失败分支 pressBack 兜底+死代码清理)
+
+**编译验证**: gradle :app:compileFullDebugKotlin BUILD SUCCESSFUL（JDK17+SDK34）。
+
+---
+
 ### fix: build790 UC"看广告领奖"静态倒计时广告死循环+stall-exit误推进任务索引+死广告恢复慢
 
 **用户需求**: "分析日志"（debug_test_20260906_170400.log, build789 首次运行验证 16:58:54-17:03:56 用户手动停止, UC 平台）

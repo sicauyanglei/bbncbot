@@ -5949,23 +5949,46 @@ object AutomationController {
                                     debugLog("watchAd: stage=1 手势切回UC成功(跳转前广告页已恢复前台),继续广告等待")
                                     runWatchingAd(elapsedMs + adEndCheckIntervalMs)
                                 } else {
-                                    // 手势切回失败(未开手势导航/最近任务无UC卡片)：深链兜底回UC+杀外来App
-                                    Log.w(TAG, "watchAd: stage=1 gesture switch back failed (pkg=$nowPkg), deep link fallback")
-                                    debugLog("watchAd: stage=1 手势切回失败(pkg=$nowPkg),深链兜底回UC+杀'$jumpPkg'")
-                                    // build780: 深链兜底重开的是农场主页而非广告页，原广告已被放弃、奖励不到账。
-                                    // 记录失败，本会话不再点"我要更快拿奖"入口（stage=0 跳过），
-                                    // 让后续广告正常播完拿奖励，避免"看广告领奖"无限循环。
-                                    if (!fasterRewardRecentsFailed) {
-                                        fasterRewardRecentsFailed = true
-                                        Log.w(TAG, "watchAd: stage=1 recents gesture failed once, disable faster-reward entry for this session (build780)")
-                                    }
-                                    service.reopenFarmByDeepLink(killCurrentFirst = false)
-                                    if (jumpPkg.isNotEmpty()) {
-                                        service.forceKillApp(jumpPkg, pressBackFirst = false)
-                                    }
+                                    // build791 修复（debug_test_20260906_170400.log, build789, 17:00:39-17:00:55）：
+                                    //   荣耀设备最近任务手势无效(root=com.hihonor.android.pushagent,recents 未打开),
+                                    //   手势切回必失败 → 直接深链兜底 → 原广告被弃、奖励必丢(build780 注释),
+                                    //   且 fasterRewardRecentsFailed 会话级禁用入口 → 后续所有"15秒更快拿奖"
+                                    //   静态倒计时广告必零奖励(整场会话 0 肥料的总根因)。
+                                    //   修复:深链兜底前先 pressBack 兜底——跳转App是被UC广告页拉起的,
+                                    //   pressBack 大概率退回原广告页(广告会话保留,可继续领奖);
+                                    //   pressBack 也失败才走深链放弃+会话级禁用。
+                                    Log.w(TAG, "watchAd: stage=1 gesture switch back failed (pkg=$nowPkg), trying pressBack fallback before deep link (build791)")
+                                    debugLog("watchAd: stage=1 手势切回失败(pkg=$nowPkg),先 pressBack 兜底尝试退回原广告页(build791)")
+                                    service.pressBack()
                                     handler.postDelayed({
-                                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
-                                    }, INTERVAL_PAGE_LOAD_MS)
+                                        if (state != AutomationState.WATCHING_AD) return@postDelayed
+                                        val backPkg = service.rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
+                                        if (backPkg in watchingAdPlatform.config.packageNames) {
+                                            // pressBack 兜底成功:退回UC广告页,广告会话保留,继续广告等待领奖
+                                            Log.i(TAG, "watchAd: stage=1 pressBack fallback success (pkg=$backPkg), ad session preserved, resuming ad watch (build791)")
+                                            debugLog("watchAd: stage=1 pressBack 兜底切回'$backPkg'成功(广告会话保留),继续广告等待(build791)")
+                                            runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                                            return@postDelayed
+                                        }
+                                        // pressBack 也失败：深链兜底回UC+杀外来App（原 build780 路径）
+                                        Log.w(TAG, "watchAd: stage=1 pressBack fallback failed too (pkg=$backPkg), deep link fallback")
+                                        debugLog("watchAd: stage=1 pressBack 兜底也失败(pkg=$backPkg),深链兜底回UC+杀'$jumpPkg'")
+                                        // build780: 深链兜底重开的是农场主页而非广告页，原广告已被放弃、奖励不到账。
+                                        // 记录失败，本会话不再点"我要更快拿奖"入口（stage=0 跳过），
+                                        // 让后续广告正常播完拿奖励，避免"看广告领奖"无限循环。
+                                        if (!fasterRewardRecentsFailed) {
+                                            fasterRewardRecentsFailed = true
+                                            Log.w(TAG, "watchAd: stage=1 recents+pressBack both failed once, disable faster-reward entry for this session (build780)")
+                                        }
+                                        service.reopenFarmByDeepLink(killCurrentFirst = false)
+                                        if (jumpPkg.isNotEmpty()) {
+                                            service.forceKillApp(jumpPkg, pressBackFirst = false)
+                                        }
+                                        handler.postDelayed({
+                                            if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                                        }, INTERVAL_PAGE_LOAD_MS)
+                                    }, 1500)
+                                    return@postDelayed
                                 }
                             }, INTERVAL_PAGE_LOAD_MS)
                         }, 1200)
