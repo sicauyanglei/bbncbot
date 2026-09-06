@@ -607,6 +607,10 @@ object AutomationController {
     @Volatile
     private var fasterRewardStage1JumpStartMs: Long = 0L
 
+    /** build780: stage=1 手势切回失败标记（本会话内不再点"我要更快拿奖"入口，改正常看广告拿奖励） */
+    @Volatile
+    private var fasterRewardRecentsFailed: Boolean = false
+
     // ---------- 跨平台切换 ----------
     /** 跨平台切换：原平台（切换完成后回到此平台） */
     @Volatile
@@ -848,6 +852,7 @@ object AutomationController {
         lastDirectClickedBounds = ""
         installAdAbandonStreak = 0  // build744: 复位安装类广告连续放弃计数
         trapAdExitStreak = 0  // build754: 复位陷阱广告连续退出计数
+        fasterRewardRecentsFailed = false  // build780: 复位"更快拿奖"手势切回失败标记
         trapAdExitBaseCount = -1
         installAdAbandonBaseCount = -1
         aiVisionDirectClickAttempted = false  // build596: 复位 AI 视觉识别点击标记
@@ -1902,6 +1907,10 @@ object AutomationController {
                     if (attempt >= 1) {
                         Log.w(TAG, "collectDirect: jump button '$btnText' keeps leading to non-ad app (attempt=$attempt), giving up this button, opening task list")
                         debugLog("collectDirect: jump button '$btnText' repeatedly led to non-ad app, giving up (attempt=$attempt), opening task list")
+                        // build780 修复（debug_test_20260906_085438.log, 08:52:19-08:52:34）：
+                        //   "看广告领奖"跳到淘宝(非广告App)，放弃按钮但未计陷阱退出，
+                        //   streak 不增长，视频类入口跳过守卫不激活，循环继续。
+                        recordTrapAdExit()
                         lastDirectClickedText = ""
                         lastDirectClickedBounds = ""
                         moveTo(AutomationState.OPENING_TASK_LIST)
@@ -5486,7 +5495,17 @@ object AutomationController {
             when (fasterRewardStage) {
                 0 -> {
                     // 阶段0：查找"我要更快拿奖"按钮
-                    val entryBtn = service.findFasterRewardEntryButton()
+                    // build780 修复（debug_test_20260906_072308.log, 07:14:27-07:19:32 五轮循环）：
+                    //   本机（荣耀）stage=1 手势切回 100% 失败（"recents not open"）→ 深链兜底
+                    //   重开的是农场主页而非广告页 → 原广告被放弃、奖励不到账 → "看广告领奖"
+                    //   仍在 → collectDirect 再点 → 无限循环（每轮~60s，UC 标签页 6→10 累积）。
+                    //   修复：手势切回失败过一次后，本会话不再点"我要更快拿奖"入口，
+                    //   让广告正常播完自然发奖（倒计时 29s 结束即可拿奖励）。
+                    val entryBtn = if (fasterRewardRecentsFailed) {
+                        null
+                    } else {
+                        service.findFasterRewardEntryButton()
+                    }
                     if (entryBtn != null) {
                         Log.i(TAG, "watchAd: found '我要更快拿奖' button, clicking it")
                         debugLog("watchAd: clicking '我要更快拿奖' entry button")
@@ -5602,6 +5621,13 @@ object AutomationController {
                                     // 手势切回失败(未开手势导航/最近任务无UC卡片)：深链兜底回UC+杀外来App
                                     Log.w(TAG, "watchAd: stage=1 gesture switch back failed (pkg=$nowPkg), deep link fallback")
                                     debugLog("watchAd: stage=1 手势切回失败(pkg=$nowPkg),深链兜底回UC+杀'$jumpPkg'")
+                                    // build780: 深链兜底重开的是农场主页而非广告页，原广告已被放弃、奖励不到账。
+                                    // 记录失败，本会话不再点"我要更快拿奖"入口（stage=0 跳过），
+                                    // 让后续广告正常播完拿奖励，避免"看广告领奖"无限循环。
+                                    if (!fasterRewardRecentsFailed) {
+                                        fasterRewardRecentsFailed = true
+                                        Log.w(TAG, "watchAd: stage=1 recents gesture failed once, disable faster-reward entry for this session (build780)")
+                                    }
                                     service.reopenFarmByDeepLink(killCurrentFirst = false)
                                     if (jumpPkg.isNotEmpty()) {
                                         service.forceKillApp(jumpPkg, pressBackFirst = false)
@@ -5987,6 +6013,12 @@ object AutomationController {
             } else {
                 service.forceKillApp(currentPkg, pressBackFirst = false)
             }
+            // build780 修复（debug_test_20260906_072308.log, 07:15:06/07:16:08/07:17:18...）：
+            //   "我要更快拿奖"跳荣耀应用市场→深链兜底放弃广告→本分支退出，但漏调
+            //   recordTrapAdExit → trapAdExitStreak 永远为 0 → shouldSkipVideoAdEntries
+            //   永不激活 → collectDirect 反复点"看广告领奖"，无限循环（13分钟零奖励）。
+            //   修复：广告按钮陷阱退出也计入陷阱退出计数，连续无进展 2 次后跳过视频类入口。
+            recordTrapAdExit()
             currentTaskIndex++
             handler.postDelayed({
                 if (state == AutomationState.WATCHING_AD) {
@@ -6860,6 +6892,13 @@ object AutomationController {
         // （广告专用，通常90s）时不能强制关闭，否则会打断深链等待（下方深链分支有自己的调度）
         if (elapsedMs >= adMaxDurationMs && deepLinkAppPkg == null) {
             Log.w(TAG, "watchAd: timeout (${elapsedMs}ms/${adMaxDurationMs}ms), force closing")
+            // build780 修复（debug_test_20260906_072308.log 07:21:33-07:23:01 /
+            //   debug_test_20260906_085438.log 08:53:49-08:54:35）：
+            //   百度 MobRewardVideoActivity "摇一摇/去体验9秒可直接拿奖励"互动广告等满
+            //   90s 超时零奖励（两轮均如此），超时路径未计陷阱退出 → "看广告领奖"
+            //   反复被点。修复：广告超时=未发奖，计入陷阱退出，连续无进展 2 次后
+            //   跳过视频类入口。若超时广告实际发了奖，collectedCount 变化会自动重置 streak。
+            recordTrapAdExit()
             moveTo(AutomationState.CLOSING_AD)
             handler.postDelayed({ runClosingAd(strategy = 0) }, INTERVAL_CLICK_MS)
             return

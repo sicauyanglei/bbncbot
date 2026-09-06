@@ -32,6 +32,54 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build780 "我要更快拿奖"无限循环修复(stage=1手势切回失败会话级禁用+广告按钮陷阱退出补recordTrapAdExit)
+
+**用户需求**: "分析日志"
+
+**日志来源（重要）**: build778/779 两次 force push 分别覆盖了设备新上传的日志提交
+8ff3ac5(debug_test_20260906_072308.log, 1383行) 和 57c23d5(debug_test_20260906_080248.log, 168行)。
+本次用 GitHub API 按 SHA 恢复两份被覆盖日志到 logs/ 目录后分析。
+教训: force push 前应先检查远端是否有新 log 上传提交并先取回。
+
+**日志1 (072308, build777代码实测, UC会话 07:10-07:23, 13分钟零奖励)**:
+- build777 修复验证通过: 无小程序胶囊误杀、无 pkg=android 系统弹窗死循环、无搜索建议页误判
+- **P1 "我要更快拿奖"无限循环(07:14:27-07:19:32 五轮, 每轮~60s)**:
+  collectDirect点"看广告领奖"→TTRewardVideo/PortraitAD广告→点"我要更快拿奖"→直跳
+  荣耀应用市场(无确认弹窗变体)→停留15s→最近任务手势切回100%失败("recents not open",
+  荣耀设备)→深链兜底重开的是**农场主页而非广告页**→原广告被放弃、奖励不到账→
+  "看广告领奖"仍在→再点→无限循环。UC标签页6→10累积。
+  修复1: stage=1手势切回失败时置 fasterRewardRecentsFailed=true(start()复位),
+  stage=0 不再点"我要更快拿奖"入口,让广告正常播完自然发奖
+  修复2: "ad button trap"退出分支(watchAd left farm app)漏调 recordTrapAdExit,
+  trapAdExitStreak永远0→shouldSkipVideoAdEntries永不激活→补上,连续无进展2次跳过视频类入口
+- **P2 isRechargePage误判UC农场主页(07:15:01.853等6次)**: 从应用市场返回后农场页
+  (含"UC芭芭农场")被判TRAP_RECHARGE→误点关闭/pressBack。**build779已修**(芭芭农场文本守卫),无需重复修
+- P3 UC标签页累积(6→10): 深链重开每次新建标签;根因修复(不再点更快拿奖)后频率大减,暂不单独修
+
+**日志2 (080248, build778代码实测, UC会话 08:00-08:02, 用户2分钟手动停)**:
+- 同一"看广告领奖"模式: collectDirect→穿山甲TTRewardVideoActivity互动广告
+  ("去体验15秒可立即领奖")→等待中用户停止。同属本build修复覆盖的循环家族
+
+**日志3-5 (085438/085445/085502, build779代码实测, 同一会话08:51-08:54重复上传3份, 推送前从远端抢回)**:
+- build779验证: **isRechargePage零误判**(3份日志均无isRechargePage: YES),农场文本守卫生效
+- **P1 "看广告领奖"ping-pong仍在**(预期中,build779未含本build修复):
+  OPENING_TASK_LIST↔COLLECTING_DIRECT 4轮(same-as-last give-up→task list→click again)
+- **P1 新变体(08:52:19-08:52:34)**: 点"看广告领奖"跳到com.taobao.taobao(非广告App)
+  →杀淘宝+深链回UC。collectDirect放弃分支(attempt>=1)也漏recordTrapAdExit→已补
+- **P1 百度互动广告超时零奖励**(072308日志07:21-07:23同家族): MobRewardVideoActivity
+  "摇一摇/去体验9秒可直接拿奖励"等满90s零奖励,超时强关路径未计陷阱退出→已补
+  (若超时广告实际发奖,collectedCount变化自动重置streak,无误伤)
+- **P3 UC标签清理失效**: 标签累积到15个,closeUcExtraTabsIfNeeded点多窗口后
+  "close-all button NOT found"8次(面板已开,UC面板UI变更无close-all节点)→未修,需真机适配
+
+**修改文件**:
+- AutomationController.kt: fasterRewardRecentsFailed标志+stage=0入口门禁+stage=1失败置位+start()复位;
+  三处补recordTrapAdExit(): "ad button trap"退出分支/collectDirect跳非广告App放弃分支/广告90s超时强关分支
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### fix: build779 UC会话三问题修复(任务全部完成无短路re-navigate+isRechargePage广告窗口下误判农场内容+isAdEndedMultiSignal残留农场toast误判广告结束)
 
 **用户需求**: "分析日志"（debug_test_20260905_133337.log, UC平台会话13:20-13:33, 此前从未分析过）
