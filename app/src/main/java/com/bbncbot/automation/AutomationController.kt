@@ -298,6 +298,19 @@ object AutomationController {
     private var deepLinkEnterTimeMs: Long = 0L
 
     /**
+     * build785: 深链 one-shot 切回定时器触发时间戳（wall clock, 0=未触发）。
+     * 根因（debug_test_20260906_102248.log, 10:21:35.07→10:21:35.94→10:21:43）：
+     * one-shot 触发后置 deepLinkAppPkg=null，但手势切回异步 settle(~4s) 期间
+     * pkg 仍是跳转App，下一轮轮询把它**重新记录为新深链跳转**、重新武装 20s
+     * 定时器（日志出现第二条 "waiting 20000ms (task hint)"）；自然返回分支又
+     * advance 一次 → 同一任务被 collectedCount++/advanceTaskIndex() 两次，白烧 replay。
+     * 修复：one-shot 触发后 8s settle 窗内禁止重新记录；自然返回分支在窗内且
+     * deepLinkAppPkg==null（one-shot 已推进）时跳过重复 advance。
+     */
+    @Volatile
+    private var deepLinkBringFrontFiredMs: Long = 0L
+
+    /**
      * build784: 深链停留期间的滑动计数（上下交替模拟真实浏览）。
      * 用户需求："浏览任务需要上下滑动窗口"——光停留不滑动会被判挂机不发奖。
      * 进入 WATCHING_AD 时及首次记录 [deepLinkAppPkg] 时重置。
@@ -434,6 +447,11 @@ object AutomationController {
     /** build716: 点击"我要加速"跳转时的时间戳（用于计算停留时间） */
     @Volatile
     private var adSpeedUpJumpTimeMs: Long = 0L
+    /** build785: stage1→2 切回手势发起时间戳。切回是异步流程(手势→最近任务→点卡片→验证，
+     * 最坏~7s)，期间 pkg 仍是跳转App，陷阱分支必须放行宽限，否则误杀广告会话丢奖励
+     * （debug_test_20260906_102248.log, 10:15:43/10:20:47 两次"ad button trap"误杀）。 */
+    @Volatile
+    private var adSpeedUpJumpReturnStartMs: Long = 0L
 
     /** build696: "去体验N秒可立即领奖"CTA 已点击（体验类广告,每轮广告只点一次） */
     @Volatile
@@ -2106,7 +2124,10 @@ object AutomationController {
         // 这样既保证闭环（任务结束后回到任务列表页），又不破坏 UC 任务入口原本在主页的行为。
         if (service.currentPlatform != Platform.UNKNOWN && !taskListOpenedThisRound) {
             // 先检查页面上是否已有可见的"去完成"按钮（UC 主页任务入口直接可见的情况）
-            val visibleGoComplete = service.findGoCompleteButtons()
+            // build785: 过滤幽灵按钮——text/desc 均空且上下文只有"去完成"的全宽容器
+            // (debug_test_20260906_102248.log 10:15:50 唯一一个 text='' bounds=[75,1616]
+            // [1120,1756] 的容器被当任务点击,深链跳1688隐私页空耗20s+)
+            val visibleGoComplete = filterGhostTaskButtons(service, service.findGoCompleteButtons())
             if (visibleGoComplete.isEmpty()) {
                 // build674 修复（debug_test_20260801_094058.log, build673）：
                 // UC 活动版农场页面（"8.4内完成3天即领"）任务直接显示在主页,不需要点"集肥料"。
@@ -2207,7 +2228,7 @@ object AutomationController {
 
         // 优先检查：页面上是否已有"去完成"按钮（UC 等平台任务入口直接在主页上，无需点击"集肥料"打开任务列表）
         // 用户需求：UC 主页上有多个任务入口（看视频、浏览广告等），选择一个打开，没获取到肥料就选另一个
-        val existingButtons = service.findGoCompleteButtons()
+        val existingButtons = filterGhostTaskButtons(service, service.findGoCompleteButtons())  // build785: 过滤幽灵按钮
         if (existingButtons.isNotEmpty()) {
             Log.i(TAG, "openTaskList: found ${existingButtons.size} goComplete buttons directly on page (no need to click 集肥料), platform=${service.currentPlatform}")
             debugLog("openTaskList: ${existingButtons.size} goComplete buttons already visible, processing directly (attempt=$attempt)")
@@ -2571,6 +2592,33 @@ object AutomationController {
         handler.postDelayed({
             if (state == AutomationState.OPENING_TASK_LIST) runOpeningTaskList(openingAttempt + 1)
         }, INTERVAL_CLICK_MS)
+    }
+
+    /**
+     * build785: 过滤"幽灵"任务按钮——自身 text/desc 均为空、上下文去掉"去完成"后
+     * 无有效任务文案的可点击容器（findGoCompleteButtons 返回的是 clickable 祖先容器，
+     * 文本在子节点时容器自身 text=''）。
+     * 根因（debug_test_20260906_102248.log, 10:15:50）：陷阱退出后任务列表未真正打开，
+     * 页面上唯一命中的 text='' bounds=[75,1616][1120,1756] 全宽容器被当成任务按钮，
+     * processTask 点击后深链跳 1688 隐私政策页，空耗 20s+。
+     */
+    private fun filterGhostTaskButtons(
+        service: FarmAccessibilityService,
+        buttons: List<AccessibilityNodeInfo>
+    ): List<AccessibilityNodeInfo> {
+        return buttons.filter { btn ->
+            val text = btn.text?.toString()?.trim().orEmpty()
+            val desc = btn.contentDescription?.toString()?.trim().orEmpty()
+            if (text.isEmpty() && desc.isEmpty()) {
+                val ctx = service.collectTaskContextText(btn)
+                val meaningful = ctx.replace("去完成", "").replace(Regex("\\s+"), "")
+                if (meaningful.isEmpty()) {
+                    debugLog("openTaskList: drop ghost button (no text/desc, context has no task info besides '去完成', build785)")
+                    return@filter false
+                }
+            }
+            true
+        }
     }
 
     /**
@@ -5544,6 +5592,7 @@ object AutomationController {
         // 用户要求：有些广告需要指定时间才能领取肥料，保持到规定时间+1秒后再检测退出
         if (elapsedMs == 0L) {
             deepLinkAppPkg = null       // 重置深链跳转跟踪，等待检测是否进入其他 App
+            deepLinkBringFrontFiredMs = 0L  // build785: 重置 one-shot 切回触发时间戳
             deepLinkStaySwipeCount = 0  // build784: 重置深链停留滑动计数
             fasterRewardStage = 0       // 重置"更快拿奖"弹窗处理状态
             fasterRewardAppPkg = null   // 重置新 App 包名记录
@@ -5572,6 +5621,7 @@ object AutomationController {
             adSpeedUpJumpStage = 0
             adSpeedUpJumpPkg = null
             adSpeedUpJumpTimeMs = 0L
+            adSpeedUpJumpReturnStartMs = 0L  // build785: 重置切回宽限期起点
             // build696: 重置"去体验N秒可立即领奖"CTA 点击标记
             adExperienceClicked = false
             // build719: 重置"上滑或点击查看"互动提示点击标记
@@ -6125,6 +6175,7 @@ object AutomationController {
                 debugLog("watchAd: 10s elapsed, bringFarmAppToFront (not relaunch, keep ad session)")
                 service.bringFarmAppToFront(watchingAdPlatform)
                 adSpeedUpJumpStage = 2
+                adSpeedUpJumpReturnStartMs = System.currentTimeMillis()  // build785: 切回宽限期起点
                 handler.postDelayed({
                     if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
                 }, INTERVAL_PAGE_LOAD_MS)
@@ -6164,8 +6215,16 @@ object AutomationController {
         //   两轮均如此,第一轮还引发 47s NAVIGATING 恢复)。修复:interactiveAdJumpPending
         //   =true 时放行,交给深链分支(停留 20s→保留现场切回→广告关闭回调发奖)。
         val currentPkg = service.getCurrentWindowPackage()
+        // build785: "我要加速" stage1→2 切回宽限期(12s)。切回手势是异步流程
+        //   (上滑开最近任务→点卡片→验证,最坏~7s),期间 pkg 仍是跳转App——
+        //   debug_test_20260906_102248.log 10:15:43/10:20:47 两次在此窗口被判
+        //   "ad button trap" 误杀跳转App+深链重开农场,广告会话丢失、15s体验奖励丢失。
+        val speedUpReturnInGrace = adSpeedUpJumpStage == 2 &&
+            adSpeedUpJumpReturnStartMs > 0 &&
+            System.currentTimeMillis() - adSpeedUpJumpReturnStartMs < 12000L
         if (watchingAdPlatform != Platform.UNKNOWN && currentPkg != null &&
             adSpeedUpJumpStage != 1 &&  // 放行"我要加速"跳转停留阶段
+            !speedUpReturnInGrace &&  // build785: 放行"我要加速"切回手势宽限期
             !watchingAdFromDeepLinkTask &&  // build743: 放行深链任务跳转,交给深链分支处理
             !interactiveAdJumpPending &&  // build762: 放行互动广告"点击跳转拿奖励"跳转,交给深链分支处理
             currentPkg !in watchingAdPlatform.config.packageNames &&
@@ -7146,6 +7205,16 @@ object AutomationController {
                 if (watchingAdPlatform != Platform.UNKNOWN &&
                     currentPkg in watchingAdPlatform.config.packageNames &&
                     (deepLinkAppPkg != null || watchingAdFromDeepLinkTask)) {
+                    // build785: one-shot 切回已触发(settle 窗内)且 deepLinkAppPkg 已清 null——
+                    // one-shot 分支已 collectedCount++/advanceTaskIndex() 并调度了
+                    // runDeepLinkReturnToFarm，此处若再执行会重复推进同一任务(白烧 replay)。
+                    val oneShotRecentlyFired = deepLinkAppPkg == null &&
+                        deepLinkBringFrontFiredMs > 0 &&
+                        System.currentTimeMillis() - deepLinkBringFrontFiredMs < 8000L
+                    if (oneShotRecentlyFired) {
+                        debugLog("watchAd: farm back in foreground, but one-shot bring-to-front already advanced this task (build785), skip duplicate advance")
+                        return
+                    }
                     Log.i(TAG, "watchAd: back to farm app '$currentPkg' on task landing page (no farm keywords), deep-link task complete")
                     debugLog("watchAd: farm app back in foreground on task landing page, task complete, recovering to farm page")
                     deepLinkAppPkg = null  // 清除后已调度的切回定时器会自动取消
@@ -7161,9 +7230,22 @@ object AutomationController {
                 // 不排除会把农场包名误记为深链跳转 App，空等 20s 停留后才切回。
                 val isFarmPlatformPkg = watchingAdPlatform != Platform.UNKNOWN &&
                     currentPkg in watchingAdPlatform.config.packageNames
+                // build785: one-shot 切回触发后 settle 窗(8s)内 pkg 仍是跳转App(手势动画中),
+                // 不得重新记录为新深链跳转——否则会重新武装 stayMs 定时器造成二次切回/二次推进
+                // (debug_test_20260906_102248.log 10:21:35.94 第二条 "waiting 20000ms")。
+                val bringFrontSettling = deepLinkBringFrontFiredMs > 0 &&
+                    System.currentTimeMillis() - deepLinkBringFrontFiredMs < 8000L
+                if (deepLinkAppPkg == null && !isFarmPlatformPkg && bringFrontSettling) {
+                    debugLog("watchAd: pkg '$currentPkg' still foreground during bring-to-front settle window, skip re-arming deep-link timer (build785)")
+                    handler.postDelayed({
+                        if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                    }, adEndCheckIntervalMs)
+                    return
+                }
                 if (deepLinkAppPkg == null && !isFarmPlatformPkg) {
                     deepLinkAppPkg = currentPkg
                     deepLinkEnterTimeMs = elapsedMs
+                    deepLinkBringFrontFiredMs = 0L  // build785: 新一次深链会话,清除 one-shot 标记
                     deepLinkStaySwipeCount = 0  // build784: 新一次深链停留,重置滑动计数
                     val stayMs = deepLinkTaskStayMs
                     Log.i(TAG, "watchAd: entered deep-linked app '$currentPkg', will bring farm to front (preserve scene) after ${stayMs}ms")
@@ -7206,6 +7288,9 @@ object AutomationController {
                         val isFarmPkg = watchingAdPlatform != Platform.UNKNOWN &&
                             jumpedPkg in watchingAdPlatform.config.packageNames
                         deepLinkAppPkg = null
+                        // build785: 标记 one-shot 已触发并推进任务——settle 窗内轮询不得
+                        // 重新记录 deepLinkAppPkg 重新武装定时器，自然返回分支不得重复 advance
+                        deepLinkBringFrontFiredMs = System.currentTimeMillis()
                         // 等够任务时长视为任务完成（同自然返回分支），计入收集数并推进任务
                         collectedCount++
                         advanceTaskIndex()

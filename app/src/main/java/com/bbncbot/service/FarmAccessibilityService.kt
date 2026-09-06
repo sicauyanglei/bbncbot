@@ -499,9 +499,15 @@ class FarmAccessibilityService : AccessibilityService() {
     fun isLauncherRoot(): Boolean {
         val pkg = rootInActiveWindowSafe()?.packageName?.toString().orEmpty()
         if (pkg.isEmpty()) return false
+        // build785 修复（debug_test_20260906_102248.log, 10:15:37/10:20:41）：
+        //   原 contains("home") 把 com.cubic.autohome（汽车之家，auto**home**）误判为桌面，
+        //   "我要加速"切回时 clickRecentTaskCard 以为最近任务已打开，空点卡片 6 次且
+        //   不触发 GLOBAL_ACTION_RECENTS 兜底 → 切回失败 → 陷阱分支误杀广告会话丢奖励。
+        //   改为按包名分段精确匹配 "home" 段（com.miui.home 等仍命中，autohome 不命中）。
+        val segments = pkg.lowercase().split('.', '-', '_')
         return pkg in getLauncherPackages() ||
             pkg.contains("launcher", ignoreCase = true) ||
-            pkg.contains("home", ignoreCase = true)
+            segments.any { it == "home" }
     }
 
     /**

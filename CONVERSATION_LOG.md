@@ -32,6 +32,46 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build785 汽车之家误判桌面致切回失败+"我要加速"切回期陷阱误杀+深链重复武装+幽灵按钮
+
+**用户需求**: "分析日志"（debug_test_20260906_102248.log, build782 运行）→"是的"（全部修复）
+
+**日志分析与根因**:
+
+1. **P0-1 isLauncherRoot 误判 com.cubic.autohome 为桌面**（10:15:37/10:20:41 两次 `after gesture root=com.cubic.autohome (launcher=true)`）：
+   FarmAccessibilityService.isLauncherRoot() 的 `pkg.contains("home")` 命中 auto**home**。
+   后果链：clickRecentTaskCard 误以为最近任务已打开→空点卡片6次→**不触发 GLOBAL_ACTION_RECENTS
+   兜底**（对比 taobao 那次 launcher=false 走兜底4s内切回成功）→moveTaskToFront 找不到 UC 任务→切回失败。
+2. **P0-2 "我要加速" stage1→2 切回期无陷阱豁免**（10:15:43/10:20:47 两次 "ad button trap"）：
+   切回手势是异步流程(最坏~7s)，期间 pkg 仍是 autohome，但 `adSpeedUpJumpStage != 1` 已不满足
+   (已置2)→陷阱分支 kill autohome+深链重开农场→**广告会话丢失、15s体验奖励丢失**，trapAdExit streak+1。
+3. **P1-3 深链 one-shot 切回触发后轮询重新武装**（10:21:35.07→10:21:35.94→10:21:43）：
+   one-shot 触发置 deepLinkAppPkg=null，settle 窗内轮询把 taobao **重新记录为新深链跳转**、
+   重新武装 20s 定时器（日志第二条 "waiting 20000ms"）；自然返回分支又 advance 一次
+   （replay 7→6 连跳两次）→同一任务 collectedCount++/advanceTaskIndex() 两次，白烧 replay。
+4. **P2-4 幽灵空按钮被当任务点击**（10:15:50）：任务列表未真正打开时，唯一命中的
+   text='' bounds=[75,1616][1120,1756] 全宽容器（context 仅"去完成"）被 processTask 点击，
+   深链跳1688隐私政策页空耗 20s+。
+
+**修复方案**:
+
+- **P0-1**（FarmAccessibilityService.kt isLauncherRoot）：`contains("home")` 改为按 `.`/`-`/`_`
+  分段后段名精确等于 "home"（com.miui.home 仍命中，autohome 不命中）。
+- **P0-2**（AutomationController）：新增 `adSpeedUpJumpReturnStartMs`，stage1→2 切回时记录；
+  陷阱分支新增 `speedUpReturnInGrace`（stage==2 且切回<12s）放行宽限期；WATCHING_AD 重置块清零。
+- **P1-3**（AutomationController）：新增 `deepLinkBringFrontFiredMs`，one-shot 触发时记录；
+  settle 窗(8s)内轮询禁止重新记录 deepLinkAppPkg（仅继续轮询）；自然返回分支在窗内且
+  deepLinkAppPkg==null 时跳过重复 advance；新深链会话记录时/进入广告时清零。
+- **P2-4**（AutomationController）：新增 `filterGhostTaskButtons()`——自身 text/desc 均空且
+  collectTaskContextText 去掉"去完成"后无有效文案的容器直接 drop；
+  应用于 openTaskList 的 visibleGoComplete 与 existingButtons 两处。
+
+**修改文件**: FarmAccessibilityService.kt(isLauncherRoot)、AutomationController.kt(变量×2+重置×2+陷阱分支+深链记录/返回分支+幽灵过滤函数+2处调用)
+
+**编译验证**: sandbox 无 Android SDK; 括号平衡检查通过({}/()/[]差值均为0); 等 CI 构建验证。
+
+---
+
 ### fix: build784 深链停留期间上下滑动窗口(模拟真实浏览防挂机不发奖)
 
 **用户需求**: "浏览任务需要上下滑动窗口"
