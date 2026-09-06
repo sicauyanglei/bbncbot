@@ -32,6 +32,30 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build784 深链停留期间上下滑动窗口(模拟真实浏览防挂机不发奖)
+
+**用户需求**: "浏览任务需要上下滑动窗口"
+
+**问题分析**:
+- 深链分支(runWatchingAd, deepLinkAppPkg!=null)跳到第三方App后只**干等**deepLinkTaskStayMs
+  再切回农场,停留期间零交互——浏览类任务("去XX浏览15秒")和build782/783的
+  "去体验X秒可立即领奖"跳转都走这条路径,不滑动会被判挂机不发奖。
+- BROWSING_TASK状态本就有上下交替滑动(固定坐标600/1200±250),但深链停留分支从未接入。
+
+**修复方案**:
+- 深链停留轮询分支(≈每5s一轮)在屏幕中部上下交替滑一次(奇数轮上滑/偶数轮下滑,
+  复用browseTask的交替模式),坐标按 displayMetrics 动态算(宽1/2,高1/2±10%),
+  时长500ms,用既有 service.dispatchGestureSwipe。
+- 新增 deepLinkStaySwipeCount 计数: runWatchingAd(0)重置块 + 首次记录deepLinkAppPkg
+  时清零,跨广告/跨任务不串。
+- 豁免: 千问对话任务(防干扰聊天输入)/充值页/异常交易页不滑。
+
+**修改文件**: AutomationController.kt(变量声明+2处重置+轮询分支滑动逻辑)
+
+**编译验证**: sandbox 无 Android SDK; 括号平衡检查通过; 等 CI 构建验证。
+
+---
+
 ### fix: build783 领奖体验时长按页面秒数等待(非固定9s)+build782编译错误修复(service未声明)
 
 **用户需求**: "不是9秒，多少秒页面上有写，根据具体要求的秒数等待"

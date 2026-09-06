@@ -298,6 +298,14 @@ object AutomationController {
     private var deepLinkEnterTimeMs: Long = 0L
 
     /**
+     * build784: 深链停留期间的滑动计数（上下交替模拟真实浏览）。
+     * 用户需求："浏览任务需要上下滑动窗口"——光停留不滑动会被判挂机不发奖。
+     * 进入 WATCHING_AD 时及首次记录 [deepLinkAppPkg] 时重置。
+     */
+    @Volatile
+    private var deepLinkStaySwipeCount: Int = 0
+
+    /**
      * build737: 当前深链任务在其它App的停留时长（毫秒）
      *
      * 需求变更（原"等2秒激活+kill"）：深链任务（如"去头条极速版逛逛15秒"）进入其它App后，
@@ -5536,6 +5544,7 @@ object AutomationController {
         // 用户要求：有些广告需要指定时间才能领取肥料，保持到规定时间+1秒后再检测退出
         if (elapsedMs == 0L) {
             deepLinkAppPkg = null       // 重置深链跳转跟踪，等待检测是否进入其他 App
+            deepLinkStaySwipeCount = 0  // build784: 重置深链停留滑动计数
             fasterRewardStage = 0       // 重置"更快拿奖"弹窗处理状态
             fasterRewardAppPkg = null   // 重置新 App 包名记录
             fasterRewardAppEnterTimeMs = 0L  // 重置新 App 进入时间戳
@@ -7155,6 +7164,7 @@ object AutomationController {
                 if (deepLinkAppPkg == null && !isFarmPlatformPkg) {
                     deepLinkAppPkg = currentPkg
                     deepLinkEnterTimeMs = elapsedMs
+                    deepLinkStaySwipeCount = 0  // build784: 新一次深链停留,重置滑动计数
                     val stayMs = deepLinkTaskStayMs
                     Log.i(TAG, "watchAd: entered deep-linked app '$currentPkg', will bring farm to front (preserve scene) after ${stayMs}ms")
                     debugLog("watchAd: deep-linked app '$currentPkg' detected, waiting ${stayMs}ms (task hint) then bringFarmAppToFront")
@@ -7242,6 +7252,25 @@ object AutomationController {
                 // 掉出本分支继续正常广告流程（min wait / AD_ENDED 检测等）。
                 if (deepLinkAppPkg != null) {
                     val remainMs = deepLinkTaskStayMs - (elapsedMs - deepLinkEnterTimeMs)
+                    // build784: 用户要求"浏览任务需要上下滑动窗口"——停留期间每轮轮询
+                    //   (≈adEndCheckIntervalMs,默认5s)在屏幕中部上下交替滑一次,模拟真实浏览,
+                    //   防挂机判定不发奖。坐标按屏幕尺寸动态算(与browseTask的固定600/1200不同,
+                    //   适配不同分辨率);千问对话任务(防干扰输入)/充值/异常交易页不滑。
+                    if (currentPkg != QIANWEN_PKG &&
+                        !service.isRechargePage() && !service.isOnAbnormalPage()) {
+                        deepLinkStaySwipeCount++
+                        val dm = service.resources.displayMetrics
+                        val cx = dm.widthPixels / 2f
+                        val baseY = dm.heightPixels / 2f
+                        val range = dm.heightPixels * 0.1f
+                        val (sy, ey, dir) = if (deepLinkStaySwipeCount % 2 == 1) {
+                            Triple(baseY + range, baseY - range, "up")    // 奇数次:上滑(页面向下滚)
+                        } else {
+                            Triple(baseY - range, baseY + range, "down")  // 偶数次:下滑(页面向上滚)
+                        }
+                        debugLog("watchAd: deep-link stay swipe #$deepLinkStaySwipeCount $dir (${sy.toInt()}->${ey.toInt()}), remain=${maxOf(remainMs, 0)}ms (build784)")
+                        service.dispatchGestureSwipe(cx, sy, cx, ey, 500L)
+                    }
                     debugLog("watchAd: in deep-linked app '$currentPkg', bring-to-front scheduled in ${maxOf(remainMs, 0)}ms, polling as fallback")
                     handler.postDelayed({
                         if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
