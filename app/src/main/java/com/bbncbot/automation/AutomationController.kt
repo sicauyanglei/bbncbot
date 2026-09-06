@@ -380,6 +380,14 @@ object AutomationController {
     @Volatile
     private var interactiveAdClickClaimClicked: Boolean = false
 
+    /** build781: 互动广告"点击立即获取"按钮点击时刻（检测点击无跳转而死等用） */
+    @Volatile
+    private var interactiveAdClickClaimTimeMs: Long = 0L
+
+    /** build781: 互动广告"点击立即获取"已重试过一次标记（每轮广告最多重试一次） */
+    @Volatile
+    private var interactiveAdClaimRetried: Boolean = false
+
     /**
      * build756: 本轮 COLLECTING_DIRECT 是否点击过"签到"类直达按钮
      * 点击成功后按钮变"已领取"（每日直达领取完成），后续 0 direct 按钮时
@@ -5378,6 +5386,8 @@ object AutomationController {
             watchingAdPlatform = service.currentPlatform  // 记录农场平台，强杀深链 App 后重新启动此平台
             interactiveAdDownloadClicked = false  // build599 v2: 重置互动广告下载按钮点击标记
             interactiveAdClickClaimClicked = false  // build748: 重置互动广告"点击立即获取"按钮点击标记
+            interactiveAdClickClaimTimeMs = 0L  // build781: 重置点击时刻
+            interactiveAdClaimRetried = false   // build781: 重置重试标记
             // build759: 重置互动广告"点击跳转拿奖励"跳转状态
             interactiveAdJumpPending = false
             // build761: 重置千问对话任务状态
@@ -6284,9 +6294,54 @@ object AutomationController {
                 //   已排除"点击跳转详情页/第三方应用"陷阱变体）→ 点击它 → 后续轮询由
                 //   isAdEndedMultiSignal 检测"领取成功"等结束信号,走正常 REWARD_POPUP 流程。
                 if (!interactiveAdDownloadClicked) {
+                    // build781 修复（debug_test_20260906_092636.log, 09:24:54-09:26:33 死等102s用户手动停）：
+                    //   百度 MobRewardVideoActivity 互动广告:点"去体验9秒可直接拿奖励"后
+                    //   无任何跳转(按钮clickable=false,ACTION_CLICK点在depth=3容器上,第三方App
+                    //   未拉起),interactiveAdClickClaimClicked一次性标记阻止重试 → 视频已播完
+                    //   (AI进度0%,静态endcard)干等到90s超时,同家族广告三份日志零奖励。
+                    //   修复:点击后12s仍停留在广告Activity(未跳转)→清除一次性标记重试一次;
+                    //   重试再失败→点"跳过"提前退出死广告(静态endcard不会自动结束,
+                    //   跳过比干等90s强;视频已播完,跳过大概率仍按已播发奖励)。
+                    if (interactiveAdClickClaimClicked && interactiveAdJumpPending) {
+                        val sinceClick = System.currentTimeMillis() - interactiveAdClickClaimTimeMs
+                        val stillInAd = service.isAdActivity() || service.isAdPlaying()
+                        if (interactiveAdClickClaimTimeMs > 0L && sinceClick > 12000L && stillInAd) {
+                            if (!interactiveAdClaimRetried) {
+                                interactiveAdClaimRetried = true
+                                interactiveAdClickClaimClicked = false
+                                interactiveAdJumpPending = false
+                                Log.w(TAG, "watchAd: click-to-claim no jump after ${sinceClick}ms, allow one retry (build781)")
+                                debugLog("watchAd: 去体验点击${sinceClick}ms无跳转,清除一次性标记重试一次 (build781)")
+                                // 落入下方点击逻辑重试一次
+                            } else {
+                                Log.w(TAG, "watchAd: click-to-claim retry also no jump, click 跳过 to exit dead interactive ad (build781)")
+                                debugLog("watchAd: 去体验重试仍无跳转,点'跳过'退出死广告 (build781)")
+                                interactiveAdJumpPending = false
+                                recordTrapAdExit()  // 死广告=未发奖,计入陷阱退出(发奖会自动重置streak)
+                                val rootNow = service.rootInActiveWindowSafe()
+                                val skipNode = rootNow?.let {
+                                    service.findNodeByText(it, "跳过")
+                                        ?: service.findNodeByText(it, "跳过广告")
+                                        ?: service.findNodeByText(it, "跳过视频")
+                                }
+                                if (skipNode != null && service.performClickSafe(skipNode)) {
+                                    debugLog("watchAd: clicked '跳过' to exit dead interactive ad (build781)")
+                                } else {
+                                    debugLog("watchAd: no 跳过 node found, pressBack to exit dead interactive ad (build781)")
+                                    service.pressBack()
+                                }
+                                // 交给后续轮询的广告结束/离开检测处理
+                                handler.postDelayed({
+                                    if (state == AutomationState.WATCHING_AD) runWatchingAd(elapsedMs + adEndCheckIntervalMs)
+                                }, INTERVAL_PAGE_LOAD_MS)
+                                return
+                            }
+                        }
+                    }
                     val clickClaimBtn = service.findInteractiveAdClickToClaimButton()
                     if (clickClaimBtn != null && !interactiveAdClickClaimClicked) {
                         interactiveAdClickClaimClicked = true
+                        interactiveAdClickClaimTimeMs = System.currentTimeMillis()  // build781: 记录点击时刻
                         val ccText = clickClaimBtn.text?.toString().orEmpty()
                         // build759: "点击跳转拿奖励"类按钮点击后会拉起第三方App（淘宝闪购等），
                         // 置跳转守卫标志——落地页的陷阱场景降级（见 when 前 effectiveScene），

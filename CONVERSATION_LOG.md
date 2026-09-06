@@ -32,6 +32,33 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build781 互动广告"去体验"点击无跳转死等90s修复(12s无跳转重试一次+再失败点跳过退出死广告)
+
+**用户需求**: "分析日志"（debug_test_20260906_092636.log, build780首提交实测, UC会话09:23-09:26, 用户3.4分钟手动停）
+
+**日志分析结论**:
+- build779/780 验证: isRechargePage农场文本守卫持续生效(多次"NO (text contains 芭芭农场)");
+  "我要更快拿奖"零出现; 无看广告领奖ping-pong死循环(只1轮正常give-up)
+- **P1 互动广告"去体验"点击无跳转死等(09:24:54-09:26:33, 102s, 第三份日志同家族)**:
+  百度 MobRewardVideoActivity 互动广告(摇一摇/去体验9秒可直接拿奖励/我要加速领奖/开宝箱),
+  点"去体验"按钮(clickable=false,ACTION_CLICK点在depth=3容器)→第三方App未拉起→
+  interactiveAdClickClaimClicked一次性标记阻止重试→视频已播完(AI进度0%,静态endcard,
+  文案全程不变)→干等到90s超时(用户85s手动停)。
+  修复: TRAP_INTERACTIVE分支新增无跳转检测——点击12s后仍停留广告Activity→
+  清除一次性标记+jumpPending,重试一次点击;重试再失败→recordTrapAdExit+点"跳过"
+  (找不到跳过节点则pressBack)提前退出死广告,不再干等90s
+- P3 导航65s三次深链(UC冷启动慢/页面加载期被判"not in farm app"再fire深链,标签累积到15):
+  已知,几何兜底(f531089)会在每次导航后清标签,暂不冒险改导航逻辑
+- 标签清理在本日志仍失败(预期,本日志APK不含f531089几何兜底),等下次实测验证
+
+**修改文件**:
+- AutomationController.kt: interactiveAdClickClaimTimeMs/interactiveAdClaimRetried两个新状态
+  (广告开始重置块同步复位); TRAP_INTERACTIVE分支无跳转重试+跳过退出死广告
+
+**编译验证**: sandbox 无 Android SDK, 等 CI 构建验证。
+
+---
+
 ### fix: build780 "我要更快拿奖"无限循环修复(stage=1手势切回失败会话级禁用+广告按钮陷阱退出补recordTrapAdExit)
 
 **用户需求**: "分析日志"
