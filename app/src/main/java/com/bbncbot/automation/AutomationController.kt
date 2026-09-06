@@ -529,6 +529,24 @@ object AutomationController {
     @Volatile
     private var noProgressRounds: Int = 0
 
+    /**
+     * build789: 会话级永久跳过名单（debug_test_20260906_154317.log, 15:37-15:41 循环 4 轮）：
+     * 任务列表里无法完成的任务（游戏任务/跨平台无进展任务），每轮 OPENING_TASK_LIST
+     * 重置 currentTaskIndex=0 后全部重新处理一遍——跨平台任务 50s/轮 + 游戏任务
+     * AI 识别 30s/轮，列表永不清空，永远到不了施肥阶段。
+     * 修复：skip-list 命中/MAX_TASK_FAILS 失败/跨平台已尝试的任务 key 记入本名单，
+     * 后续轮次命中直接 index++ 秒过。key 归一化去数字去空白（进度变化不影响 key）。
+     * 仅会话内存活，自动化重启后重置。
+     */
+    private val sessionSkippedTaskKeys = mutableSetOf<String>()
+
+    /** 当前正在处理的任务 key（点击任务时设置，MAX_TASK_FAILS/跨平台完成时入名单） */
+    @Volatile
+    private var currentTaskKey: String? = null
+
+    private fun normalizeTaskKey(text: String): String =
+        text.replace(Regex("\\d+"), "").replace(Regex("\\s+"), "")
+
     /** build775: navigate 锁屏解锁尝试次数（>5 次说明有密码锁屏,退避等用户解锁） */
     @Volatile
     private var lockUnlockAttempts: Int = 0
@@ -2837,6 +2855,20 @@ object AutomationController {
         // 同时检查 buttonText 和 taskContextText（任务标题在上下文中）
         val taskContextText = service.collectTaskContextText(button)
         val fullTaskText = "$buttonText $taskContextText"
+
+        // 1a-ter0. build789: 会话级永久跳过名单检查——跳过过/失败过/跨平台已尝试的任务
+        // 直接 index++ 秒过，不再重复处理（跨平台 50s/轮、游戏任务 AI 30s/轮的死循环）。
+        val taskKey = normalizeTaskKey(fullTaskText)
+        if (taskKey in sessionSkippedTaskKeys) {
+            debugLog("processTask: task #${currentTaskIndex + 1} in session skip list, skipping instantly (build789, context='$taskContextText')")
+            currentTaskIndex++
+            handler.postDelayed({
+                if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
+            }, 500L)
+            return
+        }
+        currentTaskKey = taskKey
+
         // 明确要求下单的文案（"下单"前后跟动词/量词，不是单独的"下单得"）
         val hasPaidOrderKeyword = fullTaskText.contains("任意下单") ||
             fullTaskText.contains("下单领") ||
@@ -2910,6 +2942,11 @@ object AutomationController {
             //   重开任务列表 currentTaskIndex=0→又点同一任务，循环 3 轮零收益。
             // "招募武将"与"招募英雄"同类，需在游戏内完成招募动作，bot 无法完成，直接跳过。
             "招募武将",
+            // build789 修复（debug_test_20260906_154317.log, 15:37:45-15:41:24 每轮 30s）：
+            //   "农场对对碰匹配10组"任务需在小游戏内真正完成 10 组匹配，bot 无法玩游戏，
+            //   每轮点进去→gameTaskSuspend 页→AI 视觉 30s→MAX_TASK_FAILS 跳过→下轮重试。
+            // "对对碰"覆盖"农场对对碰匹配N组"等所有变体。
+            "对对碰",
             // build650 修复（用户反馈"邀请好友助力任务，不做"）：
             // "邀请好友助力(0/3) 邀请成功得 +1000 去完成" 类社交任务需分享给好友/好友助力，
             // bot 无法自动完成（无社交账号、无法分享），直接跳过不点击。
@@ -2957,6 +2994,7 @@ object AutomationController {
         if (shouldSkip) {
             Log.i(TAG, "processTask: task #${currentTaskIndex + 1} in skip list, skipping (text='$buttonText', context='$taskContextText')")
             debugLog("processTask: skip list task #${currentTaskIndex + 1}, text='$buttonText', context='$taskContextText'")
+            sessionSkippedTaskKeys.add(taskKey)  // build789: skip-list 任务会话内永久跳过
             currentTaskIndex++
             handler.postDelayed({
                 if (state == AutomationState.PROCESSING_TASK) runProcessingTask(0)
@@ -5106,6 +5144,11 @@ object AutomationController {
         if (currentTaskFailCount >= MAX_TASK_FAILS) {
             Log.w(TAG, "processTask: task failed $currentTaskFailCount times (AI exhausted), skipping task #${currentTaskIndex + 1}")
             debugLog("processTask: reached MAX_TASK_FAILS after AI exhausted, skipping task #${currentTaskIndex + 1}")
+            // build789: 失败任务会话内永久跳过（如下轮重开列表不会再次点击尝试）
+            currentTaskKey?.let {
+                sessionSkippedTaskKeys.add(it)
+                debugLog("processTask: task key '$it' added to session skip list (build789)")
+            }
             service.pressBack()
             currentTaskIndex++
             noProgressRounds++
@@ -8701,11 +8744,21 @@ object AutomationController {
                     Log.i(TAG, "switchPlatform-fertilize: found visible direct-claim node '$btnText', clicking node instead of blind coords (build777)")
                     service.performClickSafe(btn)
                 } else {
-                    // 无可见领取节点，回退目标平台的 collectFertilizerCoords 候选坐标
-                    val coords = switchTargetPlatform.config.collectFertilizerCoords
-                    debugLog("switchPlatform: fertilizing on ${switchTargetPlatform}, no direct-claim node, ${coords.size} coord candidates")
-                    for ((xRatio, yRatio) in coords) {
-                        clickAtRatio(service, xRatio, yRatio, "switchPlatform-fertilize")
+                    // build789: directCollectTexts 未覆盖的"XX肥料 领取"节点（如淘宝
+                    // "icon 200 肥料 领取"），宽松匹配点击，避免盲点坐标错过跨平台奖励
+                    val claimNode = service.findFarmPageClaimNode()
+                    if (claimNode != null) {
+                        val claimText = claimNode.text?.toString() ?: claimNode.contentDescription?.toString().orEmpty()
+                        debugLog("switchPlatform-fertilize: found farm claim node '$claimText', clicking (build789)")
+                        Log.i(TAG, "switchPlatform-fertilize: found farm claim node '$claimText', clicking (build789)")
+                        service.performClickSafe(claimNode)
+                    } else {
+                        // 无可见领取节点，回退目标平台的 collectFertilizerCoords 候选坐标
+                        val coords = switchTargetPlatform.config.collectFertilizerCoords
+                        debugLog("switchPlatform: fertilizing on ${switchTargetPlatform}, no direct-claim node, ${coords.size} coord candidates")
+                        for ((xRatio, yRatio) in coords) {
+                            clickAtRatio(service, xRatio, yRatio, "switchPlatform-fertilize")
+                        }
                     }
                 }
                 // 等待施肥/领取完成
@@ -8775,6 +8828,12 @@ object AutomationController {
                 if (service.isOnFarmPage()) {
                     debugLog("switchPlatform: original farm page loaded, resuming task list")
                     // 跨平台切换任务完成，继续下一个任务
+                    // build789: 跨平台任务会话内只做一次（奖励要么已发要么不会发，
+                    // 支付宝侧任务进度可能永远 0/1，不永久跳过会每轮重复切换 50s）
+                    currentTaskKey?.let {
+                        sessionSkippedTaskKeys.add(it)
+                        debugLog("switchPlatform: cross-platform task key '$it' added to session skip list (build789)")
+                    }
                     currentTaskIndex++
                     moveTo(AutomationState.PROCESSING_TASK)
                     handler.postDelayed({ runProcessingTask(0) }, INTERVAL_CLICK_MS)

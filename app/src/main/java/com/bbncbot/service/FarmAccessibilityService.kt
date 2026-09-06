@@ -6468,6 +6468,43 @@ class FarmAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * build789: 农场页宽松查找"XX肥料 领取"类领取节点（供跨平台任务 FERTILIZE_TARGET 使用）。
+     *
+     * debug_test_20260906_154317.log（15:37:24/15:38:52/15:40:17）：
+     * 淘宝农场页的跨平台奖励节点文案为 "icon 200 肥料 领取"（clickable=true，
+     * bounds=[406,1418][795,1513]），TAOBAO directCollectTexts
+     * 只含 ["可领取","挖肥料","点击领取","立即领取"]，不含裸"领取" →
+     * findDirectCollectButtons 找不到 → switchPlatform 回退盲点坐标错过奖励 →
+     * 支付宝侧"去淘宝农场得肥料"任务进度永远 0/1，每轮重复跨平台切换 50s。
+     *
+     * 匹配规则：text 含"肥料"且以"领取"结尾，排除"已领取"；返回节点自身或可点祖先。
+     * 仅在跨平台施肥路径调用（目标平台农场页），不影响 collectDirect 主流程。
+     */
+    fun findFarmPageClaimNode(): AccessibilityNodeInfo? {
+        val root = getRootInFarmApp() ?: return null
+        var result: AccessibilityNodeInfo? = null
+        fun walk(node: AccessibilityNodeInfo) {
+            if (result != null) return
+            val text = node.text?.toString()?.trim().orEmpty()
+            if (text.contains("肥料") && text.endsWith("领取") && !text.contains("已领取")) {
+                val clickable = findClickableSelfOrParentInternal(node)
+                if (clickable != null) {
+                    result = clickable
+                    return
+                }
+            }
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                walk(child)
+                if (result != null) return
+            }
+        }
+        walk(root)
+        debugLog("findFarmPageClaimNode: result=${result?.text ?: result?.contentDescription}")
+        return result
+    }
+
+    /**
      * build666 添加（用户需求"uc芭芭农场主页的'点击领取'按钮应该优先点击"）：
      * 检测农场主页是否有"已领取"/"明天领肥料"等每日奖励已领取标识。
      *

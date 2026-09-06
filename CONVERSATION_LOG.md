@@ -32,6 +32,43 @@
 
 ## 本轮会话修改历史（最新在上）
 
+### fix: build789 任务死循环2.0——会话级永久跳过名单+对对碰游戏任务+淘宝跨平台奖励领取
+
+**用户需求**: "分析日志"（debug_test_20260906_154317.log, build788 运行验证 15:35:46-15:43:14 用户手动停止）
+
+**build788 验证结果**：修复全部生效——"三国冰河招募武将"skip list 秒过（4 轮零误点）、
+胶囊"返回"/"更多"未被误点、gameTaskSuspend 正确判 false、状态文本未误点。
+
+**日志分析与根因（新型死循环，每轮约 85s，循环 4 轮后到不了施肥阶段）**：
+
+支付宝任务列表固定 3 个任务，每轮 OPENING_TASK_LIST 重置 currentTaskIndex=0 后全部重走：
+1. **#1 三国冰河招募武将** → skip list 秒过（build788 ✓，但每轮都重新 skip 一次）
+2. **#2 去淘宝农场得肥料（进度永远 0/1）** → 跨平台 SWITCHING_PLATFORM 往返 50s/轮。
+   淘宝农场页有跨平台奖励节点 "icon 200 肥料 领取"（clickable=true），但 TAOBAO
+   directCollectTexts 只含 ["可领取","挖肥料","点击领取","立即领取"] 不含裸"领取" →
+   findDirectCollectButtons 找不到 → 盲点坐标错过奖励 → 任务进度永远 0/1 → 下轮重复。
+3. **#3 农场对对碰匹配10组**（游戏任务，bot 玩不了）→ 点"去完成"→gameTaskSuspend→
+   AI 视觉 30s→MAX_TASK_FAILS 跳过→OPENING_TASK_LIST 重置索引→下轮重试。
+
+**修复方案**:
+
+- **P0 会话级永久跳过名单**（AutomationController）：新增 sessionSkippedTaskKeys +
+  normalizeTaskKey（去数字去空白，进度变化不影响 key）。skip-list 命中 / MAX_TASK_FAILS
+  失败 / 跨平台任务完成往返后，任务 key 入名单；processTask 开头命中名单直接
+  index++ 秒过。仅会话内存活，自动化重启重置。
+- **P1 skipTaskTexts 加"对对碰"**（农场对对碰匹配N组需在小游戏内完成匹配，bot 无法玩）。
+- **P2 淘宝跨平台奖励节点点击**（FarmAccessibilityService 新增 findFarmPageClaimNode：
+  text 含"肥料"且以"领取"结尾、排除"已领取"，返回自身或可点祖先；
+  FERTILIZE_TARGET 在 findDirectCollectButtons 为空时先调它，再回退盲点坐标）。
+
+**修改文件**: AutomationController.kt(sessionSkippedTaskKeys+normalizeTaskKey+
+processTask名单检查+skip/MAX_TASK_FAILS/RESUME_ORIGINAL_FARM入名单+skipTaskTexts"对对碰"+
+FERTILIZE_TARGET领取节点优先)、FarmAccessibilityService.kt(findFarmPageClaimNode)
+
+**编译验证**: gradle :app:compileFullDebugKotlin BUILD SUCCESSFUL（JDK17+SDK34）。
+
+---
+
 ### fix: build788 支付宝三国冰河招募武将死循环+小程序胶囊按钮误点+游戏推广页误判+状态文本误点
 
 **用户需求**: "分析日志。解决支付宝芭芭农场肥料获取问题"（debug_test_20260906_140927.log, 支付宝会话 14:02-14:09）
